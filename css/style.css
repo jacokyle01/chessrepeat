@@ -182,3 +182,11 @@
     width: 20px;
     height: 20px;
   }
+
+  .selected {
+    border: 1px solid black;
+  }
+
+  #main {
+    display: flex
+  }
