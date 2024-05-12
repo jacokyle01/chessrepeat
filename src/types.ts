@@ -1,1 +1,1 @@
-export type Redraw = () => void
+export type Redraw = () => void;
