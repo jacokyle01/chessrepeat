@@ -8,9 +8,9 @@ export default class PrepCtrl {
   subrepertoireNames: string[] = [];
 
   //libraries
-  chessground: Api | undefined;
-  chessSrs = ChessSrs();
-  chess: Chess = new Chess();
+  chessground: Api | undefined; // stores FEN
+  chessSrs = ChessSrs(); //stores training data
+  chess: Chess = new Chess(); // stores current PGN path
 
   constructor(readonly redraw: Redraw) {
     //we are initially learning
@@ -38,29 +38,26 @@ export default class PrepCtrl {
     this.chessSrs.next();
     console.log(this.chessSrs.state().path);
     this.setPgn(this.chessSrs.state().path!);
-
   };
 
   //TODO fix. correct typing
   //we use the Chess.js library to load a PGN into memory
   //there are 2 reasons for using this library
   //a) move validation
-  //b) deriving a FEN from a PGN 
+  //b) deriving a FEN from a PGN
 
   setPgn = (path: any) => {
     const pgn = path.map((node: { data: { san: any } }) => node.data.san).join(' ');
     console.log(pgn);
     this.chess.loadPgn(pgn);
     const fen = this.getFen();
-    this.chessground?.set(
-      {
-        fen: fen
-      }
-    )
+    this.chessground?.set({
+      fen: fen,
+    });
     this.redraw();
   };
 
   getFen = () => {
-    return this.chess.fen(); 
-  }
+    return this.chess.fen();
+  };
 }

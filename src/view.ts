@@ -20,6 +20,7 @@ const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
         click: () => {
           const pgn = document.getElementById('pgnInput')! as HTMLTextAreaElement;
           const name = document.getElementById('nameInput')! as HTMLTextAreaElement;
+          console.log(pgn);
           ctrl.addSubrepertoire(pgn.value, name.value);
         },
       },
@@ -47,12 +48,50 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
   );
 };
 
+const status = (ctrl: PrepCtrl): VNode => {
+  return h('div#status', [
+    h(
+      'div',
+      {
+        class: {
+          selected: ctrl.chessSrs.state().method == 'learn',
+        },
+      },
+      'Learn',
+    ),
+    h(
+      'div',
+      {
+        class: {
+          selected: ctrl.chessSrs.state().method == 'recall',
+        },
+      },
+      'Recall',
+    ),
+  ]);
+};
+
+//mostly for debugging, but something similiar should get implemented (with a markedly better UI)
+const rightWrap = (ctrl: PrepCtrl): VNode => {
+  return h(
+    'h1#right-wrap',
+    [
+      h('h2', 'PGN tree'),
+      h('div', ctrl.chessSrs.state().repertoire),
+      h('h2', 'Path'),
+      h('div', ctrl.chessSrs.state().path),
+      h('h2', 'FEN'),
+      h('div', ctrl.getFen())
+    ],
+    
+  );
+};
+
 const view = (ctrl: PrepCtrl): VNode => {
-  return h('div#main', [
-    h('div', chessground(ctrl)),
-    addSubrepertoire(ctrl),
-    subrepertoireTree(ctrl),
-    next(ctrl),
+  return h('div#root', [
+    h('div#left-wrap', [subrepertoireTree(ctrl), addSubrepertoire(ctrl)]),
+    h('div#main-wrap', [chessground(ctrl), status(ctrl)]),
+    rightWrap(ctrl),
   ]);
 };
 export default view;
