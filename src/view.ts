@@ -2,8 +2,8 @@ import { VNode, h } from 'snabbdom';
 import PrepCtrl from './ctrl';
 import { chessground } from './chessground';
 
-const next = (ctrl: PrepCtrl) => {
-  return h('button#next', { on: { click: () => ctrl.handleNext() } }, 'Next');
+const start = (ctrl: PrepCtrl) => {
+  return h('button#start', { on: { click: () => ctrl.startTrain() } }, 'Start');
 };
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
@@ -90,7 +90,7 @@ const rightWrap = (ctrl: PrepCtrl): VNode => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root', [
     h('div#left-wrap', [subrepertoireTree(ctrl), addSubrepertoire(ctrl)]),
-    h('div#main-wrap', [chessground(ctrl), status(ctrl)]),
+    h('div#main-wrap', [chessground(ctrl), status(ctrl), start(ctrl)]),
     rightWrap(ctrl),
   ]);
 };
