@@ -74,8 +74,8 @@ export default class PrepCtrl {
     return this.chessSrs.state().repertoire[this.chessSrs.state().index];
   };
 
-  learn = () => {
-    this.chessSrs.setMethod('learn')
+  handleLearn = () => {
+    this.chessSrs.setMethod('learn');
     this.chessSrs.next();
     this.setPgn(this.chessSrs.state().path); //load PGN into this chess instance
     console.log(this.chess.history({ verbose: true }));
@@ -102,7 +102,7 @@ export default class PrepCtrl {
         events: {
           after: () => {
             this.chessSrs.succeed();
-            this.learn();
+            this.handleLearn();
           },
         },
       },
@@ -110,20 +110,19 @@ export default class PrepCtrl {
     // console.log(last);
     this.chessground?.setShapes([{ orig: last!.from, dest: last!.to, brush: 'green' }]);
     console.log(this.chessground);
-            //HACK ish TODO
+    //HACK ish TODO
 
     this.redraw();
-
   };
 
   //TODO refactor common logic from learn, recall, into utility method
-  recall = () => {
-    this.chessSrs.setMethod('recall')
+  handleRecall = () => {
+    this.chessSrs.setMethod('recall');
     this.chessSrs.update();
     this.chessSrs.next();
-    this.setPgn(this.chessSrs.state().path?.slice(0, -1) || ""); //load PGN into this chess instance
-    console.log(this.chessSrs.state().path?.slice(0, -1));
-    console.log(this.chess.history({ verbose: true }));
+    this.setPgn(this.chessSrs.state().path?.slice(0, -1) || ''); //load PGN into this chess instance
+    // console.log(this.chessSrs.state().path?.slice(0, -1));
+    // console.log(this.chess.history({ verbose: true }));
     const history = this.chess.history({ verbose: true });
     const fen = history.at(-1)?.after || initial;
     // console.log(fen);
@@ -133,8 +132,7 @@ export default class PrepCtrl {
     // const targetMove = new Map();
     // targetMove.set(last!.from, last!.to);
 
-    
-    console.log(toDests(this.chess))
+    console.log(toDests(this.chess));
 
     this.chessground?.set({
       //TODO determine color from subrepertoire
@@ -146,22 +144,38 @@ export default class PrepCtrl {
       movable: {
         dests: toDests(this.chess),
         events: {
-          after: () => {
-            //TODO validation of correct move (possibly alternate) 
-            console.log('test');
-            this.chessSrs.succeed();
-            console.log(this.chessSrs.state());
-            this.recall();
+          after: (to: Key, from: Key) => {
+            //TODO validation of correct move (possibly alternate)
+            // console.log('test');
+            // this.chessSrs.succeed();
+            // console.log(this.chessSrs.state());
+            // this.handleRecall();
+            // console.log(this.chess.);
+            // console.log(this.chess.move(to + from));
+            const san = this.chess.move(to + from).san;
+            console.log(san);
+            this.chess.undo();
+            // this.handleGuess(san);
+            //TODO be more permissive depending on config
+            switch (this.chessSrs.guess(san)) {
+              case 'success':
+                this.chessSrs.succeed();
+                break;
+              case 'alternate':
+                this.chessSrs.succeed();
+                break;
+              case 'failure':
+                this.chessSrs.fail();
+                break;
+            }
+            this.handleRecall();
           },
         },
       },
     });
     // console.log(last);
     console.log(this.chessground);
-            //HACK ish TODO
-
+    //HACK ish TODO
     this.redraw();
-
   };
-
 }

@@ -4,8 +4,8 @@ import { chessground } from './chessground';
 
 const start = (ctrl: PrepCtrl) => {
   return h('div#control-wrap', [
-    h('button#learn', { on: { click: () => ctrl.learn() } }, 'learn'),
-    h('button#recall', { on: { click: () => ctrl.recall() } }, 'recall'),
+    h('button#learn', { on: { click: () => ctrl.handleLearn() } }, 'learn'),
+    h('button#recall', { on: { click: () => ctrl.handleRecall() } }, 'recall'),
   ]);
 };
 
