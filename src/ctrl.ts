@@ -93,11 +93,15 @@ export default class PrepCtrl {
       turnColor: 'white',
       fen: fen,
       //TODO redraw() here
-      movable: { dests: targetMove,
+      movable: {
+        dests: targetMove,
         events: {
-          after: () => this.startTrain()
-        }
-       },
+          after: () => {
+            this.chessSrs.succeed();
+            this.startTrain();
+          },
+        },
+      },
     });
     // console.log(last);
     this.chessground?.setShapes([{ orig: last!.from, dest: last!.to, brush: 'green' }]);
