@@ -3,7 +3,10 @@ import PrepCtrl from './ctrl';
 import { chessground } from './chessground';
 
 const start = (ctrl: PrepCtrl) => {
-  return h('button#start', { on: { click: () => ctrl.startTrain() } }, 'Start');
+  return h('div#control-wrap', [
+    h('button#learn', { on: { click: () => ctrl.learn() } }, 'learn'),
+    h('button#recall', { on: { click: () => ctrl.recall() } }, 'recall'),
+  ]);
 };
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
@@ -73,18 +76,14 @@ const status = (ctrl: PrepCtrl): VNode => {
 
 //mostly for debugging, but something similiar should get implemented (with a markedly better UI)
 const rightWrap = (ctrl: PrepCtrl): VNode => {
-  return h(
-    'h1#right-wrap',
-    [
-      h('h2', 'PGN tree'),
-      h('div', ctrl.chessSrs.state().repertoire),
-      h('h2', 'Path'),
-      h('div', ctrl.chessSrs.state().path),
-      h('h2', 'FEN'),
-      h('div', ctrl.getFen())
-    ],
-    
-  );
+  return h('h1#right-wrap', [
+    h('h2', 'PGN tree'),
+    // h('div', ctrl.chessSrs.state().repertoire),
+    h('h2', 'Path'),
+    h('div', ctrl.chess.pgn()),
+    h('h2', 'FEN'),
+    h('div', ctrl.getFen()),
+  ]);
 };
 
 const view = (ctrl: PrepCtrl): VNode => {

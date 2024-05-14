@@ -6,6 +6,7 @@ import { Color, TrainingData } from 'chess-srs/dist/types';
 import { initial } from 'chessground/fen';
 import { Dests, Key } from 'chessground/types';
 import { Game } from 'chessops/pgn';
+import { toDests } from './util';
 
 export default class PrepCtrl {
   //TODO call these "plans"
@@ -13,7 +14,9 @@ export default class PrepCtrl {
 
   //libraries
   chessground: Api | undefined; // stores FEN
-  chessSrs = ChessSrs(); //stores training data
+  chessSrs = ChessSrs({
+    buckets: [1, 1, 111],
+  }); //stores training data
   chess: Chess = new Chess(); // provided with current PGN path
 
   constructor(readonly redraw: Redraw) {
@@ -71,7 +74,8 @@ export default class PrepCtrl {
     return this.chessSrs.state().repertoire[this.chessSrs.state().index];
   };
 
-  startTrain = () => {
+  learn = () => {
+    this.chessSrs.setMethod('learn')
     this.chessSrs.next();
     this.setPgn(this.chessSrs.state().path); //load PGN into this chess instance
     console.log(this.chess.history({ verbose: true }));
@@ -98,7 +102,7 @@ export default class PrepCtrl {
         events: {
           after: () => {
             this.chessSrs.succeed();
-            this.startTrain();
+            this.learn();
           },
         },
       },
@@ -106,5 +110,58 @@ export default class PrepCtrl {
     // console.log(last);
     this.chessground?.setShapes([{ orig: last!.from, dest: last!.to, brush: 'green' }]);
     console.log(this.chessground);
+            //HACK ish TODO
+
+    this.redraw();
+
   };
+
+  //TODO refactor common logic from learn, recall, into utility method
+  recall = () => {
+    this.chessSrs.setMethod('recall')
+    this.chessSrs.update();
+    this.chessSrs.next();
+    this.setPgn(this.chessSrs.state().path?.slice(0, -1) || ""); //load PGN into this chess instance
+    console.log(this.chessSrs.state().path?.slice(0, -1));
+    console.log(this.chess.history({ verbose: true }));
+    const history = this.chess.history({ verbose: true });
+    const fen = history.at(-1)?.after || initial;
+    // console.log(fen);
+
+    // const last = history.at(-1);
+
+    // const targetMove = new Map();
+    // targetMove.set(last!.from, last!.to);
+
+    
+    console.log(toDests(this.chess))
+
+    this.chessground?.set({
+      //TODO determine color from subrepertoire
+      //currently, it doesn't look like chessSrs has this functionality
+      //ideally, extend 'Game' with metadeta about the subrepertoire
+      turnColor: 'white',
+      fen: fen,
+      //TODO redraw() here
+      movable: {
+        dests: toDests(this.chess),
+        events: {
+          after: () => {
+            //TODO validation of correct move (possibly alternate) 
+            console.log('test');
+            this.chessSrs.succeed();
+            console.log(this.chessSrs.state());
+            this.recall();
+          },
+        },
+      },
+    });
+    // console.log(last);
+    console.log(this.chessground);
+            //HACK ish TODO
+
+    this.redraw();
+
+  };
+
 }
