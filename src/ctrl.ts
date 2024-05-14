@@ -4,8 +4,11 @@ import { Chess } from 'chess.js';
 import { ChessSrs } from 'chess-srs';
 import { Color, TrainingData } from 'chess-srs/dist/types';
 import { initial } from 'chessground/fen';
+import { Dests, Key } from 'chessground/types';
+import { Game } from 'chessops/pgn';
 
 export default class PrepCtrl {
+  //TODO call these "plans"
   subrepertoireNames: string[] = [];
 
   //libraries
@@ -20,6 +23,7 @@ export default class PrepCtrl {
 
   //TODO PGN validation
   addSubrepertoire = (pgn: string, name: string, color: Color = 'white') => {
+    // this.chessSrs.
     this.chessSrs.addSubrepertoires(pgn, color);
     this.subrepertoireNames.push(name);
     console.log(this.subrepertoireNames);
@@ -62,18 +66,41 @@ export default class PrepCtrl {
     return this.chess.fen();
   };
 
+  //TODO should be handled by ChessSrs library
+  subrep = () => {
+    return this.chessSrs.state().repertoire[this.chessSrs.state().index];
+  };
+
   startTrain = () => {
     this.chessSrs.next();
     this.setPgn(this.chessSrs.state().path); //load PGN into this chess instance
-    console.log(this.chess.history({verbose: true}));
+    console.log(this.chess.history({ verbose: true }));
     const history = this.chess.history({ verbose: true });
     const fen = history.at(-1)?.before || initial;
     // console.log(fen);
-    this.chessground?.set({
-      fen: fen,
-    });
+
     const last = history.at(-1);
+
+    const targetMove = new Map();
+    targetMove.set(last!.from, last!.to);
+
+    console.log(targetMove);
+
+    this.chessground?.set({
+      //TODO determine color from subrepertoire
+      //currently, it doesn't look like chessSrs has this functionality
+      //ideally, extend 'Game' with metadeta about the subrepertoire
+      turnColor: 'white',
+      fen: fen,
+      //TODO redraw() here
+      movable: { dests: targetMove,
+        events: {
+          after: () => this.startTrain()
+        }
+       },
+    });
     // console.log(last);
-    this.chessground?.setShapes([{ orig: last!.from, dest: last!.to, brush: 'green'}]);
+    this.chessground?.setShapes([{ orig: last!.from, dest: last!.to, brush: 'green' }]);
+    console.log(this.chessground);
   };
 }
