@@ -2,16 +2,16 @@ import { Api } from 'chessground/api';
 import { Redraw } from './types';
 import { Chess } from 'chess.js';
 import { ChessSrs } from 'chess-srs';
-import { Color, TrainingData } from 'chess-srs/dist/types';
+import { Color, TrainingData } from 'chess-srs/types';
 import { initial } from 'chessground/fen';
 import { Dests, Key } from 'chessground/types';
-import { Game } from 'chessops/pgn';
+import { Game, PgnNodeData } from 'chessops/pgn';
 import { toDests } from './util';
 
 export default class PrepCtrl {
   //TODO call these "plans"
   subrepertoireNames: string[] = [];
-
+  
   //libraries
   chessground: Api | undefined; // stores FEN
   chessSrs = ChessSrs({
