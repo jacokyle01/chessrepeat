@@ -42,7 +42,7 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
             click: () => ctrl.selectSubrepertoire(index),
           },
           class: {
-            selected: ctrl.chessSrs.state().index == index,
+            selected: ctrl.chessSrs.state.index == index,
           },
         },
         name,
@@ -57,7 +57,7 @@ const status = (ctrl: PrepCtrl): VNode => {
       'div',
       {
         class: {
-          selected: ctrl.chessSrs.state().method == 'learn',
+          selected: ctrl.chessSrs.state.method == 'learn',
         },
       },
       'Learn',
@@ -66,7 +66,7 @@ const status = (ctrl: PrepCtrl): VNode => {
       'div',
       {
         class: {
-          selected: ctrl.chessSrs.state().method == 'recall',
+          selected: ctrl.chessSrs.state.method == 'recall',
         },
       },
       'Recall',

@@ -31,7 +31,7 @@ export default class PrepCtrl {
     this.subrepertoireNames.push(name);
     console.log(this.subrepertoireNames);
     this.redraw();
-    console.log(this.chessSrs.state());
+    console.log(this.chessSrs.state);
   };
 
   selectSubrepertoire = (which: number) => {
@@ -44,8 +44,8 @@ export default class PrepCtrl {
   //   this.chessSrs.load(0);
   //   //TODO handle null
   //   this.chessSrs.next();
-  //   console.log(this.chessSrs.state().path);
-  //   this.setPgn(this.chessSrs.state().path!);
+  //   console.log(this.chessSrs.state.path);
+  //   this.setPgn(this.chessSrs.state.path!);
   // };
 
   //TODO fix. correct typing
@@ -71,13 +71,13 @@ export default class PrepCtrl {
 
   //TODO should be handled by ChessSrs library
   subrep = () => {
-    return this.chessSrs.state().repertoire[this.chessSrs.state().index];
+    return this.chessSrs.state.repertoire[this.chessSrs.state.index];
   };
 
   handleLearn = () => {
     this.chessSrs.setMethod('learn');
     this.chessSrs.next();
-    this.setPgn(this.chessSrs.state().path); //load PGN into this chess instance
+    this.setPgn(this.chessSrs.state.path); //load PGN into this chess instance
     console.log(this.chess.history({ verbose: true }));
     const history = this.chess.history({ verbose: true });
     const fen = history.at(-1)?.before || initial;
@@ -120,8 +120,8 @@ export default class PrepCtrl {
     this.chessSrs.setMethod('recall');
     this.chessSrs.update();
     this.chessSrs.next();
-    this.setPgn(this.chessSrs.state().path?.slice(0, -1) || ''); //load PGN into this chess instance
-    // console.log(this.chessSrs.state().path?.slice(0, -1));
+    this.setPgn(this.chessSrs.state.path?.slice(0, -1) || ''); //load PGN into this chess instance
+    // console.log(this.chessSrs.state.path?.slice(0, -1));
     // console.log(this.chess.history({ verbose: true }));
     const history = this.chess.history({ verbose: true });
     const fen = history.at(-1)?.after || initial;
@@ -148,7 +148,7 @@ export default class PrepCtrl {
             //TODO validation of correct move (possibly alternate)
             // console.log('test');
             // this.chessSrs.succeed();
-            // console.log(this.chessSrs.state());
+            // console.log(this.chessSrs.state);
             // this.handleRecall();
             // console.log(this.chess.);
             // console.log(this.chess.move(to + from));
