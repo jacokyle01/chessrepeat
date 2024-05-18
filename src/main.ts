@@ -1,8 +1,8 @@
-import { init, eventListenersModule, propsModule, attributesModule, classModule } from 'snabbdom';
+import { init, eventListenersModule, propsModule, attributesModule, classModule, styleModule} from 'snabbdom';
 import PrepCtrl from './ctrl';
 import view from './view';
 
-const patch = init([eventListenersModule, propsModule, attributesModule, classModule]);
+const patch = init([eventListenersModule, propsModule, attributesModule, classModule, styleModule]);
 
 const ctrl = new PrepCtrl(redraw);
 const element = document.getElementById('app')!;

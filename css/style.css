@@ -183,11 +183,6 @@
     flex-direction: column;
   }
 
-  button {
-    width: 40px;
-    height: 20px;
-  }
-
   .selected {
     border: 1px solid black;
   }
