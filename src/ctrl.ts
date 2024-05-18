@@ -16,6 +16,9 @@ export default class PrepCtrl {
   chessground: Api | undefined; // stores FEN
   chessSrs = ChessSrs({
     buckets: [1, 11, 111],
+    getNext: {
+      by: 'depth'
+    }
   }); //stores training data
   chess: Chess = new Chess(); // provided with current PGN path
   addingNewSubrep = false;

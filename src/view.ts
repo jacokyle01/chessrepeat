@@ -4,34 +4,70 @@ import { looseH as h } from './snabbdom';
 import PrepCtrl from './ctrl';
 import { chessground } from './chessground';
 import { NewSubrepertoire } from './types';
+import { gearI } from './svg/gear';
+import { addI } from './svg/add';
+import { closeI } from './svg/close';
 
 export const fieldValue = (e: Event, id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
 
 export const checked = (e: Event, id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 
-const start = (ctrl: PrepCtrl) => {
-  return h('div#control-wrap', [
-    h('button#learn', { on: { click: () => ctrl.handleLearn() } }, 'learn'),
-    h('button#recall', { on: { click: () => ctrl.handleRecall() } }, 'recall'),
+// const start = (ctrl: PrepCtrl) => {
+//   return h('div#control-wrap', [
+//     h('button#learn', { on: { click: () => ctrl.handleLearn() } }, 'learn'),
+//     h('button#recall', { on: { click: () => ctrl.handleRecall() } }, 'recall'),
+//   ]);
+// };
+
+const mode = (ctrl: PrepCtrl) => {
+  return h('div#mode-wrap.flex.items-end.gap-1.justify-center', [
+    // h('h3.font-light', 'mode'),
+    h(
+      'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.bg-blue-500.border-b-4.hover:bg-blue-400',
+      {
+        on: {
+          click: () => ctrl.handleLearn(),
+        },
+        class: {
+          'bg-blue-400': ctrl.chessSrs.state.method == 'learn',
+          'border-blue-500': ctrl.chessSrs.state.method == 'learn',
+        },
+      },
+      'LEARN',
+    ),
+    h(
+      'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.bg-orange-500.border-b-4.hover:bg-orange-400',
+      {
+        on: {
+          click: () => ctrl.handleRecall(),
+        },
+        class: {
+          'bg-orange-400': ctrl.chessSrs.state.method == 'recall',
+          'border-orange-500': ctrl.chessSrs.state.method == 'recall',
+        },
+      },
+      'RECALL',
+    ),
   ]);
 };
+// <button class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-500 rounded">
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-  return h('button', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, '+');
+  return h('button.flex.m-auto', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, addI());
 };
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
   const count = ctrl.subrepertoireNames.length;
-  return h('div#subrepertoire-tree-wrap.w-64', [
+  return h('div#subrepertoire-tree-wrap.w-64.shadow.appearance-none.border.rounded', [
     count == 0
-      ? h('div.mx-5.border-b-4.border-indigo-500', 'Nothing to see')
+      ? h('div.mx-5.border-b-2.border-cyan-400', 'Nothing to see')
       : count == 1
-        ? h('div.mx-5.border-b-4.border-indigo-500', '1 Entry')
-        : h('div.mx-5.border-b-4.border-indigo-500', `${count} entries`),
+        ? h('div.mx-5.border-b-2.border-cyan-400', '1 Entry')
+        : h('div.mx-5.border-b-2.border-cyan-400', `${count} entries`),
     ...ctrl.subrepertoireNames.map((name, index) =>
       h(
-        'div.subrepertoire.flex',
+        'div.subrepertoire.flex.items-center.justify-around',
         {
           on: {
             click: () => ctrl.selectSubrepertoire(index),
@@ -40,34 +76,38 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
             selected: ctrl.chessSrs.state.index == index,
           },
         },
-        [h('span.font-medium.text-cyan-400', (index + 1).toString()), h('h3', name)],
+        [
+          h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
+          h('h3.font-light.flex-1', name),
+          gearI(),
+        ],
       ),
     ),
   ]);
 };
 
-const status = (ctrl: PrepCtrl): VNode => {
-  return h('div#status', [
-    h(
-      'div',
-      {
-        class: {
-          selected: ctrl.chessSrs.state.method == 'learn',
-        },
-      },
-      'Learn',
-    ),
-    h(
-      'div',
-      {
-        class: {
-          selected: ctrl.chessSrs.state.method == 'recall',
-        },
-      },
-      'Recall',
-    ),
-  ]);
-};
+// const status = (ctrl: PrepCtrl): VNode => {
+//   return h('div#status', [
+//     h(
+//       'div',
+//       {
+//         class: {
+//           selected: ctrl.chessSrs.state.method == 'learn',
+//         },
+//       },
+//       'Learn',
+//     ),
+//     h(
+//       'div',
+//       {
+//         class: {
+//           selected: ctrl.chessSrs.state.method == 'recall',
+//         },
+//       },
+//       'Recall',
+//     ),
+//   ]);
+// };
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   return h(
@@ -79,7 +119,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
       h(
         'button.bg-red-500.rounded-full.h-6.w-6.flex.items-center.justify-center.absolute.top-1.right-1',
         { on: { click: () => ctrl.toggleAddingNewSubrep() } },
-        'X',
+        closeI(),
       ),
       h(
         'form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4',
@@ -165,7 +205,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       subrepertoireTree(ctrl),
       addSubrepertoire(ctrl),
     ]),
-    h('div#main-wrap', [chessground(ctrl), status(ctrl), start(ctrl)]),
+    h('div#main-wrap', [chessground(ctrl), mode(ctrl)]),
     rightWrap(ctrl),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
   ]);
