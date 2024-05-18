@@ -15,14 +15,47 @@ export default class PrepCtrl {
   //libraries
   chessground: Api | undefined; // stores FEN
   chessSrs = ChessSrs({
-    buckets: [1, 1, 111],
+    buckets: [1, 11, 111],
   }); //stores training data
   chess: Chess = new Chess(); // provided with current PGN path
   addingNewSubrep = false;
 
   constructor(readonly redraw: Redraw) {
     //we are initially learning
-    this.chessSrs.setMethod('learn');
+    document.addEventListener('DOMContentLoaded', (_) => {
+      this.chessSrs.setMethod('learn');
+      this.addSubrepertoire({
+        pgn: '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Bb4+ 6. Bd2 a5 7. Qc1 Bxd2+ 8. Qxd2 b5 9. Qg5',
+        alias: 'catalan',
+        trainAs: 'white',
+      });
+
+      this.addSubrepertoire({
+        pgn: '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Bb4+ 6. Bd2 a5 7. Qc1 Bxd2+ 8. Qxd2 b5 9. Qg5',
+        alias: 'catalan2',
+        trainAs: 'white',
+      });
+
+      this.addSubrepertoire({
+        pgn: '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Bb4+ 6. Bd2 a5 7. Qc1 Bxd2+ 8. Qxd2 b5 9. Qg5',
+        alias: 'catalan3',
+        trainAs: 'white',
+      });
+
+      this.selectSubrepertoire(0);
+      // this.handleLearn();
+      this.chessSrs.next();
+      this.chessSrs.succeed();
+
+      this.chessSrs.next();
+      this.chessSrs.succeed();
+      this.chessSrs.next();
+      this.chessSrs.succeed();
+      this.chessSrs.next();
+      this.chessSrs.succeed();
+      this.handleLearn();
+
+    });
   }
 
   //TODO PGN validation

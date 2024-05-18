@@ -5,7 +5,7 @@ import view from './view';
 const patch = init([eventListenersModule, propsModule, attributesModule, classModule, styleModule]);
 
 const ctrl = new PrepCtrl(redraw);
-const element = document.getElementById('app')!;
+const element = document.querySelector('body')!;
 element.innerHTML = '';
 const inner = document.createElement('div');
 element.appendChild(inner);

@@ -18,15 +18,20 @@ const start = (ctrl: PrepCtrl) => {
 };
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-  return h('button', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, '+ Add to repertoire');
+  return h('button', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, '+');
 };
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
-  return h(
-    'div#subrepertoire-tree-wrap',
-    ctrl.subrepertoireNames.map((name, index) =>
+  const count = ctrl.subrepertoireNames.length;
+  return h('div#subrepertoire-tree-wrap.w-64', [
+    count == 0
+      ? h('div.mx-5.border-b-4.border-indigo-500', 'Nothing to see')
+      : count == 1
+        ? h('div.mx-5.border-b-4.border-indigo-500', '1 Entry')
+        : h('div.mx-5.border-b-4.border-indigo-500', `${count} entries`),
+    ...ctrl.subrepertoireNames.map((name, index) =>
       h(
-        'div',
+        'div.subrepertoire.flex',
         {
           on: {
             click: () => ctrl.selectSubrepertoire(index),
@@ -35,10 +40,10 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
             selected: ctrl.chessSrs.state.index == index,
           },
         },
-        name,
+        [h('span.font-medium.text-cyan-400', (index + 1).toString()), h('h3', name)],
       ),
     ),
-  );
+  ]);
 };
 
 const status = (ctrl: PrepCtrl): VNode => {
@@ -154,9 +159,12 @@ const rightWrap = (ctrl: PrepCtrl): VNode => {
 };
 
 const view = (ctrl: PrepCtrl): VNode => {
-  return h('div#root', [
+  return h('div#root.flex.justify-center.gap-5.bg-neutral-100.h-full.items-start', [
     // ctrl.addingNewSubrep !== false && h('div', 'test'),
-    h('div#left-wrap', [subrepertoireTree(ctrl), addSubrepertoire(ctrl)]),
+    h('div#reperoire-wrap.bg-white.rounded-lg.block-inline', [
+      subrepertoireTree(ctrl),
+      addSubrepertoire(ctrl),
+    ]),
     h('div#main-wrap', [chessground(ctrl), status(ctrl), start(ctrl)]),
     rightWrap(ctrl),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
