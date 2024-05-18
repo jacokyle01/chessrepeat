@@ -17,8 +17,8 @@ export default class PrepCtrl {
   chessSrs = ChessSrs({
     buckets: [1, 11, 111],
     getNext: {
-      by: 'depth'
-    }
+      by: 'depth',
+    },
   }); //stores training data
   chess: Chess = new Chess(); // provided with current PGN path
   addingNewSubrep = false;
@@ -57,7 +57,6 @@ export default class PrepCtrl {
       this.chessSrs.next();
       this.chessSrs.succeed();
       this.handleLearn();
-
     });
   }
 
@@ -69,7 +68,11 @@ export default class PrepCtrl {
   };
 
   selectSubrepertoire = (which: number) => {
+    if (which == this.chessSrs.state.index) return;
     this.chessSrs.load(which);
+    this.chessground?.set({
+      fen: initial
+    })
     this.redraw();
   };
 
