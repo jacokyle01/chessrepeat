@@ -7,6 +7,9 @@ import { NewSubrepertoire } from './types';
 import { gearI } from './svg/gear';
 import { addI } from './svg/add';
 import { closeI } from './svg/close';
+import { pgnTree } from './pgn';
+import { recallI } from './svg/recall';
+import { bookI } from './svg/book';
 
 export const fieldValue = (e: Event, id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -24,7 +27,7 @@ const mode = (ctrl: PrepCtrl) => {
   return h('div#mode-wrap.flex.items-end.gap-1.justify-center', [
     // h('h3.font-light', 'mode'),
     h(
-      'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.bg-blue-500.border-b-4.hover:bg-blue-400',
+      'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.bg-blue-500.border-b-4.hover:bg-blue-400.flex',
       {
         on: {
           click: () => ctrl.handleLearn(),
@@ -34,10 +37,10 @@ const mode = (ctrl: PrepCtrl) => {
           'border-blue-500': ctrl.chessSrs.state.method == 'learn',
         },
       },
-      'LEARN',
+      [h('span', 'LEARN'), bookI()],
     ),
     h(
-      'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.bg-orange-500.border-b-4.hover:bg-orange-400',
+      'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.bg-orange-500.border-b-4.hover:bg-orange-400.flex',
       {
         on: {
           click: () => ctrl.handleRecall(),
@@ -47,7 +50,7 @@ const mode = (ctrl: PrepCtrl) => {
           'border-orange-500': ctrl.chessSrs.state.method == 'recall',
         },
       },
-      'RECALL',
+      [h('span', 'RECALL'), recallI()],
     ),
   ]);
 };
@@ -67,13 +70,13 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
         : h('div.mx-5.border-b-2.border-cyan-400', `${count} entries`),
     ...ctrl.subrepertoireNames.map((name, index) =>
       h(
-        'div.subrepertoire.flex.items-center.justify-around',
+        'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-100',
         {
           on: {
             click: () => ctrl.selectSubrepertoire(index),
           },
           class: {
-            selected: ctrl.chessSrs.state.index == index,
+            'bg-cyan-100': ctrl.chessSrs.state.index == index,
           },
         },
         [
@@ -85,29 +88,6 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
     ),
   ]);
 };
-
-// const status = (ctrl: PrepCtrl): VNode => {
-//   return h('div#status', [
-//     h(
-//       'div',
-//       {
-//         class: {
-//           selected: ctrl.chessSrs.state.method == 'learn',
-//         },
-//       },
-//       'Learn',
-//     ),
-//     h(
-//       'div',
-//       {
-//         class: {
-//           selected: ctrl.chessSrs.state.method == 'recall',
-//         },
-//       },
-//       'Recall',
-//     ),
-//   ]);
-// };
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   return h(
@@ -206,7 +186,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       addSubrepertoire(ctrl),
     ]),
     h('div#main-wrap', [chessground(ctrl), mode(ctrl)]),
-    rightWrap(ctrl),
+    pgnTree(['d4', 'c5', 'c4', 'e6', 'd5', 'exd5']),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
   ]);
 };

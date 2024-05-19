@@ -111,7 +111,6 @@ export default class PrepCtrl {
     targetMove.set(last!.from, last!.to);
 
     console.log(targetMove);
-
     this.chessground?.set({
       //TODO determine color from subrepertoire
       //currently, it doesn't look like chessSrs has this functionality
