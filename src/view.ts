@@ -40,7 +40,7 @@ const mode = (ctrl: PrepCtrl) => {
           'border-blue-500': ctrl.chessSrs.state.method == 'learn',
         },
       },
-      [h('span', 'LEARN'), bookI()],
+      [h('span', 'LEARN'), bookI(ctrl)],
     ),
     h(
       'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.bg-orange-500.border-b-4.hover:bg-orange-400.flex',
@@ -53,7 +53,7 @@ const mode = (ctrl: PrepCtrl) => {
           'border-orange-500': ctrl.chessSrs.state.method == 'recall',
         },
       },
-      [h('span', 'RECALL'), recallI()],
+      [h('span', 'RECALL'), recallI(ctrl)],
     ),
   ]);
 };
@@ -181,6 +181,9 @@ const rightWrap = (ctrl: PrepCtrl): VNode => {
   ]);
 };
 
+//TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
+//stats & # due 
+//date added 
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-neutral-100.h-full.items-start', [
     // ctrl.addingNewSubrep !== false && h('div', 'test'),
@@ -189,6 +192,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       addSubrepertoire(ctrl),
     ]),
     h('div#main-wrap', [chessground(ctrl), mode(ctrl)]),
+    //TODO gross 
     ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
   ]);

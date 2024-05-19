@@ -2,9 +2,9 @@ import { VNode, h } from 'snabbdom';
 
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
-const indexNode = (turn: number) => h('index', `${turn + 1}.`);
-const moveNode = (san: string) => h('move.flex-none.basis-[40%]', san);
-const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
+const indexNode = (turn: number) => h('index.bg-gray-200', `${turn + 1}.`);
+const moveNode = (san: string) => h('move.flex-1', san);
+const rowNode = (elems: VNode[]) => h('div#move-row.flex.gap-1', elems);
 
 
 //TODO handle comments
@@ -23,5 +23,5 @@ export const pgnTree = (pgn: string[]): VNode => {
       elems = [];
     }
   }
-  return h('div#pgn-tree', rows);
+  return h('div#pgn-tree.w-1/5.shadow.appearance-none.border.rounded', rows);
 };

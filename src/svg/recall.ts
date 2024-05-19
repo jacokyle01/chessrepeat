@@ -1,6 +1,7 @@
 import { h } from 'snabbdom';
+import PrepCtrl from '../ctrl';
 
-export const recallI = () => {
+export const recallI = (ctrl: PrepCtrl) => {
   return h(
     'svg',
     {
@@ -9,7 +10,7 @@ export const recallI = () => {
         viewbox: '0 0 24 24',
         width: '24',
         height: '24',
-        color: '#FFFFFF',
+        color: ctrl.chessSrs.state.method == 'recall' ? '#FFFF20' : '#FFFFFF',
         fill: 'none',
       },
     },

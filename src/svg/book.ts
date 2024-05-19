@@ -1,5 +1,6 @@
 import { h } from 'snabbdom';
-export const bookI = () => {
+import PrepCtrl from '../ctrl';
+export const bookI = (ctrl: PrepCtrl) => {
   return h(
     'svg',
     {
@@ -8,7 +9,7 @@ export const bookI = () => {
         viewbox: '0 0 24 24',
         width: '24',
         height: '24',
-        color: '#FFFFFF',
+        color: ctrl.chessSrs.state.method == 'learn' ? '#FFFF20' : '#FFFFFF',
         fill: 'none',
       },
     },
