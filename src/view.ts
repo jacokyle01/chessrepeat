@@ -10,6 +10,9 @@ import { closeI } from './svg/close';
 import { pgnTree } from './pgn';
 import { recallI } from './svg/recall';
 import { bookI } from './svg/book';
+import { stringifyPath } from './util';
+import { Path, TrainingData } from 'chess-srs/types';
+import { ChildNode } from 'chessops/pgn';
 
 export const fieldValue = (e: Event, id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -68,7 +71,7 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
       : count == 1
         ? h('div.mx-5.border-b-2.border-cyan-400', '1 Entry')
         : h('div.mx-5.border-b-2.border-cyan-400', `${count} entries`),
-    ...ctrl.subrepertoireNames.map((name, index) =>
+    ...ctrl.subrepertoireNames.map((name, index) => //TODO include graph of progress 
       h(
         'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-100',
         {
@@ -186,7 +189,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       addSubrepertoire(ctrl),
     ]),
     h('div#main-wrap', [chessground(ctrl), mode(ctrl)]),
-    pgnTree(['d4', 'c5', 'c4', 'e6', 'd5', 'exd5']),
+    ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
   ]);
 };

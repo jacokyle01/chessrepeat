@@ -6,6 +6,8 @@ const indexNode = (turn: number) => h('index', `${turn + 1}.`);
 const moveNode = (san: string) => h('move.flex-none.basis-[40%]', san);
 const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
+
+//TODO handle comments
 export const pgnTree = (pgn: string[]): VNode => {
   const rows: VNode[] = [];
   let elems: VNode[] = [];
@@ -16,7 +18,7 @@ export const pgnTree = (pgn: string[]): VNode => {
     }
     elems.push(moveNode(pgn.shift()!));
     i++;
-    if (i % 2 == 1) {
+    if (i % 2 == 0) {
       rows.push(rowNode(elems));
       elems = [];
     }
