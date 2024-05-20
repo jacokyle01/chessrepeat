@@ -13,18 +13,13 @@ import { bookI } from './svg/book';
 import { stringifyPath } from './util';
 import { Path, TrainingData } from 'chess-srs/types';
 import { ChildNode } from 'chessops/pgn';
+import { infoI } from './svg/info';
+import { questionI } from './svg/question';
 
 export const fieldValue = (e: Event, id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
 
 export const checked = (e: Event, id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
-
-// const start = (ctrl: PrepCtrl) => {
-//   return h('div#control-wrap', [
-//     h('button#learn', { on: { click: () => ctrl.handleLearn() } }, 'learn'),
-//     h('button#recall', { on: { click: () => ctrl.handleRecall() } }, 'recall'),
-//   ]);
-// };
 
 const mode = (ctrl: PrepCtrl) => {
   return h('div#mode-wrap.flex.items-end.gap-1.justify-center', [
@@ -65,36 +60,40 @@ const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
   const count = ctrl.subrepertoireNames.length;
-  return h('div#subrepertoire-tree-wrap.w-64.shadow.appearance-none.border.rounded', [
+  return h('div#subrepertoire-tree-wrap.w-64.flex-row', [
     count == 0
       ? h('div.mx-5.border-b-2.border-cyan-400', 'Nothing to see')
       : count == 1
         ? h('div.mx-5.border-b-2.border-cyan-400', '1 Entry')
-        : h('div.mx-5.border-b-2.border-cyan-400', `${count} entries`),
-    ...ctrl.subrepertoireNames.map((name, index) => //TODO include graph of progress 
-      h(
-        'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-100',
-        {
-          on: {
-            click: () => ctrl.selectSubrepertoire(index),
+        : h('span.mx-5.border-b-2.border-cyan-400.m-auto', `${count} entries`),
+    ...ctrl.subrepertoireNames.map(
+      (
+        name,
+        index, //TODO include graph of progress
+      ) =>
+        h(
+          'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-100',
+          {
+            on: {
+              click: () => ctrl.selectSubrepertoire(index),
+            },
+            class: {
+              'bg-cyan-100': ctrl.chessSrs.state.index == index,
+            },
           },
-          class: {
-            'bg-cyan-100': ctrl.chessSrs.state.index == index,
-          },
-        },
-        [
-          h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
-          h('h3.font-light.flex-1', name),
-          gearI(),
-        ],
-      ),
+          [
+            h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
+            h('h3.font-light.flex-1', name),
+            gearI(),
+          ],
+        ),
     ),
   ]);
 };
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   return h(
-    'dialog.fixed.top-1/2.left-1/2.transform.-translate-x-1/2.-translate-y-1/2.z-50.p-0.border-none',
+    'dialog.fixed.top-1/2.left-1/2.transform.-translate-x-1/2.-translate-y-1/2.z-50.border-none',
     {
       attrs: { open: true },
     },
@@ -105,7 +104,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
         closeI(),
       ),
       h(
-        'form.bg-white.shadow-md.rounded.px-8.pt-6.pb-8.mb-4',
+        'form.p-8.bg-white.rounded-md.shadow-md',
         {
           on: {
             submit: (e) => {
@@ -169,21 +168,34 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   );
 };
 
-//mostly for debugging, but something similiar should get implemented (with a markedly better UI)
-const rightWrap = (ctrl: PrepCtrl): VNode => {
-  return h('h1#right-wrap', [
-    h('h2', 'PGN tree'),
-    // h('div', ctrl.chessSrs.state().repertoire),
-    h('h2', 'Path'),
-    h('div', ctrl.chess.pgn()),
-    h('h2', 'FEN'),
-    h('div', ctrl.getFen()),
-  ]);
+const toast = (ctrl: PrepCtrl): VNode | null => {
+  return (
+    ctrl.toastMessage &&
+    h('div.p-2', [
+      h('div.w-50.shadow-lg.rounded-lg.flex', [
+        h(
+          'div.bg-blue-500.py-4.px-6.rounded-l-lg.flex.items-center',
+          {
+            class: {
+              'bg-blue-500': ctrl.toastMessage.type === 'learn',
+              'bg-orange-500': ctrl.toastMessage.type === 'recall'
+
+            },
+          },
+          [ctrl.toastMessage.type === 'learn' ? infoI() : questionI()],
+        ),
+        h(
+          'div.px-4.py-2.bg-white.rounded-r-lg.flex.justify-between.items-center.w-full.border.border-l.transparent.border-gray-200',
+          [h('div.font-light.text-sm', ctrl.toastMessage.message), h('button', [closeI()])],
+        ),
+      ]),
+    ])
+  );
 };
 
 //TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
-//stats & # due 
-//date added 
+//stats & # due
+//date added
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-neutral-100.h-full.items-start', [
     // ctrl.addingNewSubrep !== false && h('div', 'test'),
@@ -191,8 +203,8 @@ const view = (ctrl: PrepCtrl): VNode => {
       subrepertoireTree(ctrl),
       addSubrepertoire(ctrl),
     ]),
-    h('div#main-wrap', [chessground(ctrl), mode(ctrl)]),
-    //TODO gross 
+    h('div#main-wrap', [mode(ctrl), chessground(ctrl), toast(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+    //TODO gross
     ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
   ]);
