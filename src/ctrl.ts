@@ -78,6 +78,7 @@ export default class PrepCtrl {
     this.chessground?.set({
       fen: initial,
     });
+    this.toastMessage = null;
     this.redraw();
   };
 
