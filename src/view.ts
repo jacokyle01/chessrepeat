@@ -3,7 +3,7 @@ import { VNode } from 'snabbdom';
 import { looseH as h } from './snabbdom';
 import PrepCtrl from './ctrl';
 import { chessground } from './chessground';
-import { NewSubrepertoire } from './types';
+import { NewSubrepertoire, ToastType } from './types';
 import { gearI } from './svg/gear';
 import { addI } from './svg/add';
 import { closeI } from './svg/close';
@@ -15,6 +15,8 @@ import { Path, TrainingData } from 'chess-srs/types';
 import { ChildNode } from 'chessops/pgn';
 import { infoI } from './svg/info';
 import { questionI } from './svg/question';
+import { chart } from './chart';
+import { crossI } from './svg/cross';
 
 export const fieldValue = (e: Event, id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -22,30 +24,38 @@ export const fieldValue = (e: Event, id: string) =>
 export const checked = (e: Event, id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 
 const mode = (ctrl: PrepCtrl) => {
-  return h('div#mode-wrap.flex.items-end.gap-1.justify-center', [
+  return h('div#mode-wrap.flex.items-end.gap-1.justify-center.p-1.h-14', [
     // h('h3.font-light', 'mode'),
     h(
-      'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.bg-blue-500.border-b-4.hover:bg-blue-400.flex',
+      'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.border-b-4.hover:bg-blue-400.flex.active:transform.active:translate-y-px.active:border-b',
       {
         on: {
           click: () => ctrl.handleLearn(),
         },
         class: {
+          'bg-blue-500': ctrl.chessSrs.state.method == 'recall',
           'bg-blue-400': ctrl.chessSrs.state.method == 'learn',
+          'border-blue-700': ctrl.chessSrs.state.method == 'recall',
           'border-blue-500': ctrl.chessSrs.state.method == 'learn',
+          'translate-y-px': ctrl.chessSrs.state.method == 'learn',
+          'border-b': ctrl.chessSrs.state.method == 'learn',
         },
       },
       [h('span', 'LEARN'), bookI(ctrl)],
     ),
     h(
-      'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.bg-orange-500.border-b-4.hover:bg-orange-400.flex',
+      'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.border-b-4.hover:bg-orange-400.flex.active:transform.active:translate-y-px.active:border-b',
       {
         on: {
           click: () => ctrl.handleRecall(),
         },
         class: {
+          'bg-orange-500': ctrl.chessSrs.state.method == 'learn',
           'bg-orange-400': ctrl.chessSrs.state.method == 'recall',
+          'border-orange-700': ctrl.chessSrs.state.method == 'learn',
           'border-orange-500': ctrl.chessSrs.state.method == 'recall',
+          'translate-y-px': ctrl.chessSrs.state.method == 'recall',
+          'border-b': ctrl.chessSrs.state.method == 'recall',
         },
       },
       [h('span', 'RECALL'), recallI(ctrl)],
@@ -84,6 +94,7 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
           [
             h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
             h('h3.font-light.flex-1', name),
+            // chart(ctrl),
             gearI(),
           ],
         ),
@@ -169,24 +180,36 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 };
 
 const toast = (ctrl: PrepCtrl): VNode | null => {
+  const getIcon = (type: ToastType): VNode => {
+    switch (type) {
+      case 'fail':
+        return crossI(ctrl);
+      case 'learn':
+        return infoI();
+      case 'recall':
+        return questionI();
+    }
+  };
+
   return (
     ctrl.toastMessage &&
-    h('div.p-2', [
+    h('div.p-1', [
       h('div.w-50.shadow-lg.rounded-lg.flex', [
         h(
-          'div.bg-blue-500.py-4.px-6.rounded-l-lg.flex.items-center',
+          'div.bg-blue-500.py-3.px-3.rounded-l-lg.flex.items-center',
           {
             class: {
               'bg-blue-500': ctrl.toastMessage.type === 'learn',
-              'bg-orange-500': ctrl.toastMessage.type === 'recall'
-
+              'bg-orange-500': ctrl.toastMessage.type === 'recall',
+              'bg-red-500': ctrl.toastMessage.type === 'fail',
             },
           },
-          [ctrl.toastMessage.type === 'learn' ? infoI() : questionI()],
+          // [ctrl.toastMessage.type === 'learn' ? infoI() : questionI()],
+          getIcon(ctrl.toastMessage.type),
         ),
         h(
           'div.px-4.py-2.bg-white.rounded-r-lg.flex.justify-between.items-center.w-full.border.border-l.transparent.border-gray-200',
-          [h('div.font-light.text-sm', ctrl.toastMessage.message), h('button', [closeI()])],
+          [h('div.font-light.text-sm', ctrl.toastMessage.message)],
         ),
       ]),
     ])

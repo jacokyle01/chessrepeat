@@ -61,9 +61,19 @@ export default class PrepCtrl {
       this.chessSrs.succeed();
       this.chessSrs.next();
       this.chessSrs.succeed();
+      this.chessSrs.next();
+      this.chessSrs.succeed();
+      this.chessSrs.next();
+      this.chessSrs.succeed();
+      this.chessSrs.setMethod('learn');
       this.handleLearn();
     });
   }
+
+  //TODO should be handled by ChessSrs library
+  subrep = () => {
+    return this.chessSrs.state.repertoire[this.chessSrs.state.index];
+  };
 
   //TODO PGN validation
   addSubrepertoire = (newSubrep: NewSubrepertoire) => {
@@ -79,6 +89,7 @@ export default class PrepCtrl {
       fen: initial,
     });
     this.toastMessage = null;
+    console.log(this.subrep().meta)
     this.redraw();
   };
 
@@ -90,11 +101,6 @@ export default class PrepCtrl {
 
   getFen = () => {
     return this.chess.fen();
-  };
-
-  //TODO should be handled by ChessSrs library
-  subrep = () => {
-    return this.chessSrs.state.repertoire[this.chessSrs.state.index];
   };
 
   toggleAddingNewSubrep = () => {
@@ -149,6 +155,15 @@ export default class PrepCtrl {
     this.redraw();
   };
 
+  handleFail = (attempt: string) => {
+    this.toastMessage = {
+      type: 'fail',
+      header: '',
+      message: `Incorrect. ${attempt} is not the right move.`,
+    };
+    this.redraw();
+  }
+
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {
     this.chessSrs.setMethod('recall');
@@ -179,15 +194,17 @@ export default class PrepCtrl {
             switch (this.chessSrs.guess(san)) {
               case 'success':
                 this.chessSrs.succeed();
+                this.handleRecall();
                 break;
               case 'alternate':
                 this.chessSrs.succeed();
+                this.handleRecall();
                 break;
               case 'failure':
-                this.chessSrs.fail();
+                this.handleFail(san);
                 break;
             }
-            this.handleRecall();
+            // this.handleRecall();
           },
         },
       },
