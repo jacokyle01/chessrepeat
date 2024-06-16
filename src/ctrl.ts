@@ -108,7 +108,12 @@ export default class PrepCtrl {
     this.redraw();
   };
 
+  handleMethodSwitch = () => {
+    this.chessground?.setAutoShapes([]);
+  }
+
   handleLearn = () => {
+    this.handleMethodSwitch();
     this.chessSrs.setMethod('learn');
     this.chessSrs.next();
     this.setPgn(this.chessSrs.state.path); //load PGN into this chess instance
@@ -164,8 +169,12 @@ export default class PrepCtrl {
     this.redraw();
   }
 
+
+
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {
+    this.handleMethodSwitch();
+    this.chessground?.setAutoShapes([]);
     this.chessSrs.setMethod('recall');
     this.chessSrs.update();
     this.chessSrs.next();
