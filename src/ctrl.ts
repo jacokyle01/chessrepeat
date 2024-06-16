@@ -141,7 +141,7 @@ export default class PrepCtrl {
       },
     });
     // console.log(last);
-    this.chessground?.setShapes([{ orig: last!.from, dest: last!.to, brush: 'green' }]);
+    this.chessground?.setAutoShapes([{ orig: last!.from, dest: last!.to, brush: 'green' }]);
     console.log(this.chessground);
     //TODO hack-ish
 
