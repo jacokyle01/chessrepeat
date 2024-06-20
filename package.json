@@ -16,7 +16,8 @@
     "vite": "^5.2.0"
   },
   "dependencies": {
-    "chess-srs": "^2.0.0",
+    "chart.js": "^4.4.3",
+    "chess-srs": "^3.0.0",
     "chess.js": "^1.0.0-beta.8",
     "chessground": "^9.1.1",
     "chessops": "^0.14.1",

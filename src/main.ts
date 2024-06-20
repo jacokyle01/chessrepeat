@@ -1,6 +1,13 @@
-import { init, eventListenersModule, propsModule, attributesModule, classModule, styleModule} from 'snabbdom';
+import {
+  init,
+  eventListenersModule,
+  propsModule,
+  attributesModule,
+  classModule,
+  styleModule,
+} from 'snabbdom';
 import PrepCtrl from './ctrl';
-import view from './view';
+import view from './view/view';
 
 const patch = init([eventListenersModule, propsModule, attributesModule, classModule, styleModule]);
 

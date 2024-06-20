@@ -1,5 +1,5 @@
 import { Api } from 'chessground/api';
-import { NewSubrepertoire, Redraw, ToastPopup } from './types';
+import { NewSubrepertoire, Redraw, ToastPopup } from './types/types';
 import { Chess } from 'chess.js';
 import { ChessSrs } from 'chess-srs';
 import { Color, TrainingData } from 'chess-srs/types';
@@ -89,7 +89,7 @@ export default class PrepCtrl {
       fen: initial,
     });
     this.toastMessage = null;
-    console.log(this.subrep().meta)
+    console.log(this.subrep().meta);
     this.redraw();
   };
 
@@ -110,7 +110,7 @@ export default class PrepCtrl {
 
   handleMethodSwitch = () => {
     this.chessground?.setAutoShapes([]);
-  }
+  };
 
   handleLearn = () => {
     this.handleMethodSwitch();
@@ -167,9 +167,7 @@ export default class PrepCtrl {
       message: `Incorrect. ${attempt} is not the right move.`,
     };
     this.redraw();
-  }
-
-
+  };
 
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {

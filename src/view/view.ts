@@ -1,22 +1,22 @@
 import { VNode } from 'snabbdom';
 // import { looseH}
-import { looseH as h } from './snabbdom';
-import PrepCtrl from './ctrl';
-import { chessground } from './chessground';
-import { NewSubrepertoire, ToastType } from './types';
-import { gearI } from './svg/gear';
-import { addI } from './svg/add';
-import { closeI } from './svg/close';
+import { looseH as h } from '../types/snabbdom';
+import PrepCtrl from '../ctrl';
+import { chessground } from '../chessground';
+import { NewSubrepertoire, ToastType } from '../types/types';
+import { gearI } from '../svg/gear';
+import { addI } from '../svg/add';
+import { closeI } from '../svg/close';
 import { pgnTree } from './pgn';
-import { recallI } from './svg/recall';
-import { bookI } from './svg/book';
-import { stringifyPath } from './util';
+import { recallI } from '../svg/recall';
+import { bookI } from '../svg/book';
+import { stringifyPath } from '../util';
 import { Path, TrainingData } from 'chess-srs/types';
 import { ChildNode } from 'chessops/pgn';
-import { infoI } from './svg/info';
-import { questionI } from './svg/question';
+import { infoI } from '../svg/info';
+import { questionI } from '../svg/question';
 import { chart } from './chart';
-import { crossI } from './svg/cross';
+import { crossI } from '../svg/cross';
 
 export const fieldValue = (e: Event, id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
