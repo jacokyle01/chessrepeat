@@ -1,6 +1,7 @@
 import { h } from 'snabbdom';
 import PrepCtrl from '../ctrl';
 export const crossI = (ctrl: PrepCtrl) => {
+  console.log(ctrl);
   return h(
     'svg',
     {

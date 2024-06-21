@@ -1,12 +1,9 @@
 import { Api } from 'chessground/api';
 import { NewSubrepertoire, Redraw, ToastPopup } from './types/types';
-import { Chess } from 'chess.js';
 import { ChessSrs } from 'chess-srs';
-import { Color, TrainingData } from 'chess-srs/types';
 import { initial } from 'chessground/fen';
-import { Dests, Key } from 'chessground/types';
-import { Game, PgnNodeData } from 'chessops/pgn';
-import { toDests } from './util';
+import { Key } from 'chessground/types';
+import { calcTarget, chessgroundToSan, fenToDests, toDestMap} from './util';
 
 export default class PrepCtrl {
   //TODO call these "plans"
@@ -20,7 +17,7 @@ export default class PrepCtrl {
       by: 'depth',
     },
   }); //stores training data
-  chess: Chess = new Chess(); // provided with current PGN path
+  // chess: Chess = new Chess(); // provided with current PGN path
   addingNewSubrep = false;
   toastMessage: ToastPopup | null = null;
   constructor(readonly redraw: Redraw) {
@@ -93,16 +90,6 @@ export default class PrepCtrl {
     this.redraw();
   };
 
-  setPgn = (path: any) => {
-    const pgn = path.map((node: { data: { san: any } }) => node.data.san).join(' ');
-    console.log(pgn);
-    this.chess.loadPgn(pgn);
-  };
-
-  getFen = () => {
-    return this.chess.fen();
-  };
-
   toggleAddingNewSubrep = () => {
     this.addingNewSubrep = this.addingNewSubrep ? false : true;
     this.redraw();
@@ -116,18 +103,9 @@ export default class PrepCtrl {
     this.handleMethodSwitch();
     this.chessSrs.setMethod('learn');
     this.chessSrs.next();
-    this.setPgn(this.chessSrs.state.path); //load PGN into this chess instance
-    console.log(this.chess.history({ verbose: true }));
-    const history = this.chess.history({ verbose: true });
-    const fen = history.at(-1)?.before || initial;
-    // console.log(fen);
-
-    const last = history.at(-1);
-
-    const targetMove = new Map();
-    targetMove.set(last!.from, last!.to);
-
-    console.log(targetMove);
+    const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial
+    const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
+    const uci = calcTarget(fen, targetSan!);
     this.chessground?.set({
       //TODO determine color from subrepertoire
       //currently, it doesn't look like chessSrs has this functionality
@@ -136,7 +114,7 @@ export default class PrepCtrl {
       fen: fen,
       //TODO redraw() here
       movable: {
-        dests: targetMove,
+        dests: toDestMap(uci[0], uci[1]),
         events: {
           after: () => {
             this.chessSrs.succeed();
@@ -145,16 +123,14 @@ export default class PrepCtrl {
         },
       },
     });
-    // console.log(last);
-    this.chessground?.setAutoShapes([{ orig: last!.from, dest: last!.to, brush: 'green' }]);
-    console.log(this.chessground);
-    //TODO hack-ish
+    this.chessground?.setAutoShapes([{ orig: uci[0], dest: uci[1], brush: 'green' }]);
 
     //update toast
     this.toastMessage = {
       type: 'learn',
       header: 'New move',
-      message: `White plays ${last!.san}`,
+      message: 'White plays his move.'
+       // message: `White plays ${last!.san}`,14
     };
 
     this.redraw();
@@ -176,10 +152,7 @@ export default class PrepCtrl {
     this.chessSrs.setMethod('recall');
     this.chessSrs.update();
     this.chessSrs.next();
-    this.setPgn(this.chessSrs.state.path?.slice(0, -1) || ''); //load PGN into this chess instance
-    const history = this.chess.history({ verbose: true });
-    const fen = history.at(-1)?.after || initial;
-    console.log(toDests(this.chess));
+    const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial
 
     this.chessground?.set({
       //TODO determine color from subrepertoire
@@ -189,14 +162,11 @@ export default class PrepCtrl {
       fen: fen,
       //TODO redraw() here
       movable: {
-        dests: toDests(this.chess),
+        dests: fenToDests(fen),
+
         events: {
-          after: (to: Key, from: Key) => {
-            //TODO validation of correct move (possibly alternate)
-            const san = this.chess.move(to + from).san;
-            console.log(san);
-            this.chess.undo();
-            // this.handleGuess(san);
+          after: (from: Key, to: Key) => {
+            const san = chessgroundToSan(fen, from, to);
             //TODO be more permissive depending on config
             switch (this.chessSrs.guess(san)) {
               case 'success':
@@ -211,15 +181,10 @@ export default class PrepCtrl {
                 this.handleFail(san);
                 break;
             }
-            // this.handleRecall();
           },
         },
       },
     });
-    // console.log(last);
-    console.log(this.chessground);
-    //HACK ish TODO
-
     //update toast
     this.toastMessage = {
       type: 'recall',

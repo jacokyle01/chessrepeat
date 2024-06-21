@@ -1,4 +1,4 @@
-import { h as snabH, VNode, VNodeData, VNodeChildElement, Hooks, Attrs } from 'snabbdom';
+import { h as snabH, VNode, VNodeData, VNodeChildElement, Attrs } from 'snabbdom';
 
 export type { Attrs, VNode };
 export type Redraw = () => void;

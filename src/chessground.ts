@@ -1,16 +1,17 @@
 import { VNode, h } from 'snabbdom';
 import { Chessground } from 'chessground';
-import { toDests } from './util';
+// import { toDests } from './util';
 import { Config } from 'chessground/config';
 import PrepCtrl from './ctrl';
 
 function makeConfig(ctrl: PrepCtrl): Config {
-  const chess = ctrl.chess; //store chess state in ctrl
+  // const chess = ctrl.chess; //store chess state in ctrl
+  console.log(ctrl);
   const config: Config = {
     coordinates: true,
     movable: {
       color: 'white',
-      dests: toDests(chess),
+      // dests: toDests(chess),
       free: false,
     },
   };

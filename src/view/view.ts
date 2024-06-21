@@ -1,9 +1,8 @@
 import { VNode } from 'snabbdom';
-// import { looseH}
 import { looseH as h } from '../types/snabbdom';
 import PrepCtrl from '../ctrl';
 import { chessground } from '../chessground';
-import { NewSubrepertoire, ToastType } from '../types/types';
+import { ToastType } from '../types/types';
 import { gearI } from '../svg/gear';
 import { addI } from '../svg/add';
 import { closeI } from '../svg/close';
@@ -11,17 +10,16 @@ import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
 import { stringifyPath } from '../util';
-import { Path, TrainingData } from 'chess-srs/types';
+import { TrainingData } from 'chess-srs/types';
 import { ChildNode } from 'chessops/pgn';
 import { infoI } from '../svg/info';
 import { questionI } from '../svg/question';
-import { chart } from './chart';
 import { crossI } from '../svg/cross';
 
-export const fieldValue = (e: Event, id: string) =>
+export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
 
-export const checked = (e: Event, id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
+export const checked = (id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 
 const mode = (ctrl: PrepCtrl) => {
   return h('div#mode-wrap.flex.items-end.gap-1.justify-center.p-1.h-14', [
@@ -121,9 +119,9 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
             submit: (e) => {
               e.preventDefault();
               ctrl.addSubrepertoire({
-                alias: fieldValue(e, 'name'),
-                pgn: fieldValue(e, 'pgn'),
-                trainAs: checked(e, 'color') ? 'black' : 'white',
+                alias: fieldValue('name'),
+                pgn: fieldValue('pgn'),
+                trainAs: checked('color') ? 'black' : 'white',
               });
               ctrl.toggleAddingNewSubrep();
             },
