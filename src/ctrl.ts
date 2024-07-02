@@ -1,9 +1,9 @@
 import { Api } from 'chessground/api';
-import { NewSubrepertoire, Redraw, ToastPopup } from './types/types';
+import { NewSubrepertoire, PgnViewContext, Redraw, ToastPopup } from './types/types';
 import { ChessSrs } from 'chess-srs';
 import { initial } from 'chessground/fen';
 import { Key } from 'chessground/types';
-import { calcTarget, chessgroundToSan, fenToDests, toDestMap} from './util';
+import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 
 export default class PrepCtrl {
   //TODO call these "plans"
@@ -11,15 +11,24 @@ export default class PrepCtrl {
 
   //libraries
   chessground: Api | undefined; // stores FEN
+
   chessSrs = ChessSrs({
     buckets: [1, 11, 111],
     getNext: {
       by: 'depth',
     },
   }); //stores training data
-  // chess: Chess = new Chess(); // provided with current PGN path
+
   addingNewSubrep = false;
+
   toastMessage: ToastPopup | null = null;
+
+  // necessary context to display PGN, either as tree or chessground
+  pgnViewContext: PgnViewContext = {
+    splitFen: null,
+    index: -1,
+  };
+
   constructor(readonly redraw: Redraw) {
     //we are initially learning
     document.addEventListener('DOMContentLoaded', (_) => {
@@ -67,6 +76,32 @@ export default class PrepCtrl {
     });
   }
 
+  // resets subrepertoire-specific context,
+  // e.x. for selecting a different subrepertoire for training
+  clearSubrepertoireContext = () => {
+    //TODO do automatic recall/learn
+    // reset board
+    this.chessground?.set({
+      fen: initial,
+      drawable: {
+        autoShapes: [],
+      },
+    });
+
+    // reset toast
+    this.toastMessage = null;
+
+    // reset PGN tree
+  };
+
+  // update PGN view context through this method since it will also handle setting chessground
+  updatePgnViewContext = (ctx: PgnViewContext) => {
+    this.pgnViewContext = {
+      ...this.pgnViewContext,
+      ...ctx,
+    };
+  };
+
   //TODO should be handled by ChessSrs library
   subrep = () => {
     return this.chessSrs.state.repertoire[this.chessSrs.state.index];
@@ -82,12 +117,13 @@ export default class PrepCtrl {
   selectSubrepertoire = (which: number) => {
     if (which == this.chessSrs.state.index) return;
     this.chessSrs.load(which);
-    this.chessground?.set({
-      fen: initial,
-    });
-    this.toastMessage = null;
-    console.log(this.subrep().meta);
+    // this.chessground?.set({
+    //   fen: initial,
+    // });
+
+    this.clearSubrepertoireContext();
     this.redraw();
+    this.chessground?.setAutoShapes([]);
   };
 
   toggleAddingNewSubrep = () => {
@@ -95,15 +131,16 @@ export default class PrepCtrl {
     this.redraw();
   };
 
-  handleMethodSwitch = () => {
-    this.chessground?.setAutoShapes([]);
-  };
-
   handleLearn = () => {
-    this.handleMethodSwitch();
+    this.chessground?.setAutoShapes([]);
     this.chessSrs.setMethod('learn');
     this.chessSrs.next();
-    const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial
+    this.updatePgnViewContext({
+      splitFen: this.chessSrs.path()!.map((p) => p.data.fen),
+      index: 'last',
+    });
+
+    const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
     const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
     const uci = calcTarget(fen, targetSan!);
     this.chessground?.set({
@@ -129,8 +166,8 @@ export default class PrepCtrl {
     this.toastMessage = {
       type: 'learn',
       header: 'New move',
-      message: 'White plays his move.'
-       // message: `White plays ${last!.san}`,14
+      message: 'White plays his move.',
+      // message: `White plays ${last!.san}`,14
     };
 
     this.redraw();
@@ -152,7 +189,7 @@ export default class PrepCtrl {
     this.chessSrs.setMethod('recall');
     this.chessSrs.update();
     this.chessSrs.next();
-    const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial
+    const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
 
     this.chessground?.set({
       //TODO determine color from subrepertoire
