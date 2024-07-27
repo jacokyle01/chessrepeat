@@ -225,8 +225,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       addSubrepertoire(ctrl),
     ]),
     h('div#main-wrap', [mode(ctrl), chessground(ctrl), toast(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-    //TODO gross
-    ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
+    pgnTree(ctrl),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
   ]);
 };

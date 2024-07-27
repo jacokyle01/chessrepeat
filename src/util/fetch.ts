@@ -16,7 +16,7 @@ export const fetchSubrepertoires = async (): Promise<NewSubrepertoire[]> => {
     const subreps: NewSubrepertoire[] = json.map((subrep: any) => {
       return {
         pgn: subrep.pgn,
-        color: subrep.color === 1 ? 'black' : 'white',
+        trainAs: subrep.color === 1 ? 'black' : 'white',
         alias: `part ${subrep.id}`
       };
     });

@@ -49,7 +49,7 @@ export default class PrepCtrl {
       fen: initial,
     });
     this.toastMessage = null;
-    console.log(this.subrep().meta);
+    console.log("this subrep", this.subrep());
     this.redraw();
   };
 
