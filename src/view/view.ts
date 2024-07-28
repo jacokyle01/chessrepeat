@@ -12,6 +12,8 @@ import { bookI } from '../svg/book';
 import { infoI } from '../svg/info';
 import { questionI } from '../svg/question';
 import { crossI } from '../svg/cross';
+import { Color } from 'chess-srs/types';
+import { postSubrepertoire } from '../services/postSubrepertoire';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -89,7 +91,6 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
           [
             h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
             h('h3.font-light.flex-1', name),
-            // chart(ctrl),
             gearI(),
           ],
         ),
@@ -115,11 +116,15 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
           on: {
             submit: (e) => {
               e.preventDefault();
+              let alias = fieldValue('name');
+              let pgn = fieldValue('pgn');
+              let trainAs: Color = checked('color') ? 'black' : 'white';
               ctrl.addSubrepertoire({
-                alias: fieldValue('name'),
-                pgn: fieldValue('pgn'),
-                trainAs: checked('color') ? 'black' : 'white',
+                pgn,
+                trainAs, 
+                alias,
               });
+              postSubrepertoire(pgn, trainAs, alias);
               ctrl.toggleAddingNewSubrep();
             },
           },

@@ -1,7 +1,8 @@
 import { NewSubrepertoire } from '../types/types';
+import { baseUrl } from './constants';
 
 export const fetchSubrepertoires = async (): Promise<NewSubrepertoire[]> => {
-  const url = 'http://localhost:8080/subrepertoires';
+  const url = baseUrl + '/subrepertoires'
   try {
     const response = await fetch(url, {
       headers: {
@@ -17,7 +18,7 @@ export const fetchSubrepertoires = async (): Promise<NewSubrepertoire[]> => {
       return {
         pgn: subrep.pgn,
         trainAs: subrep.color === 1 ? 'black' : 'white',
-        alias: `part ${subrep.id}`
+        alias: subrep.alias
       };
     });
     return subreps;

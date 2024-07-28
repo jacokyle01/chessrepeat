@@ -4,7 +4,8 @@ import { ChessSrs } from 'chess-srs';
 import { initial } from 'chessground/fen';
 import { Key } from 'chessground/types';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap} from './util';
-import { fetchSubrepertoires } from './util/fetch';
+import { fetchSubrepertoires } from './services/getSubrepertoires';
+import { postSubrepertoire } from './services/postSubrepertoire';
 
 export default class PrepCtrl {
   //TODO call these "plans"
@@ -34,6 +35,9 @@ export default class PrepCtrl {
   subrep = () => {
     return this.chessSrs.state.repertoire[this.chessSrs.state.index];
   };
+
+
+  
 
   //TODO PGN validation
   addSubrepertoire = (newSubrep: NewSubrepertoire) => {
