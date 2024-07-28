@@ -5,7 +5,6 @@ import { initial } from 'chessground/fen';
 import { Key } from 'chessground/types';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap} from './util';
 import { fetchSubrepertoires } from './services/getSubrepertoires';
-import { postSubrepertoire } from './services/postSubrepertoire';
 
 export default class PrepCtrl {
   //TODO call these "plans"
