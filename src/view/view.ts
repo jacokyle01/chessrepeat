@@ -38,7 +38,7 @@ const mode = (ctrl: PrepCtrl) => {
           'border-b': ctrl.chessSrs.state.method == 'learn',
         },
       },
-      [h('span', 'LEARN'), bookI(ctrl)],
+      [h('span', 'LEARN'), bookI()],
     ),
     h(
       'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.border-b-4.hover:bg-orange-400.flex.active:transform.active:translate-y-px.active:border-b',
@@ -55,7 +55,7 @@ const mode = (ctrl: PrepCtrl) => {
           'border-b': ctrl.chessSrs.state.method == 'recall',
         },
       },
-      [h('span', 'RECALL'), recallI(ctrl)],
+      [h('span', 'RECALL'), recallI()],
     ),
   ]);
 };

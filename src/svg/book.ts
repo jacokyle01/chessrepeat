@@ -1,6 +1,5 @@
 import { h } from 'snabbdom';
-import PrepCtrl from '../ctrl';
-export const bookI = (ctrl: PrepCtrl) => {
+export const bookI = () => {
   return h(
     'svg',
     {
