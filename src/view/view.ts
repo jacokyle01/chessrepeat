@@ -15,6 +15,7 @@ import { ChildNode } from 'chessops/pgn';
 import { infoI } from '../svg/info';
 import { questionI } from '../svg/question';
 import { crossI } from '../svg/cross';
+import { debug } from './debug';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -23,7 +24,6 @@ export const checked = (id: string) => (document.getElementById(id) as HTMLInput
 
 const mode = (ctrl: PrepCtrl) => {
   return h('div#mode-wrap.flex.items-end.gap-1.justify-center.p-1.h-14', [
-    // h('h3.font-light', 'mode'),
     h(
       'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.border-b-4.hover:bg-blue-400.flex.active:transform.active:translate-y-px.active:border-b',
       {
@@ -229,6 +229,7 @@ const view = (ctrl: PrepCtrl): VNode => {
     // ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     pgnTree(ctrl),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
+    debug(ctrl)
   ]);
 };
 export default view;
