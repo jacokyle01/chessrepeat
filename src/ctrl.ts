@@ -1,8 +1,9 @@
 import { Api } from 'chessground/api';
-import { NewSubrepertoire, PgnViewContext, Redraw, ToastPopup } from './types/types';
+import { NewSubrepertoire, PathIndex, PgnViewContext, Redraw, ToastPopup } from './types/types';
 import { ChessSrs } from 'chess-srs';
 import { initial } from 'chessground/fen';
 import { Key } from 'chessground/types';
+import { Config as CgConfig } from 'chessground/config';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 
 export default class PrepCtrl {
@@ -28,6 +29,9 @@ export default class PrepCtrl {
     splitFen: null,
     index: -1,
   };
+
+  path: string[] = []; // array of FEN strings
+  pathIndex: number | 'last' = 'last'; // index the FEN string
 
   constructor(readonly redraw: Redraw) {
     //we are initially learning
@@ -131,36 +135,140 @@ export default class PrepCtrl {
     this.redraw();
   };
 
-  handleLearn = () => {
-    this.chessground?.setAutoShapes([]);
-    this.chessSrs.setMethod('learn');
-    this.chessSrs.next();
-    this.updatePgnViewContext({
-      splitFen: this.chessSrs.path()!.map((p) => p.data.fen),
-      index: 'last',
-    });
+  // changes pathIndex
+  jump = (index: PathIndex) => {
+    this.pathIndex = index;
+    const opts = this.makeCgOpts();
+    console.log(opts);
+    this.chessground!.set(opts);
+    // this.redraw();
+  };
+
+  makeCgOpts = (): CgConfig => {
+    // update path and pathIndex
+    // (this.path = this.chessSrs.path()!.map((p) => p.data.fen)), (this.pathIndex = 'last');
+
+    // console.log('path', this.path);
+    // console.log('pathIndex', this.pathIndex);
+
+    // const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
+    // const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
+    // const uci = calcTarget(fen, targetSan!);
+
+    // let fen;
+    // if (this.pathIndex === "last") {
+
+    // }
+    // else {
+    //   const fen = this.path[this.pathIndex]
+    // }
+
+
 
     const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
     const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
     const uci = calcTarget(fen, targetSan!);
-    this.chessground?.set({
-      //TODO determine color from subrepertoire
-      //currently, it doesn't look like chessSrs has this functionality
-      //ideally, extend 'Game' with metadeta about the subrepertoire
-      turnColor: 'white',
-      fen: fen,
-      //TODO redraw() here
+
+    console.log(this.pathIndex);
+    console.log(this.chessSrs.path()?.at(-2)?.data.fen);
+
+    const config: CgConfig = {
+      // fen: this.path[this.pathIndex],
+      fen: this.pathIndex === 'last' ? this.chessSrs.path()?.at(-2)?.data.fen || initial : this.path[this.pathIndex],
+      turnColor: this.subrep().meta.trainAs,
       movable: {
-        dests: toDestMap(uci[0], uci[1]),
+        // dests: toDestMap(uci[0], uci[1]),
+        dests:
+          this.pathIndex === 'last'
+            ? this.chessSrs.state.method === 'learn'
+              ? toDestMap(uci[0], uci[1])
+              : fenToDests(fen)
+            : new Map(),
         events: {
-          after: () => {
-            this.chessSrs.succeed();
-            this.handleLearn();
+          after: (from: Key, to: Key) => {
+            console.log('------------------------------');
+            console.log('moved');
+            if (this.pathIndex === 'last') {
+              switch (this.chessSrs.state.method) {
+                case 'learn':
+                  console.log('learned');
+                  this.chessSrs.succeed();
+                  this.handleLearn();
+                  break;
+                case 'recall':
+                  const san = chessgroundToSan(fen, from, to);
+                  //TODO be more permissive depending on config
+                  switch (this.chessSrs.guess(san)) {
+                    case 'success':
+                      this.chessSrs.succeed();
+                      this.handleRecall();
+                      break;
+                    case 'alternate':
+                      this.chessSrs.succeed();
+                      this.handleRecall();
+                      break;
+                    case 'failure':
+                      this.handleFail(san);
+                      break;
+                  }
+                  break;
+              }
+            }
           },
         },
       },
-    });
-    this.chessground?.setAutoShapes([{ orig: uci[0], dest: uci[1], brush: 'green' }]);
+      drawable: {
+        autoShapes:
+          this.chessSrs.state.method === 'learn' ? [{ orig: uci[0], dest: uci[1], brush: 'green' }] : [],
+      },
+    };
+    return config;
+  };
+
+  handleLearn = () => {
+    console.log("handleLearn")
+    // this.chessground?.setAutoShapes([]);
+    this.chessSrs.setMethod('learn');
+    this.chessSrs.next(); // mutates path
+    // this.updatePgnViewContext({
+    //   splitFen: this.chessSrs.path()!.map((p) => p.data.fen),
+    //   index: 'last',
+    // });
+    // console.log(this.pgnViewContext);
+
+    // update path and pathIndex
+    this.path = this.chessSrs.path()!.map((p) => p.data.fen);
+    this.pathIndex = 'last';
+
+    // console.log('path', this.path);
+    console.log('pathIndex', this.pathIndex);
+
+    const opts = this.makeCgOpts();
+    console.log(opts);
+    this.chessground!.set(opts);
+    console.log(this.chessground!.state);
+
+    // const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
+    // const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
+    // const uci = calcTarget(fen, targetSan!);
+    // this.chessground?.set({
+    //   //TODO determine color from subrepertoire
+    //   //currently, it doesn't look like chessSrs has this functionality
+    //   //ideally, extend 'Game' with metadeta about the subrepertoire
+    //   turnColor: 'white',
+    //   fen: fen,
+    //   //TODO redraw() here
+    //   movable: {
+    //     dests: toDestMap(uci[0], uci[1]),
+    //     events: {
+    //       after: () => {
+    //         this.chessSrs.succeed();
+    //         this.handleLearn();
+    //       },
+    //     },
+    //   },
+    // });
+    // this.chessground?.setAutoShapes([{ orig: uci[0], dest: uci[1], brush: 'green' }]);
 
     //update toast
     this.toastMessage = {
@@ -184,44 +292,53 @@ export default class PrepCtrl {
 
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {
-    this.handleMethodSwitch();
+    // this.handleMethodSwitch();
     this.chessground?.setAutoShapes([]);
     this.chessSrs.setMethod('recall');
     this.chessSrs.update();
     this.chessSrs.next();
-    const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
+    // const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
 
-    this.chessground?.set({
-      //TODO determine color from subrepertoire
-      //currently, it doesn't look like chessSrs has this functionality
-      //ideally, extend 'Game' with metadeta about the subrepertoire
-      turnColor: 'white',
-      fen: fen,
-      //TODO redraw() here
-      movable: {
-        dests: fenToDests(fen),
+    this.path = this.chessSrs.path()!.map((p) => p.data.fen);
+    this.pathIndex = 'last';
+    console.log('pathIndex', this.pathIndex);
 
-        events: {
-          after: (from: Key, to: Key) => {
-            const san = chessgroundToSan(fen, from, to);
-            //TODO be more permissive depending on config
-            switch (this.chessSrs.guess(san)) {
-              case 'success':
-                this.chessSrs.succeed();
-                this.handleRecall();
-                break;
-              case 'alternate':
-                this.chessSrs.succeed();
-                this.handleRecall();
-                break;
-              case 'failure':
-                this.handleFail(san);
-                break;
-            }
-          },
-        },
-      },
-    });
+    const opts = this.makeCgOpts();
+    console.log(opts);
+    this.chessground!.set(opts);
+    console.log()
+
+    // this.chessground?.set({
+    //   //TODO determine color from subrepertoire
+    //   //currently, it doesn't look like chessSrs has this functionality
+    //   //ideally, extend 'Game' with metadeta about the subrepertoire
+    //   turnColor: 'white',
+    //   fen: fen,
+    //   //TODO redraw() here
+    //   movable: {
+    //     dests: fenToDests(fen),
+
+    //     events: {
+    //       after: (from: Key, to: Key) => {
+    //         const san = chessgroundToSan(fen, from, to);
+    //         //TODO be more permissive depending on config
+    //         switch (this.chessSrs.guess(san)) {
+    //           case 'success':
+    //             this.chessSrs.succeed();
+    //             this.handleRecall();
+    //             break;
+    //           case 'alternate':
+    //             this.chessSrs.succeed();
+    //             this.handleRecall();
+    //             break;
+    //           case 'failure':
+    //             this.handleFail(san);
+    //             break;
+    //         }
+    //       },
+    //     },
+    //   },
+    // });
     //update toast
     this.toastMessage = {
       type: 'recall',

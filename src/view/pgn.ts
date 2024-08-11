@@ -8,11 +8,30 @@ import { backI } from '../svg/back';
 import { firstI } from '../svg/first';
 import { lastI } from '../svg/last';
 import { nextI } from '../svg/next';
+import { PathIndex } from '../types/types';
 
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
 const indexNode = (turn: number) => h('index.bg-gray-200', `${turn + 1}.`);
-const moveNode = (san: string) => h('move.flex-1', san);
+const moveNode = (ctrl: PrepCtrl, san: string, index: PathIndex) => {
+  // console.log(index)
+  return h(
+    'move.flex-1.hover:bg-sky-200.hover:cursor-pointer',
+    {
+      class: {
+        'bg-red-500': ctrl.pathIndex === index
+      },
+      on: {
+        click: () => {
+          console.log("clicked", index)
+          ctrl.jump(index);
+        }
+      }
+    },
+    san,
+  );
+};
+
 const rowNode = (elems: VNode[]) => h('div#move-row.flex.gap-1', elems);
 
 //TODO handle comments
@@ -53,7 +72,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
     if (i % 2 == 0) {
       elems.push(indexNode(i / 2));
     }
-    elems.push(moveNode(pgn.shift()!));
+    elems.push(moveNode(ctrl, pgn.shift()! + ' ' + i, pgn.length === 1 ? 'last' : i)); //TODO pgn.length === 1 might be a hack
     i++;
     if (i % 2 == 0) {
       rows.push(rowNode(elems));

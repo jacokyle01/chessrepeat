@@ -29,3 +29,5 @@ export interface PgnViewContext {
   splitFen: string[] | null;
   index: number | "last"
 }
+
+export type PathIndex = number | "last";
