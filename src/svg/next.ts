@@ -1,9 +1,10 @@
-import { VNode, h } from 'snabbdom';
-export const closeI = (): VNode => {
+import { h } from "snabbdom";
+
+export const nextI = () => {
   return h(
     'svg',
     {
-      class: { lucide: true, 'lucide-circle-x': true },
+      class: { lucide: true, 'lucide-arrow-right': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
         width: '24',
@@ -16,10 +17,6 @@ export const closeI = (): VNode => {
         'stroke-linejoin': 'round',
       },
     },
-    [
-      h('circle', { attrs: { cx: '12', cy: '12', r: '10' } }),
-      h('path', { attrs: { d: 'm15 9-6 6' } }),
-      h('path', { attrs: { d: 'm9 9 6 6' } }),
-    ],
+    [h('path', { attrs: { d: 'M5 12h14' } }), h('path', { attrs: { d: 'm12 5 7 7-7 7' } })],
   );
 };

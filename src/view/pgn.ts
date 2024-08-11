@@ -4,12 +4,54 @@ import { stringifyPath } from '../util';
 import { ChildNode } from 'chessops/pgn';
 import { TrainingData } from 'chess-srs/types';
 import { gearI } from '../svg/gear';
+import { backI } from '../svg/back';
+import { firstI } from '../svg/first';
+import { lastI } from '../svg/last';
+import { nextI } from '../svg/next';
+import { PathIndex } from '../types/types';
 
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
 const indexNode = (turn: number) => h('index.bg-gray-200', `${turn + 1}.`);
-const moveNode = (san: string) => h('move.flex-1', san);
+const moveNode = (ctrl: PrepCtrl, san: string, index: PathIndex) => {
+  // console.log(index)
+  return h(
+    'move.flex-1.hover:bg-sky-200.hover:cursor-pointer',
+    {
+      class: {
+        'bg-red-500': ctrl.pathIndex === index
+      },
+      on: {
+        click: () => {
+          console.log("clicked", index)
+          ctrl.jump(index);
+        }
+      }
+    },
+    san,
+  );
+};
+
 const rowNode = (elems: VNode[]) => h('div#move-row.flex.gap-1', elems);
+
+//TODO handle comments
+// export const pgnTree = (pgn: string[]): VNode => {
+//   const rows: VNode[] = [];
+//   let elems: VNode[] = [];
+//   let i = 0;
+//   while (pgn.length > 0) {
+//     if (i % 2 == 0) {
+//       elems.push(indexNode(i / 2));
+//     }
+//     elems.push(moveNode(pgn.shift()!));
+//     i++;
+//     if (i % 2 == 0) {
+//       rows.push(rowNode(elems));
+//       elems = [];
+//     }
+//   }
+//   return h('div#pgn-tree.w-1/5.shadow.appearance-none.border.rounded', rows);
+// };
 
 export const pgnTree = (ctrl: PrepCtrl): VNode => {
   let pgn: string[] = [];
@@ -20,11 +62,17 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
   let elems: VNode[] = [];
   let i = 0;
 
+  // rows.push(
+  //   h('div.text-center.flex.items-center.justify-around.bg-gray-200', [
+  //     h('h3.font-light.flex-1', 'PGN tree'),
+  //     gearI(),
+  //   ]),
+  // );
   while (pgn.length > 0) {
     if (i % 2 == 0) {
       elems.push(indexNode(i / 2));
     }
-    elems.push(moveNode(pgn.shift()!));
+    elems.push(moveNode(ctrl, pgn.shift()! + ' ' + i, pgn.length === 1 ? 'last' : i)); //TODO pgn.length === 1 might be a hack
     i++;
     if (i % 2 == 0) {
       rows.push(rowNode(elems));
@@ -37,6 +85,11 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
       gearI(),
     ]),
     h('div.flex-1.overflow-y-scroll', rows),
-    h('div#pgn-control.bg-gray-200.mt-auto.flex.justify-center.gap-1', []),
+    h('div#pgn-control.bg-gray-200.mt-auto.flex.justify-center.gap-1', [
+      h('button#first', [firstI()]),
+      h('button#back', [backI()]),
+      h('button#next', [nextI()]),
+      h('button#last', [lastI()]),
+    ]),
   ]);
 };

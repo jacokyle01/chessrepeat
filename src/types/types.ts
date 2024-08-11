@@ -22,3 +22,12 @@ export interface BarChart extends Chart {
 
 export interface BarData {
 }
+
+
+//Dont do this?? Remember each node has FEN
+export interface PgnViewContext {
+  splitFen: string[] | null;
+  index: number | "last"
+}
+
+export type PathIndex = number | "last";
