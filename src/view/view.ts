@@ -2,27 +2,23 @@ import { VNode } from 'snabbdom';
 import { looseH as h } from '../types/snabbdom';
 import PrepCtrl from '../ctrl';
 import { chessground } from '../chessground';
-import { ToastType } from '../types/types';
 import { gearI } from '../svg/gear';
 import { addI } from '../svg/add';
 import { closeI } from '../svg/close';
 import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
-import { infoI } from '../svg/info';
-import { questionI } from '../svg/question';
-import { crossI } from '../svg/cross';
+import { debug } from './debug';
+import { chartI } from '../svg/chart';
 import { Color } from 'chess-srs/types';
-import { postSubrepertoire } from '../services/postSubrepertoire';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
 
 export const checked = (id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 
-const mode = (ctrl: PrepCtrl) => {
-  return h('div#mode-wrap.flex.items-end.gap-1.justify-center.p-1.h-14', [
-    // h('h3.font-light', 'mode'),
+const controls = (ctrl: PrepCtrl) => {
+  return h('div#training-controls.flex.items-end.gap-1.justify-center.p-1.h-14.mx-auto.my-4.shadow-sm.rounded-lg.p-4.bg-white.items-center', [
     h(
       'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.border-b-4.hover:bg-blue-400.flex.active:transform.active:translate-y-px.active:border-b',
       {
@@ -57,9 +53,9 @@ const mode = (ctrl: PrepCtrl) => {
       },
       [h('span', 'RECALL'), recallI()],
     ),
+    h('div#open-chart.rounded.bg-green-400.p-1.border-b-4.border-green-600', [chartI()])
   ]);
 };
-// <button class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-500 rounded">
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
   return h('button.flex.m-auto', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, addI());
@@ -68,29 +64,25 @@ const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
   const count = ctrl.subrepertoireNames.length;
   return h('div#subrepertoire-tree-wrap.w-64.flex-row', [
-    count == 0
-      ? h('div.mx-5.border-b-2.border-cyan-400', 'Nothing to see')
-      : count == 1
-        ? h('div.mx-5.border-b-2.border-cyan-400', '1 Entry')
-        : h('span.mx-5.border-b-2.border-cyan-400.m-auto', `${count} entries`),
     ...ctrl.subrepertoireNames.map(
       (
         name,
         index, //TODO include graph of progress
       ) =>
         h(
-          'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-100',
+          'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50',
           {
             on: {
               click: () => ctrl.selectSubrepertoire(index),
             },
             class: {
-              'bg-cyan-100': ctrl.chessSrs.state.index == index,
+              'bg-cyan-50': ctrl.chessSrs.state.index == index,
             },
           },
           [
             h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
-            h('h3.font-light.flex-1', name),
+            h('h3.text-lg.font-light.flex-1', name),
+            // chart(ctrl),
             gearI(),
           ],
         ),
@@ -124,7 +116,6 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
                 trainAs, 
                 alias,
               });
-              postSubrepertoire(pgn, trainAs, alias);
               ctrl.toggleAddingNewSubrep();
             },
           },
@@ -179,58 +170,22 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   );
 };
 
-const toast = (ctrl: PrepCtrl): VNode | null => {
-  const getIcon = (type: ToastType): VNode => {
-    switch (type) {
-      case 'fail':
-        return crossI(ctrl);
-      case 'learn':
-        return infoI();
-      case 'recall':
-        return questionI();
-    }
-  };
-
-  return (
-    ctrl.toastMessage &&
-    h('div.p-1', [
-      h('div.w-50.shadow-lg.rounded-lg.flex', [
-        h(
-          'div.bg-blue-500.py-3.px-3.rounded-l-lg.flex.items-center',
-          {
-            class: {
-              'bg-blue-500': ctrl.toastMessage.type === 'learn',
-              'bg-orange-500': ctrl.toastMessage.type === 'recall',
-              'bg-red-500': ctrl.toastMessage.type === 'fail',
-            },
-          },
-          // [ctrl.toastMessage.type === 'learn' ? infoI() : questionI()],
-          getIcon(ctrl.toastMessage.type),
-        ),
-        h(
-          'div.px-4.py-2.bg-white.rounded-r-lg.flex.justify-between.items-center.w-full.border.border-l.transparent.border-gray-200',
-          [h('div.font-light.text-sm', ctrl.toastMessage.message)],
-        ),
-      ]),
-    ])
-  );
-};
-
 //TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
 //stats & # due
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
-  return h('div#root.flex.justify-center.gap-5.bg-neutral-100.h-full.items-start', [
+  return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
     // ctrl.addingNewSubrep !== false && h('div', 'test'),
     h('div#reperoire-wrap.bg-white.rounded-lg.block-inline', [
       subrepertoireTree(ctrl),
       addSubrepertoire(ctrl),
     ]),
-    h('div#main-wrap', [mode(ctrl), chessground(ctrl), toast(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+    h('div#main-wrap', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     //TODO gross
     // ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     pgnTree(ctrl),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
+    debug(ctrl)
   ]);
 };
 export default view;
