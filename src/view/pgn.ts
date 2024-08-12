@@ -8,14 +8,15 @@ import { backI } from '../svg/back';
 import { firstI } from '../svg/first';
 import { lastI } from '../svg/last';
 import { nextI } from '../svg/next';
+import { toast } from './toast';
 
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
-const indexNode = (turn: number) => h('index.bg-gray-200', `${turn + 1}.`);
+const indexNode = (turn: number) => h('index.bg-gray-100.px-3.w-2.5.justify-center.flex', `${turn + 1}`);
 const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
   // console.log(index)
   return h(
-    'move.flex-1.hover:bg-sky-200.hover:cursor-pointer',
+    'move.flex-1.bg-white.hover:bg-sky-200.hover:cursor-pointer.text-lg',
     {
       class: {
         'bg-red-500': ctrl.pathIndex === index,
@@ -31,7 +32,7 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
   );
 };
 
-const rowNode = (elems: VNode[]) => h('div#move-row.flex.gap-1', elems);
+const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
 export const pgnTree = (ctrl: PrepCtrl): VNode => {
   let pgn: string[] = [];
@@ -45,20 +46,17 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
     if (i % 2 == 0) {
       elems.push(indexNode(i / 2));
     }
-    elems.push(moveNode(ctrl, pgn.shift()! + ' ' + i, i)); //TODO pgn.length === 1 might be a hack
+    elems.push(moveNode(ctrl, pgn.shift()!, i)); //TODO pgn.length === 1 might be a hack
     i++;
     if (i % 2 == 0) {
       rows.push(rowNode(elems));
       elems = [];
     }
   }
-  return h('div#pgn-tree.w-1/5.h-1/2.shadow.appearance-none.border.rounded.flex.flex-col', [
-    h('div.text-center.flex.items-center.justify-around.bg-gray-200', [
-      h('h3.font-light.flex-1', 'PGN tree'),
-      gearI(),
-    ]),
+  return h('div#sidebar.w-1/5.h-1/3.shadow.appearance-none.border.rounded.flex.flex-col.bg-white', [
     h('div.flex-1.overflow-y-scroll', rows),
-    h('div#pgn-control.bg-gray-200.mt-auto.flex.justify-center.gap-1', [
+    toast(ctrl),
+    h('div#pgn-control.bg-white.mt-auto.flex.justify-center.gap-1', [
       h(
         'button#first',
         {

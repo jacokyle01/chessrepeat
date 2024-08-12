@@ -4,7 +4,7 @@ export const gearI = (): VNode => {
   return h(
     'svg',
     {
-      class: { lucide: true, 'lucide-settings': true },
+      class: { lucide: true, 'lucide-settings-2': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
         width: '24',
@@ -18,12 +18,10 @@ export const gearI = (): VNode => {
       },
     },
     [
-      h('path', {
-        attrs: {
-          d: 'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z',
-        },
-      }),
-      h('circle', { attrs: { cx: '12', cy: '12', r: '3' } }),
+      h('path', { attrs: { d: 'M20 7h-9' } }),
+      h('path', { attrs: { d: 'M14 17H5' } }),
+      h('circle', { attrs: { cx: '17', cy: '17', r: '3' } }),
+      h('circle', { attrs: { cx: '7', cy: '7', r: '3' } }),
     ],
   );
 };
