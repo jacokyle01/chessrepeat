@@ -62,7 +62,6 @@ const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
 };
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
-  const count = ctrl.subrepertoireNames.length;
   return h('div#subrepertoire-tree-wrap.w-64.flex-row', [
     ...ctrl.subrepertoireNames.map(
       (
