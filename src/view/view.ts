@@ -9,7 +9,6 @@ import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
 import { debug } from './debug';
-import { toast } from './toast';
 import { chartI } from '../svg/chart';
 import { commentI } from '../svg/comment';
 
@@ -20,7 +19,7 @@ export const checked = (id: string) => (document.getElementById(id) as HTMLInput
 
 const controls = (ctrl: PrepCtrl) => {
   return h(
-    'div#training-controls.flex.items-end.gap-1.justify-center.p-1.h-14.mx-auto.my-4.shadow-sm.rounded-lg.p-4.bg-white.items-center',
+    'div#training-controls.flex.items-end.gap-1.justify-center.p-1.h-14.mx-auto.my-4.shadow-md.rounded-md.p-4.bg-white.items-center',
     [
       h(
         'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.border-b-4.hover:bg-blue-400.flex.active:transform.active:translate-y-px.active:border-b',
@@ -177,7 +176,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
     // ctrl.addingNewSubrep !== false && h('div', 'test'),
-    h('div#reperoire-wrap.bg-white.rounded-lg.block-inline', [
+    h('div#reperoire-wrap.bg-white.block-inline.shadow-md.rounded-md', [
       subrepertoireTree(ctrl),
       addSubrepertoire(ctrl),
     ]),
@@ -187,7 +186,7 @@ const view = (ctrl: PrepCtrl): VNode => {
     h('div#side.w-1/5.flex-col', [
       pgnTree(ctrl),
       ctrl.chessSrs.path()?.at(-2)?.data.comments &&
-        h('div#comment.py-5.m-5.bg-white', [commentI(), h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments)]),
+        h('div#comment.p-1.py-5.m-5.bg-white.shadow-md.rounded-md', [commentI(), h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments)]),
     ]),
     ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
     debug(ctrl),

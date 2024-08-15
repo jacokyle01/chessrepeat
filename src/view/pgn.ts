@@ -53,7 +53,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
       elems = [];
     }
   }
-  return h('div#pgn.h-1/3.flex.flex-col', [
+  return h('div#pgn.h-1/3.flex.flex-col.shadow-md.rounded-md', [
     h('div#moves.flex-1.my-auto.overflow-y-scroll.bg-white.h-24', rows),
     toast(ctrl),
     h('div#pgn-control.bg-white.mt-auto.flex.justify-center.gap-1', [
