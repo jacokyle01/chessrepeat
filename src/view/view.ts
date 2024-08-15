@@ -66,7 +66,7 @@ const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
   const count = ctrl.subrepertoireNames.length;
-  return h('div#subrepertoire-tree-wrap.w-64.flex-row', [
+  return h('div#subrepertoire-tree-wrap.w-64.flex-row.p-1', [
     ...ctrl.subrepertoireNames.map(
       (
         name,
@@ -86,7 +86,7 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
             h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
             h('h3.text-lg.font-light.flex-1', name),
             // chart(ctrl),
-            gearI(),
+            h('div', [gearI()]),
           ],
         ),
     ),
@@ -186,7 +186,7 @@ const view = (ctrl: PrepCtrl): VNode => {
     h('div#side.w-1/5.flex-col', [
       pgnTree(ctrl),
       ctrl.chessSrs.path()?.at(-2)?.data.comments &&
-        h('div#comment.p-1.py-5.m-5.bg-white.shadow-md.rounded-md', [commentI(), h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments)]),
+        h('div#comment.px-1.py-5.my-2.bg-white.shadow-md.rounded-md', [commentI(), h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments)]),
     ]),
     ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
     debug(ctrl),
