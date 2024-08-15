@@ -36,7 +36,7 @@ const controls = (ctrl: PrepCtrl) => {
             'bg-blue-500': ctrl.chessSrs.state.method === 'recall',
           },
         },
-        [h('span', 'LEARN'), bookI(ctrl)],
+        [h('span', 'LEARN'), bookI()],
       ),
       h(
         'button.text-white.font-bold.py-1.px-4.rounded.flex.border-orange-700.hover:border-orange-500.hover:bg-orange-400.active:transform.active:translate-y-px.active:border-b',
@@ -53,7 +53,7 @@ const controls = (ctrl: PrepCtrl) => {
             'bg-orange-500': ctrl.chessSrs.state.method === 'learn',
           },
         },
-        [h('span', 'RECALL'), recallI(ctrl)],
+        [h('span', 'RECALL'), recallI()],
       ),
       h('div#open-chart.rounded.bg-green-400.p-1.border-b-4.border-green-600', [chartI()]),
     ],
