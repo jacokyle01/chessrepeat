@@ -22,35 +22,35 @@ const controls = (ctrl: PrepCtrl) => {
     'div#training-controls.flex.items-end.gap-1.justify-center.p-1.h-14.mx-auto.my-4.shadow-md.rounded-md.p-4.bg-white.items-center',
     [
       h(
-        'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.border-b-4.hover:bg-blue-400.flex.active:transform.active:translate-y-px.active:border-b',
+        'button.text-white.font-bold.py-1.px-4.rounded.flex.border-blue-700.hover:border-blue-500.hover:bg-blue-400.active:transform.active:translate-y-px.active:border-b',
         {
           on: {
             click: () => ctrl.handleLearn(),
           },
           class: {
-            'bg-blue-500': ctrl.chessSrs.state.method == 'recall',
             'bg-blue-400': ctrl.chessSrs.state.method == 'learn',
-            'border-blue-700': ctrl.chessSrs.state.method == 'recall',
-            'border-blue-500': ctrl.chessSrs.state.method == 'learn',
             'translate-y-px': ctrl.chessSrs.state.method == 'learn',
+            'transform': ctrl.chessSrs.state.method == 'learn',
             'border-b': ctrl.chessSrs.state.method == 'learn',
+            'border-b-4': ctrl.chessSrs.state.method === 'recall',
+            'bg-blue-500': ctrl.chessSrs.state.method === 'recall',
           },
         },
         [h('span', 'LEARN'), bookI(ctrl)],
       ),
       h(
-        'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.border-b-4.hover:bg-orange-400.flex.active:transform.active:translate-y-px.active:border-b',
+        'button.text-white.font-bold.py-1.px-4.rounded.flex.border-orange-700.hover:border-orange-500.hover:bg-orange-400.active:transform.active:translate-y-px.active:border-b',
         {
           on: {
             click: () => ctrl.handleRecall(),
           },
           class: {
-            'bg-orange-500': ctrl.chessSrs.state.method == 'learn',
             'bg-orange-400': ctrl.chessSrs.state.method == 'recall',
-            'border-orange-700': ctrl.chessSrs.state.method == 'learn',
-            'border-orange-500': ctrl.chessSrs.state.method == 'recall',
             'translate-y-px': ctrl.chessSrs.state.method == 'recall',
+            'transform': ctrl.chessSrs.state.method == 'recall',
             'border-b': ctrl.chessSrs.state.method == 'recall',
+            'border-b-4': ctrl.chessSrs.state.method === 'learn',
+            'bg-orange-500': ctrl.chessSrs.state.method === 'learn',
           },
         },
         [h('span', 'RECALL'), recallI(ctrl)],

@@ -8,5 +8,7 @@ export const debug = (ctrl: PrepCtrl): VNode => {
 
     h('div', `path length: ${ctrl.path.length + ''}`),
     h('div', `at last? : ${ctrl.atLast()}`),
+    h('div', `train by: ${ctrl.chessSrs.state.method}`),
+
   ]);
 };
