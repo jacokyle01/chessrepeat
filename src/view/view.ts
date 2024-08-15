@@ -11,6 +11,7 @@ import { bookI } from '../svg/book';
 import { debug } from './debug';
 import { toast } from './toast';
 import { chartI } from '../svg/chart';
+import { commentI } from '../svg/comment';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -18,43 +19,46 @@ export const fieldValue = (id: string) =>
 export const checked = (id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 
 const controls = (ctrl: PrepCtrl) => {
-  return h('div#training-controls.flex.items-end.gap-1.justify-center.p-1.h-14.mx-auto.my-4.shadow-sm.rounded-lg.p-4.bg-white.items-center', [
-    h(
-      'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.border-b-4.hover:bg-blue-400.flex.active:transform.active:translate-y-px.active:border-b',
-      {
-        on: {
-          click: () => ctrl.handleLearn(),
+  return h(
+    'div#training-controls.flex.items-end.gap-1.justify-center.p-1.h-14.mx-auto.my-4.shadow-sm.rounded-lg.p-4.bg-white.items-center',
+    [
+      h(
+        'button.text-white.font-bold.py-1.px-4.border-blue-700.hover:border-blue-500.rounded.border-b-4.hover:bg-blue-400.flex.active:transform.active:translate-y-px.active:border-b',
+        {
+          on: {
+            click: () => ctrl.handleLearn(),
+          },
+          class: {
+            'bg-blue-500': ctrl.chessSrs.state.method == 'recall',
+            'bg-blue-400': ctrl.chessSrs.state.method == 'learn',
+            'border-blue-700': ctrl.chessSrs.state.method == 'recall',
+            'border-blue-500': ctrl.chessSrs.state.method == 'learn',
+            'translate-y-px': ctrl.chessSrs.state.method == 'learn',
+            'border-b': ctrl.chessSrs.state.method == 'learn',
+          },
         },
-        class: {
-          'bg-blue-500': ctrl.chessSrs.state.method == 'recall',
-          'bg-blue-400': ctrl.chessSrs.state.method == 'learn',
-          'border-blue-700': ctrl.chessSrs.state.method == 'recall',
-          'border-blue-500': ctrl.chessSrs.state.method == 'learn',
-          'translate-y-px': ctrl.chessSrs.state.method == 'learn',
-          'border-b': ctrl.chessSrs.state.method == 'learn',
+        [h('span', 'LEARN'), bookI(ctrl)],
+      ),
+      h(
+        'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.border-b-4.hover:bg-orange-400.flex.active:transform.active:translate-y-px.active:border-b',
+        {
+          on: {
+            click: () => ctrl.handleRecall(),
+          },
+          class: {
+            'bg-orange-500': ctrl.chessSrs.state.method == 'learn',
+            'bg-orange-400': ctrl.chessSrs.state.method == 'recall',
+            'border-orange-700': ctrl.chessSrs.state.method == 'learn',
+            'border-orange-500': ctrl.chessSrs.state.method == 'recall',
+            'translate-y-px': ctrl.chessSrs.state.method == 'recall',
+            'border-b': ctrl.chessSrs.state.method == 'recall',
+          },
         },
-      },
-      [h('span', 'LEARN'), bookI(ctrl)],
-    ),
-    h(
-      'button.text-white.font-bold.py-1.px-4.border-orange-700.hover:border-orange-500.rounded.border-b-4.hover:bg-orange-400.flex.active:transform.active:translate-y-px.active:border-b',
-      {
-        on: {
-          click: () => ctrl.handleRecall(),
-        },
-        class: {
-          'bg-orange-500': ctrl.chessSrs.state.method == 'learn',
-          'bg-orange-400': ctrl.chessSrs.state.method == 'recall',
-          'border-orange-700': ctrl.chessSrs.state.method == 'learn',
-          'border-orange-500': ctrl.chessSrs.state.method == 'recall',
-          'translate-y-px': ctrl.chessSrs.state.method == 'recall',
-          'border-b': ctrl.chessSrs.state.method == 'recall',
-        },
-      },
-      [h('span', 'RECALL'), recallI(ctrl)],
-    ),
-    h('div#open-chart.rounded.bg-green-400.p-1.border-b-4.border-green-600', [chartI()])
-  ]);
+        [h('span', 'RECALL'), recallI(ctrl)],
+      ),
+      h('div#open-chart.rounded.bg-green-400.p-1.border-b-4.border-green-600', [chartI()]),
+    ],
+  );
 };
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
@@ -180,9 +184,13 @@ const view = (ctrl: PrepCtrl): VNode => {
     h('div#main-wrap', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     //TODO gross
     // ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
-    pgnTree(ctrl),
-    ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    debug(ctrl)
+    h('div#side.w-1/5.flex-col', [
+      pgnTree(ctrl),
+      ctrl.chessSrs.path()?.at(-2)?.data.comments &&
+        h('div#comment.py-5.m-5.bg-white', [commentI(), h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments)]),
+    ]),
+    ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
+    debug(ctrl),
   ]);
 };
 export default view;

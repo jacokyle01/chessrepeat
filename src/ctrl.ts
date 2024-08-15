@@ -38,7 +38,7 @@ export default class PrepCtrl {
     document.addEventListener('DOMContentLoaded', (_) => {
       this.chessSrs.setMethod('learn');
       this.addSubrepertoire({
-        pgn: '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Bb4+ 6. Bd2 a5 7. Qc1 Bxd2+ 8. Qxd2 b5 9. Qg5 b4 10. Rg1 Rg8 11. Rh1 Rh8 a3 Ra7',
+        pgn: '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Bb4+ 6. Bd2 a5 {Defending the bishop} 7. Qc1 Bxd2+ {Black trades bishops} 8. Qxd2 {White recaptures with the queen} b5 {Defending the pawn} 9. Qg5 b4 10. Rg1 Rg8 11. Rh1 Rh8 a3 Ra7',
         alias: 'catalan',
         trainAs: 'white',
       });
@@ -146,6 +146,9 @@ export default class PrepCtrl {
 
   makeCgOpts = (): CgConfig => {
     const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
+
+    console.log("comments", this.chessSrs.path()?.at(-1)?.data.comments)
+
     const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
     const uci = calcTarget(fen, targetSan!);
 
