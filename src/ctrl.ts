@@ -9,6 +9,7 @@ import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 export default class PrepCtrl {
   //TODO call these "plans"
   subrepertoireNames: string[] = [];
+  numDueCache: number[] = [];
 
   //libraries
   chessground: Api | undefined; // stores FEN
@@ -81,6 +82,12 @@ export default class PrepCtrl {
       this.handleLearn();
 
       this.lastFeedback = 'init';
+    
+      // initialize num due cache
+      this.numDueCache = new Array(this.chessSrs.state.repertoire.length).fill(0); 
+      console.log(this.numDueCache);
+      // TODO remove me 
+      this.redraw();
     });
   }
 
@@ -206,6 +213,7 @@ export default class PrepCtrl {
   };
 
   handleLearn = () => {
+    this.chessSrs.update();
     this.lastFeedback = 'learn';
     console.log('handleLearn');
     this.chessSrs.setMethod('learn');
@@ -230,6 +238,7 @@ export default class PrepCtrl {
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {
     this.lastFeedback = 'recall';
+    this.numDueCache[this.chessSrs.state.index] = this.chessSrs.countDue();
 
     this.chessground?.setAutoShapes([]);
     this.chessSrs.setMethod('recall');

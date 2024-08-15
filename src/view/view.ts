@@ -30,7 +30,7 @@ const controls = (ctrl: PrepCtrl) => {
           class: {
             'bg-blue-400': ctrl.chessSrs.state.method == 'learn',
             'translate-y-px': ctrl.chessSrs.state.method == 'learn',
-            'transform': ctrl.chessSrs.state.method == 'learn',
+            transform: ctrl.chessSrs.state.method == 'learn',
             'border-b': ctrl.chessSrs.state.method == 'learn',
             'border-b-4': ctrl.chessSrs.state.method === 'recall',
             'bg-blue-500': ctrl.chessSrs.state.method === 'recall',
@@ -47,7 +47,7 @@ const controls = (ctrl: PrepCtrl) => {
           class: {
             'bg-orange-400': ctrl.chessSrs.state.method == 'recall',
             'translate-y-px': ctrl.chessSrs.state.method == 'recall',
-            'transform': ctrl.chessSrs.state.method == 'recall',
+            transform: ctrl.chessSrs.state.method == 'recall',
             'border-b': ctrl.chessSrs.state.method == 'recall',
             'border-b-4': ctrl.chessSrs.state.method === 'learn',
             'bg-orange-500': ctrl.chessSrs.state.method === 'learn',
@@ -65,15 +65,18 @@ const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
 };
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
-  const count = ctrl.subrepertoireNames.length;
-  return h('div#subrepertoire-tree-wrap.w-64.flex-row.p-1', [
+  return h('div#subrepertoire-tree-wrap.w-80.flex-row.p-1', [
     ...ctrl.subrepertoireNames.map(
       (
         name,
         index, //TODO include graph of progress
-      ) =>
-        h(
-          'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50',
+      ) => {
+        // console.log('hi');
+        // const
+        const meta = ctrl.chessSrs.state.repertoire[index].meta;
+        const unseenCount = meta.nodeCount - meta.bucketEntries[0];
+        return h(
+          'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.my-1',
           {
             on: {
               click: () => ctrl.selectSubrepertoire(index),
@@ -85,10 +88,19 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
           [
             h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
             h('h3.text-lg.font-light.flex-1', name),
-            // chart(ctrl),
+            h(
+              'button.text-white.font-bold.py-1.px-2.rounded.flex.border-blue-700.bg-blue-400',
+              `LEARN ${unseenCount}`,
+            ),
+            h(
+              'button.text-white.font-bold.py-1.px-2.rounded.flex.border-orange-700.bg-orange-400',
+              `RECALL ${ctrl.numDueCache[index]}`,
+            ),
+
             h('div', [gearI()]),
           ],
-        ),
+        );
+      },
     ),
   ]);
 };
@@ -186,7 +198,10 @@ const view = (ctrl: PrepCtrl): VNode => {
     h('div#side.w-1/5.flex-col', [
       pgnTree(ctrl),
       ctrl.chessSrs.path()?.at(-2)?.data.comments &&
-        h('div#comment.px-1.py-5.my-2.bg-white.shadow-md.rounded-md', [commentI(), h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments)]),
+        h('div#comment.px-1.py-5.my-2.bg-white.shadow-md.rounded-md', [
+          commentI(),
+          h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments),
+        ]),
     ]),
     ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
     debug(ctrl),
