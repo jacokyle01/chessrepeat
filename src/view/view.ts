@@ -8,7 +8,7 @@ import { closeI } from '../svg/close';
 import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
-import { debug } from './debug';
+// import { debug } from './debug';
 import { chartI } from '../svg/chart';
 import { commentI } from '../svg/comment';
 
@@ -198,7 +198,7 @@ const view = (ctrl: PrepCtrl): VNode => {
         ]),
     ]),
     ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    debug(ctrl),
+    // debug(ctrl),
   ]);
 };
 export default view;
