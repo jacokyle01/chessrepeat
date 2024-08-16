@@ -1,5 +1,5 @@
 import { Api } from 'chessground/api';
-import { NewSubrepertoire, PgnViewContext, Redraw, ToastPopup } from './types/types';
+import { NewSubrepertoire, PgnViewContext, Redraw } from './types/types';
 import { ChessSrs } from 'chess-srs';
 import { initial } from 'chessground/fen';
 import { Key } from 'chessground/types';
@@ -9,6 +9,7 @@ import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 export default class PrepCtrl {
   //TODO call these "plans"
   subrepertoireNames: string[] = [];
+  numDueCache: number[] = [];
 
   //libraries
   chessground: Api | undefined; // stores FEN
@@ -22,7 +23,9 @@ export default class PrepCtrl {
 
   addingNewSubrep = false;
 
-  toastMessage: ToastPopup | null = null;
+  // lastFeedback: 
+  lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' = 'init';
+
 
   // necessary context to display PGN, either as tree or chessground
   pgnViewContext: PgnViewContext = {
@@ -38,7 +41,7 @@ export default class PrepCtrl {
     document.addEventListener('DOMContentLoaded', (_) => {
       this.chessSrs.setMethod('learn');
       this.addSubrepertoire({
-        pgn: '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Bb4+ 6. Bd2 a5 7. Qc1 Bxd2+ 8. Qxd2 b5 9. Qg5 b4 10. Rg1 Rg8 11. Rh1 Rh8 a3 Ra7',
+        pgn: '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Bb4+ 6. Bd2 a5 {Defending the bishop} 7. Qc1 Bxd2+ {Black trades bishops} 8. Qxd2 {White recaptures with the queen} b5 {Defending the pawn} 9. Qg5 b4 10. Rg1 Rg8 11. Rh1 Rh8 a3 Ra7',
         alias: 'catalan',
         trainAs: 'white',
       });
@@ -77,12 +80,21 @@ export default class PrepCtrl {
       this.chessSrs.succeed();
       this.chessSrs.setMethod('learn');
       this.handleLearn();
+
+      this.lastFeedback = 'init';
+    
+      // initialize num due cache
+      this.numDueCache = new Array(this.chessSrs.state.repertoire.length).fill(0); 
+      console.log(this.numDueCache);
+      // TODO remove me 
+      this.redraw();
     });
   }
 
   // resets subrepertoire-specific context,
   // e.x. for selecting a different subrepertoire for training
   clearSubrepertoireContext = () => {
+    this.lastFeedback = 'init';
     //TODO do automatic recall/learn
     // reset board
     this.chessground?.set({
@@ -91,11 +103,6 @@ export default class PrepCtrl {
         autoShapes: [],
       },
     });
-
-    // reset toast
-    this.toastMessage = null;
-
-    // reset PGN tree
   };
 
   // update PGN view context through this method since it will also handle setting chessground
@@ -149,6 +156,9 @@ export default class PrepCtrl {
 
   makeCgOpts = (): CgConfig => {
     const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
+
+    console.log("comments", this.chessSrs.path()?.at(-1)?.data.comments)
+
     const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
     const uci = calcTarget(fen, targetSan!);
 
@@ -206,6 +216,8 @@ export default class PrepCtrl {
   };
 
   handleLearn = () => {
+    this.chessSrs.update();
+    this.lastFeedback = 'learn';
     console.log('handleLearn');
     this.chessSrs.setMethod('learn');
     this.chessSrs.next(); // mutates path
@@ -217,27 +229,20 @@ export default class PrepCtrl {
     this.chessground!.set(opts);
     console.log(this.chessground!.state);
 
-    //update toast
-    this.toastMessage = {
-      type: 'learn',
-      header: 'New move',
-      message: 'White plays his move.',
-    };
-
     this.redraw();
   };
 
   handleFail = (attempt: string) => {
-    this.toastMessage = {
-      type: 'fail',
-      header: '',
-      message: `Incorrect. ${attempt} is not the right move.`,
-    };
+    console.log(attempt);
+    this.lastFeedback = 'fail';
     this.redraw();
   };
 
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {
+    this.lastFeedback = 'recall';
+    this.numDueCache[this.chessSrs.state.index] = this.chessSrs.countDue();
+
     this.chessground?.setAutoShapes([]);
     this.chessSrs.setMethod('recall');
     this.chessSrs.update();
@@ -250,13 +255,6 @@ export default class PrepCtrl {
     console.log(opts);
     this.chessground!.set(opts);
     console.log();
-
-    //update toast
-    this.toastMessage = {
-      type: 'recall',
-      header: 'New move',
-      message: `What does White play here?`,
-    };
 
     this.redraw();
   };

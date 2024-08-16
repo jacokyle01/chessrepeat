@@ -52,8 +52,8 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
       elems = [];
     }
   }
-  return h('div#sidebar.w-1/5.h-1/3.shadow.appearance-none.border.rounded.flex.flex-col.bg-white', [
-    h('div.flex-1.overflow-y-scroll', rows),
+  return h('div#pgn.h-1/3.flex.flex-col.shadow-md.rounded-md.h-64', [
+    h('div#moves.flex-1.my-auto.overflow-y-scroll.bg-white', rows),
     toast(ctrl),
     h('div#pgn-control.bg-white.mt-auto.flex.justify-center.gap-1', [
       h(
@@ -103,6 +103,6 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
         },
         [lastI()],
       ),
-    ]),
+    ])
   ]);
 };

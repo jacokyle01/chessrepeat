@@ -4,7 +4,7 @@ export const infoI = (): VNode => {
   return h(
     'svg',
     {
-      class: { 'fill-current': true, 'text-white': true },
+      class: { 'fill-current': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
         viewbox: '0 0 16 16',

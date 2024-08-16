@@ -8,5 +8,19 @@ export const debug = (ctrl: PrepCtrl): VNode => {
 
     h('div', `path length: ${ctrl.path.length + ''}`),
     h('div', `at last? : ${ctrl.atLast()}`),
+    h('div', `train by: ${ctrl.chessSrs.state.method}`),
+    h('div', `meta | bucketEntries: ${ctrl.subrep()?.meta.bucketEntries}`),
+    h('div', `meta | nodeCount: ${ctrl.subrep()?.meta.nodeCount}`),
+    h('div', `meta | trainAs: ${ctrl.subrep()?.meta.trainAs}`),
+    h(
+      'button', // Element type
+      {
+        attrs: { type: 'button' }, // HTML attributes
+        on: {
+          click: () => alert(ctrl.chessSrs.countDue()), // Event listener
+        },
+      },
+      'count due', // Button text
+    ),
   ]);
 };
