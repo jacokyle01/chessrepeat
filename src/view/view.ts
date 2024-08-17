@@ -123,6 +123,12 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
           on: {
             submit: (e) => {
               e.preventDefault();
+              ctrl.addSubrepertoire({
+                alias: fieldValue('name'),
+                pgn: fieldValue('pgn'),
+                trainAs: checked('color') ? 'black' : 'white',
+              });
+              ctrl.toggleAddingNewSubrep();
             },
           },
         },
