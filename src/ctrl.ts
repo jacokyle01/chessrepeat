@@ -18,6 +18,7 @@ export default class PrepCtrl {
     buckets: [1, 11, 111],
     getNext: {
       by: 'depth',
+      max: 10
     },
   }); //stores training data
 
