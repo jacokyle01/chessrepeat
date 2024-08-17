@@ -80,8 +80,6 @@ export default class PrepCtrl {
       this.chessSrs.succeed();
       this.chessSrs.setMethod('learn');
       this.handleLearn();
-
-      this.lastFeedback = 'init';
     
       // initialize num due cache
       this.numDueCache = new Array(this.chessSrs.state.repertoire.length).fill(0); 
