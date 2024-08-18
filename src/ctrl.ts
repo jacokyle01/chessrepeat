@@ -153,11 +153,7 @@ export default class PrepCtrl {
 
     // get last move, if it exists
     let lastMoves: Key[] = [];
-    console.log('chessSrs path length', this.chessSrs.path()?.length);
-
-
-    
-    if (this.chessSrs.path() && this.chessSrs.path()!.length > 1) {
+    if (this.atLast() && this.chessSrs.path() && this.chessSrs.path()!.length > 1) {
       const fen2 = this.chessSrs.path()?.at(-3)?.data.fen || initial;
       const oppMoveSan = this.chessSrs.path()?.at(-2)?.data.san;
       const uci2 = calcTarget(fen2, oppMoveSan!);
@@ -216,9 +212,12 @@ export default class PrepCtrl {
       },
       drawable: {
         autoShapes:
-          this.chessSrs.state.method === 'learn' ? [{ orig: uci[0], dest: uci[1], brush: 'green' }] : [],
+          this.chessSrs.state.method === 'learn' && this.atLast() ? [{ orig: uci[0], dest: uci[1], brush: 'green' }] : [],
       },
-    };
+      animation: {
+        enabled: false
+      }
+    }
     return config;
   };
 
@@ -243,6 +242,9 @@ export default class PrepCtrl {
       console.log(this.chessground!.state);
 
       this.redraw();
+      // update scroll height
+      const movesElement = document.getElementById('moves');
+      movesElement!.scrollTop = movesElement!.scrollHeight;
     }
   };
 
@@ -273,6 +275,9 @@ export default class PrepCtrl {
       console.log();
 
       this.redraw();
+      // update scroll height
+      const movesElement = document.getElementById('moves');
+      movesElement!.scrollTop = movesElement!.scrollHeight;
     }
   };
 }
