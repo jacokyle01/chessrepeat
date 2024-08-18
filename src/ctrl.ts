@@ -151,6 +151,19 @@ export default class PrepCtrl {
   makeCgOpts = (): CgConfig => {
     const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
 
+    // get last move, if it exists
+    let lastMoves: Key[] = [];
+    console.log('chessSrs path length', this.chessSrs.path()?.length);
+
+
+    
+    if (this.chessSrs.path() && this.chessSrs.path()!.length > 1) {
+      const fen2 = this.chessSrs.path()?.at(-3)?.data.fen || initial;
+      const oppMoveSan = this.chessSrs.path()?.at(-2)?.data.san;
+      const uci2 = calcTarget(fen2, oppMoveSan!);
+      lastMoves = [uci2[0], uci2[1]];
+    }
+
     console.log('comments', this.chessSrs.path()?.at(-1)?.data.comments);
 
     const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
@@ -160,7 +173,7 @@ export default class PrepCtrl {
 
     const config: CgConfig = {
       fen: this.path[this.pathIndex] || initial,
-
+      lastMove: lastMoves,
       turnColor: this.subrep().meta.trainAs,
       movable: {
         dests: this.atLast()
