@@ -21,12 +21,24 @@ const learn = (ctrl: PrepCtrl): VNode => {
   ]);
 };
 
+const empty = (ctrl: PrepCtrl): VNode => {
+  return h('div.bg-white.flex.py-4.border-t-2.border-gray-500', [
+    h('div', [
+      h('h1.font-bold', 'No moves'),
+      h('h2', "Try training a different repertoire or switching modes"),
+    ]),
+  ]);
+};
+
+
 export const toast = (ctrl: PrepCtrl): VNode | null => {
   switch (ctrl.lastFeedback) {
     case 'recall':
       return recall(ctrl);
     case 'learn':
       return learn(ctrl);
+    case 'empty':
+      return empty(ctrl);
     default:
       return h('div', 'Other');
   }

@@ -23,9 +23,8 @@ export default class PrepCtrl {
 
   addingNewSubrep = false;
 
-  // lastFeedback: 
-  lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' = 'init';
-
+  // lastFeedback:
+  lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty' = 'init';
 
   // necessary context to display PGN, either as tree or chessground
   pgnViewContext: PgnViewContext = {
@@ -80,11 +79,11 @@ export default class PrepCtrl {
       this.chessSrs.succeed();
       this.chessSrs.setMethod('learn');
       this.handleLearn();
-    
+
       // initialize num due cache
-      this.numDueCache = new Array(this.chessSrs.state.repertoire.length).fill(0); 
+      this.numDueCache = new Array(this.chessSrs.state.repertoire.length).fill(0);
       console.log(this.numDueCache);
-      // TODO remove me 
+      // TODO remove me
       this.redraw();
     });
   }
@@ -152,7 +151,7 @@ export default class PrepCtrl {
   makeCgOpts = (): CgConfig => {
     const fen = this.chessSrs.path()?.at(-2)?.data.fen || initial;
 
-    console.log("comments", this.chessSrs.path()?.at(-1)?.data.comments)
+    console.log('comments', this.chessSrs.path()?.at(-1)?.data.comments);
 
     const targetSan = this.chessSrs.path()?.at(-1)?.data.san;
     const uci = calcTarget(fen, targetSan!);
@@ -212,19 +211,26 @@ export default class PrepCtrl {
 
   handleLearn = () => {
     this.chessSrs.update();
+    this.numDueCache[this.chessSrs.state.index] = this.chessSrs.countDue();
     this.lastFeedback = 'learn';
     console.log('handleLearn');
     this.chessSrs.setMethod('learn');
-    this.chessSrs.next(); // mutates path
-    // update path and pathIndex
-    this.path = this.chessSrs.path()!.map((p) => p.data.fen);
-    this.pathIndex = this.path.length - 2;
-    const opts = this.makeCgOpts();
-    console.log(opts);
-    this.chessground!.set(opts);
-    console.log(this.chessground!.state);
 
-    this.redraw();
+    // mututes path
+    if (!this.chessSrs.next()) {
+      this.lastFeedback = 'empty';
+      this.redraw();
+    } else {
+      // update path and pathIndex
+      this.path = this.chessSrs.path()!.map((p) => p.data.fen);
+      this.pathIndex = this.path.length - 2;
+      const opts = this.makeCgOpts();
+      console.log(opts);
+      this.chessground!.set(opts);
+      console.log(this.chessground!.state);
+
+      this.redraw();
+    }
   };
 
   handleFail = (attempt: string) => {
@@ -241,16 +247,19 @@ export default class PrepCtrl {
     this.chessground?.setAutoShapes([]);
     this.chessSrs.setMethod('recall');
     this.chessSrs.update();
-    this.chessSrs.next();
+    if (!this.chessSrs.next()) {
+      this.lastFeedback = 'empty';
+      this.redraw();
+    } else {
+      this.path = this.chessSrs.path()!.map((p) => p.data.fen);
+      this.pathIndex = this.path.length - 2;
 
-    this.path = this.chessSrs.path()!.map((p) => p.data.fen);
-    this.pathIndex = this.path.length - 2;
+      const opts = this.makeCgOpts();
+      console.log(opts);
+      this.chessground!.set(opts);
+      console.log();
 
-    const opts = this.makeCgOpts();
-    console.log(opts);
-    this.chessground!.set(opts);
-    console.log();
-
-    this.redraw();
+      this.redraw();
+    }
   };
 }
