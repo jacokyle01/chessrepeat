@@ -61,47 +61,51 @@ const controls = (ctrl: PrepCtrl) => {
 };
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-  return h('button.flex.m-auto', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, addI());
+  return h('button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, [addI(), h('div', 'Add a repertoire')]);
 };
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
-  return h('div#subrepertoire-tree-wrap.w-80.flex-row.p-1', [
-    ...ctrl.subrepertoireNames.map(
-      (
-        name,
-        index, //TODO include graph of progress
-      ) => {
-        // console.log('hi');
-        // const
-        const meta = ctrl.chessSrs.state.repertoire[index].meta;
-        const unseenCount = meta.nodeCount - meta.bucketEntries[0];
-        return h(
-          'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.my-1',
-          {
-            on: {
-              click: () => ctrl.selectSubrepertoire(index),
+  return h('div#repertoire-wrap.w-80', [
+    h('div.border-b-2.border-gray-500', `${ctrl.chessSrs.state.repertoire.length} repertoires`),
+    h('div#subrepertoire-tree-wrap.w-80.flex-row.p-1.bg-white.shadow-md.rounded-md', [
+      ...ctrl.subrepertoireNames.map(
+        (
+          name,
+          index, //TODO include graph of progress
+        ) => {
+          // console.log('hi');
+          // const
+          const meta = ctrl.chessSrs.state.repertoire[index].meta;
+          const unseenCount = meta.nodeCount - meta.bucketEntries[0];
+          return h(
+            'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.my-1',
+            {
+              on: {
+                click: () => ctrl.selectSubrepertoire(index),
+              },
+              class: {
+                'bg-cyan-50': ctrl.chessSrs.state.index == index,
+              },
             },
-            class: {
-              'bg-cyan-50': ctrl.chessSrs.state.index == index,
-            },
-          },
-          [
-            h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
-            h('h3.text-lg.font-light.flex-1', name),
-            h(
-              'button.text-white.font-bold.py-1.px-2.rounded.flex.border-blue-700.bg-blue-400',
-              `LEARN ${unseenCount}`,
-            ),
-            h(
-              'button.text-white.font-bold.py-1.px-2.rounded.flex.border-orange-700.bg-orange-400',
-              `RECALL ${ctrl.numDueCache[index]}`,
-            ),
+            [
+              h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
+              h('h3.text-lg.font-light.flex-1', name),
+              h(
+                'button.text-white.font-bold.py-1.px-2.rounded.flex.border-blue-700.bg-blue-400',
+                `LEARN ${unseenCount}`,
+              ),
+              h(
+                'button.text-white.font-bold.py-1.px-2.rounded.flex.border-orange-700.bg-orange-400',
+                `RECALL ${ctrl.numDueCache[index]}`,
+              ),
 
-            h('div', [gearI()]),
-          ],
-        );
-      },
-    ),
+              h('div', [gearI()]),
+            ],
+          );
+        },
+      ),
+    ]),
+    addSubrepertoire(ctrl)
   ]);
 };
 
@@ -182,26 +186,32 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   );
 };
 
+const comments = (ctrl: PrepCtrl) => {
+  return h('div.mt-10', [
+    h('div.flex.border-b-2.border-gray-500', [commentI(), h('div', 'Comments')]),
+    h('div#comment.p-1.bg-white.shadow-md.rounded-md', [
+      h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments),
+    ])
+  ])
+}
+
 //TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
 //stats & # due
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
     // ctrl.addingNewSubrep !== false && h('div', 'test'),
-    h('div#reperoire-wrap.bg-white.block-inline.shadow-md.rounded-md', [
-      subrepertoireTree(ctrl),
-      addSubrepertoire(ctrl),
-    ]),
+    // h('div#reperoire-wrap.bg-white.block-inline.shadow-md.rounded-md', [
+    subrepertoireTree(ctrl),
+    // addSubrepertoire(ctrl),
+    // ]),
     h('div#main-wrap', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     //TODO gross
     // ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     h('div#side.w-1/5.flex-col', [
       pgnTree(ctrl),
       ctrl.chessSrs.path()?.at(-2)?.data.comments &&
-        h('div#comment.px-1.py-5.my-2.bg-white.shadow-md.rounded-md', [
-          commentI(),
-          h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments),
-        ]),
+        comments(ctrl)
     ]),
     ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
     debug(ctrl),

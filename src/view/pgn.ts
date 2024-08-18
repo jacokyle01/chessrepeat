@@ -33,6 +33,58 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
 
 const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
+const pgnControls = (ctrl: PrepCtrl): VNode => {
+  return h('div#pgn-control.mt-auto.flex.justify-center.gap-1', [
+    h(
+      'button#first',
+      {
+        on: {
+          click: () => {
+            ctrl.jump(0);
+          },
+        },
+      },
+      [firstI()],
+    ),
+    h(
+      'button#back',
+      {
+        on: {
+          click: () => {
+            ctrl.jump(Math.max(0, ctrl.pathIndex - 1));
+          },
+        },
+      },
+      [backI()],
+    ),
+    h(
+      'button#next',
+      {
+        on: {
+          click: () => {
+            ctrl.jump(Math.min(ctrl.path.length - 2, ctrl.pathIndex + 1));
+          },
+        },
+      },
+      [nextI()],
+    ),
+    h(
+      'button#last',
+      {
+        on: {
+          click: () => {
+            ctrl.jump(ctrl.path.length - 2);
+          },
+        },
+        class: {
+          'bg-blue-500': !ctrl.atLast(),
+        },
+      },
+      [lastI()],
+    ),
+  ]);
+};
+
 export const pgnTree = (ctrl: PrepCtrl): VNode => {
   let pgn: string[] = [];
   if (ctrl.chessSrs.state.path != null) {
@@ -52,57 +104,11 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
       elems = [];
     }
   }
-  return h('div#pgn.h-1/3.flex.flex-col.shadow-md.rounded-md.h-64', [
-    h('div#moves.flex-1.my-auto.overflow-y-scroll.bg-white', rows),
-    toast(ctrl),
-    h('div#pgn-control.bg-white.mt-auto.flex.justify-center.gap-1', [
-      h(
-        'button#first',
-        {
-          on: {
-            click: () => {
-              ctrl.jump(0);
-            },
-          },
-        },
-        [firstI()],
-      ),
-      h(
-        'button#back',
-        {
-          on: {
-            click: () => {
-              ctrl.jump(Math.max(0, ctrl.pathIndex - 1));
-            },
-          },
-        },
-        [backI()],
-      ),
-      h(
-        'button#next',
-        {
-          on: {
-            click: () => {
-              ctrl.jump(Math.min(ctrl.path.length - 2, ctrl.pathIndex + 1));
-            },
-          },
-        },
-        [nextI()],
-      ),
-      h(
-        'button#last',
-        {
-          on: {
-            click: () => {
-              ctrl.jump(ctrl.path.length - 2);
-            },
-          },
-          class: {
-            'bg-blue-500': !ctrl.atLast(),
-          },
-        },
-        [lastI()],
-      ),
-    ])
+  return h('div', [
+    h('div#pgn.h-1/3.flex.flex-col.shadow-md.rounded-md.h-64', [
+      h('div#moves.flex-1.my-auto.overflow-y-scroll.bg-white', rows),
+      toast(ctrl),
+    ]),
+    pgnControls(ctrl),
   ]);
 };
