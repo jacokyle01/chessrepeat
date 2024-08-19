@@ -21,6 +21,15 @@ export default {
       backgroundImage: {
         'custom-gradient': 'linear-gradient(to bottom, hsl(37, 12%, 84%), hsl(37, 10%, 92%) 116px)',
       },
+      keyframes: {
+        pulse: {
+          '0%, 100%': { backgroundColor: 'transparent', borderColor: 'transparent' },
+          '50%': { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
+        },
+      },
+      animation: {
+        'pulse-blue': 'pulse 2s infinite',
+      },
     },
   },
   plugins: [],

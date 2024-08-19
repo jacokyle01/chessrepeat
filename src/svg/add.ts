@@ -4,33 +4,27 @@ export const addI = (): VNode => {
   return h(
     'svg',
     {
+      class: { lucide: true, 'lucide-diamond-plus': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
-        viewbox: '0 0 24 24',
         width: '24',
         height: '24',
-        color: '#000000',
+        viewbox: '0 0 24 24',
         fill: 'none',
+        stroke: 'currentColor',
+        'stroke-width': '2',
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
       },
     },
     [
+      h('path', { attrs: { d: 'M12 8v8' } }),
       h('path', {
         attrs: {
-          d: 'M2.5 12C2.5 7.52166 2.5 5.28249 3.89124 3.89124C5.28249 2.5 7.52166 2.5 12 2.5C16.4783 2.5 18.7175 2.5 20.1088 3.89124C21.5 5.28249 21.5 7.52166 21.5 12C21.5 16.4783 21.5 18.7175 20.1088 20.1088C18.7175 21.5 16.4783 21.5 12 21.5C7.52166 21.5 5.28249 21.5 3.89124 20.1088C2.5 18.7175 2.5 16.4783 2.5 12Z',
-          stroke: 'currentColor',
-          'stroke-width': '1.5',
-          'stroke-linejoin': 'round',
+          d: 'M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0z',
         },
       }),
-      h('path', {
-        attrs: {
-          d: 'M12 8V16M16 12H8',
-          stroke: 'currentColor',
-          'stroke-width': '1.5',
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-        },
-      }),
+      h('path', { attrs: { d: 'M8 12h8' } }),
     ],
   );
 };
