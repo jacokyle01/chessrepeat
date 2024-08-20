@@ -1,8 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-    class="lucide lucide-diamond-plus">
-    <path d="M12 8v8" />
-    <path
-        d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0z" />
-    <path d="M8 12h8" />
-</svg>
+<div class="max-w-sm rounded overflow-hidden shadow-lg">
+    <img class="w-full" src="/img/card-top.jpg" alt="Sunset in the mountains"></img>
+    <div class="px-6 py-4">
+        <div class="font-bold text-xl mb-2">The Coldest Sunset</div>
+        <p class="text-gray-700 text-base">
+            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Voluptatibus quia, nulla!
+            Maiores et perferendis eaque, exercitationem praesentium nihil.
+        </p>
+    </div>
+    <div class="px-6 pt-4 pb-2">
+        <span
+            class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">
+            #photography</span>
+        <span
+            class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">
+            #travel</span>
+        <span
+            class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">
+            #winter</span>
+    </div>
+</div>
