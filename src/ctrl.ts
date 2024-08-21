@@ -1,15 +1,28 @@
 import { Api } from 'chessground/api';
-import { NewSubrepertoire, PgnViewContext, Redraw } from './types/types';
+import { NewSubrepertoire, PgnViewContext, Redraw, RepertoireEntry } from './types/types';
 import { ChessSrs } from 'chess-srs';
 import { initial } from 'chessground/fen';
 import { Key } from 'chessground/types';
 import { Config as CgConfig } from 'chessground/config';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
+import { configure, Config as SrsConfig } from '../src/spaced-repetition/config';
+import { Color, DequeEntry, Method, TrainingPath, Subrepertoire, TrainingData } from './spaced-repetition/types';
+import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
+import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
 
 export default class PrepCtrl {
   //TODO call these "plans"
   subrepertoireNames: string[] = [];
   numDueCache: number[] = [];
+
+  // spaced-repetition
+
+  repertoire: RepertoireEntry[] = [];
+  srsConfig?: SrsConfig;
+  repertoireIndex: number;
+  currentTime: number;
+  method: Method;
+  trainingPath: TrainingPath;
 
   //libraries
   chessground: Api | undefined; // stores FEN
@@ -80,13 +93,216 @@ export default class PrepCtrl {
       this.chessSrs.setMethod('learn');
       this.handleLearn();
 
-      // initialize num due cache
-      this.numDueCache = new Array(this.chessSrs.state.repertoire.length).fill(0);
-      console.log(this.numDueCache);
-      // TODO remove me
       this.redraw();
     });
+    this.numDueCache = new Array(this.chessSrs.state.repertoire.length).fill(0);
+    this.repertoireIndex = 0;
+    this.currentTime = Math.round(Date.now() / 1000);
+    this.method = 'learn';
+    this.trainingPath = [];
   }
+
+  // spaced-repetition
+
+  // setSrsConfig = (config: SrsConfig): void => {
+  //   configure(this.srsConfig, config);
+  // };
+
+  addToRepertoire = (pgn: string, color: Color) => {
+    const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
+    for (const subrep of subreps) {
+      //augment subrepertoire with a) color to train as, and b) training data
+      const annotatedSubrep: Subrepertoire<TrainingData> = {
+        ...subrep,
+        headers: {
+          ...subrep.headers,
+        },
+        ...generateSubrepertoire(subrep.moves, color, this.srsConfig!.buckets!),
+      };
+      this.repertoire.push({
+        subrep: annotatedSubrep,
+        name: 'test',
+        lastDueCount: 0
+      });
+    }
+    return true;
+  };
+
+  // const update = (time?: number) => {
+  //   let newTime = time || Math.floor(Date.now() / 1000);
+  //   if ((state.time = newTime)) {
+  //     return false;
+  //   }
+  //   state.time = newTime;
+  //   return true;
+  // },
+
+  // state,
+
+  // setMethod: (method: Method) => {
+  //   state.method = method;
+  //   state.path = null;
+  // },
+  getNext = () => {
+    if (this.repertoireIndex == -1) return false; // no subrepertoire selected
+    //initialization
+    let deque: DequeEntry[] = [];
+    let subrep = this.repertoire[this.repertoireIndex].subrep;
+    //initialize deque
+    for (const child of subrep.moves.children) {
+      deque.push({
+        path: [child],
+        layer: 0,
+      });
+    }
+    while (deque.length != 0) {
+      //initialize dedequed path
+      const entry = this.srsConfig!.getNext!.by == 'breadth' ? deque.shift()! : deque.pop()!;
+      const pos = entry.path.at(-1)!;
+
+      //test if match
+      if (!pos.data.training.disabled) {
+        switch (this.method) {
+          case 'recall': //recall if due
+            if (pos.data.training.dueAt <= this.currentTime) {
+              this.trainingPath = entry.path;
+              return true;
+            }
+            break;
+          case 'learn': //learn if unseen
+            if (!pos.data.training.seen) {
+              this.trainingPath = entry.path;
+              return true;
+            }
+            break;
+        }
+      }
+
+      //push child nodes
+      //TODO guarantee non-full
+      if (entry.layer < this.srsConfig!.getNext!.max!) {
+        for (const child of pos.children) {
+          const DequeEntry: DequeEntry = {
+            path: [...entry.path, child],
+            layer: ++entry.layer,
+          };
+          deque.push(DequeEntry);
+        }
+      }
+    }
+    return false;
+  };
+
+  // load: (k: number) => {
+  //   if (k >= state.repertoire.length) {
+  //     throw new Error(`Index ${k} is out of bounds for repertoire of size ${state.repertoire.length}`);
+  //   }
+  //   state.index = k;
+  // },
+
+  // path: () => {
+  //   return state.path;
+  // },
+
+  makeGuess = (san: string) => {
+    const index = this.repertoireIndex;
+    if (index == -1 || !this.trainingPath || this.method == 'learn') return;
+    let candidates: ChildNode<TrainingData>[] = [];
+    if (this.trainingPath.length == 1) {
+      this.repertoire[index].subrep.moves.children.forEach((child) => candidates.push(child));
+    } else {
+      this.trainingPath.at(-2)?.children.forEach((child) => candidates.push(child));
+    }
+
+    let moves: string[] = [];
+    moves = candidates.map((candidate) => candidate.data.san);
+
+    return moves.includes(san)
+      ? this.trainingPath.at(-1)?.data.san === san
+        ? 'success'
+        : 'alternate'
+      : 'failure';
+  };
+
+  succeed = () => {
+    const node = this.trainingPath?.at(-1);
+    const subrep = this.repertoire[this.repertoireIndex].subrep;
+    if (!node) return;
+    switch (this.method) {
+      case 'recall':
+        let groupIndex = node.data.training.group;
+        subrep.meta.bucketEntries[groupIndex]--;
+        switch (this.srsConfig!.promotion) {
+          case 'most':
+            groupIndex = this.srsConfig!.buckets!.length - 1;
+            break;
+          case 'next':
+            groupIndex = Math.min(groupIndex + 1, this.srsConfig!.buckets!.length - 1);
+            break;
+        }
+        subrep.meta.bucketEntries[groupIndex]++;
+        const interval = this.srsConfig!.buckets![groupIndex];
+
+        node.data.training = {
+          ...node.data.training,
+          group: groupIndex,
+          dueAt: this.currentTime + interval,
+        };
+        break;
+      case 'learn':
+        node.data.training = {
+          ...node.data.training,
+          seen: true,
+          dueAt: this.currentTime + this.srsConfig!.buckets![0],
+          group: 0,
+        };
+        subrep.meta.bucketEntries[0]++; //globally, mark node as seen
+        break;
+    }
+  };
+
+  fail = () => {
+    let node = this.trainingPath?.at(-1);
+    const subrep = this.repertoire[this.repertoireIndex].subrep;
+    if (!node) return;
+    let groupIndex = node.data.training.group;
+    subrep.meta.bucketEntries[groupIndex]--;
+    switch (this.method) {
+      case 'recall':
+        switch (this.srsConfig!.demotion) {
+          case 'most':
+            groupIndex = 0;
+            break;
+          case 'next':
+            groupIndex = Math.max(groupIndex - 1, 0);
+            break;
+        }
+        subrep.meta.bucketEntries[groupIndex]++;
+        const interval = this.srsConfig!.buckets![groupIndex];
+
+        node.data.training = {
+          ...node.data.training,
+          group: groupIndex,
+          dueAt: this.currentTime + interval,
+        };
+      case 'learn':
+        break; //can't fail learning
+    }
+  };
+
+  countDue = () => {
+    const current = this.repertoire[this.repertoireIndex].subrep;
+    const root = current.moves;
+    const ctx = countDueContext(0);
+    walk(root, ctx, (ctx, data) => {
+      ctx.count += !data.training.disabled && data.training.dueAt < this.currentTime ? 1 : 0;
+    });
+    return ctx.count;
+  };
+
+  // current: () => {
+  //   return state.repertoire[state.index];
+  // },
 
   // resets subrepertoire-specific context,
   // e.x. for selecting a different subrepertoire for training
@@ -145,7 +361,7 @@ export default class PrepCtrl {
   };
 
   atLast = () => {
-    return this.pathIndex === this.path.length - 2;
+    return this.pathIndex === this.trainingPath.length - 2;
   };
 
   makeCgOpts = (): CgConfig => {
@@ -212,12 +428,14 @@ export default class PrepCtrl {
       },
       drawable: {
         autoShapes:
-          this.chessSrs.state.method === 'learn' && this.atLast() ? [{ orig: uci[0], dest: uci[1], brush: 'green' }] : [],
+          this.chessSrs.state.method === 'learn' && this.atLast()
+            ? [{ orig: uci[0], dest: uci[1], brush: 'green' }]
+            : [],
       },
       animation: {
-        enabled: false
-      }
-    }
+        enabled: false,
+      },
+    };
     return config;
   };
 
@@ -235,7 +453,7 @@ export default class PrepCtrl {
     } else {
       // update path and pathIndex
       this.path = this.chessSrs.path()!.map((p) => p.data.fen);
-      this.pathIndex = this.path.length - 2;
+      this.pathIndex = this.trainingPath.length - 2;
       const opts = this.makeCgOpts();
       console.log(opts);
       this.chessground!.set(opts);
@@ -267,7 +485,7 @@ export default class PrepCtrl {
       this.redraw();
     } else {
       this.path = this.chessSrs.path()!.map((p) => p.data.fen);
-      this.pathIndex = this.path.length - 2;
+      this.pathIndex = this.trainingPath.length - 2;
 
       const opts = this.makeCgOpts();
       console.log(opts);
