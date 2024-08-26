@@ -11,7 +11,6 @@ import { bookI } from '../svg/book';
 // import { debug } from './debug';
 import { chartI } from '../svg/chart';
 import { commentI } from '../svg/comment';
-import { debug } from './debug';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -215,7 +214,6 @@ const view = (ctrl: PrepCtrl): VNode => {
         comments(ctrl)
     ]),
     ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    debug(ctrl),
   ]);
 };
 export default view;
