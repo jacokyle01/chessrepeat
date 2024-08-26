@@ -251,6 +251,7 @@ export default class PrepCtrl {
       this.redraw();
     } else {
       // update path and pathIndex
+      
       this.path = this.chessSrs.path()!.map((p) => p.data.fen);
       this.pathIndex = this.path.length - 2;
       const opts = this.makeCgOpts();
