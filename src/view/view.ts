@@ -1,16 +1,16 @@
 import { VNode } from 'snabbdom';
 import { looseH as h } from '../types/snabbdom';
 import PrepCtrl from '../ctrl';
-import { chessground } from '../chessground';
+import { chessground } from './chessground';
 import { gearI } from '../svg/gear';
 import { addI } from '../svg/add';
 import { closeI } from '../svg/close';
 import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
-import { debug } from './debug';
 import { chartI } from '../svg/chart';
 import { commentI } from '../svg/comment';
+import { debug } from '../debug/debug';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -28,12 +28,12 @@ const controls = (ctrl: PrepCtrl) => {
             click: () => ctrl.handleLearn(),
           },
           class: {
-            'bg-blue-400': ctrl.chessSrs.state.method == 'learn',
-            'translate-y-px': ctrl.chessSrs.state.method == 'learn',
-            transform: ctrl.chessSrs.state.method == 'learn',
-            'border-b': ctrl.chessSrs.state.method == 'learn',
-            'border-b-4': ctrl.chessSrs.state.method === 'recall',
-            'bg-blue-500': ctrl.chessSrs.state.method === 'recall',
+            'bg-blue-400': ctrl.method == 'learn',
+            'translate-y-px': ctrl.method == 'learn',
+            transform: ctrl.method == 'learn',
+            'border-b': ctrl.method == 'learn',
+            'border-b-4': ctrl.method === 'recall',
+            'bg-blue-500': ctrl.method === 'recall',
           },
         },
         [h('span', 'LEARN'), bookI()],
@@ -45,12 +45,12 @@ const controls = (ctrl: PrepCtrl) => {
             click: () => ctrl.handleRecall(),
           },
           class: {
-            'bg-orange-400': ctrl.chessSrs.state.method == 'recall',
-            'translate-y-px': ctrl.chessSrs.state.method == 'recall',
-            transform: ctrl.chessSrs.state.method == 'recall',
-            'border-b': ctrl.chessSrs.state.method == 'recall',
-            'border-b-4': ctrl.chessSrs.state.method === 'learn',
-            'bg-orange-500': ctrl.chessSrs.state.method === 'learn',
+            'bg-orange-400': ctrl.method == 'recall',
+            'translate-y-px': ctrl.method == 'recall',
+            transform: ctrl.method == 'recall',
+            'border-b': ctrl.method == 'recall',
+            'border-b-4': ctrl.method === 'learn',
+            'bg-orange-500': ctrl.method === 'learn',
           },
         },
         [h('span', 'RECALL'), recallI()],
@@ -61,22 +61,73 @@ const controls = (ctrl: PrepCtrl) => {
 };
 
 const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-  return h('button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2', { on: { click: () => ctrl.toggleAddingNewSubrep() } }, [addI(), h('div', 'Add a repertoire')]);
+  return h(
+    'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
+    { on: { click: () => ctrl.toggleAddingNewSubrep() } },
+    [addI(), h('div', 'Add a repertoire')],
+  );
 };
+
+// const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
+//   return h('div#repertoire-wrap.w-80', [
+//     h('div.border-b-2.border-gray-500', `${ctrl.chessSrs.state.repertoire.length} repertoires`),
+//     h('div#subrepertoire-tree-wrap.w-80.flex-row.p-1.bg-white.shadow-md.rounded-md', [
+//       ...ctrl.subrepertoireNames.map(
+//         (
+//           name,
+//           index, //TODO include graph of progress
+//         ) => {
+//           // console.log('hi');
+//           // const
+//           const meta = ctrl.chessSrs.state.repertoire[index].meta;
+//           const unseenCount = meta.nodeCount - meta.bucketEntries[0];
+//           return h(
+//             'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.my-1',
+//             {
+//               on: {
+//                 click: () => ctrl.selectSubrepertoire(index),
+//               },
+//               class: {
+//                 'bg-cyan-50': ctrl.chessSrs.state.index == index,
+//               },
+//             },
+//             [
+//               h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
+//               h('h3.text-lg.font-light.flex-1', name),
+//               h(
+//                 'button.text-white.font-bold.py-1.px-2.rounded.flex.border-blue-700.bg-blue-400',
+//                 `LEARN ${unseenCount}`,
+//               ),
+//               h(
+//                 'button.text-white.font-bold.py-1.px-2.rounded.flex.border-orange-700.bg-orange-400',
+//                 `RECALL ${ctrl.numDueCache[index]}`,
+//               ),
+
+//               h('div', [gearI()]),
+//             ],
+//           );
+//         },
+//       ),
+//     ]),
+//     addSubrepertoire(ctrl),
+//   ]);
+// };
 
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
   return h('div#repertoire-wrap.w-80', [
-    h('div.border-b-2.border-gray-500', `${ctrl.chessSrs.state.repertoire.length} repertoires`),
+    h('div.border-b-2.border-gray-500', `${ctrl.repertoire.length} repertoires`),
     h('div#subrepertoire-tree-wrap.w-80.flex-row.p-1.bg-white.shadow-md.rounded-md', [
-      ...ctrl.subrepertoireNames.map(
+      ...ctrl.repertoire.map(
         (
-          name,
+          entry,
           index, //TODO include graph of progress
         ) => {
           // console.log('hi');
           // const
-          const meta = ctrl.chessSrs.state.repertoire[index].meta;
+          // const meta = ctrl.chessSrs.state.repertoire[index].meta;
+          const meta = entry.subrep.meta;
           const unseenCount = meta.nodeCount - meta.bucketEntries[0];
+          const name = entry.name;
           return h(
             'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.my-1',
             {
@@ -84,7 +135,7 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
                 click: () => ctrl.selectSubrepertoire(index),
               },
               class: {
-                'bg-cyan-50': ctrl.chessSrs.state.index == index,
+                'bg-cyan-50': ctrl.repertoireIndex == index,
               },
             },
             [
@@ -96,7 +147,7 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
               ),
               h(
                 'button.text-white.font-bold.py-1.px-2.rounded.flex.border-orange-700.bg-orange-400',
-                `RECALL ${ctrl.numDueCache[index]}`,
+                `RECALL ${entry.lastDueCount}`,
               ),
 
               h('div', [gearI()]),
@@ -105,7 +156,7 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
         },
       ),
     ]),
-    addSubrepertoire(ctrl)
+    addSubrepertoire(ctrl),
   ]);
 };
 
@@ -125,13 +176,13 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
         'form.p-8.bg-white.rounded-md.shadow-md',
         {
           on: {
-            submit: (e) => {
-              e.preventDefault();
-              ctrl.addSubrepertoire({
-                alias: fieldValue('name'),
-                pgn: fieldValue('pgn'),
-                trainAs: checked('color') ? 'black' : 'white',
-              });
+            submit: (e: any) => { //TODO: give me a type!
+              e.preventDefault(); 
+              ctrl.addToRepertoire(
+                fieldValue('pgn'), 
+                checked('color') ? 'black' : 'white',
+                fieldValue('name'),
+              );
               ctrl.toggleAddingNewSubrep();
             },
           },
@@ -190,10 +241,10 @@ const comments = (ctrl: PrepCtrl) => {
   return h('div.mt-10', [
     h('div.flex.border-b-2.border-gray-500', [commentI(), h('div', 'Comments')]),
     h('div#comment.p-1.bg-white.shadow-md.rounded-md', [
-      h('h4', ctrl.chessSrs.path()?.at(-2)?.data.comments),
-    ])
-  ])
-}
+      h('h4', ctrl.trainingPath?.at(-2)?.data.comments),
+    ]),
+  ]);
+};
 
 //TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
 //stats & # due
@@ -210,11 +261,10 @@ const view = (ctrl: PrepCtrl): VNode => {
     // ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     h('div#side.w-1/5.flex-col', [
       pgnTree(ctrl),
-      ctrl.chessSrs.path()?.at(-2)?.data.comments &&
-        comments(ctrl)
+      ctrl.trainingPath?.at(-2)?.data.comments && comments(ctrl),
     ]),
-    ctrl.chessSrs.path()?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    debug(ctrl),
+    ctrl.trainingPath?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
+    // debug(ctrl),
   ]);
 };
 export default view;
