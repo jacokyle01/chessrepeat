@@ -2,8 +2,6 @@ import PrepCtrl from '../ctrl';
 import { pgn1, pgn2, pgn3 } from './pgns';
 
 export const init = (ctrl: PrepCtrl) => {
-  console.log('THIS', ctrl);
-
   // add 3 repertoire entries
   ctrl.addToRepertoire(pgn1(), 'white', 'Catalan');
   ctrl.addToRepertoire(pgn2(), 'white', 'Catalan 2');

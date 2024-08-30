@@ -1,8 +1,5 @@
 import { VNode, h } from 'snabbdom';
 import PrepCtrl from '../ctrl';
-import { stringifyPath } from '../util';
-import { ChildNode } from 'chessops/pgn';
-// import { TrainingData } from 'chess-srs/types';
 import { backI } from '../svg/back';
 import { firstI } from '../svg/first';
 import { lastI } from '../svg/last';
@@ -66,7 +63,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
       {
         on: {
           click: () => {
-            ctrl.jump(Math.min(ctrl.path.length - 2, ctrl.pathIndex + 1));
+            ctrl.jump(Math.min(ctrl.trainingPath.length - 2, ctrl.pathIndex + 1));
           },
         },
       },
@@ -77,7 +74,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
       {
         on: {
           click: () => {
-            ctrl.jump(ctrl.path.length - 2);
+            ctrl.jump(ctrl.trainingPath.length - 2);
           },
         },
         class: {
@@ -91,10 +88,6 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
 };
 
 export const pgnTree = (ctrl: PrepCtrl): VNode => {
-  // let pgn: string[] = [];
-  // if (ctrl.chessSrs.state.path != null) {
-  //   pgn = stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[]);
-  // }
   let pgn = ctrl.trainingPath.map((node) => node.data.san);
   const rows: VNode[] = [];
   let elems: VNode[] = [];

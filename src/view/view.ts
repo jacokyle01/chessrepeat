@@ -68,51 +68,6 @@ const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
   );
 };
 
-// const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
-//   return h('div#repertoire-wrap.w-80', [
-//     h('div.border-b-2.border-gray-500', `${ctrl.chessSrs.state.repertoire.length} repertoires`),
-//     h('div#subrepertoire-tree-wrap.w-80.flex-row.p-1.bg-white.shadow-md.rounded-md', [
-//       ...ctrl.subrepertoireNames.map(
-//         (
-//           name,
-//           index, //TODO include graph of progress
-//         ) => {
-//           // console.log('hi');
-//           // const
-//           const meta = ctrl.chessSrs.state.repertoire[index].meta;
-//           const unseenCount = meta.nodeCount - meta.bucketEntries[0];
-//           return h(
-//             'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.my-1',
-//             {
-//               on: {
-//                 click: () => ctrl.selectSubrepertoire(index),
-//               },
-//               class: {
-//                 'bg-cyan-50': ctrl.chessSrs.state.index == index,
-//               },
-//             },
-//             [
-//               h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
-//               h('h3.text-lg.font-light.flex-1', name),
-//               h(
-//                 'button.text-white.font-bold.py-1.px-2.rounded.flex.border-blue-700.bg-blue-400',
-//                 `LEARN ${unseenCount}`,
-//               ),
-//               h(
-//                 'button.text-white.font-bold.py-1.px-2.rounded.flex.border-orange-700.bg-orange-400',
-//                 `RECALL ${ctrl.numDueCache[index]}`,
-//               ),
-
-//               h('div', [gearI()]),
-//             ],
-//           );
-//         },
-//       ),
-//     ]),
-//     addSubrepertoire(ctrl),
-//   ]);
-// };
-
 const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
   return h('div#repertoire-wrap.w-80', [
     h('div.border-b-2.border-gray-500', `${ctrl.repertoire.length} repertoires`),
@@ -122,9 +77,6 @@ const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
           entry,
           index, //TODO include graph of progress
         ) => {
-          // console.log('hi');
-          // const
-          // const meta = ctrl.chessSrs.state.repertoire[index].meta;
           const meta = entry.subrep.meta;
           const unseenCount = meta.nodeCount - meta.bucketEntries[0];
           const name = entry.name;
@@ -251,20 +203,14 @@ const comments = (ctrl: PrepCtrl) => {
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
-    // ctrl.addingNewSubrep !== false && h('div', 'test'),
-    // h('div#reperoire-wrap.bg-white.block-inline.shadow-md.rounded-md', [
     subrepertoireTree(ctrl),
-    // addSubrepertoire(ctrl),
-    // ]),
     h('div#main-wrap', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-    //TODO gross
-    // ctrl.chessSrs.path() && pgnTree(stringifyPath(ctrl.chessSrs.state.path as ChildNode<TrainingData>[])),
     h('div#side.w-1/5.flex-col', [
       pgnTree(ctrl),
       ctrl.trainingPath?.at(-2)?.data.comments && comments(ctrl),
     ]),
     ctrl.trainingPath?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    // debug(ctrl),
+    debug(ctrl),
   ]);
 };
 export default view;

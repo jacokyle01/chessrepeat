@@ -16,12 +16,12 @@ const learn = (ctrl: PrepCtrl): VNode => {
     h('div.w-12.mx-2', ctrl.subrep().meta.trainAs === 'white' ? whiteKingI() : blackKingI()),
     h('div', [
       h('h1.font-bold', 'Your move'),
-      h('h2', `${ctrl.subrep().meta.trainAs} plays ${ctrl.chessSrs.path()!.at(-1)!.data.san}`),
+      h('h2', `${ctrl.subrep().meta.trainAs} plays ${ctrl.trainingPath.at(-1)!.data.san}`),
     ]),
   ]);
 };
 
-const empty = (ctrl: PrepCtrl): VNode => {
+const empty = (): VNode => {
   return h('div.bg-white.flex.py-4.border-t-2.border-gray-500.rounded-b-md', [
     h('div', [
       h('h1.font-bold', 'No moves'),
@@ -38,7 +38,7 @@ export const toast = (ctrl: PrepCtrl): VNode | null => {
     case 'learn':
       return learn(ctrl);
     case 'empty':
-      return empty(ctrl);
+      return empty();
     default:
       return h('div', 'Other');
   }
