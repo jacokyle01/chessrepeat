@@ -11,6 +11,7 @@ import { bookI } from '../svg/book';
 import { chartI } from '../svg/chart';
 import { commentI } from '../svg/comment';
 import { debug } from '../debug/debug';
+import { sidebar } from './sidebar';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -211,6 +212,7 @@ const view = (ctrl: PrepCtrl): VNode => {
     ]),
     ctrl.trainingPath?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
     debug(ctrl),
+  sidebar(ctrl)
   ]);
 };
 export default view;
