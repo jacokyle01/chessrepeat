@@ -43,7 +43,7 @@ export default class PrepCtrl {
     this.lastFeedback = 'init';
     this.srsConfig = defaults();
     this.setSrsConfig({
-      buckets: [1, 11, 111],
+      buckets: [2, 4, 8, 16, 32, 64, 128],
     });
   }
 
@@ -265,6 +265,9 @@ export default class PrepCtrl {
   };
 
   makeCgOpts = (): CgConfig => {
+    console.log("Make CG OPTS");
+    console.log("trainingPath", this.trainingPath);
+
     const fen = this.trainingPath.at(-2)?.data.fen || initial;
 
     // get last move, if it exists
@@ -280,7 +283,7 @@ export default class PrepCtrl {
     const uci = calcTarget(fen, targetSan!);
 
     const config: CgConfig = {
-      fen: this.trainingPath[this.pathIndex].data.fen || initial,
+      fen: this.trainingPath[this.pathIndex]?.data.fen || initial,
       lastMove: lastMoves,
       turnColor: this.subrep().meta.trainAs,
       movable: {

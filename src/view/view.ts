@@ -204,7 +204,8 @@ const comments = (ctrl: PrepCtrl) => {
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
-    subrepertoireTree(ctrl),
+    sidebar(ctrl),
+    // subrepertoireTree(ctrl),
     h('div#main-wrap', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     h('div#side.w-1/5.flex-col', [
       pgnTree(ctrl),
@@ -212,7 +213,6 @@ const view = (ctrl: PrepCtrl): VNode => {
     ]),
     ctrl.trainingPath?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
     debug(ctrl),
-  sidebar(ctrl)
   ]);
 };
 export default view;

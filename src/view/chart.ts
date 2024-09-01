@@ -3,6 +3,11 @@ import { looseH as h } from '../types/snabbdom';
 import { Chart } from 'chart.js/auto';
 import PrepCtrl from '../ctrl';
 import { BarChart, BarData } from '../types/types';
+import { Context } from 'chartjs-plugin-datalabels';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { formatTime } from '../util/time';
+
+Chart.register(ChartDataLabels);
 
 function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
   // console.log();
@@ -20,7 +25,7 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
   const config = {
     type: 'doughnut',
     data: {
-      labels: [...ctrl.srsConfig!.buckets!].map(x => `${x} seconds`), // Creates labels [1, 2, 3, 4]
+      labels: ctrl.srsConfig!.buckets!.map((x) => `${x} seconds`), // Creates labels [1, 2, 3, 4]
       datasets: [
         {
           data: data,
@@ -35,8 +40,29 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
       plugins: {
         legend: {
           labels: {
+            font: {
+              size: 14,
+            },
           },
-          align: 'start', // Align legend items vertically
+          align: 'right', // Align legend items vertically
+          position: 'right',
+        },
+        datalabels: {
+          font: {
+            size: 20,
+          },
+          color: 'black',
+          formatter: function (value, context) {
+            return value === 0 ? '' : value;
+          },
+          textAlign: 'center',
+          labels: {
+            firstLine: {
+              font: {
+                weight: 'bold', // First line bold
+              },
+            },
+          },
         },
       },
     },
@@ -47,11 +73,22 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
     console.log('UPDATING CHART');
     console.log(d);
     chart.data = {
-      labels: [...ctrl.srsConfig!.buckets!].map(x => `${x} seconds`), // Creates labels [1, 2, 3, 4]
+      labels: ctrl.srsConfig!.buckets!.map((x) => formatTime(x)), // Creates labels [1, 2, 3, 4]
       datasets: [
         {
           data: d,
-          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'], // Colors for each slice
+          backgroundColor: [
+            '#FF6384',
+            '#36A2EB',
+            '#FFCE56',
+            '#4BC0C0',
+            '#9966FF',
+            '#FF9F40',
+            '#66DA26',
+            '#546E7A',
+            '#E91E63',
+            '#FF9800',
+          ],
         },
       ],
     };
@@ -76,10 +113,10 @@ function chartHook(vnode: VNode, ctrl: PrepCtrl) {
   // console.log(subrep);
   console.log(subrep.meta.bucketEntries);
 
-  const meta = ctrl.subrep().meta;
-  const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
+  // const meta = ctrl.subrep().meta;
+  // const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
 
-  const barData = [unseenCount, ...subrep.meta.bucketEntries];
+  const barData = subrep.meta.bucketEntries;
 
   const el = vnode.elm as HTMLCanvasElement;
   if (!maybeChart(el)) {

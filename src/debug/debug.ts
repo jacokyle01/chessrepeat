@@ -2,7 +2,7 @@ import { h, VNode } from 'snabbdom';
 import PrepCtrl from '../ctrl';
 
 export const debug = (ctrl: PrepCtrl): VNode => {
-  return h('div.absolute.left-0.m-20.my-60', [
+  return h('div.absolute.right-0.m-20.my-60', [
     h('div', 'DEBUG'),
     h('div', `pathIndex: ${ctrl.pathIndex}`),
 
