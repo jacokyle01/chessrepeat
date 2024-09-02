@@ -7,9 +7,9 @@ export const lastI = () => {
       class: { lucide: true, 'lucide-arrow-right-to-line': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
-        width: '24',
-        height: '24',
-        viewbox: '0 0 24 24',
+        width: '36', // Doubled width
+        height: '36', // Doubled height
+        viewBox: '0 0 24 24', // Keep the viewBox the same
         fill: 'none',
         stroke: 'currentColor',
         'stroke-width': '2',

@@ -36,6 +36,7 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
       ],
     },
     options: {
+      cutout: 60,
       animation: false, // Disable animations
       plugins: {
         legend: {

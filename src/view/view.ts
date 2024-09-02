@@ -56,7 +56,6 @@ const controls = (ctrl: PrepCtrl) => {
         },
         [h('span', 'RECALL'), recallI()],
       ),
-      h('div#open-chart.rounded.bg-green-400.p-1.border-b-4.border-green-600', [chartI()]),
     ],
   );
 };
@@ -190,15 +189,6 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   );
 };
 
-const comments = (ctrl: PrepCtrl) => {
-  return h('div.mt-10', [
-    h('div.flex.border-b-2.border-gray-500', [commentI(), h('div', 'Comments')]),
-    h('div#comment.p-1.bg-white.shadow-md.rounded-md', [
-      h('h4', ctrl.trainingPath?.at(-2)?.data.comments),
-    ]),
-  ]);
-};
-
 //TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
 //stats & # due
 //date added
@@ -207,11 +197,10 @@ const view = (ctrl: PrepCtrl): VNode => {
     sidebar(ctrl),
     // subrepertoireTree(ctrl),
     h('div#main-wrap', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-    h('div#side.w-1/5.flex-col', [
+    h('div#side.w-1/4.flex-col', [
       pgnTree(ctrl),
-      ctrl.trainingPath?.at(-2)?.data.comments && comments(ctrl),
     ]),
-    ctrl.trainingPath?.at(-2)?.data.comments && ctrl.addingNewSubrep && newSubrepForm(ctrl),
+    ctrl.addingNewSubrep && newSubrepForm(ctrl),
     debug(ctrl),
   ]);
 };

@@ -7,9 +7,9 @@ export const firstI = () => {
       class: { lucide: true, 'lucide-arrow-left-to-line': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
-        width: '24',
-        height: '24',
-        viewbox: '0 0 24 24',
+        width: '36',   // Increased width
+        height: '36',  // Increased height
+        viewBox: '0 0 24 24',
         fill: 'none',
         stroke: 'currentColor',
         'stroke-width': '2',
