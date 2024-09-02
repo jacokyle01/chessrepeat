@@ -23,6 +23,6 @@ export const init = (ctrl: PrepCtrl) => {
   console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT")
 
   ctrl.handleLearn();
-
+  ctrl.syncTime();
   ctrl.redraw();
 };
