@@ -283,10 +283,13 @@ export default class PrepCtrl {
     const uci = calcTarget(fen, targetSan!);
 
     const config: CgConfig = {
+      orientation: this.subrep().meta.trainAs,
       fen: this.trainingPath[this.pathIndex]?.data.fen || initial,
       lastMove: lastMoves,
       turnColor: this.subrep().meta.trainAs,
+      
       movable: {
+        color: this.subrep().meta.trainAs,
         dests: this.atLast()
           ? this.method === 'learn'
             ? toDestMap(uci[0], uci[1])
@@ -330,6 +333,7 @@ export default class PrepCtrl {
         enabled: false,
       },
     };
+    console.log("config", config);
     return config;
   };
 

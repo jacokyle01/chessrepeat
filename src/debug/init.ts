@@ -17,6 +17,12 @@ export const init = (ctrl: PrepCtrl) => {
     ctrl.getNext();
     ctrl.succeed();
   }
-  console.log('THIS 2', ctrl);
+  ctrl.selectSubrepertoire(3);
+  console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT")
+  console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT")
+  console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT")
+
+  ctrl.handleLearn();
+
   ctrl.redraw();
 };

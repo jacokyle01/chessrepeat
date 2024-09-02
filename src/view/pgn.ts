@@ -11,11 +11,11 @@ import { toast } from './toast';
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
 const indexNode = (turn: number) =>
-  h('index.bg-gray-100.px-5.justify-center.flex.border-r-2.border-white-500.mr-2', `${turn + 1}`);
+  h('index.bg-gray-100.px-5.justify-center.flex.border-r-2.border-white-500.w-8', `${turn + 1}`);
 
 const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
   return h(
-    'move.flex-1.hover:cursor-pointer.text-lg',
+    'move.flex-1.hover:cursor-pointer.text-lg.pl-2',
     {
       class: {
         'bg-sky-300': ctrl.pathIndex === index,
@@ -37,6 +37,12 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
 const emptyNode = () => {
   return h('move.flex-1.hover:cursor-pointer.text-lg', '...');
 };
+
+// TODO remove hack
+const veryEmptyNode = () => {
+  return h('move.flex-1.hover:cursor-pointer.text-lg', '');
+};
+
 
 const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
@@ -101,7 +107,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
   const rows: VNode[] = [];
   let elems: VNode[] = [];
   
-  for (let i = 0; i < ctrl.trainingPath.length; i++) {
+  for (let i = 0; i < ctrl.trainingPath.length - 1; i++) {
     const node = ctrl.trainingPath[i];
     if (i % 2 == 0) {
       elems.push(indexNode(i / 2));
@@ -122,6 +128,8 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
       elems = [];
     }
   }
+  elems.push(veryEmptyNode());
+  rows.push(rowNode(elems));
 
   return h('div', [
     h('div#pgn.h-1/3.flex.flex-col.shadow-md.rounded-t-lg.bg-white', [

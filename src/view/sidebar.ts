@@ -29,11 +29,11 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
     unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
   }
   return h('div#sidebar.flex.flex-col', [
-    h('div.flex.flex-row.gap-1.items-center.text-center.justify-center', [
-      kingI(),
-      h('span.font-medium.text-2xl', 'Repertoire'),
-    ]),
     h('div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-xl.rounded-t-lg', [
+      h('div.flex.flex-row.gap-1.m-2', [
+        kingI(),
+        h('span.font-medium.text-lg.text-gray-700', 'Repertoire')
+      ]),
       h('div#repertoire-wrap.m-2', [
         h('span.font-semibold.text-sm.uppercase', 'White'),
         repertoire(whiteEntries, ctrl, 0),

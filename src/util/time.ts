@@ -6,7 +6,6 @@ const SECONDS_A_MONTH = SECONDS_A_DAY * 30;
 const SECONDS_A_YEAR = SECONDS_A_WEEK * 52;
 
 export const formatTime = (seconds: number) => {
-  console.log(SECONDS_A_YEAR);
   if (seconds >= SECONDS_A_YEAR) {
     return `${(seconds / SECONDS_A_YEAR).toFixed(1)} yrs`;
   }

@@ -17,10 +17,10 @@ export const debug = (ctrl: PrepCtrl): VNode => {
       {
         attrs: { type: 'button' }, // HTML attributes
         on: {
-          click: () => alert(ctrl.countDue()), // Event listener
+          click: () => console.log(ctrl.chessground!.state), // Event listener
         },
       },
-      'count due', // Button text
+      'CONFIG', // Button text
     ),
   ]);
 };

@@ -189,11 +189,6 @@ cg-board piece.fading {
   max-height: 100px;
 }
 
-#main-wrap {
-  display: flex;
-  flex-direction: column;
-}
-
 .selected {
   border: 1px solid black;
 }

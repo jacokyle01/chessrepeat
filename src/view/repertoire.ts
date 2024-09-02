@@ -5,7 +5,7 @@ import PrepCtrl from '../ctrl';
 import { RepertoireEntry } from '../types/types';
 
 export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, startsAt: number): VNode => {
-  console.log(repertoire.length);
+  // console.log(repertoire.length);
   return h('div#subrepertoire-tree-wrap.flex-row.p-1.rounded-md', [
     ...repertoire.map(
       (

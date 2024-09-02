@@ -71,8 +71,8 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
 
   const chart = new Chart(el, config) as BarChart;
   chart.updateData = (d) => {
-    console.log('UPDATING CHART');
-    console.log(d);
+    // console.log('UPDATING CHART');
+    // console.log(d);
     chart.data = {
       labels: ctrl.srsConfig!.buckets!.map((x) => formatTime(x)), // Creates labels [1, 2, 3, 4]
       datasets: [
@@ -107,12 +107,12 @@ function maybeChart(el: HTMLCanvasElement): Chart | undefined {
 
 let barchart: BarChart;
 function chartHook(vnode: VNode, ctrl: PrepCtrl) {
-  console.log('CHART HOOK');
+  // console.log('CHART HOOK');
   // console.log(ctrl);
   const subrep = ctrl.subrep();
   if (!subrep) return;
   // console.log(subrep);
-  console.log(subrep.meta.bucketEntries);
+  // console.log(subrep.meta.bucketEntries);
 
   // const meta = ctrl.subrep().meta;
   // const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
@@ -121,10 +121,10 @@ function chartHook(vnode: VNode, ctrl: PrepCtrl) {
 
   const el = vnode.elm as HTMLCanvasElement;
   if (!maybeChart(el)) {
-    console.log('NO CHART');
+    // console.log('NO CHART');
     barchart = insightChart(ctrl, el, barData);
   } else if (barchart) {
-    console.log('YES CHART');
+    // console.log('YES CHART');
     barchart.updateData(barData);
   }
 }

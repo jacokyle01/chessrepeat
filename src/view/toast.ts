@@ -6,7 +6,7 @@ import { blackKingI } from '../svg/black_king';
 
 const recall = (ctrl: PrepCtrl): VNode => {
   const isWhite = ctrl.subrep().meta.trainAs === 'white';
-  return h('div.bg-white.flex.py-10.rounded-b-md', [
+  return h('div.bg-white.flex.py-10.rounded-b-md.shadow-md', [
     h('div.w-12.mx-2', isWhite ? whiteKingI() : blackKingI()),
     h('div', [
       h('h1.font-bold.text-lg', 'Your move'),
@@ -17,7 +17,7 @@ const recall = (ctrl: PrepCtrl): VNode => {
 
 const learn = (ctrl: PrepCtrl): VNode => {
   const isWhite = ctrl.subrep().meta.trainAs === 'white';
-  return h('div.bg-white.flex.py-10.rounded-b-md', [
+  return h('div.bg-white.flex.py-10.rounded-b-md.shadow-md', [
     h('div.w-12.mx-2', isWhite ? whiteKingI() : blackKingI()),
     h('div', [
       h('h1.font-bold.text-lg', 'Your move'),
@@ -27,7 +27,7 @@ const learn = (ctrl: PrepCtrl): VNode => {
 };
 
 const empty = (): VNode => {
-  return h('div.bg-white.flex.py-10.rounded-b-md', [
+  return h('div.bg-white.flex.py-10.rounded-b-md.shadow-md', [
     h('div', [
       h('h1.font-bold.text-lg', 'No moves'),
       h('h2.text-md', 'Try training a different repertoire or switching modes'),

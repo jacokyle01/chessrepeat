@@ -20,7 +20,7 @@ export const checked = (id: string) => (document.getElementById(id) as HTMLInput
 
 const controls = (ctrl: PrepCtrl) => {
   return h(
-    'div#training-controls.flex.items-end.gap-1.justify-center.p-1.h-14.mx-auto.my-4.shadow-md.rounded-md.p-4.bg-white.items-center',
+    'div#training-controls.flex.items-end.gap-1.p-1.h-14.mr-auto.shadow-md.rounded-b-md.p-4.bg-white.items-center',
     [
       h(
         'button.text-white.font-bold.py-1.px-4.rounded.flex.border-blue-700.hover:border-blue-500.hover:bg-blue-400.active:transform.active:translate-y-px.active:border-b',
@@ -55,7 +55,10 @@ const controls = (ctrl: PrepCtrl) => {
           },
         },
         [h('span', 'RECALL'), recallI()],
+        
       ),
+      h('div.ml-3', [gearI()]),
+
     ],
   );
 };
@@ -195,8 +198,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
     sidebar(ctrl),
-    // subrepertoireTree(ctrl),
-    h('div#main-wrap', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+    h('div#main-wrap.flex.flex-col', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     h('div#side.w-1/4.flex-col', [
       pgnTree(ctrl),
     ]),
