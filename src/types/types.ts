@@ -1,5 +1,6 @@
 import { Chart } from 'chart.js';
 import { Color } from 'chess-srs/types';
+import { Subrepertoire, TrainingData } from '../spaced-repetition/types';
 
 export type Redraw = () => void;
 export interface NewSubrepertoire {
@@ -28,4 +29,10 @@ export interface BarData {
 export interface PgnViewContext {
   splitFen: string[] | null;
   index: number | "last"
+}
+
+export interface RepertoireEntry {
+  name: string 
+	subrep: Subrepertoire<TrainingData>
+	lastDueCount: number
 }

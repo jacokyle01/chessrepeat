@@ -4,7 +4,7 @@ export const addI = (): VNode => {
   return h(
     'svg',
     {
-      class: { lucide: true, 'lucide-diamond-plus': true },
+      class: { lucide: true, 'lucide-book-plus': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
         width: '24',
@@ -18,13 +18,13 @@ export const addI = (): VNode => {
       },
     },
     [
-      h('path', { attrs: { d: 'M12 8v8' } }),
+      h('path', { attrs: { d: 'M12 7v6' } }),
       h('path', {
         attrs: {
-          d: 'M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0z',
+          d: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20',
         },
       }),
-      h('path', { attrs: { d: 'M8 12h8' } }),
+      h('path', { attrs: { d: 'M9 10h6' } }),
     ],
   );
 };

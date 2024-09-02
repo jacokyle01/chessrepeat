@@ -1,10 +1,10 @@
 import { h, VNode } from 'snabbdom';
 
-export const chartI = (): VNode => {
+export const kingI = (): VNode => {
   return h(
     'svg',
     {
-      class: { lucide: true, 'lucide-chart-pie': true },
+      class: { lucide: true, 'lucide-crown': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
         width: '24',
@@ -20,10 +20,10 @@ export const chartI = (): VNode => {
     [
       h('path', {
         attrs: {
-          d: 'M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z',
+          d: 'M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z',
         },
       }),
-      h('path', { attrs: { d: 'M21.21 15.89A10 10 0 1 1 8 2.83' } }),
+      h('path', { attrs: { d: 'M5 21h14' } }),
     ],
   );
 };
