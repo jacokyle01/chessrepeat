@@ -7,7 +7,6 @@ import { closeI } from '../svg/close';
 import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
-import { debug } from '../debug/debug';
 import { sidebar } from './sidebar';
 
 export const fieldValue = (id: string) =>
