@@ -148,7 +148,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       pgnTree(ctrl),
     ]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    debug(ctrl),
+    // debug(ctrl),
   ]);
 };
 export default view;
