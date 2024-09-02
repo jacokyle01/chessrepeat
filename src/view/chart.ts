@@ -3,7 +3,6 @@ import { looseH as h } from '../types/snabbdom';
 import { Chart } from 'chart.js/auto';
 import PrepCtrl from '../ctrl';
 import { BarChart, BarData } from '../types/types';
-import { Context } from 'chartjs-plugin-datalabels';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { formatTime } from '../util/time';
 
@@ -53,7 +52,7 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
             size: 20,
           },
           color: 'black',
-          formatter: function (value, context) {
+          formatter: function (value: number) {
             return value === 0 ? '' : value;
           },
           textAlign: 'center',
@@ -68,6 +67,7 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
       },
     },
   };
+  // @ts-ignore
 
   const chart = new Chart(el, config) as BarChart;
   chart.updateData = (d) => {
@@ -77,6 +77,8 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
       labels: ctrl.srsConfig!.buckets!.map((x) => formatTime(x)), // Creates labels [1, 2, 3, 4]
       datasets: [
         {
+          // @ts-ignore
+
           data: d,
           backgroundColor: [
             '#FF6384',

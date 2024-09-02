@@ -1,6 +1,5 @@
 import { Chart } from 'chart.js';
-import { Color } from 'chess-srs/types';
-import { Subrepertoire, TrainingData } from '../spaced-repetition/types';
+import { Color, Subrepertoire, TrainingData } from '../spaced-repetition/types';
 
 export type Redraw = () => void;
 export interface NewSubrepertoire {

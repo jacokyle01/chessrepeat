@@ -3,13 +3,10 @@ import { looseH as h } from '../types/snabbdom';
 import PrepCtrl from '../ctrl';
 import { chessground } from './chessground';
 import { gearI } from '../svg/gear';
-import { addI } from '../svg/add';
 import { closeI } from '../svg/close';
 import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
-import { chartI } from '../svg/chart';
-import { commentI } from '../svg/comment';
 import { debug } from '../debug/debug';
 import { sidebar } from './sidebar';
 
@@ -61,58 +58,6 @@ const controls = (ctrl: PrepCtrl) => {
 
     ],
   );
-};
-
-const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-  return h(
-    'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
-    { on: { click: () => ctrl.toggleAddingNewSubrep() } },
-    [addI(), h('div', 'Add a repertoire')],
-  );
-};
-
-const subrepertoireTree = (ctrl: PrepCtrl): VNode => {
-  return h('div#repertoire-wrap.w-80', [
-    h('div.border-b-2.border-gray-500', `${ctrl.repertoire.length} repertoires`),
-    h('div#subrepertoire-tree-wrap.w-80.flex-row.p-1.bg-white.shadow-md.rounded-md', [
-      ...ctrl.repertoire.map(
-        (
-          entry,
-          index, //TODO include graph of progress
-        ) => {
-          const meta = entry.subrep.meta;
-          const unseenCount = meta.nodeCount - meta.bucketEntries[0];
-          const name = entry.name;
-          return h(
-            'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.my-1',
-            {
-              on: {
-                click: () => ctrl.selectSubrepertoire(index),
-              },
-              class: {
-                'bg-cyan-50': ctrl.repertoireIndex == index,
-              },
-            },
-            [
-              h('span.font-medium.text-cyan-400.pr-3', (index + 1).toString()),
-              h('h3.text-lg.font-light.flex-1', name),
-              h(
-                'button.text-white.font-bold.py-1.px-2.rounded.flex.border-blue-700.bg-blue-400',
-                `LEARN ${unseenCount}`,
-              ),
-              h(
-                'button.text-white.font-bold.py-1.px-2.rounded.flex.border-orange-700.bg-orange-400',
-                `RECALL ${entry.lastDueCount}`,
-              ),
-
-              h('div', [gearI()]),
-            ],
-          );
-        },
-      ),
-    ]),
-    addSubrepertoire(ctrl),
-  ]);
 };
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
