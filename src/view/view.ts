@@ -57,7 +57,11 @@ const controls = (ctrl: PrepCtrl) => {
         [h('span', 'RECALL'), recallI()],
         
       ),
-      h('div.ml-3', [gearI()]),
+      h('div.ml-3', {
+        on: {
+          click: () => ctrl.toggleTrainingSettings()
+        }
+      }, [gearI()]),
 
     ],
   );

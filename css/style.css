@@ -1,6 +1,6 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities; */
 
 /*
  * Chessground base css properties.
@@ -20,10 +20,45 @@ body {
 }
 
 .cg-wrap {
-  width: 500px;
-  height: 500px;
+  /* make the width and height scale to zoom  */
+  width: calc(var(--zoom) * 496px / 100);
+  height: calc(var(--zoom) * 496px / 100);
   position: relative;
   display: block;
+}
+
+cg-resize {
+  display: none;
+  display: block;
+  position: absolute;
+  right: -9px;
+  bottom: -9px;
+  width: 22px;
+  height: 22px;
+  cursor: nwse-resize;
+  z-index: 10;
+}
+cg-resize::before,
+cg-resize::after {
+  background: #000;
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 1px;
+  left: 0;
+}
+cg-resize::before {
+  width: 5px;
+  transform: translate(7px, 8px) rotate(-45deg);
+}
+cg-resize::after {
+  transform: translate(1px, 6px) rotate(-45deg);
+}
+cg-resize:hover {
+  border-radius: 50%;
+}
+.resizing cg-resize {
+  border-radius: 50%;
 }
 
 cg-helper {

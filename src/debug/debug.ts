@@ -22,5 +22,10 @@ export const debug = (ctrl: PrepCtrl): VNode => {
       },
       'CONFIG', // Button text
     ),
+    h('button', {
+      on: {
+        click: () => ctrl?.chessground!.redrawAll()
+      }
+    }, 'REDRAW')
   ]);
 };
