@@ -19,7 +19,7 @@
   "dependencies": {
     "chart.js": "^4.4.3",
     "chartjs-plugin-datalabels": "^2.2.0",
-    "chessground": "^9.1.1",
+    "chessground": "7.5",
     "chessops": "^0.14.1",
     "prettier": "^3.2.5",
     "snabbdom": "^3.6.2"
