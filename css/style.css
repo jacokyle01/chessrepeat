@@ -31,8 +31,8 @@ cg-resize {
   display: none;
   display: block;
   position: absolute;
-  right: -9px;
-  bottom: -9px;
+  right: -20px;
+  bottom: -20px;
   width: 22px;
   height: 22px;
   cursor: nwse-resize;
@@ -61,13 +61,8 @@ cg-resize:hover {
   border-radius: 50%;
 }
 
-/* cg-helper {
-  position: absolute;
-  width: 12.5%;
-  padding-bottom: 12.5%;
-  display: table; /* hack: round to full pixel size in chrome */
-  bottom: 0;
-/* } */ */
+/* TODO hack- find permanent fix from lichess/lila */ 
+bottom: 0;
 
 cg-container {
   position: absolute;

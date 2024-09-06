@@ -29,7 +29,7 @@ function makeConfig(ctrl: PrepCtrl): Config {
 
 export const chessground = (ctrl: PrepCtrl): VNode => {
   return h(
-    'section.blue.merida.shadow.appearance-none.shadow-md.rounded-t-lg.rounded-br-lg.p-3.bg-white.relative',
+    'section.blue.merida.rounded-t-lg.rounded-br-lg.p-3.bg-white.relative',
     [
       h('div.cg-wrap', {
         hook: {
