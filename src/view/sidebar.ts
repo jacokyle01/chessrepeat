@@ -51,7 +51,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
     h('div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-xl.rounded-b-lg', [
       h('div#repertoire-wrap.m-2', [
         h('div.flex.flex-row.gap-1', [chartI(), h('span.font-medium.text-lg.text-gray-700', 'Scheduling')]),
-        h('div.font-semibold', `${unseenCount} unseen`),
+        h('div.block.antialiased.font-sans.font-small.text-sm.uppercase.text-gray-400', `${unseenCount} unseen`),
         chart(ctrl),
       ]),
     ]),

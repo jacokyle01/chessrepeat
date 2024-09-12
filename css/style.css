@@ -21,8 +21,8 @@ body {
 
 .cg-wrap {
   /* make the width and height scale to zoom  */
-  width: calc(var(--zoom) * 496px / 100);
-  height: calc(var(--zoom) * 496px / 100);
+  width: calc(var(--zoom) * 500px / 100);
+  height: calc(var(--zoom) * 500px / 100);
   position: relative;
   display: block;
 }
@@ -61,8 +61,6 @@ cg-resize:hover {
   border-radius: 50%;
 }
 
-/* TODO hack- find permanent fix from lichess/lila */ 
-bottom: 0;
 
 cg-container {
   position: absolute;

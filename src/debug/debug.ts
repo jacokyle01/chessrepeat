@@ -9,6 +9,7 @@ export const debug = (ctrl: PrepCtrl): VNode => {
     h('div', `path length: ${ctrl.trainingPath.length + ''}`),
     h('div', `at last? : ${ctrl.atLast()}`),
     h('div', `train by: ${ctrl.method}`),
+    // h('div', `exploration strategy: ${ctrl}`),
     h('div', `meta | bucketEntries: ${ctrl.subrep()?.meta.bucketEntries}`),
     h('div', `meta | nodeCount: ${ctrl.subrep()?.meta.nodeCount}`),
     h('div', `meta | trainAs: ${ctrl.subrep()?.meta.trainAs}`),

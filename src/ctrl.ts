@@ -48,7 +48,7 @@ export default class PrepCtrl {
     this.srsConfig = defaults();
 
     this.addingNewSubrep = false;
-    this.showingTrainingSettings = false;
+    this.showingTrainingSettings = true;
 
     this.setSrsConfig({
       getNext: {
@@ -340,9 +340,6 @@ export default class PrepCtrl {
       drawable: {
         autoShapes:
           this.method === 'learn' && this.atLast() ? [{ orig: uci[0], dest: uci[1], brush: 'green' }] : [],
-      },
-      animation: {
-        enabled: false,
       },
     };
     console.log('config', config);
