@@ -16,7 +16,13 @@ const recall = (ctrl: PrepCtrl): VNode => {
     ]),
     h('div#recall-options.flex.flex-row', [
       h('span#recall-fail.bg-red-200.font-semibold.text-lg.uppercase.flex-1.text-center.rounded-bl-md', 'Give up'),
-      h('span#recall-fail.bg-cyan-200.font-semibold.text-lg.uppercase.flex-1.text-center.rounded-br-md', 'Show hint')
+      h('span#recall-fail.bg-cyan-200.font-semibold.text-lg.uppercase.flex-1.text-center.rounded-br-md', {
+        on: {
+          click: () => {
+            ctrl.toggleShowingHint();
+          }
+        }
+      }, 'Show hint')
     ])
   ]);
 };
