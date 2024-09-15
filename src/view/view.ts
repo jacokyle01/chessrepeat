@@ -200,7 +200,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 //stats & # due
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
-  return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
+  return h('div#root.flex.justify-center.gap-5.bg-blue-gray.h-full.items-start.p-3', [
     sidebar(ctrl),
     h('div#main-wrap.flex.flex-col', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     h('div#side.w-1/4.flex-col', [

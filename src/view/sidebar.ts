@@ -29,7 +29,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
     unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
   }
   return h('div#sidebar.flex.flex-col', [
-    h('div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-xl.rounded-t-lg', [
+    h('div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-xl.border.border-blue-gray-100', [
       h('div.flex.flex-row.gap-1.m-2', [
         kingI(),
         h('span.font-medium.text-lg.text-gray-700', 'Repertoire')
@@ -43,12 +43,12 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
       ]),
     ]),
     h(
-      'button.flex.bg-blue-500.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.mx-auto.my-3.px-5',
+      'button.flex.bg-blue-500.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.mx-auto.my-3.px-5..shadow-sm.border.border-blue-gray-100',
       { on: { click: () => ctrl.toggleAddingNewSubrep() } },
       [addI(), h('div', 'Add to Repertoire')],
     ),
 
-    h('div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-xl.rounded-b-lg', [
+    h('div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-xl.border.border-blue-gray-100', [
       h('div#repertoire-wrap.m-2', [
         h('div.flex.flex-row.gap-1', [chartI(), h('span.font-medium.text-lg.text-gray-700', 'Scheduling')]),
         h('div.block.antialiased.font-sans.font-small.text-sm.uppercase.text-gray-400', `${unseenCount} unseen`),

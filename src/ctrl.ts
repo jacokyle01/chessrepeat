@@ -301,7 +301,7 @@ export default class PrepCtrl {
     if (this.method === 'learn' && this.atLast()) {
       shapes.push({ orig: uci[0], dest: uci[1], brush: 'green' });
     } else if (this.showingHint) {
-      shapes.push({ orig: uci[0], brush: 'green' });
+      shapes.push({ orig: uci[0], brush: 'yellow' });
     }
 
     const config: CgConfig = {
