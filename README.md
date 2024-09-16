@@ -1,2 +1,2 @@
-# Chess Prep
-Website to train to chess openings using spaced repetition
+# chessrepeat
+A website to train to chess openings using spaced repetition

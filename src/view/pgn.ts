@@ -47,7 +47,7 @@ const veryEmptyNode = () => {
 const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
 const commentNode = (text: string) => {
-  return h('div.bg-gray-100.border-y-2.border-white-500', text);
+  return h('div.bg-gray-100.border-y-2.border-white-500.font-mono.text-sm.flex.items-center', text);
 };
 
 const pgnControls = (ctrl: PrepCtrl): VNode => {
@@ -133,7 +133,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
 
   return h('div', [
     h('div#pgn.h-1/3.flex.flex-col.shadow-md.rounded-t-lg.bg-white', [
-      h('div#moves.overflow-auto.h-64	', rows),
+      h('div#moves.overflow-auto.h-80', rows),
     ]),
     
     pgnControls(ctrl),

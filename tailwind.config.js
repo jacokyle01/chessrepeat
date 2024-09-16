@@ -14,6 +14,9 @@ export default {
   content: ['./src/**/*.{html,js,ts}'],
   theme: {
     extend: {
+      width: {
+        '97': '97%',
+      },
       colors: {
         'c-bg-page': 'hsl(37, 10%, 92%)',
         'c-body-gradient': 'hsl(37, 12%, 84%)',

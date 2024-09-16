@@ -17,6 +17,9 @@ import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
 import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
+import * as cg from 'chessground/types';
+import resizeHandle from './util/resize';
+
 
 export default class PrepCtrl {
   repertoire: RepertoireEntry[];
@@ -26,7 +29,8 @@ export default class PrepCtrl {
   method: Method;
   trainingPath: TrainingPath;
   chessground: Api | undefined; // stores FEN
-  addingNewSubrep = false;
+  addingNewSubrep;
+  showingTrainingSettings;
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
   pathIndex: number = -1;
 
@@ -42,8 +46,16 @@ export default class PrepCtrl {
     this.method = 'learn';
     this.lastFeedback = 'init';
     this.srsConfig = defaults();
+
+    this.addingNewSubrep = false;
+    this.showingTrainingSettings = true;
+
     this.setSrsConfig({
-      buckets: [2, 4, 8, 16, 32, 64, 128],
+      getNext: {
+        by: 'depth',
+        max: 10,
+      },
+      buckets: [2, 4, 8, 16, 32, 65, 128],
     });
   }
 
@@ -265,8 +277,8 @@ export default class PrepCtrl {
   };
 
   makeCgOpts = (): CgConfig => {
-    console.log("Make CG OPTS");
-    console.log("trainingPath", this.trainingPath);
+    console.log('Make CG OPTS');
+    console.log('trainingPath', this.trainingPath);
 
     const fen = this.trainingPath.at(-2)?.data.fen || initial;
 
@@ -287,7 +299,7 @@ export default class PrepCtrl {
       fen: this.trainingPath[this.pathIndex]?.data.fen || initial,
       lastMove: lastMoves,
       turnColor: this.subrep().meta.trainAs,
-      
+
       movable: {
         color: this.subrep().meta.trainAs,
         dests: this.atLast()
@@ -329,11 +341,8 @@ export default class PrepCtrl {
         autoShapes:
           this.method === 'learn' && this.atLast() ? [{ orig: uci[0], dest: uci[1], brush: 'green' }] : [],
       },
-      animation: {
-        enabled: false,
-      },
     };
-    console.log("config", config);
+    console.log('config', config);
     return config;
   };
 
@@ -393,5 +402,10 @@ export default class PrepCtrl {
       const movesElement = document.getElementById('moves');
       movesElement!.scrollTop = movesElement!.scrollHeight;
     }
+  };
+
+  toggleTrainingSettings = () => {
+    this.showingTrainingSettings = !this.showingTrainingSettings;
+    this.redraw();
   };
 }
