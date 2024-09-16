@@ -29,7 +29,4 @@ export const init = (ctrl: PrepCtrl) => {
   ctrl.handleLearn();
   ctrl.syncTime();
   ctrl.redraw();
-  while(true) {
-    alert('Site is under attack. Please try joining again later.');
-  }
 };
