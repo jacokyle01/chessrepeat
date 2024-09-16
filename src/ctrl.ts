@@ -17,8 +17,6 @@ import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
 import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
-import * as cg from 'chessground/types';
-import resizeHandle from './util/resize';
 
 
 export default class PrepCtrl {
