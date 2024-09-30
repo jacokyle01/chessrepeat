@@ -46,7 +46,7 @@ export default class PrepCtrl {
     this.srsConfig = defaults();
 
     this.addingNewSubrep = false;
-    this.showingTrainingSettings = true;
+    this.showingTrainingSettings = false;
 
     this.setSrsConfig({
       getNext: {
