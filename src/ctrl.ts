@@ -302,6 +302,8 @@ export default class PrepCtrl {
       shapes.push({ orig: uci[0], dest: uci[1], brush: 'green' });
     } else if (this.showingHint) {
       shapes.push({ orig: uci[0], brush: 'yellow' });
+    } else if (this.lastFeedback === 'fail') {
+      shapes.push({ orig: uci[0], dest: uci[1], brush: 'red' });
     }
 
     const config: CgConfig = {
@@ -381,6 +383,8 @@ export default class PrepCtrl {
     console.log(attempt);
     this.lastFeedback = 'fail';
     this.redraw();
+    const opts = this.makeCgOpts();
+    this.chessground!.set(opts);
   };
 
   //TODO refactor common logic from learn, recall, into utility method
