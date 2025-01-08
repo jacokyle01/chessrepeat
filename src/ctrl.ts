@@ -35,6 +35,7 @@ export default class PrepCtrl {
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
   showingTrainingSettings: boolean;
   showingHint: boolean;
+  lastGuess: string | null;
 
   constructor(readonly redraw: Redraw) {
     //we are initially learning
@@ -49,6 +50,7 @@ export default class PrepCtrl {
     this.lastFeedback = 'init';
     this.srsConfig = defaults();
     this.showingHint = false;
+    this.lastGuess = null;
 
     this.addingNewSubrep = false;
     this.showingTrainingSettings = false;
@@ -379,8 +381,9 @@ export default class PrepCtrl {
     }
   };
 
-  handleFail = (attempt: string) => {
+  handleFail = (attempt?: string) => {
     console.log(attempt);
+    this.lastGuess = attempt ?? null;
     this.lastFeedback = 'fail';
     this.redraw();
     const opts = this.makeCgOpts();
@@ -423,6 +426,7 @@ export default class PrepCtrl {
 
   //TODO inefficient?
   toggleShowingHint = () => {
+    console.log("showing hint");
     this.showingHint = !this.showingHint;
     const opts = this.makeCgOpts();
     this.chessground!.set(opts);

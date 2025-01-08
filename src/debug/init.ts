@@ -20,7 +20,7 @@ export const init = (ctrl: PrepCtrl) => {
   }
   ctrl.syncTime();
   ctrl.handleRecall();
-  // ctrl.lastFeedback = 'fail';
-  ctrl.handleFail('x');
-  ctrl.redraw();
+  ctrl.lastGuess = 'a4';
+  ctrl.handleFail('a4');
+ctrl.redraw();
 };

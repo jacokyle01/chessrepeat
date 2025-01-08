@@ -6,6 +6,8 @@ import { blackKingI } from '../svg/black_king';
 import { crossI } from '../svg/cross';
 import { wrongI } from '../svg/wrong';
 import { on } from 'events';
+import { altI } from '../svg/add_as_alternative';
+import { continueI } from '../svg/continue';
 
 const recall = (ctrl: PrepCtrl): VNode => {
   const isWhite = ctrl.subrep().meta.trainAs === 'white';
@@ -20,6 +22,14 @@ const recall = (ctrl: PrepCtrl): VNode => {
     h('div#recall-options.flex.flex-row', [
       h(
         'span#recall-fail.bg-red-200.font-semibold.text-lg.uppercase.flex-1.text-center.rounded-bl-md',
+        {
+          on: {
+            click: () => {
+              ctrl.handleFail();
+            },
+          },
+        },
+
         'Give up',
       ),
       h(
@@ -60,29 +70,29 @@ const empty = (): VNode => {
 const fail = (ctrl: PrepCtrl): VNode => {
   const isWhite = ctrl.subrep().meta.trainAs === 'white';
   return h('div#recall', [
-    h('div.bg-white.flex.py-10.shadow-md', [
-      h('div.w-12.mx-2', wrongI()),
-      h('div', [
-        h('h1.font-bold.text-lg', 'Incorrect'),
-        h('h2.text-md', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`),
-        h(
-          'span#recall-fail.font-semibold.text-lg.uppercase.flex-1.text-center.rounded-bl-md.flex.flex-row.text-white.font-bold.py-1.px-4.rounded.flex.border-orange-700.bg-orange-400.active:transform.active:translate-y-px.active:border-b',
-          // TODO don't fail until user clicks "continue"
-          // we want to allow for scenarios where user gets wrong move and doesn't want to fail-
-          // e.x. the user claims a misclick
-          {
-            on: {
-              click: () => {
-                ctrl.handleRecall();
-              },
+    h('div.bg-white.py-10.shadow-md.flex.flex-col.items-center', [
+      h('div.flex.flex-row.justify-center.items-center.w-full.space-x-5', [
+        h('div.text-red-500.text-6xl.font-bold', '✗'),
+        h('div#failure', [
+          h('h2.text-xl.font-semibold', `${ctrl.lastGuess} is Incorrect`),
+          h('p.text-lg', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`),
+        ]),
+      ]),
+      h(
+        'button#continue-btn.bg-orange-400.text-white.font-bold.py-2.px-6.mt-6.rounded.hover:bg-orange-500.active:transform.active:translate-y-px.active:border-b-2.border-orange-700',
+        {
+          on: {
+            click: () => {
+              ctrl.handleRecall();
             },
           },
-          'Continue',
-        ),
-      ]),
+        },
+        'Continue Training ⮕',
+      ),
     ]),
   ]);
 };
+
 
 export const toast = (ctrl: PrepCtrl): VNode | null => {
   switch (ctrl.lastFeedback) {
