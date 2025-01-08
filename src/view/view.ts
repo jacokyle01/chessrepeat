@@ -8,6 +8,7 @@ import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
 import { sidebar } from './sidebar';
+import { addI } from '../svg/add';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -62,6 +63,15 @@ const controls = (ctrl: PrepCtrl) => {
     ],
   );
 };
+
+const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
+  return h(
+    'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
+    { on: { click: () => ctrl.toggleAddingNewSubrep() } },
+    [addI(), h('div', 'Add a repertoire')],
+  );
+};
+
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   return h(
@@ -144,7 +154,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 //stats & # due
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
-  return h('div#root.flex.justify-center.gap-5.bg-custom-gradient.h-full.items-start.p-3', [
+  return h('div#root.flex.justify-center.gap-5.bg-blue-gray.h-full.items-start.p-3', [
     sidebar(ctrl),
     h('div#main-wrap.flex.flex-col', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     h('div#side.w-1/4.flex-col', [

@@ -18,19 +18,25 @@ import { countDueContext, generateSubrepertoire } from './spaced-repetition/util
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
 
+import { DrawShape } from 'chessground/draw';
 
 export default class PrepCtrl {
+  // training
   repertoire: RepertoireEntry[];
   srsConfig: SrsConfig;
-  repertoireIndex: number;
   currentTime: number;
   method: Method;
   trainingPath: TrainingPath;
   chessground: Api | undefined; // stores FEN
-  addingNewSubrep;
-  showingTrainingSettings;
-  lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
+  repertoireIndex: number;
   pathIndex: number = -1;
+
+  //view
+  addingNewSubrep: boolean;
+  lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
+  showingTrainingSettings: boolean;
+  showingHint: boolean;
+  lastGuess: string | null;
 
   constructor(readonly redraw: Redraw) {
     //we are initially learning
@@ -44,6 +50,8 @@ export default class PrepCtrl {
     this.method = 'learn';
     this.lastFeedback = 'init';
     this.srsConfig = defaults();
+    this.showingHint = false;
+    this.lastGuess = null;
 
     this.addingNewSubrep = false;
     this.showingTrainingSettings = false;
@@ -53,7 +61,7 @@ export default class PrepCtrl {
         by: 'depth',
         max: 10,
       },
-      buckets: [2, 4, 8, 16, 32, 65, 128],
+      buckets: [-1, 40, 8, 16, 32, 65, 128],
     });
   }
 
@@ -81,7 +89,6 @@ export default class PrepCtrl {
     this.redraw();
   };
 
-  // keep an internal representation of time to be more flexible
   syncTime = () => {
     this.currentTime = Math.floor(Date.now() / 1000);
   };
@@ -292,6 +299,16 @@ export default class PrepCtrl {
     const targetSan = this.trainingPath?.at(-1)?.data.san;
     const uci = calcTarget(fen, targetSan!);
 
+    // shapes
+    const shapes: DrawShape[] = [];
+    if (this.method === 'learn' && this.atLast()) {
+      shapes.push({ orig: uci[0], dest: uci[1], brush: 'green' });
+    } else if (this.showingHint) {
+      shapes.push({ orig: uci[0], brush: 'yellow' });
+    } else if (this.lastFeedback === 'fail') {
+      shapes.push({ orig: uci[0], dest: uci[1], brush: 'red' });
+    }
+
     const config: CgConfig = {
       orientation: this.subrep().meta.trainAs,
       fen: this.trainingPath[this.pathIndex]?.data.fen || initial,
@@ -336,8 +353,7 @@ export default class PrepCtrl {
         },
       },
       drawable: {
-        autoShapes:
-          this.method === 'learn' && this.atLast() ? [{ orig: uci[0], dest: uci[1], brush: 'green' }] : [],
+        autoShapes: shapes,
       },
     };
     console.log('config', config);
@@ -345,7 +361,7 @@ export default class PrepCtrl {
   };
 
   handleLearn = () => {
-    this.syncTime();
+    this.resetTrainingContext();
     this.repertoire[this.repertoireIndex].lastDueCount = this.countDue();
     this.lastFeedback = 'learn';
     this.method = 'learn';
@@ -366,8 +382,9 @@ export default class PrepCtrl {
     }
   };
 
-  handleFail = (attempt: string) => {
+  handleFail = (attempt?: string) => {
     console.log(attempt);
+    this.lastGuess = attempt ?? null;
     this.lastFeedback = 'fail';
 
     // opts should look at lastFeedback
@@ -377,11 +394,12 @@ export default class PrepCtrl {
     console.log(this.chessground!.state);
 
     this.redraw();
+    this.chessground!.set(opts);
   };
 
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {
-    this.syncTime();
+    this.resetTrainingContext();
     this.lastFeedback = 'recall';
     this.repertoire[this.repertoireIndex].lastDueCount = this.countDue();
     this.chessground?.setAutoShapes([]); // TODO in separate method?
@@ -404,6 +422,21 @@ export default class PrepCtrl {
 
   toggleTrainingSettings = () => {
     this.showingTrainingSettings = !this.showingTrainingSettings;
+    this.redraw();
+  };
+
+  resetTrainingContext = () => {
+    this.syncTime();
+    this.chessground!.setAutoShapes([]);
+    this.showingHint = false;
+  }
+
+  //TODO inefficient?
+  toggleShowingHint = () => {
+    console.log("showing hint");
+    this.showingHint = !this.showingHint;
+    const opts = this.makeCgOpts();
+    this.chessground!.set(opts);
     this.redraw();
   };
 }

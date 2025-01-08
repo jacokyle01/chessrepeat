@@ -2,8 +2,7 @@ import PrepCtrl from '../ctrl';
 import { pgn1, pgn2, pgn3, pgn4, pgn5 } from './pgns';
 
 export const init = (ctrl: PrepCtrl) => {
-
-  // initial zoom 
+  // initial zoom
   document.body.style.setProperty('--zoom', '100');
 
   // add 3 repertoire entries
@@ -13,20 +12,13 @@ export const init = (ctrl: PrepCtrl) => {
   ctrl.addToRepertoire(pgn4(), 'black', 'Englund');
   ctrl.addToRepertoire(pgn5(), 'black', 'Classical Sicilian');
 
-
-
   // train Catalan
   ctrl.selectSubrepertoire(0);
   for (let i = 0; i < 4; i++) {
     ctrl.getNext();
     ctrl.succeed();
   }
-  ctrl.selectSubrepertoire(3);
-  console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT")
-  console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT")
-  console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT")
-
-  ctrl.handleLearn();
   ctrl.syncTime();
-  ctrl.redraw();
+  ctrl.handleRecall();
+ctrl.redraw();
 };
