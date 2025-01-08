@@ -8,7 +8,6 @@ import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
 import { sidebar } from './sidebar';
-import { addI } from '../svg/add';
 
 export const fieldValue = (id: string) =>
   (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -64,13 +63,13 @@ const controls = (ctrl: PrepCtrl) => {
   );
 };
 
-const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-  return h(
-    'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
-    { on: { click: () => ctrl.toggleAddingNewSubrep() } },
-    [addI(), h('div', 'Add a repertoire')],
-  );
-};
+// const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
+//   return h(
+//     'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
+//     { on: { click: () => ctrl.toggleAddingNewSubrep() } },
+//     [addI(), h('div', 'Add a repertoire')],
+//   );
+// };
 
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {

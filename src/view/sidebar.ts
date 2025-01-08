@@ -1,11 +1,9 @@
 import { h, VNode } from 'snabbdom';
-import { kingI } from '../svg/king';
 import PrepCtrl from '../ctrl';
 import { RepertoireEntry } from '../types/types';
 import { repertoire } from './repertoire';
 import { addI } from '../svg/add';
 import { chart } from './chart';
-import { chartI } from '../svg/chart';
 
 export const sidebar = (ctrl: PrepCtrl): VNode => {
   let numWhiteEntries = 0;
@@ -21,12 +19,12 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
     }
   });
 
-  let unseenCount;
+  // let unseenCount;
   if (!ctrl.subrep()) {
-    unseenCount = 0;
+    // unseenCount = 0;
   } else {
-    const meta = ctrl.subrep()?.meta;
-    unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
+    // const meta = ctrl.subrep()?.meta;
+    // unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
   }
   return h('div#sidebar.flex.flex-col', [
     h('span.text-lg.text-gray-700.text-2xl.font-semibold', 'My Repertoire'),
