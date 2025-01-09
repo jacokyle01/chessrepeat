@@ -1,7 +1,7 @@
 import { Api } from 'chessground/api';
 import { Redraw, RepertoireEntry } from './types/types';
 import { initial } from 'chessground/fen';
-import { Key } from 'chessground/types';
+import { Key, MoveMetadata } from 'chessground/types';
 import { Config as CgConfig } from 'chessground/config';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 import { configure, Config as SrsConfig } from '../src/spaced-repetition/config';
@@ -28,13 +28,12 @@ export default class PrepCtrl {
   method: Method;
   trainingPath: TrainingPath;
   changedLines: boolean; // indicates whether or not the previous trainingPath is an ancestor (?) of the newest one.
-  correctMoveIndices: number[]; // stores which moves we should annotate correct. 
-  //TODO better way of doing this? someone integrating it w/ trainingPath? 
-  //TODO use some kind of stack data structure? i.e. if we play 
-  // e4 e5 f4 d6 nf3 then it trains e4 e5 f4, we want to have e4 highlighted. 
-  // could have more information on continuation? 
+  correctMoveIndices: number[]; // stores which moves we should annotate correct.
+  //TODO better way of doing this? someone integrating it w/ trainingPath?
+  //TODO use some kind of stack data structure? i.e. if we play
+  // e4 e5 f4 d6 nf3 then it trains e4 e5 f4, we want to have e4 highlighted.
+  // could have more information on continuation?
 
-  
   chessground: Api | undefined; // stores FEN
   repertoireIndex: number;
   pathIndex: number = -1;
@@ -46,11 +45,15 @@ export default class PrepCtrl {
   showingHint: boolean;
   lastGuess: string | null;
 
+  //sound
+  sounds: Record<string, HTMLAudioElement>;
+
   constructor(readonly redraw: Redraw) {
     //we are initially learning
     document.addEventListener('DOMContentLoaded', (_) => {
       init(this);
     });
+
     this.currentTime = Math.round(Date.now() / 1000);
     this.repertoire = [];
     this.trainingPath = [];
@@ -62,8 +65,14 @@ export default class PrepCtrl {
     this.showingHint = false;
     this.lastGuess = null;
 
+    this.sounds = {
+      move: new Audio('../public/sound/public_sound_standard_Move.mp3'),
+      capture: new Audio('../public/sound/public_sound_standard_Capture.mp3'),
+    };
+
     this.addingNewSubrep = false;
     this.showingTrainingSettings = false;
+    this.correctMoveIndices = [];
 
     this.setSrsConfig({
       getNext: {
@@ -72,6 +81,10 @@ export default class PrepCtrl {
       },
       buckets: [-1, 40, 8, 16, 32, 65, 128],
     });
+
+    // document.addEventListener('click', () => {
+    //   this.sounds.move.play().catch(err => console.error('Audio playback error:', err));
+    // });
   }
 
   setSrsConfig = (config: SrsConfig): void => {
@@ -103,29 +116,31 @@ export default class PrepCtrl {
   };
 
   pathIsContinuation = (oldPath: TrainingPath, newPath: TrainingPath) => {
-    console.log("----------");
+    console.log('----------');
     // console.log("old path, ", oldPath);
     // console.log("new path, ", newPath);
-    console.log("old len" + oldPath.length);
-    const isContinuation: boolean = oldPath.length < newPath.length && oldPath.every((node, i) => {
-      // console.log("old san is" + node.data.san);
-      // console.log("new san is" + newPath.at(i)?.data.san);
-      const val= node.data.san === newPath.at(i)?.data.san;
-      console.log(val);
-      return val;
-    })
+    console.log('old len' + oldPath.length);
+    const isContinuation: boolean =
+      oldPath.length < newPath.length &&
+      oldPath.every((node, i) => {
+        // console.log("old san is" + node.data.san);
+        // console.log("new san is" + newPath.at(i)?.data.san);
+        const val = node.data.san === newPath.at(i)?.data.san;
+        console.log(val);
+        return val;
+      });
 
     if (!isContinuation) {
       this.handleLineChange();
     }
     return isContinuation;
-  }
-  
+  };
+
   handleLineChange = () => {
-    console.log("LINE CHANGED");
+    console.log('LINE CHANGED');
     this.correctMoveIndices = [];
-  }
-  
+  };
+
   // TODO return trainingPath, then we set it
   getNext = () => {
     if (this.repertoireIndex == -1) return false; // no subrepertoire selected
@@ -150,11 +165,10 @@ export default class PrepCtrl {
           case 'recall': //recall if due
             if (pos.data.training.dueAt <= this.currentTime) {
               this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
-              // TODO better way of doing this 
-              // shouldn't be handled in getNext(). use handleLineChange(). 
+              // TODO better way of doing this
+              // shouldn't be handled in getNext(). use handleLineChange().
               if (this.changedLines) {
-
-              } 
+              }
 
               this.trainingPath = entry.path;
               return true;
@@ -212,8 +226,7 @@ export default class PrepCtrl {
     // annotate node
     // node
     this.correctMoveIndices.push(this.trainingPath.length - 1);
-    console.log("INDICES" + this.correctMoveIndices);
-
+    console.log('INDICES' + this.correctMoveIndices);
 
     switch (this.method) {
       case 'recall':
@@ -358,9 +371,9 @@ export default class PrepCtrl {
     if (this.correctMoveIndices.includes(this.pathIndex)) {
       // generate uci for pathIndex
       let fen3 = initial;
-      // TODO fix 
+      // TODO fix
       if (this.pathIndex > 0) {
-        fen3 = this.trainingPath.at(this.pathIndex - 1)?.data.fen || initial
+        fen3 = this.trainingPath.at(this.pathIndex - 1)?.data.fen || initial;
       }
 
       const targetSan = this.trainingPath?.at(this.pathIndex)?.data.san;
@@ -368,10 +381,7 @@ export default class PrepCtrl {
       console.log(targetSan);
       const uci = calcTarget(fen3, targetSan!);
 
-
-
-
-      shapes.push({orig: uci[1], customSvg: {html: correctMoveI()}});
+      shapes.push({ orig: uci[1], customSvg: { html: correctMoveI() } });
     }
 
     // shapes.push({orig: 'e5', brush: 'green', customSvg: {html: correctMoveI()}})
@@ -390,7 +400,11 @@ export default class PrepCtrl {
             : fenToDests(fen)
           : new Map(),
         events: {
-          after: (from: Key, to: Key) => {
+          after: (from: Key, to: Key, metadata: MoveMetadata) => {
+            metadata.captured
+              ? this.sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
+              : this.sounds.move.play().catch((err) => console.error('Audio playback error:', err));
+
             if (this.atLast()) {
               switch (this.method) {
                 case 'learn':
@@ -490,11 +504,11 @@ export default class PrepCtrl {
     this.syncTime();
     this.chessground!.setAutoShapes([]);
     this.showingHint = false;
-  }
+  };
 
   //TODO inefficient?
   toggleShowingHint = () => {
-    console.log("showing hint");
+    console.log('showing hint');
     this.showingHint = !this.showingHint;
     const opts = this.makeCgOpts();
     this.chessground!.set(opts);

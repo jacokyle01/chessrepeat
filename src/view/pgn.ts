@@ -31,6 +31,8 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
         'font-bold': ctrl.pathIndex === index,
 
         'hover:bg-sky-100': ctrl.pathIndex !== index,
+        // 'hover:bg-green-100': (ctrl.pathIndex !== index) && isMarkedCorrect,
+
       },
       on: {
         click: () => {
