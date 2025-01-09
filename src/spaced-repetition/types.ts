@@ -20,9 +20,9 @@ export interface TrainingData extends PgnNodeData {
     seen: boolean;
     group: number;
     dueAt: number;
-    //TODO fen?
   };
   fen: string
+  succeeded: boolean;
 }
 
 export interface Subrepertoire<T> extends Game<T> {

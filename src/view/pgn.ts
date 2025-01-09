@@ -14,6 +14,15 @@ const indexNode = (turn: number) =>
   h('index.bg-gray-100.px-5.justify-center.flex.border-r-2.border-white-500.w-8', `${turn + 1}`);
 
 const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
+
+  const isMarkedCorrect = ctrl.correctMoveIndices.includes(index);
+
+  console.log("index", index);
+  // let trailer = "";
+  // if (ctrl.correctMoveIndices.includes(index)) {
+  //   trailer = " yes";
+  // }
+
   return h(
     'move.flex-1.hover:cursor-pointer.text-lg.pl-2',
     {
@@ -30,7 +39,7 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
         },
       },
     },
-    san,
+    isMarkedCorrect ? `${san} ✓` : san,
   );
 };
 

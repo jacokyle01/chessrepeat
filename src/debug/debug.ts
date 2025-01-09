@@ -14,6 +14,8 @@ export const debug = (ctrl: PrepCtrl): VNode => {
     h('div', `meta | nodeCount: ${ctrl.subrep()?.meta.nodeCount}`),
     h('div', `meta | trainAs: ${ctrl.subrep()?.meta.trainAs}`),
     h('div', `last feedback: ${ctrl.lastFeedback}`),
+    h('div', `changed lines?: ${ctrl.changedLines}`),
+
 
     h(
       'button', // Element type

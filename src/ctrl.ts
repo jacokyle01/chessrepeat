@@ -18,6 +18,7 @@ import { countDueContext, generateSubrepertoire } from './spaced-repetition/util
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
 import { DrawShape } from 'chessground/draw';
+import { correctMoveI } from './svg/correct_move';
 
 export default class PrepCtrl {
   // training
@@ -26,6 +27,14 @@ export default class PrepCtrl {
   currentTime: number;
   method: Method;
   trainingPath: TrainingPath;
+  changedLines: boolean; // indicates whether or not the previous trainingPath is an ancestor (?) of the newest one.
+  correctMoveIndices: number[]; // stores which moves we should annotate correct. 
+  //TODO better way of doing this? someone integrating it w/ trainingPath? 
+  //TODO use some kind of stack data structure? i.e. if we play 
+  // e4 e5 f4 d6 nf3 then it trains e4 e5 f4, we want to have e4 highlighted. 
+  // could have more information on continuation? 
+
+  
   chessground: Api | undefined; // stores FEN
   repertoireIndex: number;
   pathIndex: number = -1;
@@ -45,6 +54,7 @@ export default class PrepCtrl {
     this.currentTime = Math.round(Date.now() / 1000);
     this.repertoire = [];
     this.trainingPath = [];
+    this.changedLines = true;
     this.repertoireIndex = 0;
     this.method = 'learn';
     this.lastFeedback = 'init';
@@ -58,7 +68,7 @@ export default class PrepCtrl {
     this.setSrsConfig({
       getNext: {
         by: 'depth',
-        max: 10,
+        max: 15,
       },
       buckets: [-1, 40, 8, 16, 32, 65, 128],
     });
@@ -92,8 +102,31 @@ export default class PrepCtrl {
     this.currentTime = Math.floor(Date.now() / 1000);
   };
 
-  // TODO return trainingPath, then we set it
+  pathIsContinuation = (oldPath: TrainingPath, newPath: TrainingPath) => {
+    console.log("----------");
+    // console.log("old path, ", oldPath);
+    // console.log("new path, ", newPath);
+    console.log("old len" + oldPath.length);
+    const isContinuation: boolean = oldPath.length < newPath.length && oldPath.every((node, i) => {
+      // console.log("old san is" + node.data.san);
+      // console.log("new san is" + newPath.at(i)?.data.san);
+      const val= node.data.san === newPath.at(i)?.data.san;
+      console.log(val);
+      return val;
+    })
 
+    if (!isContinuation) {
+      this.handleLineChange();
+    }
+    return isContinuation;
+  }
+  
+  handleLineChange = () => {
+    console.log("LINE CHANGED");
+    this.correctMoveIndices = [];
+  }
+  
+  // TODO return trainingPath, then we set it
   getNext = () => {
     if (this.repertoireIndex == -1) return false; // no subrepertoire selected
     //initialization
@@ -116,12 +149,20 @@ export default class PrepCtrl {
         switch (this.method) {
           case 'recall': //recall if due
             if (pos.data.training.dueAt <= this.currentTime) {
+              this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
+              // TODO better way of doing this 
+              // shouldn't be handled in getNext(). use handleLineChange(). 
+              if (this.changedLines) {
+
+              } 
+
               this.trainingPath = entry.path;
               return true;
             }
             break;
           case 'learn': //learn if unseen
             if (!pos.data.training.seen) {
+              this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
               this.trainingPath = entry.path;
               return true;
             }
@@ -168,6 +209,12 @@ export default class PrepCtrl {
     const node = this.trainingPath?.at(-1);
     const subrep = this.repertoire[this.repertoireIndex].subrep;
     if (!node) return;
+    // annotate node
+    // node
+    this.correctMoveIndices.push(this.trainingPath.length - 1);
+    console.log("INDICES" + this.correctMoveIndices);
+
+
     switch (this.method) {
       case 'recall':
         let groupIndex = node.data.training.group;
@@ -307,6 +354,27 @@ export default class PrepCtrl {
     } else if (this.lastFeedback === 'fail') {
       shapes.push({ orig: uci[0], dest: uci[1], brush: 'red' });
     }
+
+    if (this.correctMoveIndices.includes(this.pathIndex)) {
+      // generate uci for pathIndex
+      let fen3 = initial;
+      // TODO fix 
+      if (this.pathIndex > 0) {
+        fen3 = this.trainingPath.at(this.pathIndex - 1)?.data.fen || initial
+      }
+
+      const targetSan = this.trainingPath?.at(this.pathIndex)?.data.san;
+      console.log(fen3);
+      console.log(targetSan);
+      const uci = calcTarget(fen3, targetSan!);
+
+
+
+
+      shapes.push({orig: uci[1], customSvg: {html: correctMoveI()}});
+    }
+
+    // shapes.push({orig: 'e5', brush: 'green', customSvg: {html: correctMoveI()}})
 
     const config: CgConfig = {
       orientation: this.subrep().meta.trainAs,

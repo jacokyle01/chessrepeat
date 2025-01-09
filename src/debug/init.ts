@@ -20,7 +20,6 @@ export const init = (ctrl: PrepCtrl) => {
   }
   ctrl.syncTime();
   ctrl.handleRecall();
-  ctrl.lastGuess = 'a4';
-  ctrl.handleFail('a4');
+  ctrl.chessground?.redrawAll();
 ctrl.redraw();
 };

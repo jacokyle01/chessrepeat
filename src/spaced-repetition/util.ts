@@ -75,6 +75,7 @@ export const generateSubrepertoire = (
           group: -1,
           dueAt: Infinity,
         },
+        succeeded: false
       };
     }),
     meta: {
