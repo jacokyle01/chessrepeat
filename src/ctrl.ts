@@ -287,6 +287,8 @@ export default class PrepCtrl {
     }
   };
 
+  // TODO provide a more detailed breakdown, like when each one is due. 
+  // TODO combine this with getNext() so we don't need to walk the tree twice 
   countDue = () => {
     const current = this.repertoire[this.repertoireIndex].subrep;
     const root = current.moves;
