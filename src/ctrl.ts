@@ -77,7 +77,7 @@ export default class PrepCtrl {
     this.setSrsConfig({
       getNext: {
         by: 'depth',
-        max: 15,
+        max: 100,
       },
       buckets: [5, 10, 20, 64, 1000],
     });
