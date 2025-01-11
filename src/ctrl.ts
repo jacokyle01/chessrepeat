@@ -79,7 +79,7 @@ export default class PrepCtrl {
         by: 'depth',
         max: 15,
       },
-      buckets: [-1, 40, 8, 16, 32, 65, 128],
+      buckets: [5, 10, 20, 64, 1000],
     });
 
     // document.addEventListener('click', () => {
@@ -287,17 +287,58 @@ export default class PrepCtrl {
     }
   };
 
-  // TODO provide a more detailed breakdown, like when each one is due. 
-  // TODO combine this with getNext() so we don't need to walk the tree twice 
+  // TODO provide a more detailed breakdown, like when each one is due.
+  // TODO combine this with getNext() so we don't need to walk the tree twice
+
+  // walk entire file and describe its state- when moves are due and such
   countDue = () => {
     const current = this.repertoire[this.repertoireIndex].subrep;
     const root = current.moves;
     const ctx = countDueContext(0);
+    const dueCounts = new Array(this.srsConfig.buckets?.length).fill(0);
+
+    // console.log('hi');
     walk(root, ctx, (ctx, data) => {
-      ctx.count += !data.training.disabled && data.training.dueAt < this.currentTime ? 1 : 0;
+      if (!data.training.disabled && data.training.seen) {
+        const secondsTilDue = data.training.dueAt - this.currentTime;
+        console.log("seconds til due", secondsTilDue);
+          for (let i = 0; i < dueCounts.length; i++) {
+            // console.log('hi');
+            if (secondsTilDue <= this.srsConfig.buckets!.at(i)!) {
+              dueCounts[i]++;
+              break;
+            }
+          }
+      }
+
+      // return true;
     });
-    return ctx.count;
-  };
+    console.log("due counts", dueCounts);
+    console.log("spaces", this.srsConfig.buckets)
+    return 1;
+      // console.log('hi');
+
+
+
+      // ctx.count += !data.training.disabled && data.training.dueAt < this.currentTime ? 1 : 0;
+      // if (!data.training.disabled) {
+      //   // place in correct bucket- where its index is the same as the smallest index of the original buckets array slot
+      //   // which is larger than dueAt - currentTime
+
+      //   // could be negative
+      //   const secondsTilDue = data.training.dueAt - this.currentTime;
+      //   for (let i = dueCounts.length - 1; i >= 0; i--) {
+      //     console.log('hi');
+      //     if (this.srsConfig.buckets!.at(i)! >= secondsTilDue) {
+      //       dueCounts[i]++;
+      //       break;
+      //     }
+      //   }
+      // }
+      // return;
+    // });
+    // return ctx.count;
+  }
 
   // resets subrepertoire-specific context,
   // e.x. for selecting a different subrepertoire for training
