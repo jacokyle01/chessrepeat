@@ -81,10 +81,6 @@ export default class PrepCtrl {
       },
       buckets: [5, 10, 20, 64, 1000],
     });
-
-    // document.addEventListener('click', () => {
-    //   this.sounds.move.play().catch(err => console.error('Audio playback error:', err));
-    // });
   }
 
   setSrsConfig = (config: SrsConfig): void => {
@@ -316,28 +312,6 @@ export default class PrepCtrl {
     console.log("due counts", dueCounts);
     console.log("spaces", this.srsConfig.buckets)
     return 1;
-      // console.log('hi');
-
-
-
-      // ctx.count += !data.training.disabled && data.training.dueAt < this.currentTime ? 1 : 0;
-      // if (!data.training.disabled) {
-      //   // place in correct bucket- where its index is the same as the smallest index of the original buckets array slot
-      //   // which is larger than dueAt - currentTime
-
-      //   // could be negative
-      //   const secondsTilDue = data.training.dueAt - this.currentTime;
-      //   for (let i = dueCounts.length - 1; i >= 0; i--) {
-      //     console.log('hi');
-      //     if (this.srsConfig.buckets!.at(i)! >= secondsTilDue) {
-      //       dueCounts[i]++;
-      //       break;
-      //     }
-      //   }
-      // }
-      // return;
-    // });
-    // return ctx.count;
   }
 
   // resets subrepertoire-specific context,
