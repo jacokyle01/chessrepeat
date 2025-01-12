@@ -160,12 +160,12 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-blue-gray.h-full.items-start.p-3', [
     sidebar(ctrl),
-    h('div#main-wrap.flex.flex-col', [progress(ctrl), chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+    h('div#main-wrap.flex.flex-col', [progress(ctrl),chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     h('div#side.w-1/4.flex-col', [
       pgnTree(ctrl),
     ]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    debug(ctrl)
+    // debug(ctrl)
   ]);
 };
 export default view;

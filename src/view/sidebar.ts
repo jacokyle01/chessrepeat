@@ -28,16 +28,16 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
     const meta = ctrl.subrep()?.meta;
     unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
   }
-  return h('div#sidebar.flex.flex-col', [
-    h('span.text-lg.text-gray-700.text-2xl.font-semibold', 'My Repertoire'),
+  return h('div#sidebar.flex.flex-col.w-1/4', [
     h(
-      'div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-xl.border.border-blue-gray-100',
+      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-t-xl.border.border-blue-gray-100',
       [
-        h('div#repertoire-wrap.m-2', [
-          h('span.font-semibold.text-sm.uppercase', 'White'),
+        h('span.text-gray-700.text-2xl.font-semibold.m-3', 'My Repertoire'),
+        h('div#repertoire-wrap', [
+          h('span.font-semibold.text-sm.uppercase.px-4', 'White'),
           repertoire(whiteEntries, ctrl, 0),
 
-          h('span.font-semibold.text-sm.uppercase', 'Black'),
+          h('span.font-semibold.text-sm.uppercase.px-4', 'Black'),
           repertoire(blackEntries, ctrl, numWhiteEntries),
         ]),
       ],
@@ -48,11 +48,12 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
       [addI(), h('div', 'Add to Repertoire')],
     ),
 
-    h('span.text-lg.text-gray-700.text-2xl.font-semibold', 'Scheduling'),
-
     h(
-      'div.flex.max-w-[20rem].flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-xl.border.border-blue-gray-100',
-      [h('div#repertoire-wrap.m-2', [chart(ctrl)])],
+      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-xl.border.border-blue-gray-100',
+      [
+        h('span.text-gray-700.text-2xl.font-semibold.m-3', 'Scheduling'),
+        h('div#repertoire-wrap.m-2', [chart(ctrl)]),
+      ],
     ),
   ]);
 };

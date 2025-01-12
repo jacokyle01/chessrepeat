@@ -4,7 +4,7 @@ export const commentI = (): VNode => {
   return h(
     'svg',
     {
-      class: { lucide: true, 'lucide-message-circle': true },
+      class: { lucide: true, 'lucide-message-square-text': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
         width: '24',
@@ -17,6 +17,10 @@ export const commentI = (): VNode => {
         'stroke-linejoin': 'round',
       },
     },
-    [h('path', { attrs: { d: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z' } })],
+    [
+      h('path', { attrs: { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' } }),
+      h('path', { attrs: { d: 'M13 8H7' } }),
+      h('path', { attrs: { d: 'M17 12H7' } }),
+    ],
   );
 };

@@ -37,6 +37,7 @@ export default class PrepCtrl {
   chessground: Api | undefined; // stores FEN
   repertoireIndex: number;
   pathIndex: number = -1;
+  dueTimes: number[];
 
   //view
   addingNewSubrep: boolean;
@@ -62,6 +63,7 @@ export default class PrepCtrl {
     this.method = 'learn';
     this.lastFeedback = 'init';
     this.srsConfig = defaults();
+    this.dueTimes = new Array(this.srsConfig.buckets!.length).fill(0);
     this.showingHint = false;
     this.lastGuess = null;
 
@@ -287,32 +289,36 @@ export default class PrepCtrl {
   // TODO combine this with getNext() so we don't need to walk the tree twice
 
   // walk entire file and describe its state- when moves are due and such
-  countDue = () => {
+  // store result in `dueTimes` array
+  updateDueCounts = (): void => {
     const current = this.repertoire[this.repertoireIndex].subrep;
     const root = current.moves;
     const ctx = countDueContext(0);
-    const dueCounts = new Array(this.srsConfig.buckets?.length).fill(0);
+    const dueCounts = new Array(1 + this.srsConfig.buckets!.length).fill(0);
 
     // console.log('hi');
     walk(root, ctx, (ctx, data) => {
       if (!data.training.disabled && data.training.seen) {
         const secondsTilDue = data.training.dueAt - this.currentTime;
-        console.log("seconds til due", secondsTilDue);
+        console.log('seconds til due', secondsTilDue);
+        if (secondsTilDue <= 0) {
+          dueCounts[0]++;
+        } else {
           for (let i = 0; i < dueCounts.length; i++) {
             // console.log('hi');
             if (secondsTilDue <= this.srsConfig.buckets!.at(i)!) {
-              dueCounts[i]++;
+              dueCounts[i + 1]++;
               break;
             }
           }
+        }
       }
 
-      // return true;
     });
-    console.log("due counts", dueCounts);
-    console.log("spaces", this.srsConfig.buckets)
-    return 1;
-  }
+    console.log('due counts', dueCounts);
+    console.log('spaces', this.srsConfig.buckets);
+    this.dueTimes = dueCounts;
+  };
 
   // resets subrepertoire-specific context,
   // e.x. for selecting a different subrepertoire for training
@@ -460,7 +466,8 @@ export default class PrepCtrl {
 
   handleLearn = () => {
     this.resetTrainingContext();
-    this.repertoire[this.repertoireIndex].lastDueCount = this.countDue();
+    this.updateDueCounts();
+    this.repertoire[this.repertoireIndex].lastDueCount = this.dueTimes[0];
     this.lastFeedback = 'learn';
     this.method = 'learn';
 
@@ -492,8 +499,9 @@ export default class PrepCtrl {
   //TODO refactor common logic from learn, recall, into utility method
   handleRecall = () => {
     this.resetTrainingContext();
+    this.updateDueCounts();
     this.lastFeedback = 'recall';
-    this.repertoire[this.repertoireIndex].lastDueCount = this.countDue();
+    this.repertoire[this.repertoireIndex].lastDueCount = this.dueTimes[0];
     this.chessground?.setAutoShapes([]); // TODO in separate method?
     this.method = 'recall';
 

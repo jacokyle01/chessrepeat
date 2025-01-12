@@ -7,6 +7,7 @@ import { firstI } from '../svg/first';
 import { lastI } from '../svg/last';
 import { nextI } from '../svg/next';
 import { toast } from './toast';
+import { commentI } from '../svg/comment';
 
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
@@ -58,7 +59,13 @@ const veryEmptyNode = () => {
 const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
 const commentNode = (text: string) => {
-  return h('div.bg-gray-100.border-y-2.border-white-500.font-mono.text-sm.flex.items-center', text);
+  return h('div.flex.border-y-2.border-white-500', [
+    h('index.bg-gray-100.px-5.justify-center.flex.w-8.p-1', commentI()),
+    h('div.bg-gray-100.text-md.flex.items-center.font-mono.w-full', text)
+
+  ])
+
+  // return h('div.bg-gray-100.border-y-2.border-white-500.text-md.flex.items-center', text);
 };
 
 const pgnControls = (ctrl: PrepCtrl): VNode => {
