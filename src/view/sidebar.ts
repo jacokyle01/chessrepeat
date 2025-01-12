@@ -1,11 +1,9 @@
 import { h, VNode } from 'snabbdom';
-import { kingI } from '../svg/king';
 import PrepCtrl from '../ctrl';
 import { RepertoireEntry } from '../types/types';
 import { repertoire } from './repertoire';
 import { addI } from '../svg/add';
 import { chart } from './chart';
-import { chartI } from '../svg/chart';
 
 export const sidebar = (ctrl: PrepCtrl): VNode => {
   let numWhiteEntries = 0;
@@ -21,7 +19,8 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
     }
   });
 
-  let unseenCount;
+  let unseenCount = 0;
+  console.log(unseenCount);
   if (!ctrl.subrep()) {
     unseenCount = 0;
   } else {

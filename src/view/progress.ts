@@ -1,7 +1,5 @@
 import { h, VNode } from 'snabbdom';
 import PrepCtrl from '../ctrl';
-import { bookCheckI } from '../svg/bookCheck';
-import { bookOutlineI } from '../svg/bookOutline';
 
 export const progress = (ctrl: PrepCtrl): VNode => {
   let seenCount = 0;

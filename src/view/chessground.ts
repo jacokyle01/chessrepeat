@@ -6,7 +6,6 @@ import { Config } from 'chessground/config';
 import PrepCtrl from '../ctrl';
 import resizeHandle from '../util/resize';
 import * as cg from 'chessground/types';
-import { closeI } from '../svg/close';
 import { settings } from './settings';
 
 function makeConfig(ctrl: PrepCtrl): Config {

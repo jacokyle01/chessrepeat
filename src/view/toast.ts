@@ -3,12 +3,6 @@ import { VNode } from 'snabbdom';
 import { looseH as h } from '../types/snabbdom';
 import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
-import { crossI } from '../svg/cross';
-import { wrongI } from '../svg/wrong';
-import { on } from 'events';
-import { altI } from '../svg/add_as_alternative';
-import { continueI } from '../svg/continue';
-
 const recall = (ctrl: PrepCtrl): VNode => {
   const isWhite = ctrl.subrep().meta.trainAs === 'white';
   return h('div#recall', [

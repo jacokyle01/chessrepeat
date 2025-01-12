@@ -3,14 +3,10 @@ import { looseH as h } from '../types/snabbdom';
 import PrepCtrl from '../ctrl';
 import { chessground } from './chessground';
 import { gearI } from '../svg/gear';
-import { addI } from '../svg/add';
 import { closeI } from '../svg/close';
 import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
-import { chartI } from '../svg/chart';
-import { commentI } from '../svg/comment';
-import { debug } from '../debug/debug';
 import { sidebar } from './sidebar';
 import { progress } from './progress';
 
@@ -68,13 +64,13 @@ const controls = (ctrl: PrepCtrl) => {
   );
 };
 
-const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-  return h(
-    'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
-    { on: { click: () => ctrl.toggleAddingNewSubrep() } },
-    [addI(), h('div', 'Add a repertoire')],
-  );
-};
+// const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
+//   return h(
+//     'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
+//     { on: { click: () => ctrl.toggleAddingNewSubrep() } },
+//     [addI(), h('div', 'Add a repertoire')],
+//   );
+// };
 
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {

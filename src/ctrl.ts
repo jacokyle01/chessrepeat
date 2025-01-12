@@ -298,6 +298,7 @@ export default class PrepCtrl {
 
     // console.log('hi');
     walk(root, ctx, (ctx, data) => {
+      ctx.count++;
       if (!data.training.disabled && data.training.seen) {
         const secondsTilDue = data.training.dueAt - this.currentTime;
         console.log('seconds til due', secondsTilDue);

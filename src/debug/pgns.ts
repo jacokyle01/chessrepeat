@@ -1,7 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-
 export const pgn1 = (): string => {
   return '1. d4 d5 2. c4 e6 {Standard move!} 3. Nf3 {Preparing g3} Nf6 4. g3 dxc4 {Going into the open Catalan} 5. Bg2 Bb4+ 6. Bd2 a5 {Defending the bishop} 7. Qc1 Bxd2+ {Black trades bishops} 8. Qxd2 {White recaptures with the queen} b5 {Defending the pawn} 9. Qg5 b4 10. Rg1 Rg8 11. Rh1 Rh8 a3 Ra7';
 }
