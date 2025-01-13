@@ -41,7 +41,9 @@ export default class PrepCtrl {
 
   //view
   addingNewSubrep: boolean;
+  // TODO better naming 
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
+  lastResult: `succeed` | `fail` | `none`;
   showingTrainingSettings: boolean;
   showingHint: boolean;
   lastGuess: string | null;
@@ -67,6 +69,8 @@ export default class PrepCtrl {
     this.showingHint = false;
     this.lastGuess = null;
 
+    this.lastResult = 'none';
+
     this.sounds = {
       move: new Audio('../public/sound/public_sound_standard_Move.mp3'),
       capture: new Audio('../public/sound/public_sound_standard_Capture.mp3'),
@@ -81,7 +85,7 @@ export default class PrepCtrl {
         by: 'depth',
         max: 100,
       },
-      buckets: [5, 10, 20, 64, 1000],
+      buckets: [1, 10, 20, 64, 1000],
     });
   }
 
@@ -198,6 +202,8 @@ export default class PrepCtrl {
   };
 
   makeGuess = (san: string) => {
+    this.lastGuess = san;
+    console.log("last guess", san);
     const index = this.repertoireIndex;
     if (index == -1 || !this.trainingPath || this.method == 'learn') return;
     let candidates: ChildNode<TrainingData>[] = [];
@@ -224,10 +230,11 @@ export default class PrepCtrl {
     // annotate node
     // node
     this.correctMoveIndices.push(this.trainingPath.length - 1);
-    console.log('INDICES' + this.correctMoveIndices);
-
+    // console.log('INDICES' + this.correctMoveIndices);
+    
     switch (this.method) {
       case 'recall':
+        this.lastResult = 'succeed';
         let groupIndex = node.data.training.group;
         subrep.meta.bucketEntries[groupIndex]--;
         switch (this.srsConfig!.promotion) {
@@ -266,6 +273,7 @@ export default class PrepCtrl {
     let groupIndex = node.data.training.group;
     subrep.meta.bucketEntries[groupIndex]--;
     if (this.method === 'recall') {
+      this.lastResult = 'fail';
       switch (this.srsConfig!.demotion) {
         case 'most':
           groupIndex = 0;
@@ -316,8 +324,8 @@ export default class PrepCtrl {
       }
 
     });
-    console.log('due counts', dueCounts);
-    console.log('spaces', this.srsConfig.buckets);
+    // console.log('due counts', dueCounts);
+    // console.log('spaces', this.srsConfig.buckets);
     this.dueTimes = dueCounts;
   };
 
@@ -448,6 +456,8 @@ export default class PrepCtrl {
                       this.handleRecall();
                       break;
                     case 'failure':
+                      //TODO maybe dont fail right away?
+                      this.fail();
                       this.handleFail(san);
                       break;
                   }
@@ -530,6 +540,8 @@ export default class PrepCtrl {
     this.syncTime();
     this.chessground!.setAutoShapes([]);
     this.showingHint = false;
+    // this.lastGuess = null;
+    // this.lastResult = "none";
   };
 
   //TODO inefficient?

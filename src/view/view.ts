@@ -52,16 +52,55 @@ const controls = (ctrl: PrepCtrl) => {
           },
         },
         [h('span', 'RECALL'), recallI()],
-        
       ),
-      h('div.ml-3', {
-        on: {
-          click: () => ctrl.toggleTrainingSettings()
-        }
-      }, [gearI()]),
-
+      h(
+        'div.ml-3',
+        {
+          on: {
+            click: () => ctrl.toggleTrainingSettings(),
+          },
+        },
+        [gearI()],
+      ),
     ],
   );
+};
+
+const feedback = (ctrl: PrepCtrl): VNode | null => {
+  switch (ctrl.lastResult) {
+    case 'succeed':
+      return h(
+        'span.mr-auto',
+        {
+          class: {
+            'text-green-600': true, // Green text to indicate success
+            'font-semibold': true, // Slightly bolder text
+            'inline-flex': true, // Ensures alignment with other elements
+            'items-center': true, // Aligns icon and text vertically
+            'gap-1': true, // Adds spacing between the checkmark and text
+          },
+        },
+        [`✓ ${ctrl.lastGuess} was correct`],
+      );
+    case 'fail':
+      return h(
+        'span.mr-auto',
+        {
+          class: {
+            'text-red-600': true, // Green text to indicate success
+            'font-semibold': true, // Slightly bolder text
+            'inline-flex': true, // Ensures alignment with other elements
+            'items-center': true, // Aligns icon and text vertically
+            'gap-1': true, // Adds spacing between the checkmark and text
+          },
+        },
+        [`✗ ${ctrl.lastGuess} was incorrect`],
+      );
+      return null;
+    //TODO remove
+    case 'none':
+      return h('span', 'null');
+  }
 };
 
 // const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
@@ -71,7 +110,6 @@ const controls = (ctrl: PrepCtrl) => {
 //     [addI(), h('div', 'Add a repertoire')],
 //   );
 // };
-
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   return h(
@@ -89,10 +127,11 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
         'form.p-8.bg-white.rounded-md.shadow-md',
         {
           on: {
-            submit: (e: any) => { //TODO: give me a type!
-              e.preventDefault(); 
+            submit: (e: any) => {
+              //TODO: give me a type!
+              e.preventDefault();
               ctrl.addToRepertoire(
-                fieldValue('pgn'), 
+                fieldValue('pgn'),
                 checked('color') ? 'black' : 'white',
                 fieldValue('name'),
               );
@@ -156,10 +195,12 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-blue-gray.h-full.items-start.p-3', [
     sidebar(ctrl),
-    h('div#main-wrap.flex.flex-col', [progress(ctrl),chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-    h('div#side.w-1/4.flex-col', [
-      pgnTree(ctrl),
-    ]),
+    h('div#main-wrap.flex.flex-col', [
+      progress(ctrl),
+      chessground(ctrl),
+      h('div.flex', [controls(ctrl), feedback(ctrl)]),
+    ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+    h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
     // debug(ctrl)
   ]);

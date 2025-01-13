@@ -17,7 +17,7 @@ const indexNode = (turn: number) =>
 const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
   const isMarkedCorrect = ctrl.correctMoveIndices.includes(index);
 
-  console.log('index', index);
+  // console.log('index', index);
   // let trailer = "";
   // if (ctrl.correctMoveIndices.includes(index)) {
   //   trailer = " yes";
