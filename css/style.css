@@ -187,6 +187,7 @@ cg-board piece.fading {
   font-size: 9px;
 }
 .cg-wrap coords.ranks {
+  visibility: hidden;
   right: -15px;
   top: 0;
   flex-flow: column-reverse;
@@ -197,7 +198,8 @@ cg-board piece.fading {
   flex-flow: column;
 }
 .cg-wrap coords.files {
-  bottom: -16px;
+  visibility: hidden;
+  /* bottom: -11px; */
   left: 0;
   flex-flow: row;
   width: 100%;
@@ -211,9 +213,9 @@ cg-board piece.fading {
 .cg-wrap coords coord {
   flex: 1 1 auto;
 }
-.cg-wrap coords.ranks coord {
+/* .cg-wrap coords.ranks coord {
   transform: translateY(39%);
-}
+} */
 
 #flip {
   background-color: blue;
