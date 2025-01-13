@@ -15,10 +15,9 @@ const indexNode = (turn: number) =>
   h('index.bg-gray-100.px-5.justify-center.flex.border-r-2.border-white-500.w-8', `${turn + 1}`);
 
 const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
-
   const isMarkedCorrect = ctrl.correctMoveIndices.includes(index);
 
-  console.log("index", index);
+  console.log('index', index);
   // let trailer = "";
   // if (ctrl.correctMoveIndices.includes(index)) {
   //   trailer = " yes";
@@ -33,7 +32,6 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
 
         'hover:bg-sky-100': ctrl.pathIndex !== index,
         // 'hover:bg-green-100': (ctrl.pathIndex !== index) && isMarkedCorrect,
-
       },
       on: {
         click: () => {
@@ -55,23 +53,21 @@ const veryEmptyNode = () => {
   return h('move.flex-1.hover:cursor-pointer.text-lg', '');
 };
 
-
 const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
 const commentNode = (text: string) => {
   return h('div.flex.border-y-2.border-white-500', [
     h('index.bg-gray-100.px-5.justify-center.flex.w-8.p-1', commentI()),
-    h('div.bg-gray-100.text-md.flex.items-center.font-mono.w-full', text)
-
-  ])
+    h('div.bg-gray-100.text-md.flex.items-center.font-mono.w-full', text),
+  ]);
 
   // return h('div.bg-gray-100.border-y-2.border-white-500.text-md.flex.items-center', text);
 };
 
 const pgnControls = (ctrl: PrepCtrl): VNode => {
-  return h('div#pgn-control.mt-auto.flex.justify-center.gap-1', [
+  return h('div#pgn-control.flex.justify-center.w-full.mt-3', [
     h(
-      'button#first',
+      'button#first.flex-grow.flex.items-center.m-auto.justify-center.py-2.5 px-5 text-sm font-medium focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700',
       {
         on: {
           click: () => {
@@ -82,7 +78,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
       [firstI()],
     ),
     h(
-      'button#back',
+      'button#back.flex-grow.flex.items-center.m-auto.justify-center.py-2.5 px-5  text-sm font-medium focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700',
       {
         on: {
           click: () => {
@@ -93,7 +89,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
       [backI()],
     ),
     h(
-      'button#next',
+      'button#next.flex-grow.flex.items-center.m-auto.justify-center.py-2.5 px-5 text-sm font-medium focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700',
       {
         on: {
           click: () => {
@@ -104,7 +100,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
       [nextI()],
     ),
     h(
-      'button#last',
+      'button#last.flex-grow.flex.items-center.m-auto.justify-center.py-2.5 px-5 text-sm font-medium focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700',
       {
         on: {
           click: () => {
@@ -112,7 +108,6 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
           },
         },
         class: {
-          // 'bg-blue-500': !ctrl.atLast(),
           'animate-pulse-blue': !ctrl.atLast(),
         },
       },
@@ -124,7 +119,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
 export const pgnTree = (ctrl: PrepCtrl): VNode => {
   const rows: VNode[] = [];
   let elems: VNode[] = [];
-  
+
   for (let i = 0; i < ctrl.trainingPath.length - 1; i++) {
     const node = ctrl.trainingPath[i];
     if (i % 2 == 0) {
@@ -153,8 +148,8 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
     h('div#pgn.h-1/3.flex.flex-col.shadow-md.rounded-t-lg.bg-white', [
       h('div#moves.overflow-auto.h-80', rows),
     ]),
-    
-    pgnControls(ctrl),
+
     toast(ctrl),
+    pgnControls(ctrl),
   ]);
 };
