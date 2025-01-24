@@ -12,7 +12,7 @@ import { commentI } from '../svg/comment';
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
 const indexNode = (turn: number) =>
-  h('index.bg-gray-100.px-5.justify-center.flex.border-r-2.border-white-500.w-8', `${turn + 1}`);
+  h('index.bg-gray-100.px-5.justify-center.flex.border-r-2.border-white-500.text-gray-700.basis-[12%]', `${turn + 1}`);
 
 const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
   const isMarkedCorrect = ctrl.correctMoveIndices.includes(index);
@@ -23,29 +23,52 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
   //   trailer = " yes";
   // }
 
-  return h(
-    'move.flex-1.hover:cursor-pointer.text-lg.pl-2',
-    {
-      class: {
-        'bg-sky-300': ctrl.pathIndex === index,
-        'font-bold': ctrl.pathIndex === index,
-
-        'hover:bg-sky-100': ctrl.pathIndex !== index,
-        // 'hover:bg-green-100': (ctrl.pathIndex !== index) && isMarkedCorrect,
-      },
-      on: {
-        click: () => {
-          console.log('clicked', index);
-          ctrl.jump(index);
+  if (!isMarkedCorrect) {
+    return h(
+      'move.hover:cursor-pointer.text-lg.pl-2.basis-[44%].text-gray-700',
+      {
+        class: {
+          'bg-sky-300': ctrl.pathIndex === index,
+          'font-bold': ctrl.pathIndex === index,
+          'hover:bg-sky-100': ctrl.pathIndex !== index,
+          // 'hover:bg-green-100': (ctrl.pathIndex !== index) && isMarkedCorrect,
+        },
+        on: {
+          click: () => {
+            console.log('clicked', index);
+            ctrl.jump(index);
+          },
         },
       },
-    },
-    isMarkedCorrect ? `${san} ✓` : san,
-  );
+      san,
+    );
+  } else {
+    return h(
+      'move.hover:cursor-pointer.text-lg.pl-2.justify-between.items-center.basis-[44%].flex.text-green-600',
+      {
+        class: {
+          'bg-green-300': ctrl.pathIndex === index,
+          'font-bold': ctrl.pathIndex === index,
+
+          'hover:bg-green-100': ctrl.pathIndex !== index,
+          // 'hover:bg-green-100': (ctrl.pathIndex !== index) && isMarkedCorrect,
+        },
+        on: {
+          click: () => {
+            console.log('clicked', index);
+            ctrl.jump(index);
+          },
+        },
+      },
+      [h('span', `${san}`), h('span.text-xl', '✓')],
+    );
+  }
 };
 
+
+
 const emptyNode = () => {
-  return h('move.flex-1.hover:cursor-pointer.text-lg', '...');
+  return h('move.flex-1.hover:cursor-pointer.text-lg.basis-[44%].pl-2.text-gray-700', '...');
 };
 
 // TODO remove hack

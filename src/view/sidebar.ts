@@ -35,7 +35,6 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
         h('div#repertoire-wrap', [
           h('span.font-semibold.text-sm.uppercase.px-4', 'White'),
           repertoire(whiteEntries, ctrl, 0),
-
           h('span.font-semibold.text-sm.uppercase.px-4', 'Black'),
           repertoire(blackEntries, ctrl, numWhiteEntries),
         ]),
