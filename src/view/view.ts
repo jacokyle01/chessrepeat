@@ -10,8 +10,10 @@ import { bookI } from '../svg/book';
 import { sidebar } from './sidebar';
 import { progress } from './progress';
 
-export const fieldValue = (id: string) =>
-  (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
+export const fieldValue = (id: string): string => {
+  console.log(document.getElementById("pgn"));
+  return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
+}
 
 export const checked = (id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 

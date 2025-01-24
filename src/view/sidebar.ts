@@ -4,6 +4,7 @@ import { RepertoireEntry } from '../types/types';
 import { repertoire } from './repertoire';
 import { addI } from '../svg/add';
 import { chart } from './chart';
+import { downloadI } from '../svg/download';
 
 export const sidebar = (ctrl: PrepCtrl): VNode => {
   let numWhiteEntries = 0;
@@ -20,7 +21,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
   });
 
   let unseenCount = 0;
-  console.log(unseenCount);
+  // console.log(unseenCount);
   if (!ctrl.subrep()) {
     unseenCount = 0;
   } else {
@@ -40,11 +41,16 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
         ]),
       ],
     ),
-    h(
-      'button.flex.bg-blue-500.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.mx-auto.my-3.px-5..shadow-sm.border.border-blue-gray-100',
-      { on: { click: () => ctrl.toggleAddingNewSubrep() } },
-      [addI(), h('div', 'Add to Repertoire')],
-    ),
+    h('div.flex', [
+      h(
+        'button.flex.bg-blue-500.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.mx-auto.my-3.px-5',
+        { on: { click: () => ctrl.toggleAddingNewSubrep() } }, [addI(), h('div', 'Add to Repertoire')], 
+      ),
+      h(
+        'button.flex.bg-blue-700.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.mx-auto.my-3.px-5',
+        [downloadI(), h('div', 'Download')],
+      ),
+    ]),
 
     h(
       'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-xl.border.border-blue-gray-100',

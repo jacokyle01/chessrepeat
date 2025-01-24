@@ -94,8 +94,13 @@ export default class PrepCtrl {
   };
 
   addToRepertoire = (pgn: string, color: Color, name: string) => {
+    // console.log("ADDING TO REPERTOIRE");
+    // console.log("name", name);
+    // console.log("pgn", pgn);
+    // TODO why is PGN undefined? 
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     for (const subrep of subreps) {
+      console.log("subrep", subrep);
       //augment subrepertoire with a) color to train as, and b) training data
       const annotatedSubrep: Subrepertoire<TrainingData> = {
         ...subrep,
