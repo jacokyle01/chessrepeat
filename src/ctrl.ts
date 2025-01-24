@@ -41,7 +41,7 @@ export default class PrepCtrl {
 
   //view
   addingNewSubrep: boolean;
-  // TODO better naming 
+  // TODO better naming
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
   lastResult: `succeed` | `fail` | `none`;
   showingTrainingSettings: boolean;
@@ -97,10 +97,10 @@ export default class PrepCtrl {
     // console.log("ADDING TO REPERTOIRE");
     // console.log("name", name);
     // console.log("pgn", pgn);
-    // TODO why is PGN undefined? 
+    // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
-    for (const subrep of subreps) {
-      console.log("subrep", subrep);
+    subreps.forEach((subrep, i) => {
+      console.log('subrep', subrep);
       //augment subrepertoire with a) color to train as, and b) training data
       const annotatedSubrep: Subrepertoire<TrainingData> = {
         ...subrep,
@@ -109,12 +109,13 @@ export default class PrepCtrl {
         },
         ...generateSubrepertoire(subrep.moves, color, this.srsConfig!.buckets!),
       };
+      if (i > 0) name += ` (${i + 1})`
       this.repertoire.push({
         subrep: annotatedSubrep,
         name,
         lastDueCount: 0,
       });
-    }
+    });
     this.redraw();
   };
 
@@ -208,7 +209,7 @@ export default class PrepCtrl {
 
   makeGuess = (san: string) => {
     this.lastGuess = san;
-    console.log("last guess", san);
+    console.log('last guess', san);
     const index = this.repertoireIndex;
     if (index == -1 || !this.trainingPath || this.method == 'learn') return;
     let candidates: ChildNode<TrainingData>[] = [];
@@ -236,7 +237,7 @@ export default class PrepCtrl {
     // node
     this.correctMoveIndices.push(this.trainingPath.length - 1);
     // console.log('INDICES' + this.correctMoveIndices);
-    
+
     switch (this.method) {
       case 'recall':
         this.lastResult = 'succeed';
@@ -327,7 +328,6 @@ export default class PrepCtrl {
           }
         }
       }
-
     });
     // console.log('due counts', dueCounts);
     // console.log('spaces', this.srsConfig.buckets);
