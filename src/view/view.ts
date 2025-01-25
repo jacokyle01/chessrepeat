@@ -159,7 +159,29 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
                 },
               },
             ),
+            h(
+              'input#fileInput',
+              {
+                attrs: {
+                  type: 'file',
+                  accept: '.txt,.pgn',
+                },
+                on: {
+                  change: (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        document.querySelector('#pgn')!.value = reader.result;
+                      };
+                      reader.readAsText(file);
+                    }
+                  },
+                },
+              },
+            ),
           ]),
+          
           h('div.mb-5', [
             h('label.block.text-gray-700.text-sm.font-bold.mb-2', 'Train As'),
             h(

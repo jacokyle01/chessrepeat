@@ -13,7 +13,7 @@ import {
   Subrepertoire,
   TrainingData,
 } from './spaced-repetition/types';
-import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
+import { ChildNode, Game, makePgn, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
 import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
@@ -104,12 +104,9 @@ export default class PrepCtrl {
       //augment subrepertoire with a) color to train as, and b) training data
       const annotatedSubrep: Subrepertoire<TrainingData> = {
         ...subrep,
-        headers: {
-          ...subrep.headers,
-        },
         ...generateSubrepertoire(subrep.moves, color, this.srsConfig!.buckets!),
       };
-      if (i > 0) name += ` (${i + 1})`
+      if (i > 0) name += ` (${i + 1})`;
       this.repertoire.push({
         subrep: annotatedSubrep,
         name,
@@ -556,5 +553,13 @@ export default class PrepCtrl {
     const opts = this.makeCgOpts();
     this.chessground!.set(opts);
     this.redraw();
+  };
+
+  downloadRepertoire = () => {
+    let result = "";
+    this.repertoire.forEach((file) => {
+      result += makePgn(file.subrep);
+    })
+    console.log(result);
   };
 }

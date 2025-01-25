@@ -44,10 +44,12 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
     h('div.flex', [
       h(
         'button.flex.bg-blue-500.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.mx-auto.my-3.px-5',
-        { on: { click: () => ctrl.toggleAddingNewSubrep() } }, [addI(), h('div', 'Add to Repertoire')], 
+        { on: { click: () => ctrl.toggleAddingNewSubrep() } },
+        [addI(), h('div', 'Add to Repertoire')],
       ),
       h(
         'button.flex.bg-blue-700.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.mx-auto.my-3.px-5',
+        { on: { click: () => ctrl.downloadRepertoire() } },
         [downloadI(), h('div', 'Download')],
       ),
     ]),
