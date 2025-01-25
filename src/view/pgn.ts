@@ -154,7 +154,9 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
         elems.push(emptyNode());
         rows.push(rowNode(elems));
       }
-      rows.push(commentNode(node.data.comments[0]));
+      node.data.comments.forEach((comment) => {
+        rows.push(commentNode(comment))
+      })
       if (i % 2 == 0) {
         elems = [indexNode(i / 2), emptyNode()];
       }
