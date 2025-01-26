@@ -14,7 +14,7 @@ import {
   TrainingData,
 } from './spaced-repetition/types';
 import { ChildNode, Game, makePgn, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
-import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
+import { countDueContext, exportRepertoireEntry, generateSubrepertoire } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
 import { DrawShape } from 'chessground/draw';
@@ -558,7 +558,7 @@ export default class PrepCtrl {
   downloadRepertoire = () => {
     let result = "";
     this.repertoire.forEach((file) => {
-      result += makePgn(file.subrep);
+      result += exportRepertoireEntry(file);
     })
     console.log(result);
   };

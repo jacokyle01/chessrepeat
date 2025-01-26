@@ -30,6 +30,7 @@ export interface PgnViewContext {
   index: number | "last"
 }
 
+//TODO remove this and only use headers 
 export interface RepertoireEntry {
   name: string 
 	subrep: Subrepertoire<TrainingData>

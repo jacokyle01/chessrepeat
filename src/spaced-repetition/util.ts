@@ -2,7 +2,8 @@ import { Color, CountDueContext, PathContext, TrainingContext, TrainingData } fr
 import { defaultPosition } from 'chessops/variant';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
-import { Node, PgnNodeData, transform } from 'chessops/pgn';
+import { makePgn, Node, PgnNodeData, startingPosition, transform } from 'chessops/pgn';
+import { RepertoireEntry } from '../types/types';
 
 export const trainingContext = (color: Color): TrainingContext => {
   return {
@@ -75,7 +76,7 @@ export const generateSubrepertoire = (
           group: -1,
           dueAt: Infinity,
         },
-        succeeded: false
+        succeeded: false,
       };
     }),
     meta: {
@@ -84,6 +85,38 @@ export const generateSubrepertoire = (
       bucketEntries: buckets.map(() => 0),
     },
   };
+};
+
+/*
+  Annotate a each SAN of a RepertoireEntry by adding a preceding comment with
+  training state. Necessary for exporting a repertoire as a PGN 
+  without losing training information
+*/
+
+export const exportRepertoireEntry = (entry: RepertoireEntry) => {
+  let subrep = entry.subrep;
+  // add training control headers
+  subrep.headers.set('RepertoireFileName', entry.name);
+  subrep.headers.set('LastDueCount', `${entry.lastDueCount}`);
+  subrep.headers.set('TrainAs', subrep.meta.trainAs);
+  subrep.headers.set('bucketEntries', subrep.meta.bucketEntries.toString());
+  subrep.headers.set('nodeCount', `${subrep.meta.nodeCount}`);
+
+  const pos = startingPosition(subrep.headers).unwrap();
+  // annotate moves with training metadata
+  subrep.moves = transform(subrep.moves, pos, (pos, node) => {
+    if (!node.comments) node.comments = [];
+    let trainingHeader = '';
+    trainingHeader += `${node.training.id},${node.training.disabled},${node.training.seen},${node.training.group},${node.training.dueAt}`;
+
+    node.comments.push(trainingHeader);
+    return {
+      ...node,
+    };
+  });
+
+  const pgn = makePgn(subrep);
+  return pgn;
 };
 
 export const pathContext: PathContext = {
