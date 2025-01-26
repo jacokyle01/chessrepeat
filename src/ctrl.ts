@@ -13,7 +13,16 @@ import {
   Subrepertoire,
   TrainingData,
 } from './spaced-repetition/types';
-import { ChildNode, Game, makePgn, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
+import {
+  ChildNode,
+  Game,
+  makePgn,
+  parsePgn,
+  PgnNodeData,
+  startingPosition,
+  walk,
+  transform,
+} from 'chessops/pgn';
 import { countDueContext, exportRepertoireEntry, generateSubrepertoire } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
@@ -97,6 +106,8 @@ export default class PrepCtrl {
     // console.log("ADDING TO REPERTOIRE");
     // console.log("name", name);
     // console.log("pgn", pgn);
+
+    
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
@@ -121,15 +132,9 @@ export default class PrepCtrl {
   };
 
   pathIsContinuation = (oldPath: TrainingPath, newPath: TrainingPath) => {
-    console.log('----------');
-    // console.log("old path, ", oldPath);
-    // console.log("new path, ", newPath);
-    console.log('old len' + oldPath.length);
     const isContinuation: boolean =
       oldPath.length < newPath.length &&
       oldPath.every((node, i) => {
-        // console.log("old san is" + node.data.san);
-        // console.log("new san is" + newPath.at(i)?.data.san);
         const val = node.data.san === newPath.at(i)?.data.san;
         console.log(val);
         return val;
@@ -142,7 +147,6 @@ export default class PrepCtrl {
   };
 
   handleLineChange = () => {
-    console.log('LINE CHANGED');
     this.correctMoveIndices = [];
   };
 
@@ -556,10 +560,59 @@ export default class PrepCtrl {
   };
 
   downloadRepertoire = () => {
-    let result = "";
+    let result = '';
     this.repertoire.forEach((file) => {
       result += exportRepertoireEntry(file);
-    })
+    });
     console.log(result);
+  };
+
+  /*
+    An annotated repertoire is one that's already been labeled (headers & comments) 
+    for training 
+  */
+  importAnnotatedSubrepertoire = (pgn: string) => {
+    // console.log("ADDING TO REPERTOIRE");
+    // console.log("name", name);
+    // console.log("pgn", pgn);
+    // TODO why is PGN undefined?
+    const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
+    subreps.forEach((subrep, i) => {
+      console.log('subrep', subrep);
+
+      const pos = startingPosition(subrep.headers).unwrap();
+      subrep.moves = transform(subrep.moves, pos, (pos, node) => {
+        const metadata = node.comments![0].split(',');
+        console.log("metadata", metadata);
+        node.training = {};
+        node.training.id = parseInt(metadata[0]);
+        node.training.disabled = metadata[1] == 'true';
+        node.training.seen = metadata[2] == 'true';
+        node.training.group = parseInt(metadata[3]);
+        node.training.dueAt = metadata[4] == 'Infinity' ? Infinity : parseInt(metadata[4]);
+        console.log("node", node);
+
+        node.comments!.shift();
+
+        return {
+          ...node,
+        };
+      });
+
+      let newEntry: RepertoireEntry = {};
+      newEntry.name = subrep.headers.get('RepertoireFileName')!;
+      newEntry.lastDueCount = parseInt(subrep.headers.get('LastDueCount')!);
+      newEntry.subrep = subrep;
+      newEntry.subrep.meta = {
+        trainAs: subrep.headers.get('TrainAs')! as Color,
+        nodeCount: parseInt(subrep.headers.get('nodeCount')!),
+        //TODO bucket entries
+        bucketEntries: [30, 86400, 259200, 604800, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
+      };
+
+      console.log("newEntry", newEntry);
+      this.repertoire.push(newEntry);
+    });
+    this.redraw();
   };
 }

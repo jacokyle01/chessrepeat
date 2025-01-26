@@ -11,9 +11,8 @@ import { sidebar } from './sidebar';
 import { progress } from './progress';
 
 export const fieldValue = (id: string): string => {
-  console.log(document.getElementById("pgn"));
   return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
-}
+};
 
 export const checked = (id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 
@@ -132,11 +131,20 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
             submit: (e: any) => {
               //TODO: give me a type!
               e.preventDefault();
-              ctrl.addToRepertoire(
-                fieldValue('pgn'),
-                checked('color') ? 'black' : 'white',
-                fieldValue('name'),
-              );
+
+              //TODO different conditional?
+              //TODO fix reverse
+              if (!checked('annotated')) {
+                console.log("annotated!");
+                ctrl.importAnnotatedSubrepertoire(fieldValue('pgn'));
+              } else {
+                ctrl.addToRepertoire(
+                  fieldValue('pgn'),
+                  checked('color') ? 'black' : 'white',
+                  fieldValue('name'),
+                );
+              }
+
               ctrl.toggleAddingNewSubrep();
             },
           },
@@ -159,29 +167,26 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
                 },
               },
             ),
-            h(
-              'input#fileInput',
-              {
-                attrs: {
-                  type: 'file',
-                  accept: '.txt,.pgn',
-                },
-                on: {
-                  change: (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        document.querySelector('#pgn')!.value = reader.result;
-                      };
-                      reader.readAsText(file);
-                    }
-                  },
+            h('input#fileInput', {
+              attrs: {
+                type: 'file',
+                accept: '.txt,.pgn',
+              },
+              on: {
+                change: (event) => {
+                  const file = event.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      document.querySelector('#pgn')!.value = reader.result;
+                    };
+                    reader.readAsText(file);
+                  }
                 },
               },
-            ),
+            }),
           ]),
-          
+
           h('div.mb-5', [
             h('label.block.text-gray-700.text-sm.font-bold.mb-2', 'Train As'),
             h(
@@ -195,6 +200,22 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
                 }),
                 h('span.px-4.rounded-l-md.bg-gray-700.peer-checked:bg-gray-300', 'White'),
                 h('span.px-4.rounded-r-md.bg-gray-300.peer-checked:bg-gray-700', 'Black'),
+              ],
+            ),
+          ]),
+          h('div.mb-5', [
+            h('label.block.text-gray-700.text-sm.font-bold.mb-2', 'Repertoire is annotated?'),
+            h(
+              'label.inline-flex.items-center.rounded-md.cursor-pointer.text-gray-100',
+              {
+                attrs: { for: 'annotated' },
+              },
+              [
+                h('input#annotated.hidden.peer', {
+                  attrs: { type: 'checkbox' },
+                }),
+                h('span.px-4.rounded-l-md.bg-gray-700.peer-checked:bg-gray-300', 'Yes'),
+                h('span.px-4.rounded-r-md.bg-gray-300.peer-checked:bg-gray-700', 'No'),
               ],
             ),
           ]),

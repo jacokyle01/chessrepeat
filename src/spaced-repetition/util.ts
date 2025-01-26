@@ -101,6 +101,7 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
   subrep.headers.set('TrainAs', subrep.meta.trainAs);
   subrep.headers.set('bucketEntries', subrep.meta.bucketEntries.toString());
   subrep.headers.set('nodeCount', `${subrep.meta.nodeCount}`);
+  subrep.headers.set('Event', 'ChessrepeatRepertoireFile');
 
   const pos = startingPosition(subrep.headers).unwrap();
   // annotate moves with training metadata
@@ -108,7 +109,6 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
     if (!node.comments) node.comments = [];
     let trainingHeader = '';
     trainingHeader += `${node.training.id},${node.training.disabled},${node.training.seen},${node.training.group},${node.training.dueAt}`;
-
     node.comments.push(trainingHeader);
     return {
       ...node,
