@@ -20,7 +20,6 @@ export interface TrainingData extends PgnNodeData {
     seen: boolean;
     group: number;
     dueAt: number;
-    //TODO fen?
   };
   fen: string
 }

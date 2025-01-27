@@ -27,7 +27,7 @@ export default {
       },
       keyframes: {
         pulse: {
-          '0%, 100%': { backgroundColor: 'transparent', borderColor: 'transparent' },
+          '0%, 100%': { backgroundColor: 'white'},
           '50%': { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
         },
       },

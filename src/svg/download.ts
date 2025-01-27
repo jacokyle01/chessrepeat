@@ -1,10 +1,10 @@
 import { h, VNode } from 'snabbdom';
 
-export const commentI = (): VNode => {
+export const downloadI = (): VNode => {
   return h(
     'svg',
     {
-      class: { lucide: true, 'lucide-message-square-text': true },
+      class: { lucide: true, 'lucide-book-down': true },
       attrs: {
         xmlns: 'http://www.w3.org/2000/svg',
         width: '24',
@@ -18,9 +18,13 @@ export const commentI = (): VNode => {
       },
     },
     [
-      h('path', { attrs: { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' } }),
-      h('path', { attrs: { d: 'M13 8H7' } }),
-      h('path', { attrs: { d: 'M17 12H7' } }),
+      h('path', { attrs: { d: 'M12 13V7' } }),
+      h('path', {
+        attrs: {
+          d: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20',
+        },
+      }),
+      h('path', { attrs: { d: 'm9 10 3 3 3-3' } }),
     ],
   );
 };

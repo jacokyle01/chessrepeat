@@ -22,9 +22,9 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
   // ];
   // alert(ctrl.srsConfig.buckets);
   const config = {
-    type: 'doughnut',
+    type: 'bar',
     data: {
-      labels: ctrl.srsConfig!.buckets!.map((x) => `${x} seconds`), // Creates labels [1, 2, 3, 4]
+      // labels: ["now", ...ctrl.srsConfig!.buckets!.map((x) => `${x} seconds`)], // Creates labels [1, 2, 3, 4]
       datasets: [
         {
           data: data,
@@ -35,25 +35,20 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
       ],
     },
     options: {
-      cutout: 60,
+      indexAxis: 'y',
+      cutout: 70,
       animation: false, // Disable animations
       plugins: {
         legend: {
-          labels: {
-            font: {
-              size: 14,
-            },
-          },
-          align: 'right', // Align legend items vertically
-          position: 'right',
+          display: false, // Hide the legend
         },
         datalabels: {
           font: {
-            size: 20,
+            size: 14,
           },
           color: 'black',
-          formatter: function (value: number) {
-            return value === 0 ? '' : value;
+          formatter: function (value: any) {
+            return value === 0 ? '' : `${value}`;
           },
           textAlign: 'center',
           labels: {
@@ -65,32 +60,46 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
           },
         },
       },
+      scales: {
+        x: {
+          ticks: {
+            display: false, // Hide x-axis labels
+          },
+          grid: {
+            display: false, // Remove x-axis grid lines
+          },
+        },
+        y: {
+          ticks: {
+            display: true, // Hide y-axis labels (if needed)
+          },
+          grid: {
+            display: true, // Remove y-axis grid lines
+          },
+        },
+      },
     },
   };
-  // @ts-ignore
-
+  
+// @ts-ignore: Suppress the error for this line
   const chart = new Chart(el, config) as BarChart;
   chart.updateData = (d) => {
     // console.log('UPDATING CHART');
     // console.log(d);
     chart.data = {
-      labels: ctrl.srsConfig!.buckets!.map((x) => formatTime(x)), // Creates labels [1, 2, 3, 4]
+      labels: ["now", ...ctrl.srsConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)],
       datasets: [
         {
-          // @ts-ignore
-
+          // @ts-ignore: Suppress the error for this line
           data: d,
           backgroundColor: [
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
-            '#9966FF',
-            '#FF9F40',
-            '#66DA26',
-            '#546E7A',
-            '#E91E63',
-            '#FF9800',
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(255, 159, 64, 0.2)',
+            'rgba(255, 205, 86, 0.2)',
+            'rgba(75, 192, 192, 0.2)',
+            'rgba(54, 162, 235, 0.2)',
+            'rgba(153, 102, 255, 0.2)',
+            'rgba(201, 203, 207, 0.2)',
           ],
         },
       ],
@@ -119,7 +128,7 @@ function chartHook(vnode: VNode, ctrl: PrepCtrl) {
   // const meta = ctrl.subrep().meta;
   // const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
 
-  const barData = subrep.meta.bucketEntries;
+  const barData = ctrl.dueTimes;
 
   const el = vnode.elm as HTMLCanvasElement;
   if (!maybeChart(el)) {

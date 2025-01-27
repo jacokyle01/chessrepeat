@@ -8,9 +8,12 @@ import { pgnTree } from './pgn';
 import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
 import { sidebar } from './sidebar';
+import { progress } from './progress';
+import { debug } from '../debug/debug';
 
-export const fieldValue = (id: string) =>
-  (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
+export const fieldValue = (id: string): string => {
+  return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
+};
 
 export const checked = (id: string) => (document.getElementById(id) as HTMLInputElement)?.checked;
 
@@ -51,16 +54,55 @@ const controls = (ctrl: PrepCtrl) => {
           },
         },
         [h('span', 'RECALL'), recallI()],
-        
       ),
-      h('div.ml-3', {
-        on: {
-          click: () => ctrl.toggleTrainingSettings()
-        }
-      }, [gearI()]),
-
+      h(
+        'div.ml-3',
+        {
+          on: {
+            click: () => ctrl.toggleTrainingSettings(),
+          },
+        },
+        [gearI()],
+      ),
     ],
   );
+};
+
+const feedback = (ctrl: PrepCtrl): VNode | null => {
+  switch (ctrl.lastResult) {
+    case 'succeed':
+      return h(
+        'span.mr-auto',
+        {
+          class: {
+            'text-green-600': true, // Green text to indicate success
+            'font-semibold': true, // Slightly bolder text
+            'inline-flex': true, // Ensures alignment with other elements
+            'items-center': true, // Aligns icon and text vertically
+            'gap-1': true, // Adds spacing between the checkmark and text
+          },
+        },
+        [`✓ ${ctrl.lastGuess} was correct`],
+      );
+    case 'fail':
+      return h(
+        'span.mr-auto',
+        {
+          class: {
+            'text-red-600': true, // Green text to indicate success
+            'font-semibold': true, // Slightly bolder text
+            'inline-flex': true, // Ensures alignment with other elements
+            'items-center': true, // Aligns icon and text vertically
+            'gap-1': true, // Adds spacing between the checkmark and text
+          },
+        },
+        [`✗ ${ctrl.lastGuess} was incorrect`],
+      );
+      return null;
+    //TODO remove
+    case 'none':
+      return h('span', 'null');
+  }
 };
 
 // const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
@@ -70,7 +112,6 @@ const controls = (ctrl: PrepCtrl) => {
 //     [addI(), h('div', 'Add a repertoire')],
 //   );
 // };
-
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   return h(
@@ -88,13 +129,23 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
         'form.p-8.bg-white.rounded-md.shadow-md',
         {
           on: {
-            submit: (e: any) => { //TODO: give me a type!
-              e.preventDefault(); 
-              ctrl.addToRepertoire(
-                fieldValue('pgn'), 
-                checked('color') ? 'black' : 'white',
-                fieldValue('name'),
-              );
+            submit: (e: any) => {
+              //TODO: give me a type!
+              e.preventDefault();
+
+              //TODO different conditional?
+              //TODO fix reverse
+              if (!checked('annotated')) {
+                console.log("annotated!");
+                ctrl.importAnnotatedSubrepertoire(fieldValue('pgn'));
+              } else {
+                ctrl.addToRepertoire(
+                  fieldValue('pgn'),
+                  checked('color') ? 'black' : 'white',
+                  fieldValue('name'),
+                );
+              }
+
               ctrl.toggleAddingNewSubrep();
             },
           },
@@ -117,7 +168,26 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
                 },
               },
             ),
+            h('input#fileInput', {
+              attrs: {
+                type: 'file',
+                accept: '.txt,.pgn',
+              },
+              on: {
+                change: (event) => {
+                  const file = event.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      document.querySelector('#pgn')!.value = reader.result;
+                    };
+                    reader.readAsText(file);
+                  }
+                },
+              },
+            }),
           ]),
+
           h('div.mb-5', [
             h('label.block.text-gray-700.text-sm.font-bold.mb-2', 'Train As'),
             h(
@@ -131,6 +201,22 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
                 }),
                 h('span.px-4.rounded-l-md.bg-gray-700.peer-checked:bg-gray-300', 'White'),
                 h('span.px-4.rounded-r-md.bg-gray-300.peer-checked:bg-gray-700', 'Black'),
+              ],
+            ),
+          ]),
+          h('div.mb-5', [
+            h('label.block.text-gray-700.text-sm.font-bold.mb-2', 'Repertoire is annotated?'),
+            h(
+              'label.inline-flex.items-center.rounded-md.cursor-pointer.text-gray-100',
+              {
+                attrs: { for: 'annotated' },
+              },
+              [
+                h('input#annotated.hidden.peer', {
+                  attrs: { type: 'checkbox' },
+                }),
+                h('span.px-4.rounded-l-md.bg-gray-700.peer-checked:bg-gray-300', 'Yes'),
+                h('span.px-4.rounded-r-md.bg-gray-300.peer-checked:bg-gray-700', 'No'),
               ],
             ),
           ]),
@@ -155,10 +241,12 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-blue-gray.h-full.items-start.p-3', [
     sidebar(ctrl),
-    h('div#main-wrap.flex.flex-col', [chessground(ctrl), controls(ctrl)]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-    h('div#side.w-1/4.flex-col', [
-      pgnTree(ctrl),
-    ]),
+    h('div#main-wrap.flex.flex-col', [
+      progress(ctrl),
+      chessground(ctrl),
+      h('div.flex', [controls(ctrl), feedback(ctrl)]),
+    ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+    h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
     // debug(ctrl),
   ]);
