@@ -38,6 +38,6 @@ export const chessground = (ctrl: PrepCtrl): VNode => {
         },
       },
     }),
-    ctrl.showingTrainingSettings && settings(ctrl)
+    // ctrl.showingTrainingSettings && settings(ctrl)
   ]);
 };
