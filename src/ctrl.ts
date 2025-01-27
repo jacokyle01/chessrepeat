@@ -28,10 +28,14 @@ import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
 import { DrawShape } from 'chessground/draw';
 import { correctMoveI } from './svg/correct_move';
+import { parseSan } from 'chessops/san';
+import { makeFen } from 'chessops/fen';
 
 export default class PrepCtrl {
   // training
   repertoire: RepertoireEntry[];
+  numWhiteEntries: number;
+  numBlackEntries: number;
   srsConfig: SrsConfig;
   currentTime: number;
   method: Method;
@@ -65,6 +69,9 @@ export default class PrepCtrl {
     document.addEventListener('DOMContentLoaded', (_) => {
       init(this);
     });
+
+    this.numWhiteEntries = 0;
+    this.numBlackEntries = 0;
 
     this.currentTime = Math.round(Date.now() / 1000);
     this.repertoire = [];
@@ -102,12 +109,26 @@ export default class PrepCtrl {
     configure(this.srsConfig, config);
   };
 
+  // place entry in correct slot and update metadata
+  addRepertoireEntry = (entry: RepertoireEntry, color: Color) => {
+    if (color == 'white') {
+      this.repertoire = [
+        ...this.repertoire.slice(0, this.numWhiteEntries),
+        entry,
+        ...this.repertoire.slice(this.numWhiteEntries),
+      ];
+      this.numWhiteEntries++;
+    } else {
+      this.repertoire.push(entry);
+      this.numBlackEntries++;
+    }
+  };
+
   addToRepertoire = (pgn: string, color: Color, name: string) => {
     // console.log("ADDING TO REPERTOIRE");
     // console.log("name", name);
     // console.log("pgn", pgn);
 
-    
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
@@ -118,11 +139,12 @@ export default class PrepCtrl {
         ...generateSubrepertoire(subrep.moves, color, this.srsConfig!.buckets!),
       };
       if (i > 0) name += ` (${i + 1})`;
-      this.repertoire.push({
+      const entry: RepertoireEntry = {
         subrep: annotatedSubrep,
         name,
         lastDueCount: 0,
-      });
+      };
+      this.addRepertoireEntry(entry, color);
     });
     this.redraw();
   };
@@ -561,12 +583,26 @@ export default class PrepCtrl {
 
   downloadRepertoire = () => {
     let result = '';
+  
+    // Assuming `this.repertoire` is an array and `exportRepertoireEntry` formats each entry
     this.repertoire.forEach((file) => {
       result += exportRepertoireEntry(file);
     });
-    console.log(result);
+  
+    // Create a blob from the result string
+    const blob = new Blob([result], { type: 'text/plain' });
+  
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'repertoire.pgn'; // File name with .pgn extension
+  
+    // Trigger the download
+    link.click();
+  
+    // Clean up the URL object
+    URL.revokeObjectURL(link.href);
   };
-
   /*
     An annotated repertoire is one that's already been labeled (headers & comments) 
     for training 
@@ -577,41 +613,56 @@ export default class PrepCtrl {
     // console.log("pgn", pgn);
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
+    console.log("subreps", subreps);
     subreps.forEach((subrep, i) => {
+      console.log("subrep", subrep);
+      console.log("HEADERS", subrep.headers);
+      //TODO we dont need this?
+      const headers = subrep.headers;
       console.log('subrep', subrep);
 
       const pos = startingPosition(subrep.headers).unwrap();
       subrep.moves = transform(subrep.moves, pos, (pos, node) => {
+        const move = parseSan(pos, node.san);
+        pos.play(move!);
+
         const metadata = node.comments![0].split(',');
-        console.log("metadata", metadata);
         node.training = {};
         node.training.id = parseInt(metadata[0]);
         node.training.disabled = metadata[1] == 'true';
         node.training.seen = metadata[2] == 'true';
         node.training.group = parseInt(metadata[3]);
         node.training.dueAt = metadata[4] == 'Infinity' ? Infinity : parseInt(metadata[4]);
-        console.log("node", node);
+        // console.log('node', node);
 
         node.comments!.shift();
 
         return {
           ...node,
+          fen: makeFen(pos.toSetup()),
         };
       });
+
+      console.log("HEADERS 2", headers);
 
       let newEntry: RepertoireEntry = {};
       newEntry.name = subrep.headers.get('RepertoireFileName')!;
       newEntry.lastDueCount = parseInt(subrep.headers.get('LastDueCount')!);
       newEntry.subrep = subrep;
+      console.log("bucketEntries", subrep.headers.get('RepertoireFileName'));
+
       newEntry.subrep.meta = {
         trainAs: subrep.headers.get('TrainAs')! as Color,
         nodeCount: parseInt(subrep.headers.get('nodeCount')!),
-        //TODO bucket entries
-        bucketEntries: [30, 86400, 259200, 604800, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
+        bucketEntries: subrep.headers
+          .get('bucketEntries')!
+          .split(',')
+          .map((x) => parseInt(x)),
       };
 
-      console.log("newEntry", newEntry);
-      this.repertoire.push(newEntry);
+      console.log('newEntry', newEntry);
+      // this.repertoire.push(newEntry);
+      this.addRepertoireEntry(newEntry, newEntry.subrep.meta.trainAs);
     });
     this.redraw();
   };

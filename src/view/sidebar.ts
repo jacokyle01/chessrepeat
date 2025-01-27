@@ -7,27 +7,9 @@ import { chart } from './chart';
 import { downloadI } from '../svg/download';
 
 export const sidebar = (ctrl: PrepCtrl): VNode => {
-  let numWhiteEntries = 0;
-  const whiteEntries: RepertoireEntry[] = [];
-  const blackEntries: RepertoireEntry[] = [];
+  const whiteEntries: RepertoireEntry[] = ctrl.repertoire.slice(0, ctrl.numWhiteEntries);
+  const blackEntries: RepertoireEntry[] = ctrl.repertoire.slice(ctrl.numWhiteEntries);
 
-  ctrl.repertoire.forEach((entry) => {
-    if (entry.subrep.meta.trainAs === 'white') {
-      whiteEntries.push(entry);
-      numWhiteEntries++;
-    } else {
-      blackEntries.push(entry);
-    }
-  });
-
-  let unseenCount = 0;
-  // console.log(unseenCount);
-  if (!ctrl.subrep()) {
-    unseenCount = 0;
-  } else {
-    const meta = ctrl.subrep()?.meta;
-    unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
-  }
   return h('div#sidebar.flex.flex-col.w-1/4', [
     h(
       'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-t-xl.border.border-blue-gray-100',
@@ -37,7 +19,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
           h('span.font-semibold.text-sm.uppercase.px-4', 'White'),
           repertoire(whiteEntries, ctrl, 0),
           h('span.font-semibold.text-sm.uppercase.px-4', 'Black'),
-          repertoire(blackEntries, ctrl, numWhiteEntries),
+          repertoire(blackEntries, ctrl, ctrl.numWhiteEntries),
         ]),
       ],
     ),

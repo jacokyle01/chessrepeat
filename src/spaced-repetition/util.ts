@@ -76,7 +76,6 @@ export const generateSubrepertoire = (
           group: -1,
           dueAt: Infinity,
         },
-        succeeded: false,
       };
     }),
     meta: {
@@ -115,7 +114,7 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
     };
   });
 
-  const pgn = makePgn(subrep);
+  const pgn = makePgn(subrep) + "\n";
   return pgn;
 };
 

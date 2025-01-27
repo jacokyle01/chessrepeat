@@ -22,7 +22,6 @@ export interface TrainingData extends PgnNodeData {
     dueAt: number;
   };
   fen: string
-  succeeded: boolean;
 }
 
 export interface Subrepertoire<T> extends Game<T> {

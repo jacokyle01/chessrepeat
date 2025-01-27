@@ -9,6 +9,7 @@ import { recallI } from '../svg/recall';
 import { bookI } from '../svg/book';
 import { sidebar } from './sidebar';
 import { progress } from './progress';
+import { debug } from '../debug/debug';
 
 export const fieldValue = (id: string): string => {
   return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -247,7 +248,7 @@ const view = (ctrl: PrepCtrl): VNode => {
     ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    // debug(ctrl)
+    debug(ctrl)
   ]);
 };
 export default view;
