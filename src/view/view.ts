@@ -241,13 +241,13 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.flex-col.lg:flex-row.justify-center.bg-blue-gray.gap-5.p-3.px-24.h-full', [
     h('div#sidebar-container.hidden.lg:block', [sidebar(ctrl)]),
-    h('div#row-container.flex.flex-col.sm:flex-row.gap-5', [
+    h('div#row-container.flex.flex-row.gap-5', [
       h('div#main-wrap', [
         progress(ctrl),
         chessground(ctrl),
         h('div.flex', [controls(ctrl), feedback(ctrl)]),
       ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-      h('div#side', [pgnTree(ctrl)])
+      h('div#side.hidden.sm:block', [pgnTree(ctrl)])
     ]),
     h('div#sidebar-container.block.lg:hidden.col-span-2', [sidebar(ctrl)]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
