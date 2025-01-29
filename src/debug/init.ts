@@ -6,8 +6,8 @@ export const init = (ctrl: PrepCtrl) => {
   document.body.style.setProperty('--zoom', '100');
 
   // add 3 repertoire entries
-  ctrl.addToRepertoire(pgn1(), 'black', 'Caro-Kann');
-  ctrl.addToRepertoire(pgn2(), 'white', 'King\'s Gambit');
+  // ctrl.addToRepertoire(pgn1(), 'black', 'Caro-Kann');
+  // ctrl.addToRepertoire(pgn2(), 'white', 'King\'s Gambit');
 
 
   ctrl.chessground?.redrawAll();
