@@ -169,7 +169,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
   elems.push(veryEmptyNode());
   rows.push(rowNode(elems));
 
-  return h('div', [
+  return h('div#side.hidden.sm:block.flex-1', [
     h('div#pgn_side.h-1/3.flex.flex-col.shadow-md.rounded-t-lg.bg-white', [
       h('div#moves.overflow-auto.h-80', rows),
     ]),

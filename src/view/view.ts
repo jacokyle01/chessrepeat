@@ -136,7 +136,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
               //TODO different conditional?
               //TODO fix reverse
               if (!checked('annotated')) {
-                console.log("annotated!");
+                console.log('annotated!');
                 ctrl.importAnnotatedSubrepertoire(fieldValue('pgn'));
               } else {
                 ctrl.addToRepertoire(
@@ -239,19 +239,18 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 //stats & # due
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
-  return h('div#root.flex.flex-col.lg:flex-row.justify-center.bg-blue-gray.gap-5.p-3.px-24.h-full', [
-    h('div#sidebar-container.hidden.lg:block', [sidebar(ctrl)]),
+  return h('div#root.flex.flex-col.lg:flex-row.justify-center.bg-blue-gray.gap-5.h-full.w-full', [
     h('div#row-container.flex.flex-row.gap-5', [
-      h('div#main-wrap', [
+      sidebar(ctrl),
+      h('div#main-wrap.flex-1', [
         progress(ctrl),
         chessground(ctrl),
-        h('div.flex', [controls(ctrl), feedback(ctrl)]),
+        h('div.flex.flex-1', [controls(ctrl), feedback(ctrl)]),
       ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-      h('div#side.hidden.sm:block', [pgnTree(ctrl)])
+      pgnTree(ctrl),
     ]),
-    h('div#sidebar-container.block.lg:hidden.col-span-2', [sidebar(ctrl)]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    debug(ctrl)
+    // debug(ctrl)
   ]);
 };
 export default view;

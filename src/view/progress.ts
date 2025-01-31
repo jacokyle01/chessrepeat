@@ -12,7 +12,7 @@ export const progress = (ctrl: PrepCtrl): VNode => {
 
     const percentage = Math.round((seenCount / totalCount) * 100);
 
-    return h('div.items-center', {}, [
+    return h('div.items-center.flex-1', {}, [
       // Label and percentage row
       h('div.gap-2.items-center', { class: { flex: true, 'justify-left': true, 'my-0': true } }, [
         h(

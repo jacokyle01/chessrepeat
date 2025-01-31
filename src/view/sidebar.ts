@@ -10,7 +10,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
   const whiteEntries: RepertoireEntry[] = ctrl.repertoire.slice(0, ctrl.numWhiteEntries);
   const blackEntries: RepertoireEntry[] = ctrl.repertoire.slice(ctrl.numWhiteEntries);
 
-  return h('div#sidebar.flex.lg:flex-col', [
+  return h('div#sidebar.flex.flex-1.lg:flex-col', [
     h('div.flex.flex-col', [
         h(
           'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-sm.rounded-t-xl.border.border-blue-gray-100',
