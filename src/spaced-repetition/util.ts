@@ -111,7 +111,7 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
 
     let trainingHeader = `${node.training.id},${node.training.disabled},${node.training.seen},${node.training.group},${node.training.dueAt}`;
 
-    newNode.comments.push(trainingHeader);
+    newNode.comments.unshift(trainingHeader);
 
     return newNode;
   });

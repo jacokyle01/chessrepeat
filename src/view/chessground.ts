@@ -10,7 +10,6 @@ import { settings } from './settings';
 
 function makeConfig(ctrl: PrepCtrl): Config {
   // const chess = ctrl.chess; //store chess state in ctrl
-  console.log(ctrl);
   const config: Config = {
     coordinates: true,
     movable: {
@@ -20,7 +19,6 @@ function makeConfig(ctrl: PrepCtrl): Config {
     },
     events: {
       insert: (elements: cg.Elements) => {
-        console.log('Inserted cg-resize');
         resizeHandle(elements);
       },
     },

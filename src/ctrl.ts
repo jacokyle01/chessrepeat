@@ -125,14 +125,10 @@ export default class PrepCtrl {
   };
 
   addToRepertoire = (pgn: string, color: Color, name: string) => {
-    // console.log("ADDING TO REPERTOIRE");
-    // console.log("name", name);
-    // console.log("pgn", pgn);
 
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
-      console.log('subrep', subrep);
       //augment subrepertoire with a) color to train as, and b) training data
       const annotatedSubrep: Subrepertoire<TrainingData> = {
         ...subrep,
@@ -333,7 +329,6 @@ export default class PrepCtrl {
     const ctx = countDueContext(0);
     const dueCounts = new Array(1 + this.srsConfig.buckets!.length).fill(0);
 
-    // console.log('hi');
     walk(root, ctx, (ctx, data) => {
       ctx.count++;
       if (!data.training.disabled && data.training.seen) {
@@ -343,7 +338,6 @@ export default class PrepCtrl {
           dueCounts[0]++;
         } else {
           for (let i = 0; i < dueCounts.length; i++) {
-            // console.log('hi');
             if (secondsTilDue <= this.srsConfig.buckets!.at(i)!) {
               dueCounts[i + 1]++;
               break;
@@ -352,8 +346,6 @@ export default class PrepCtrl {
         }
       }
     });
-    // console.log('due counts', dueCounts);
-    // console.log('spaces', this.srsConfig.buckets);
     this.dueTimes = dueCounts;
   };
 
@@ -437,8 +429,6 @@ export default class PrepCtrl {
       }
 
       const targetSan = this.trainingPath?.at(this.pathIndex)?.data.san;
-      console.log(fen3);
-      console.log(targetSan);
       const uci = calcTarget(fen3, targetSan!);
 
       shapes.push({ orig: uci[1], customSvg: { html: correctMoveI() } });
@@ -608,18 +598,12 @@ export default class PrepCtrl {
     for training 
   */
   importAnnotatedSubrepertoire = (pgn: string) => {
-    // console.log("ADDING TO REPERTOIRE");
-    // console.log("name", name);
-    // console.log("pgn", pgn);
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
-    console.log("subreps", subreps);
     subreps.forEach((subrep, i) => {
-      console.log("subrep", subrep);
-      console.log("HEADERS", subrep.headers);
+      console.log("IMPORTING SUBREP", subrep);
       //TODO we dont need this?
       const headers = subrep.headers;
-      console.log('subrep', subrep);
 
       const pos = startingPosition(subrep.headers).unwrap();
       subrep.moves = transform(subrep.moves, pos, (pos, node) => {
@@ -636,9 +620,8 @@ export default class PrepCtrl {
         // console.log('node', node);
 
         //TODO dont remove all comments 
-        // node.comments!.shift();
-        node.comments = [];
-        console.log(node);
+        node.comments!.shift();
+        // node.comments = [];
         
         return {
           ...node,
@@ -646,13 +629,10 @@ export default class PrepCtrl {
         };
       });
 
-      console.log("HEADERS 2", headers);
-
       let newEntry: RepertoireEntry = {};
       newEntry.name = subrep.headers.get('RepertoireFileName')!;
       newEntry.lastDueCount = parseInt(subrep.headers.get('LastDueCount')!);
       newEntry.subrep = subrep;
-      console.log("bucketEntries", subrep.headers.get('RepertoireFileName'));
 
       newEntry.subrep.meta = {
         trainAs: subrep.headers.get('TrainAs')! as Color,
@@ -663,7 +643,6 @@ export default class PrepCtrl {
           .map((x) => parseInt(x)),
       };
 
-      console.log('newEntry', newEntry);
       // this.repertoire.push(newEntry);
       this.addRepertoireEntry(newEntry, newEntry.subrep.meta.trainAs);
     });

@@ -14,13 +14,14 @@ export const init = (ctrl: PrepCtrl) => {
   // ctrl.addToRepertoire(pgn5(), 'black', 'Classical Sicilian');
 
   // train Catalan
-  ctrl.selectSubrepertoire(0);
-  for (let i = 0; i < 4; i++) {
-    ctrl.getNext();
-    ctrl.succeed();
-  }
-  ctrl.syncTime();
-  ctrl.handleRecall();
+  // ctrl.selectSubrepertoire(0);
+  // for (let i = 0; i < 4; i++) {
+  //   ctrl.getNext();
+  //   ctrl.succeed();
+  // }
+  // ctrl.syncTime();
+  // ctrl.handleRecall();
+  console.log("INITIAL REPERTOIRE", ctrl.repertoire);
   ctrl.chessground?.redrawAll();
 ctrl.redraw();
 };
