@@ -77,6 +77,7 @@ const fail = (ctrl: PrepCtrl): VNode => {
         {
           on: {
             click: () => {
+              ctrl.fail();
               ctrl.handleRecall();
             },
           },
