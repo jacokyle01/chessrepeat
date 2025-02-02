@@ -1,4 +1,4 @@
-import { Color, CountDueContext, PathContext, TrainingContext, TrainingData } from './types';
+import { Color, CountDueContext, PathContext, Subrepertoire, TrainingContext, TrainingData } from './types';
 import { defaultPosition } from 'chessops/variant';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
@@ -93,28 +93,40 @@ export const generateSubrepertoire = (
 */
 
 export const exportRepertoireEntry = (entry: RepertoireEntry) => {
-  let subrep = entry.subrep;
-  // add training control headers
-  subrep.headers.set('RepertoireFileName', entry.name);
-  subrep.headers.set('LastDueCount', `${entry.lastDueCount}`);
-  subrep.headers.set('TrainAs', subrep.meta.trainAs);
-  subrep.headers.set('bucketEntries', subrep.meta.bucketEntries.toString());
-  subrep.headers.set('nodeCount', `${subrep.meta.nodeCount}`);
-  subrep.headers.set('Event', 'ChessrepeatRepertoireFile');
+  //TODO need deep copy
+  let headers = new Map<string, string>();
 
-  const pos = startingPosition(subrep.headers).unwrap();
+  // add training control headers
+  headers.set('RepertoireFileName', entry.name);
+  headers.set('LastDueCount', `${entry.lastDueCount}`);
+  headers.set('TrainAs', entry.subrep.meta.trainAs);
+  headers.set('bucketEntries', entry.subrep.meta.bucketEntries.toString());
+  headers.set('nodeCount', `${entry.subrep.meta.nodeCount}`);
+  headers.set('Event', 'ChessrepeatRepertoireFile');
+
+  const pos = startingPosition(entry.subrep.headers).unwrap();
   // annotate moves with training metadata
-  subrep.moves = transform(subrep.moves, pos, (pos, node) => {
-    if (!node.comments) node.comments = [];
-    let trainingHeader = '';
-    trainingHeader += `${node.training.id},${node.training.disabled},${node.training.seen},${node.training.group},${node.training.dueAt}`;
-    node.comments.push(trainingHeader);
-    return {
-      ...node,
-    };
+  const annotatedMoves = transform(entry.subrep.moves, pos, (pos, node) => {
+    const newNode = { ...node, comments: node.comments ? [...node.comments] : [] };
+
+    let trainingHeader = `${node.training.id},${node.training.disabled},${node.training.seen},${node.training.group},${node.training.dueAt}`;
+
+    newNode.comments.push(trainingHeader);
+
+    return newNode;
   });
 
-  const pgn = makePgn(subrep) + "\n";
+  let subrep: Subrepertoire<TrainingData> = {
+    meta: {
+      trainAs: entry.subrep.meta.trainAs,
+      nodeCount: entry.subrep.meta.nodeCount,
+      bucketEntries: entry.subrep.meta.bucketEntries,
+    },
+    headers,
+    moves: annotatedMoves,
+  };
+
+  const pgn = makePgn(subrep) + '\n';
   return pgn;
 };
 

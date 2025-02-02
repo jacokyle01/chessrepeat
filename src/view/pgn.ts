@@ -149,7 +149,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
       elems.push(indexNode(i / 2));
     }
     elems.push(moveNode(ctrl, node.data!.san, i)); //TODO pgn.length === 1 might ck
-    if (node.data.comments) {
+    if (node.data.comments && node.data.comments.length > 0) {
       if (i % 2 == 0) {
         elems.push(emptyNode());
         rows.push(rowNode(elems));

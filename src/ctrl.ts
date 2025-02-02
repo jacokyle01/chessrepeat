@@ -635,8 +635,11 @@ export default class PrepCtrl {
         node.training.dueAt = metadata[4] == 'Infinity' ? Infinity : parseInt(metadata[4]);
         // console.log('node', node);
 
-        node.comments!.shift();
-
+        //TODO dont remove all comments 
+        // node.comments!.shift();
+        node.comments = [];
+        console.log(node);
+        
         return {
           ...node,
           fen: makeFen(pos.toSetup()),
