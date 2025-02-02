@@ -3,10 +3,13 @@ import { returnI } from '../svg/return';
 import { looseH as h } from '../types/snabbdom';
 
 export const settings = (ctrl: PrepCtrl) => {
-  return h('div.absolute.bg-white.bottom-0.z-10.w-97.h-full', [
+  return h('div.bg-white.h-full.flex-1', [
     h(
       'button.text-white.font-bold.py-1.px-2.bg-blue-500.border-b-4.rounded.flex.border-blue-700.hover:border-blue-500.hover:bg-blue-400.active:transform.active:translate-y-px.active:border-b.my-2',
-      [h('div#return', [returnI()]), h('span', 'BACK TO TRAINING')],
+      [
+        h('div#return', [returnI()]),
+        h('span', { on: { click: () => ctrl.toggleTrainingSettings() } }, 'Back to Training'),
+      ],
     ),
     h('div.flex.items-center', [
       h('div.flex-grow border-t.border-gray-400'),
@@ -18,10 +21,10 @@ export const settings = (ctrl: PrepCtrl) => {
       h(
         'label.inline-flex.items-center.rounded-md.cursor-pointer.text-gray-100.w-3/4',
         {
-          attrs: { for: 'color' },
+          attrs: { for: 'method' },
         },
         [
-          h('input#color.hidden.peer', {
+          h('input#method.hidden.peer', {
             attrs: { type: 'checkbox' },
           }),
           h(
@@ -60,10 +63,10 @@ export const settings = (ctrl: PrepCtrl) => {
       h(
         'label.inline-flex.items-center.rounded-md.cursor-pointer.text-gray-100.w-3/4',
         {
-          attrs: { for: 'color' },
+          attrs: { for: 'method' },
         },
         [
-          h('input#color.hidden.peer', {
+          h('input#method.hidden.peer', {
             attrs: { type: 'checkbox' },
           }),
           h('span.px-4.rounded-l-md.bg-blue-700.peer-checked:bg-blue-300.flex-1.p-1.text-center', 'Next'),
@@ -76,10 +79,10 @@ export const settings = (ctrl: PrepCtrl) => {
       h(
         'label.inline-flex.items-center.rounded-md.cursor-pointer.text-gray-100.w-3/4',
         {
-          attrs: { for: 'color' },
+          attrs: { for: 'demotion' },
         },
         [
-          h('input#color.hidden.peer', {
+          h('input#demotion.hidden.peer', {
             attrs: { type: 'checkbox' },
           }),
           h('span.px-4.rounded-l-md.bg-blue-700.peer-checked:bg-blue-300.flex-1.p-1.text-center', 'Next'),
@@ -97,10 +100,10 @@ export const settings = (ctrl: PrepCtrl) => {
       h(
         'label.inline-flex.items-center.rounded-md.cursor-pointer.text-gray-100.w-3/4',
         {
-          attrs: { for: 'color' },
+          attrs: { for: 'animation' },
         },
         [
-          h('input#color.hidden.peer', {
+          h('input#animation.hidden.peer', {
             attrs: { type: 'checkbox' },
           }),
           h(

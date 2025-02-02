@@ -10,6 +10,7 @@ import { bookI } from '../svg/book';
 import { sidebar } from './sidebar';
 import { progress } from './progress';
 import { debug } from '../debug/debug';
+import { settings } from './settings';
 
 export const fieldValue = (id: string): string => {
   return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -136,7 +137,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
               //TODO different conditional?
               //TODO fix reverse
               if (!checked('annotated')) {
-                console.log("annotated!");
+                console.log('annotated!');
                 ctrl.importAnnotatedSubrepertoire(fieldValue('pgn'));
               } else {
                 ctrl.addToRepertoire(
@@ -241,11 +242,13 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.flex.justify-center.gap-5.bg-blue-gray.h-full.items-start.p-3', [
     sidebar(ctrl),
-    h('div#main-wrap.flex.flex-col', [
-      progress(ctrl),
-      chessground(ctrl),
-      h('div.flex', [controls(ctrl), feedback(ctrl)]),
-    ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+    ctrl.showingTrainingSettings
+      ? settings(ctrl)
+      : h('div#main-wrap.flex.flex-col', [
+          progress(ctrl),
+          chessground(ctrl),
+          h('div.flex', [controls(ctrl), feedback(ctrl)]),
+        ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
     h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
     ctrl.addingNewSubrep && newSubrepForm(ctrl),
     // debug(ctrl),
