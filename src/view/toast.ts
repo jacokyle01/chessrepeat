@@ -5,35 +5,26 @@ import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
 const recall = (ctrl: PrepCtrl): VNode => {
   const isWhite = ctrl.subrep().meta.trainAs === 'white';
-  return h('div#recall.border-t-2', [
-    h('div.bg-white.flex.py-10.shadow-md', [
-      h('div.w-12.mx-2', isWhite ? whiteKingI() : blackKingI()),
+  return h('div#recall.border-t-4.border-blue-500.rounded-md.shadow-lg', [
+    h('div.bg-white.flex.items-center.justify-center.py-12.px-6.gap-3', [
+      h('div.w-12.h-12.flex.items-center.justify-center', isWhite ? whiteKingI() : blackKingI()),
       h('div', [
-        h('h1.font-bold.text-lg', 'Your move'),
-        h('h2.text-md', `What does ${isWhite ? 'White' : 'Black'} play here?`),
+        h('h1.font-bold.text-xl.text-gray-800', 'Your move'),
+        h('h2.text-md.text-gray-600', `What does ${isWhite ? 'White' : 'Black'} play here?`),
       ]),
     ]),
-    h('div#recall-options.flex.flex-row', [
+    h('div#recall-options.flex', [
       h(
-        'span#recall-fail.bg-red-200.font-semibold.text-lg.uppercase.flex-1.text-center.rounded-bl-md',
+        'span#recall-fail.bg-blue-100.text-blue-700.font-semibold.text-lg.uppercase.flex-1.text-center.py-3.cursor-pointer.transition.hover:bg-blue-200',
         {
-          on: {
-            click: () => {
-              ctrl.handleFail();
-            },
-          },
+          on: { click: () => ctrl.handleFail() },
         },
-
         'Give up',
       ),
       h(
-        'span#recall-fail.bg-cyan-200.font-semibold.text-lg.uppercase.flex-1.text-center.rounded-br-md',
+        'span#recall-hint.bg-blue-100.text-blue-700.font-semibold.text-lg.uppercase.flex-1.text-center.py-3.cursor-pointer.transition.hover:bg-blue-200',
         {
-          on: {
-            click: () => {
-              ctrl.toggleShowingHint();
-            },
-          },
+          on: { click: () => ctrl.toggleShowingHint() },
         },
         'Show hint',
       ),
@@ -43,22 +34,32 @@ const recall = (ctrl: PrepCtrl): VNode => {
 
 const learn = (ctrl: PrepCtrl): VNode => {
   const isWhite = ctrl.subrep().meta.trainAs === 'white';
-  return h('div.bg-white.flex.py-10.rounded-b-md.shadow-md.border-t-2', [
-    h('div.w-12.mx-2', isWhite ? whiteKingI() : blackKingI()),
-    h('div', [
-      h('h1.font-bold.text-lg', 'Your move'),
-      h('h2.text-md', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`),
-    ]),
-  ]);
+  return h(
+    'div.bg-white.flex.items-center.justify-center.py-12.px-6.rounded-md.shadow-lg.border-t-4.border-blue-500.gap-3',
+    [
+      h('div.w-12.h-12.flex.items-center.justify-center', isWhite ? whiteKingI() : blackKingI()),
+      h('div', [
+        h('h1.font-bold.text-xl.text-gray-800', 'Your move'),
+        h(
+          'h2.text-md.text-gray-600',
+          `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`,
+        ),
+      ]),
+    ],
+  );
 };
 
 const empty = (): VNode => {
-  return h('div.bg-white.flex.py-10.rounded-b-md.shadow-md.border-t-2', [
-    h('div', [
-      h('h1.font-bold.text-lg', 'No moves'),
-      h('h2.text-md', 'Try training a different repertoire or switching modes'),
-    ]),
-  ]);
+  return h(
+    'div.bg-white.flex.flex-col.items-center.justify-center.py-12.px-6.rounded-md.shadow-lg.border-t-4.border-blue-500',
+    [
+      h('h1.font-bold.text-xl.text-gray-800', 'No moves'),
+      h(
+        'h2.text-md.text-gray-600.mt-2.text-center',
+        'Try training a different repertoire or switching modes',
+      ),
+    ],
+  );
 };
 
 const fail = (ctrl: PrepCtrl): VNode => {
@@ -77,6 +78,7 @@ const fail = (ctrl: PrepCtrl): VNode => {
         {
           on: {
             click: () => {
+              ctrl.fail();
               ctrl.handleRecall();
             },
           },
@@ -86,7 +88,6 @@ const fail = (ctrl: PrepCtrl): VNode => {
     ]),
   ]);
 };
-
 
 export const toast = (ctrl: PrepCtrl): VNode | null => {
   switch (ctrl.lastFeedback) {

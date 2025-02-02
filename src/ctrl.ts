@@ -445,7 +445,7 @@ export default class PrepCtrl {
 
       movable: {
         color: this.subrep().meta.trainAs,
-        dests: this.atLast()
+        dests: this.lastFeedback != 'fail' && this.atLast()
           ? this.method === 'learn'
             ? toDestMap(uci[0], uci[1])
             : fenToDests(fen)
@@ -476,7 +476,6 @@ export default class PrepCtrl {
                       break;
                     case 'failure':
                       //TODO maybe dont fail right away?
-                      this.fail();
                       this.handleFail(san);
                       break;
                   }
