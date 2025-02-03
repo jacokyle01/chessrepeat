@@ -89,8 +89,8 @@ export default class PrepCtrl {
     this.lastResult = 'none';
 
     this.sounds = {
-      move: new Audio('public/sound/public_sound_standard_Move.mp3'),
-      capture: new Audio('public/sound/public_sound_standard_Capture.mp3'),
+      move: new Audio('/sound/public_sound_standard_Move.mp3'),
+      capture: new Audio('/sound/public_sound_standard_Capture.mp3'),
     };
 
     this.addingNewSubrep = false;
