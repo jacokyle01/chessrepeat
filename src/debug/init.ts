@@ -6,7 +6,7 @@ export const init = (ctrl: PrepCtrl) => {
   document.body.style.setProperty('--zoom', '100');
 
   // add 3 repertoire entries
-  // ctrl.addToRepertoire(pgn1(), 'white', 'Catalan');
+  ctrl.addToRepertoire(pgn1(), 'white', 'Catalan');
   // ctrl.addToRepertoire(pgn2(), 'white', 'Catalan 2');
   // ctrl.addToRepertoire(pgn3(), 'white', 'Spanish');
   // ctrl.addToRepertoire(pgn4(), 'black', 'Englund');
