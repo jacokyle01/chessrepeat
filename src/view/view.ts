@@ -245,7 +245,7 @@ const view = (ctrl: PrepCtrl): VNode => {
     ctrl.showingTrainingSettings
       ? settings(ctrl)
       : h('div#main-wrap.flex.flex-col', [
-          progress(ctrl),
+          // progress(ctrl),
           chessground(ctrl),
           h('div.flex', [controls(ctrl), feedback(ctrl)]),
         ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
