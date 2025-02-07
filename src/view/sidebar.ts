@@ -49,7 +49,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
               {
                 class: { 'text-sm': true, 'font-medium': true, 'dark:text-white': true },
               },
-              `Learning progress`,
+              `Memory progress`,
             ),
             h('span', '•'),
             h(

@@ -16,7 +16,6 @@ import {
 import {
   ChildNode,
   Game,
-  makePgn,
   parsePgn,
   PgnNodeData,
   startingPosition,
@@ -31,7 +30,7 @@ import { DrawShape } from 'chessground/draw';
 import { correctMoveI } from './svg/correct_move';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
-
+//TODO rename 
 export default class PrepCtrl {
   // training
   repertoire: RepertoireEntry[];
@@ -55,6 +54,7 @@ export default class PrepCtrl {
 
   //view
   addingNewSubrep: boolean;
+  subrepSettingsIndex: number;
   // TODO better naming
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
   lastResult: `succeed` | `fail` | `none`;
@@ -93,6 +93,7 @@ export default class PrepCtrl {
       capture: new Audio('/sound/public_sound_standard_Capture.mp3'),
     };
 
+    this.subrepSettingsIndex = -1;
     this.addingNewSubrep = false;
     this.showingTrainingSettings = false;
     this.correctMoveIndices = [];
