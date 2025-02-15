@@ -13,7 +13,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
 
   return h('div#sidebar.flex.flex-col.w-1/4', [
     h(
-      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-t-2xl.border.border-gray-200.py-2',
+      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-xl.border.border-gray-200.pb-2',
       [
         h('span.text-blue-600.text-2xl.font-semibold.tracking-wide.p-4', 'My Repertoire'),
         h('div#repertoire-wrap', [
@@ -37,7 +37,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
       ),
     ]),
     h(
-      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-b-2xl.border.border-gray-200.p-4.mt-4.pb-5',
+      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-xl.border.border-gray-200.p-4.mt-4.pb-5',
       [
         h('span.text-blue-600.text-2xl.font-semibold.tracking-wide', 'Scheduling'),
 

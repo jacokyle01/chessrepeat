@@ -241,12 +241,9 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.bg-blue-gray.h-full', [
-    h('div#header.flex.items-center.space-x-3.justify-center', [
+    h('div#header.flex.items-center.space-x-3.justify-left', [
       h('img', { attrs: { src: 'public/logo.png', alt: 'Logo', class: 'h-12 w-12' } }),
-      h('span.text-3xl.font-bold', [
-        h('span.text-blue-400.stroke-current', 'Chess'),
-        h('span.text-orange-400.stroke-current', 'Repeat'),
-      ]),
+      // h('span.text-3xl', [h('span.stroke-current', 'Repeat')]),
     ]),
     h('div#body.flex.justify-center.gap-5.items-start.p-3', [
       sidebar(ctrl),
@@ -254,7 +251,7 @@ const view = (ctrl: PrepCtrl): VNode => {
         ? settings(ctrl)
         : h('div#main-wrap.flex.flex-col', [
             chessground(ctrl),
-            h('div.flex', [controls(ctrl), feedback(ctrl)]),
+            h('div.flex.items-center', [controls(ctrl)]),
           ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
       h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
       ctrl.addingNewSubrep && newSubrepForm(ctrl),

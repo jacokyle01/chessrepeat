@@ -28,7 +28,7 @@ function makeConfig(ctrl: PrepCtrl): Config {
 
 export const chessground = (ctrl: PrepCtrl): VNode => {
   return h('section.blue.alpha.rounded', [
-    h('div.cg-wrap.shadow', {
+    h('div.cg-wrap', {
       hook: {
         insert: (vnode) => {
           const el = vnode.elm as HTMLElement;
