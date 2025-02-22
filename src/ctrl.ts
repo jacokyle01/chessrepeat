@@ -359,6 +359,7 @@ export default class PrepCtrl {
     //TODO do automatic recall/learn
     // reset board
     this.chessground?.set({
+      lastMove: undefined,
       fen: initial,
       drawable: {
         autoShapes: [],
