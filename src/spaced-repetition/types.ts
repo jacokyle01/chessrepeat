@@ -2,7 +2,7 @@ import { Position } from 'chessops';
 import { ChildNode, Game, PgnNodeData } from 'chessops/pgn';
 
 export type Color = 'white' | 'black';
-export type Method = 'recall' | 'learn';
+export type Method = 'recall' | 'learn' | 'unselected';
 export type TrainingOutcome = 'success' | 'alternate' | 'failure';
 
 //TODO trainAsColor, depth, only first child

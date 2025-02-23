@@ -20,7 +20,7 @@ export default {
       colors: {
         'c-bg-page': 'hsl(37, 10%, 92%)',
         'c-body-gradient': 'hsl(37, 12%, 84%)',
-        'blue-gray': '#eceff180',
+        'blue-gray': '#ECEFF1',
       },
       backgroundImage: {
         'custom-gradient': 'linear-gradient(to bottom, hsl(37, 12%, 84%), hsl(37, 10%, 92%) 116px)',

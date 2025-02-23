@@ -2,7 +2,7 @@ import { h, VNode } from 'snabbdom';
 import PrepCtrl from '../ctrl';
 
 export const debug = (ctrl: PrepCtrl): VNode => {
-  return h('div.absolute.top-0.right-0.m-20', [
+  return h('div.absolute.bottom-0.left-0.m-20', [
     h('div', 'DEBUG'),
     h('div', `pathIndex: ${ctrl.pathIndex}`),
 
@@ -16,6 +16,7 @@ export const debug = (ctrl: PrepCtrl): VNode => {
     h('div', `last feedback: ${ctrl.lastFeedback}`),
     h('div', `changed lines?: ${ctrl.changedLines}`),
     h('div', `RepertoireIndex ${ctrl.repertoireIndex}`),
+    h('div', `Subrep settings index, ${ctrl.subrepSettingsIndex}`),
 
 
     h(

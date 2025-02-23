@@ -33,8 +33,8 @@ const controls = (ctrl: PrepCtrl) => {
             'translate-y-px': ctrl.method == 'learn',
             transform: ctrl.method == 'learn',
             'border-b': ctrl.method == 'learn',
-            'border-b-4': ctrl.method === 'recall',
-            'bg-blue-500': ctrl.method === 'recall',
+            'border-b-4': ctrl.method != 'learn',
+            'bg-blue-500': ctrl.method != 'learn',
           },
         },
         [h('span', 'LEARN'), bookI()],
@@ -50,8 +50,8 @@ const controls = (ctrl: PrepCtrl) => {
             'translate-y-px': ctrl.method == 'recall',
             transform: ctrl.method == 'recall',
             'border-b': ctrl.method == 'recall',
-            'border-b-4': ctrl.method === 'learn',
-            'bg-orange-500': ctrl.method === 'learn',
+            'border-b-4': ctrl.method != 'recall',
+            'bg-orange-500': ctrl.method != 'recall',
           },
         },
         [h('span', 'RECALL'), recallI()],
@@ -240,18 +240,25 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 //stats & # due
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
-  return h('div#root.flex.justify-center.gap-5.bg-blue-gray.h-full.items-start.p-3', [
-    sidebar(ctrl),
-    ctrl.showingTrainingSettings
-      ? settings(ctrl)
-      : h('div#main-wrap.flex.flex-col', [
-          progress(ctrl),
-          chessground(ctrl),
-          h('div.flex', [controls(ctrl), feedback(ctrl)]),
-        ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-    h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
-    ctrl.addingNewSubrep && newSubrepForm(ctrl),
-    // debug(ctrl),
+  return h('div#root.bg-stone-200.h-full', [
+    h('div#header.flex.items-center.space-x-3.justify-left', [
+      h('img', { attrs: { src: 'public/logo.png', alt: 'Logo', class: 'h-12 w-12' } }),
+      // h('span.text-3xl', [h('span.stroke-current', 'Repeat')]),
+    ]),
+    h('div#body.flex.justify-center.gap-5.items-start.p-3', [
+      sidebar(ctrl),
+      ctrl.showingTrainingSettings
+        ? settings(ctrl)
+        : h('div#main-wrap.flex.flex-col', [
+            chessground(ctrl),
+            h('div.flex.items-center', [controls(ctrl)]),
+            h('div#add-comment-wrap.flex', [
+            ]),
+          ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
+      h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
+      ctrl.addingNewSubrep && newSubrepForm(ctrl),
+      debug(ctrl),
+    ]),
   ]);
 };
 export default view;

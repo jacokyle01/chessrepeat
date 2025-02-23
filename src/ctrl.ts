@@ -16,7 +16,6 @@ import {
 import {
   ChildNode,
   Game,
-  makePgn,
   parsePgn,
   PgnNodeData,
   startingPosition,
@@ -31,7 +30,7 @@ import { DrawShape } from 'chessground/draw';
 import { correctMoveI } from './svg/correct_move';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
-
+//TODO rename 
 export default class PrepCtrl {
   // training
   repertoire: RepertoireEntry[];
@@ -55,6 +54,7 @@ export default class PrepCtrl {
 
   //view
   addingNewSubrep: boolean;
+  subrepSettingsIndex: number;
   // TODO better naming
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
   lastResult: `succeed` | `fail` | `none`;
@@ -79,7 +79,7 @@ export default class PrepCtrl {
     this.trainingPath = [];
     this.changedLines = true;
     this.repertoireIndex = 0;
-    this.method = 'learn';
+    this.method = 'unselected';
     this.lastFeedback = 'init';
     this.srsConfig = defaults();
     this.dueTimes = new Array(this.srsConfig.buckets!.length).fill(0);
@@ -93,6 +93,7 @@ export default class PrepCtrl {
       capture: new Audio('/sound/public_sound_standard_Capture.mp3'),
     };
 
+    this.subrepSettingsIndex = -1;
     this.addingNewSubrep = false;
     this.showingTrainingSettings = false;
     this.correctMoveIndices = [];
@@ -171,7 +172,7 @@ export default class PrepCtrl {
 
   // TODO return trainingPath, then we set it
   getNext = () => {
-    if (this.repertoireIndex == -1) return false; // no subrepertoire selected
+    if (this.repertoireIndex == -1 || this.method == 'unselected') return false; // no subrepertoire selected
     //initialization
     let deque: DequeEntry[] = [];
     let subrep = this.repertoire[this.repertoireIndex].subrep;
@@ -358,6 +359,7 @@ export default class PrepCtrl {
     //TODO do automatic recall/learn
     // reset board
     this.chessground?.set({
+      lastMove: undefined,
       fen: initial,
       drawable: {
         autoShapes: [],
@@ -372,6 +374,7 @@ export default class PrepCtrl {
   selectSubrepertoire = (which: number) => {
     if (which == this.repertoireIndex) return;
     this.repertoireIndex = which;
+    this.method = 'unselected';
     this.clearSubrepertoireContext();
     this.redraw();
     this.chessground?.setAutoShapes([]);
