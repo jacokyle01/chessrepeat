@@ -3,7 +3,7 @@ import PrepCtrl from '../ctrl';
 
 export const debug = (ctrl: PrepCtrl): VNode => {
   return h('div.absolute.bottom-0.left-0.m-20', [
-    // h('div', 'DEBUG'),
+    h('div', 'DEBUG'),
     h('div', `pathIndex: ${ctrl.pathIndex}`),
 
     h('div', `path length: ${ctrl.trainingPath.length + ''}`),

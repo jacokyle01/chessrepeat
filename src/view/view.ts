@@ -242,7 +242,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.bg-stone-200.h-full', [
     h('div#header.flex.items-center.space-x-3.justify-left', [
-      h('img', { attrs: { src: 'public/favicon.ico', alt: 'Logo', class: 'h-12 w-12' } }),
+      h('img', { attrs: { src: 'logo.png', alt: 'Logo', class: 'h-12 w-12' } }),
       // h('span.text-3xl', [h('span.stroke-current', 'Repeat')]),
     ]),
     h('div#body.flex.justify-center.gap-5.items-start.p-3', [
@@ -257,7 +257,7 @@ const view = (ctrl: PrepCtrl): VNode => {
           ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
       h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
       ctrl.addingNewSubrep && newSubrepForm(ctrl),
-      debug(ctrl),
+      // debug(ctrl),
     ]),
   ]);
 };
