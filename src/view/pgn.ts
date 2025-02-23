@@ -109,7 +109,7 @@ const commentNode = (ctrl: PrepCtrl, text: string, nodeNumber: number, commentNu
 
     h(
       'div.bg-gray-100.text-md.flex.items-center.font-mono.w-full',
-      `comment ${commentNumber} on move ${nodeNumber} ${text}`,
+      text,
     ),
   ]);
 
