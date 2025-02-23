@@ -9,6 +9,9 @@ import { nextI } from '../svg/next';
 import { toast } from './toast';
 import { commentI } from '../svg/comment';
 import { trashI } from '../svg/trash';
+import { addCommentI } from '../svg/addComment';
+import { clearConfigCache } from 'prettier';
+import { fieldValue } from './view';
 
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6
@@ -202,5 +205,25 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
 
     toast(ctrl),
     pgnControls(ctrl),
+
+    h('div#add-comment-wrap.flex.flex-col.items-start', [
+      h('textarea#comment-input.w-full.h.32.rounded-md.shadow-md.bg-stone-100'),
+      h(
+        'button.flex.bg-blue-500.text-white.font-semibold.rounded-md.p-2.rounded-tl-lg.gap-1.px-5.transition.duration-200.ease-in-out.hover:bg-blue-600.active:scale-95.shadow-md.hover:shadow-lg',
+        {
+          on: {
+            click: () => {
+              let comment = fieldValue('comment-input');
+              if (!ctrl.trainingPath.at(ctrl.pathIndex)!.data.comments) {
+                ctrl.trainingPath.at(ctrl.pathIndex)!.data.comments = [];
+              }
+              ctrl.trainingPath!.at(ctrl.pathIndex)!.data!.comments!.push(comment);
+              ctrl.redraw();
+            },
+          },
+        },
+        [h('div', [addCommentI()]), h('div', 'Add Comment')],
+      ),
+    ]),
   ]);
 };
