@@ -247,7 +247,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       h('span.text-stone-600', 'repeat'),
 
     ]),
-    h('div#body.flex.justify-center.gap-5.items-start.p-3', [
+    h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [
       sidebar(ctrl),
       ctrl.showingTrainingSettings
         ? settings(ctrl)
@@ -257,7 +257,7 @@ const view = (ctrl: PrepCtrl): VNode => {
             h('div#add-comment-wrap.flex', [
             ]),
           ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
-      h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
+      h('div#side.w-1/3.flex-col', [pgnTree(ctrl)]),
       ctrl.addingNewSubrep && newSubrepForm(ctrl),
       debug(ctrl),
     ]),
