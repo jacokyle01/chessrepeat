@@ -241,9 +241,11 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
 //date added
 const view = (ctrl: PrepCtrl): VNode => {
   return h('div#root.bg-stone-200.h-full', [
-    h('div#header.flex.items-center.space-x-3.justify-left', [
+    h('div#header.flex.items-end.justify-left.text-3xl.mb-3', [
       h('img', { attrs: { src: 'logo.png', alt: 'Logo', class: 'h-12 w-12' } }),
-      // h('span.text-3xl', [h('span.stroke-current', 'Repeat')]),
+      h('span.', 'chess'),
+      h('span.text-stone-600', 'repeat'),
+
     ]),
     h('div#body.flex.justify-center.gap-5.items-start.p-3', [
       sidebar(ctrl),
