@@ -6,12 +6,57 @@ import { RepertoireEntry } from '../types/types';
 import { smallGear } from '../svg/smallGear';
 import { renameI } from '../svg/rename';
 import { trashI } from '../svg/trash';
+import { seenI } from '../svg/seen';
 
 const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
-  h('div.dropdown-menu.absolute.bg-white.z-10.p-3.shadow-md', { class: { hidden: !(ctrl.subrepSettingsIndex === thisIndex + startsAt) } }, [
-    h('div.option.flex.gap-1', { on: { click: () => console.log('Delete clicked') } }, [trashI(), "Delete"]),
-    h('div.option.flex.gap-1', { on: { click: () => console.log('Rename clicked') } }, [renameI(), "Rename"]),
-  ]);
+  h(
+    'div.dropdown-menu.absolute.bg-white.z-10.p-3.shadow-md.rounded-md.border.border-gray-200',
+    { class: { hidden: !(ctrl.subrepSettingsIndex === thisIndex + startsAt) } },
+    [
+      h(
+        'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
+        {
+          on: {
+            click: () => {
+              console.log('Delete clicked');
+              console.log(thisIndex + startsAt);
+              ctrl.deleteSubrepertoire(thisIndex + startsAt);
+              ctrl.subrepSettingsIndex = -1;
+              ctrl.redraw();
+            },
+          },
+        },
+        [trashI(), 'Delete'],
+      ),
+      h(
+        'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
+        {
+          on: {
+            click: () => {
+              console.log('Rename clicked');
+              const newName = prompt('Enter new name') || '';
+              ctrl.repertoire[thisIndex + startsAt].name = newName;
+              ctrl.redraw();
+            },
+          },
+        },
+        [renameI(), 'Rename'],
+      ),
+      h(
+        'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
+        {
+          on: {
+            click: () => {
+              console.log('Seen clicked');
+              ctrl.markAllSeen();
+              ctrl.redraw();
+            },
+          },
+        },
+        [seenI(), 'Mark all as seen'],
+      ),
+    ],
+  );
 
 export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, startsAt: number): VNode => {
   // console.log(repertoire.length);
@@ -53,24 +98,29 @@ export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, starts
                 'button.text-sm.font-medium.text-orange-700.px-1.5.bg-orange-500/20.rounded-full.px-2',
                 `Recall ${entry.lastDueCount}`,
               ),
-            h(
-              'div#subrep-settings',
-              {
-                on: {
-                  click: () => {
-                    ctrl.subrepSettingsIndex = index + startsAt;
-                    ctrl.redraw();
+            h('div#subrep-settings', [
+              h(
+                'div.cursor-pointer.transition-all.hover:bg-gray-300.active:scale-90.rounded-md',
+                {
+                  on: {
+                    click: () => {
+                      if (ctrl.subrepSettingsIndex == index + startsAt) {
+                        ctrl.subrepSettingsIndex = -1;
+                      } else {
+                        ctrl.subrepSettingsIndex = index + startsAt;
+                      }
+                      ctrl.redraw();
+                    },
+                  },
+                  class: {
+                    'bg-gray-300': ctrl.subrepSettingsIndex == index + startsAt,
                   },
                 },
-              },
-              [
-                h(
-                  'div.cursor-pointer.transition-all.hover:bg-gray-300.active:scale-90.rounded-md',
-                  [smallGear()],
-                ),
-                dropdownMenu(ctrl, index, startsAt),
-              ],
-            ),
+
+                [smallGear()],
+              ),
+              dropdownMenu(ctrl, index, startsAt),
+            ]),
           ],
         );
       },
