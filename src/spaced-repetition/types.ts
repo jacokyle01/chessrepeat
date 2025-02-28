@@ -27,6 +27,7 @@ export interface TrainingData extends PgnNodeData {
 export interface Subrepertoire<T> extends Game<T> {
   meta: {
     trainAs: Color;
+    //TODO should be determined dynamically ? or at least at import time 
     nodeCount: number;
     bucketEntries: number[];
     //all unseen nodes can be derived from:

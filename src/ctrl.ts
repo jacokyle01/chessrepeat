@@ -93,7 +93,11 @@ export default class PrepCtrl {
       capture: new Audio('/sound/public_sound_standard_Capture.mp3'),
     };
 
+
+    //TODO handle with CSS 
     this.subrepSettingsIndex = -1;
+
+
     this.addingNewSubrep = false;
     this.showingTrainingSettings = false;
     this.correctMoveIndices = [];
@@ -657,4 +661,18 @@ export default class PrepCtrl {
     });
     this.redraw();
   };
+
+  deleteSubrepertoire = (index: number) => {
+    this.repertoire.splice(index, 1);
+  }
+
+  markAllSeen = () => {
+    if (this.repertoireIndex == -1) return;
+    this.method = 'learn';
+    while (this.getNext()) {
+      this.succeed();
+    }
+    this.redraw();
+    return;
+  }
 }
