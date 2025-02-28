@@ -257,7 +257,7 @@ const view = (ctrl: PrepCtrl): VNode => {
           ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
       h('div#side.w-1/4.flex-col', [pgnTree(ctrl)]),
       ctrl.addingNewSubrep && newSubrepForm(ctrl),
-      debug(ctrl),
+      // debug(ctrl),
     ]),
   ]);
 };
