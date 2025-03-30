@@ -13,15 +13,7 @@ import {
   Subrepertoire,
   TrainingData,
 } from './spaced-repetition/types';
-import {
-  ChildNode,
-  Game,
-  parsePgn,
-  PgnNodeData,
-  startingPosition,
-  walk,
-  transform,
-} from 'chessops/pgn';
+import { ChildNode, Game, parsePgn, PgnNodeData, startingPosition, walk, transform } from 'chessops/pgn';
 import { countDueContext, exportRepertoireEntry, generateSubrepertoire } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
@@ -30,7 +22,7 @@ import { DrawShape } from 'chessground/draw';
 import { correctMoveI } from './svg/correct_move';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
-//TODO rename 
+//TODO rename
 export default class PrepCtrl {
   // training
   repertoire: RepertoireEntry[];
@@ -93,10 +85,8 @@ export default class PrepCtrl {
       capture: new Audio('/sound/public_sound_standard_Capture.mp3'),
     };
 
-
-    //TODO handle with CSS 
+    //TODO handle with CSS
     this.subrepSettingsIndex = -1;
-
 
     this.addingNewSubrep = false;
     this.showingTrainingSettings = false;
@@ -131,7 +121,6 @@ export default class PrepCtrl {
   };
 
   addToRepertoire = (pgn: string, color: Color, name: string) => {
-
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
@@ -151,6 +140,7 @@ export default class PrepCtrl {
     this.redraw();
   };
 
+  //TODO just get current Time
   syncTime = () => {
     this.currentTime = Math.floor(Date.now() / 1000);
   };
@@ -452,13 +442,15 @@ export default class PrepCtrl {
 
       movable: {
         color: this.subrep().meta.trainAs,
-        dests: this.lastFeedback != 'fail' && this.atLast()
-          ? this.method === 'learn'
-            ? toDestMap(uci[0], uci[1])
-            : fenToDests(fen)
-          : new Map(),
+        dests:
+          this.lastFeedback != 'fail' && this.atLast()
+            ? this.method === 'learn'
+              ? toDestMap(uci[0], uci[1])
+              : fenToDests(fen)
+            : new Map(),
         events: {
           after: (from: Key, to: Key, metadata: MoveMetadata) => {
+            this.syncTime();
             metadata.captured
               ? this.sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
               : this.sounds.move.play().catch((err) => console.error('Audio playback error:', err));
@@ -523,7 +515,10 @@ export default class PrepCtrl {
     }
   };
 
+  // TODO better name vs. ctrl.fail()
   handleFail = (attempt?: string) => {
+    // TODO better solution than this below? 
+    this.syncTime();
     console.log(attempt);
     this.lastGuess = attempt ?? null;
     this.lastFeedback = 'fail';
@@ -586,23 +581,23 @@ export default class PrepCtrl {
 
   downloadRepertoire = () => {
     let result = '';
-  
+
     // Assuming `this.repertoire` is an array and `exportRepertoireEntry` formats each entry
     this.repertoire.forEach((file) => {
       result += exportRepertoireEntry(file);
     });
-  
+
     // Create a blob from the result string
     const blob = new Blob([result], { type: 'text/plain' });
-  
+
     // Create a temporary link element
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'repertoire.pgn'; // File name with .pgn extension
-  
+
     // Trigger the download
     link.click();
-  
+
     // Clean up the URL object
     URL.revokeObjectURL(link.href);
   };
@@ -614,7 +609,7 @@ export default class PrepCtrl {
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
-      console.log("IMPORTING SUBREP", subrep);
+      console.log('IMPORTING SUBREP', subrep);
       //TODO we dont need this?
       const headers = subrep.headers;
 
@@ -632,10 +627,10 @@ export default class PrepCtrl {
         node.training.dueAt = metadata[4] == 'Infinity' ? Infinity : parseInt(metadata[4]);
         // console.log('node', node);
 
-        //TODO dont remove all comments 
+        //TODO dont remove all comments
         node.comments!.shift();
         // node.comments = [];
-        
+
         return {
           ...node,
           fen: makeFen(pos.toSetup()),
@@ -664,7 +659,7 @@ export default class PrepCtrl {
 
   deleteSubrepertoire = (index: number) => {
     this.repertoire.splice(index, 1);
-  }
+  };
 
   markAllSeen = () => {
     if (this.repertoireIndex == -1) return;
@@ -674,5 +669,5 @@ export default class PrepCtrl {
     }
     this.redraw();
     return;
-  }
+  };
 }
