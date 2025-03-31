@@ -11,9 +11,9 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
   const whiteEntries: RepertoireEntry[] = ctrl.repertoire.slice(0, ctrl.numWhiteEntries);
   const blackEntries: RepertoireEntry[] = ctrl.repertoire.slice(ctrl.numWhiteEntries);
 
-  return h('div#sidebar.flex.flex-col.flex-1', [
+  return h('div#sidebar.flex.flex-col.flex-1.h-lvh', [
     h(
-      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-xl.border.border-gray-200.pb-2',
+      'div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-xl.border.border-gray-200.pb-2.h-2/5.overflow-y-auto',
       [
         h('span.text-blue-600.text-2xl.font-semibold.tracking-wide.p-4', 'My Repertoire'),
         h('div#repertoire-wrap', [
@@ -43,7 +43,7 @@ export const sidebar = (ctrl: PrepCtrl): VNode => {
 
         // ${ctrl.repertoire[ctrl.repertoireIndex] && ctrl.repertoire[ctrl.repertoireIndex].lastDueCount}
         h('div#chart-wrap', [
-          h('div.gap-2.items-center', { class: { flex: true, 'justify-left': true} }, [
+          h('div.gap-2.items-center', { class: { flex: true, 'justify-left': true } }, [
             h(
               'span',
               {
