@@ -11,6 +11,8 @@ import { sidebar } from './sidebar';
 import { progress } from './progress';
 import { debug } from '../debug/debug';
 import { settings } from './settings';
+import { clipboardI } from '../svg/clipboard';
+import { copyMe } from './copy';
 
 export const fieldValue = (id: string): string => {
   return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -245,7 +247,6 @@ const view = (ctrl: PrepCtrl): VNode => {
       h('img', { attrs: { src: 'logo.png', alt: 'Logo', class: 'h-12 w-12' } }),
       h('span.', 'chess'),
       h('span.text-stone-600', 'repeat'),
-
     ]),
     h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [
       sidebar(ctrl),
@@ -254,7 +255,12 @@ const view = (ctrl: PrepCtrl): VNode => {
         : h('div#main-wrap.flex.flex-col', [
             chessground(ctrl),
             h('div.flex.items-center', [controls(ctrl)]),
-            h('div#add-comment-wrap.flex', [
+            h('div#add-comment-wrap.flex', []),
+            h('div#copy-wrap', [
+              h('div.text-md.font-bold', 'FEN'),
+              copyMe(ctrl, ctrl.trainingPath[ctrl.pathIndex]?.data.fen || ''),
+              h('div.text-md.font-bold', 'PGN'),
+              copyMe(ctrl, ctrl.trainingPath.map((node) => node.data.san).join(' ') || ''),
             ]),
           ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
       h('div#side.w-1/3.flex-col', [pgnTree(ctrl)]),
