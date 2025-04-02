@@ -99,10 +99,10 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
 
   // add training control headers
   headers.set('RepertoireFileName', entry.name);
-  // headers.set('LastDueCount', `${entry.lastDueCount}`);
+  headers.set('LastDueCount', `${entry.lastDueCount}`);
   headers.set('TrainAs', entry.subrep.meta.trainAs);
   headers.set('bucketEntries', entry.subrep.meta.bucketEntries.toString());
-  // headers.set('nodeCount', `${entry.subrep.meta.nodeCount}`);
+  headers.set('nodeCount', `${entry.subrep.meta.nodeCount}`);
   headers.set('Event', 'ChessrepeatRepertoireFile');
   headers.set('Time', currentTime.toString());
 

@@ -517,7 +517,7 @@ export default class PrepCtrl {
 
   // TODO better name vs. ctrl.fail()
   handleFail = (attempt?: string) => {
-    // TODO better solution than this below? 
+    // TODO better solution than this below?
     this.syncTime();
     console.log(attempt);
     this.lastGuess = attempt ?? null;
@@ -612,6 +612,8 @@ export default class PrepCtrl {
       console.log('IMPORTING SUBREP', subrep);
       //TODO we dont need this?
       const headers = subrep.headers;
+      let currentTime = parseInt(headers.get('Time') || '0');
+      console.log('Repertoire time', currentTime);
 
       const pos = startingPosition(subrep.headers).unwrap();
       subrep.moves = transform(subrep.moves, pos, (pos, node) => {
@@ -619,12 +621,28 @@ export default class PrepCtrl {
         pos.play(move!);
 
         const metadata = node.comments![0].split(',');
-        node.training = {};
-        node.training.id = parseInt(metadata[0]);
-        node.training.disabled = metadata[1] == 'true';
-        node.training.seen = metadata[2] == 'true';
-        node.training.group = parseInt(metadata[3]);
-        node.training.dueAt = metadata[4] == 'Infinity' ? Infinity : parseInt(metadata[4]);
+
+        const annotatedNode: TrainingData = {
+          ...node,
+          fen: makeFen(pos.toSetup()),
+          training: {
+            id: parseInt(metadata[0]),
+            disabled: metadata[1] == '1',
+            seen: metadata[2] == '1',
+            group: parseInt(metadata[3]),
+            dueAt: metadata[4] == 'I' ? Infinity : currentTime - parseInt(metadata[4]),
+          },
+        };
+
+        // remove control information
+        annotatedNode.comments!.shift();
+
+        // annotatedNode.training = {};
+        // node.training.id = parseInt(metadata[0]);
+        // node.training.disabled = metadata[1] == 'true';
+        // node.training.seen = metadata[2] == 'true';
+        // node.training.group = parseInt(metadata[3]);
+        // node.training.dueAt = metadata[4] == 'Infinity' ? Infinity : currentTime - parseInt(metadata[4]);
         // console.log('node', node);
 
         //TODO dont remove all comments
@@ -632,8 +650,7 @@ export default class PrepCtrl {
         // node.comments = [];
 
         return {
-          ...node,
-          fen: makeFen(pos.toSetup()),
+          ...annotatedNode
         };
       });
 
