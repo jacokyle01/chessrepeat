@@ -95,21 +95,23 @@ export const generateSubrepertoire = (
 export const exportRepertoireEntry = (entry: RepertoireEntry) => {
   //TODO need deep copy
   let headers = new Map<string, string>();
+  let currentTime = Math.round(Date.now() / 1000);
 
   // add training control headers
   headers.set('RepertoireFileName', entry.name);
-  headers.set('LastDueCount', `${entry.lastDueCount}`);
+  // headers.set('LastDueCount', `${entry.lastDueCount}`);
   headers.set('TrainAs', entry.subrep.meta.trainAs);
   headers.set('bucketEntries', entry.subrep.meta.bucketEntries.toString());
-  headers.set('nodeCount', `${entry.subrep.meta.nodeCount}`);
+  // headers.set('nodeCount', `${entry.subrep.meta.nodeCount}`);
   headers.set('Event', 'ChessrepeatRepertoireFile');
+  headers.set('Time', currentTime.toString());
 
   const pos = startingPosition(entry.subrep.headers).unwrap();
   // annotate moves with training metadata
   const annotatedMoves = transform(entry.subrep.moves, pos, (pos, node) => {
     const newNode = { ...node, comments: node.comments ? [...node.comments] : [] };
 
-    let trainingHeader = `${node.training.id},${node.training.disabled},${node.training.seen},${node.training.group},${node.training.dueAt}`;
+    let trainingHeader = `${node.training.id},${node.training.disabled ? 1 : 0},${node.training.seen ? 1 : 0},${node.training.group},${node.training.dueAt === Infinity ? 'I' : currentTime - node.training.dueAt}`;
 
     newNode.comments.unshift(trainingHeader);
 
