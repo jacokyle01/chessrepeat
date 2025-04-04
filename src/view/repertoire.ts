@@ -11,11 +11,11 @@ import { editI } from '../svg/edit';
 
 const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
   h(
-    'div.dropdown-menu.absolute.bg-white.z-10.p-3.shadow-md.rounded-md.border.border-gray-200',
+    'div.dropdown-menu.bg-white.z-10.shadow-md.rounded-md.border.border-gray-200.flex.flex-row',
     { class: { hidden: !(ctrl.subrepSettingsIndex === thisIndex + startsAt) } },
     [
       h(
-        'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
+        'div.option.flex.items-center.gap-2.px-3.cursor-pointer.rounded-md.hover:bg-gray-100',
         {
           on: {
             click: () => {
@@ -27,7 +27,7 @@ const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
             },
           },
         },
-        [trashI(), 'Delete'],
+        [trashI(), h('span.text-sm', 'Delete')],
       ),
       h(
         'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
@@ -41,7 +41,7 @@ const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
             },
           },
         },
-        [renameI(), 'Rename'],
+        [renameI(), h('span.text-sm', 'Rename')],
       ),
       h(
         'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
@@ -54,7 +54,7 @@ const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
             },
           },
         },
-        [seenI(), 'Mark all as seen'],
+        [seenI(), h('span.text-sm', 'All seen')],
       ),
       h(
         'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
@@ -66,7 +66,7 @@ const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
             },
           },
         },
-        [editI(), 'Edit repertoire'],
+        [editI(), h('span.text-sm', 'Edit PGN')],
       ),
     ],
   );
@@ -86,7 +86,7 @@ export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, starts
         const name = entry.name;
 
         return h(
-          'div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.px-4.py-0.5',
+          'div#subrepertoire-wrap',
           {
             on: {
               click: () => ctrl.selectSubrepertoire(index + startsAt),
@@ -96,44 +96,46 @@ export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, starts
             },
           },
           [
-            h('span.font-bold.pr-3', (index + startsAt + 1).toString()),
-            h('h3.text-lg.font-light.flex-1.gap-2.flex.items-end', [
-              h('span.text-md', name),
-              h('span.text-xs.font-bold.font-mono.mb-1', '' + meta.nodeCount),
-            ]),
-            unseenCount > 0 &&
-              h(
-                'button.text-sm.font-medium.text-blue-700.px-1.5.bg-blue-500/20.rounded-full.px-2',
-                `Learn ${unseenCount}`,
-              ),
-            entry.lastDueCount > 0 &&
-              h(
-                'button.text-sm.font-medium.text-orange-700.px-1.5.bg-orange-500/20.rounded-full.px-2',
-                `Recall ${entry.lastDueCount}`,
-              ),
-            h('div#subrep-settings', [
-              h(
-                'div.cursor-pointer.transition-all.hover:bg-gray-300.active:scale-90.rounded-md',
-                {
-                  on: {
-                    click: () => {
-                      if (ctrl.subrepSettingsIndex == index + startsAt) {
-                        ctrl.subrepSettingsIndex = -1;
-                      } else {
-                        ctrl.subrepSettingsIndex = index + startsAt;
-                      }
-                      ctrl.redraw();
+            h('div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.px-4.py-0.5', [
+              h('span.font-bold.pr-3', (index + startsAt + 1).toString()),
+              h('h3.text-lg.font-light.flex-1.gap-2.flex.items-end', [
+                h('span.text-md', name),
+                h('span.text-xs.font-bold.font-mono.mb-1', '' + meta.nodeCount),
+              ]),
+              unseenCount > 0 &&
+                h(
+                  'button.text-sm.font-medium.text-blue-700.px-1.5.bg-blue-500/20.rounded-full.px-2',
+                  `Learn ${unseenCount}`,
+                ),
+              entry.lastDueCount > 0 &&
+                h(
+                  'button.text-sm.font-medium.text-orange-700.px-1.5.bg-orange-500/20.rounded-full.px-2',
+                  `Recall ${entry.lastDueCount}`,
+                ),
+              h('div#subrep-settings', [
+                h(
+                  'div.cursor-pointer.transition-all.hover:bg-gray-300.active:scale-90.rounded-md',
+                  {
+                    on: {
+                      click: () => {
+                        if (ctrl.subrepSettingsIndex == index + startsAt) {
+                          ctrl.subrepSettingsIndex = -1;
+                        } else {
+                          ctrl.subrepSettingsIndex = index + startsAt;
+                        }
+                        ctrl.redraw();
+                      },
+                    },
+                    class: {
+                      'bg-gray-300': ctrl.subrepSettingsIndex == index + startsAt,
                     },
                   },
-                  class: {
-                    'bg-gray-300': ctrl.subrepSettingsIndex == index + startsAt,
-                  },
-                },
 
-                [smallGear()],
-              ),
-              dropdownMenu(ctrl, index, startsAt),
+                  [smallGear()],
+                ),
+              ]),
             ]),
+            dropdownMenu(ctrl, index, startsAt),
           ],
         );
       },
