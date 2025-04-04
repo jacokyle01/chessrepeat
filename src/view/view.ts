@@ -11,6 +11,10 @@ import { sidebar } from './sidebar';
 import { progress } from './progress';
 import { debug } from '../debug/debug';
 import { settings } from './settings';
+import { clipboardI } from '../svg/clipboard';
+import { copyMe } from './copy';
+import { defaultHeaders, Game, makePgn, parsePgn, PgnNodeData } from 'chessops/pgn';
+import { mergePgns, mergeTrees } from '../spaced-repetition/util';
 
 export const fieldValue = (id: string): string => {
   return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -105,14 +109,6 @@ const feedback = (ctrl: PrepCtrl): VNode | null => {
       return h('span', 'null');
   }
 };
-
-// const addSubrepertoire = (ctrl: PrepCtrl): VNode => {
-//   return h(
-//     'button.flex.m-auto.bg-white.rounded-md.shadow-md.mt-2.p-2.flex.gap-2',
-//     { on: { click: () => ctrl.toggleAddingNewSubrep() } },
-//     [addI(), h('div', 'Add a repertoire')],
-//   );
-// };
 
 const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   return h(
@@ -236,6 +232,89 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
   );
 };
 
+const editMenu = (ctrl: PrepCtrl): VNode | false => {
+  let headlessSubrep = ctrl.subrep();
+  headlessSubrep.headers = new Map();
+
+  return h(
+    'dialog.fixed.top-1/2.left-1/2.transform.-translate-x-1/2.-translate-y-1/2.z-50.border-none',
+    {
+      attrs: { open: true },
+    },
+    [
+      h(
+        'button.bg-red-500.rounded-full.h-6.w-6.flex.items-center.justify-center.absolute.top-1.right-1',
+        { on: { click: () => ctrl.toggleEditingSubrep() } },
+        closeI(),
+      ),
+      h(
+        'form.p-8.bg-white.rounded-md.shadow-md',
+        {
+          on: {
+            submit: (e: any) => {
+              //TODO: give me a type!
+              e.preventDefault();
+
+              const newPgn = fieldValue('new-pgn');
+              const newTree = parsePgn(newPgn);
+              console.log('old pgn', fieldValue('old-pgn'));
+              console.log('new pgn', newPgn);
+              console.log("~~~~~~~~~~");
+              console.log('old tree', ctrl.subrep().moves)
+              console.log('new tree', newTree)
+
+              const merged = mergeTrees(ctrl, ctrl.subrep(), newTree[0].moves);
+              console.log("merged", merged);
+              // replace subrepertoire
+              ctrl.repertoire[ctrl.repertoireIndex].subrep = merged;
+              console.log('Submitted');
+              //TODO different conditional?
+              ctrl.toggleEditingSubrep();
+            },
+          },
+        },
+        [
+          h('div.mb-2', [
+            h('div.mb-3', [
+              h('label.block.text-gray-700.text-sm.font-bold.mb-2', 'Old PGN'),
+              h(
+                'textarea#old-pgn.shadow.block.w-full.text-sm.text-gray-700.rounded-lg.border.border-gray-300.p-3',
+                {
+                  attrs: {
+                    rows: '4',
+                  },
+                },
+                makePgn(headlessSubrep),
+              ),
+
+              h('label.block.text-gray-700.text-sm.font-bold.mb-2', 'New PGN'),
+              h(
+                'textarea#new-pgn.shadow.block.w-full.text-sm.text-gray-700.rounded-lg.border.border-gray-300.p-3',
+                {
+                  attrs: {
+                    rows: '4',
+                    placeholder: 'Enter PGN...\nex. 1. d4 d5 2. c4 c6',
+                  },
+                },
+                '',
+              ),
+            ]),
+          ]),
+          h(
+            'button.bg-blue-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded.focus:outline-none.focus:shadow-outline',
+            {
+              attrs: {
+                type: 'submit',
+              },
+            },
+            'Add',
+          ),
+        ],
+      ),
+    ],
+  );
+};
+
 //TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
 //stats & # due
 //date added
@@ -245,7 +324,6 @@ const view = (ctrl: PrepCtrl): VNode => {
       h('img', { attrs: { src: 'logo.png', alt: 'Logo', class: 'h-12 w-12' } }),
       h('span.', 'chess'),
       h('span.text-stone-600', 'repeat'),
-
     ]),
     h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [
       sidebar(ctrl),
@@ -254,12 +332,17 @@ const view = (ctrl: PrepCtrl): VNode => {
         : h('div#main-wrap.flex.flex-col', [
             chessground(ctrl),
             h('div.flex.items-center', [controls(ctrl)]),
-            h('div#add-comment-wrap.flex', [
+            h('div#add-comment-wrap.flex', []),
+            h('div#copy-wrap', [
+              h('div.text-md.font-bold', 'FEN'),
+              copyMe(ctrl, ctrl.trainingPath[ctrl.pathIndex]?.data.fen || ''),
+              h('div.text-md.font-bold', 'PGN'),
+              copyMe(ctrl, ctrl.trainingPath.map((node) => node.data.san).join(' ') || ''),
             ]),
           ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
       h('div#side.w-1/3.flex-col', [pgnTree(ctrl)]),
       ctrl.addingNewSubrep && newSubrepForm(ctrl),
-      // debug(ctrl),
+      ctrl.editingSubrep && editMenu(ctrl),
     ]),
   ]);
 };

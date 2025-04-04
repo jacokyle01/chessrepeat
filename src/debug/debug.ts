@@ -17,6 +17,7 @@ export const debug = (ctrl: PrepCtrl): VNode => {
     h('div', `changed lines?: ${ctrl.changedLines}`),
     h('div', `RepertoireIndex ${ctrl.repertoireIndex}`),
     h('div', `Subrep settings index, ${ctrl.subrepSettingsIndex}`),
+    h('div', `LastDueCount: ${ctrl.repertoire[ctrl.repertoireIndex]?.lastDueCount}`),
 
 
     h(
