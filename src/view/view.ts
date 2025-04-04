@@ -265,20 +265,11 @@ const editMenu = (ctrl: PrepCtrl): VNode | false => {
 
               const merged = mergeTrees(ctrl, ctrl.subrep(), newTree[0].moves);
               console.log("merged", merged);
-
-              const newGame: Game<PgnNodeData> = {
-                headers: defaultHeaders(),
-                moves: merged
-              }
-              const game = makePgn(newGame);
-
-              console.log("merged PGN", (game));
-
-              
-
+              // replace subrepertoire
+              ctrl.repertoire[ctrl.repertoireIndex].subrep = merged;
               console.log('Submitted');
               //TODO different conditional?
-              // ctrl.toggleEditingSubrep();
+              ctrl.toggleEditingSubrep();
             },
           },
         },
@@ -339,7 +330,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       ctrl.showingTrainingSettings
         ? settings(ctrl)
         : h('div#main-wrap.flex.flex-col', [
-            // chessground(ctrl),
+            chessground(ctrl),
             h('div.flex.items-center', [controls(ctrl)]),
             h('div#add-comment-wrap.flex', []),
             h('div#copy-wrap', [
