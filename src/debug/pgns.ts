@@ -32,5 +32,5 @@ export const transpose = () => {
 };
 
 export const slav = () => {
-  return '1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. e4 b5 6. Be2 e6';
+  return '1. d4 d5 (1... Nf6) 2. c4 (2. Bf4)';
 }

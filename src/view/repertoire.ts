@@ -7,6 +7,7 @@ import { smallGear } from '../svg/smallGear';
 import { renameI } from '../svg/rename';
 import { trashI } from '../svg/trash';
 import { seenI } from '../svg/seen';
+import { editI } from '../svg/edit';
 
 const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
   h(
@@ -48,12 +49,24 @@ const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
           on: {
             click: () => {
               console.log('Seen clicked');
-              ctrl.markAllSeen();
+              ctrl.toggleEditingSubrep();
               ctrl.redraw();
             },
           },
         },
         [seenI(), 'Mark all as seen'],
+      ),
+      h(
+        'div.option.flex.items-center.gap-2.px-3.py-2.cursor-pointer.rounded-md.hover:bg-gray-100',
+        {
+          on: {
+            click: () => {
+              ctrl.toggleEditingSubrep();
+              ctrl.redraw();
+            },
+          },
+        },
+        [editI(), 'Edit repertoire'],
       ),
     ],
   );

@@ -10,7 +10,7 @@ export const init = (ctrl: PrepCtrl) => {
   // })
 
   // // add 3 repertoire entries
-  // ctrl.addToRepertoire(slav(), 'white', 'slav 1');
+  ctrl.addToRepertoire(slav(), 'white', 'slav 1');
   // ctrl.addToRepertoire(slav(), 'white', 'slav 2');
 
 
@@ -39,6 +39,7 @@ export const init = (ctrl: PrepCtrl) => {
   // ctrl.syncTime();
   // ctrl.handleRecall();
   // console.log("INITIAL REPERTOIRE", ctrl.repertoire);
+  ctrl.editingSubrep = true;
   ctrl.chessground?.redrawAll();
 ctrl.redraw();
 };

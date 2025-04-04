@@ -46,6 +46,7 @@ export default class PrepCtrl {
 
   //view
   addingNewSubrep: boolean;
+  editingSubrep: boolean;
   subrepSettingsIndex: number;
   // TODO better naming
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
@@ -89,6 +90,8 @@ export default class PrepCtrl {
     this.subrepSettingsIndex = -1;
 
     this.addingNewSubrep = false;
+    this.editingSubrep = false;
+
     this.showingTrainingSettings = false;
     this.correctMoveIndices = [];
 
@@ -378,6 +381,11 @@ export default class PrepCtrl {
     this.addingNewSubrep = this.addingNewSubrep ? false : true;
     this.redraw();
   };
+
+  toggleEditingSubrep = () => {
+    this.editingSubrep = this.editingSubrep ? false : true;
+    this.redraw();
+  }
 
   jump = (index: number) => {
     this.pathIndex = index;
