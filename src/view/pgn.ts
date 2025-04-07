@@ -47,7 +47,7 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
           },
         },
       },
-      san,
+      `${san} ${index}`,
     );
   } else {
     return h(
@@ -67,7 +67,7 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
           },
         },
       },
-      [h('span', `${san}`), h('span.text-xl', '✓')],
+      [h('span', `${san} ${index}`), h('span.text-xl', '✓')],
     );
   }
 };
@@ -85,7 +85,7 @@ const rowNode = (elems: VNode[]) => h('div#move-row.flex', elems);
 
 // nodeNumber and commentNumber provide the necessary context so we can remove it if necessary
 const commentNode = (ctrl: PrepCtrl, text: string, nodeNumber: number, commentNumber: number) => {
-  return h('div.flex.border-y-2.border-white-500', [
+  return h('div.comment.flex.border-y-2.border-white-500', [
     h('div.comment-icons.flex.flex-col.bg-gray-100', [
       h('index.bg-gray-100.px-5.justify-center.flex.w-8.p-1', commentI()),
       h(
@@ -166,34 +166,45 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
 };
 
 export const pgnTree = (ctrl: PrepCtrl): VNode => {
-  const rows: VNode[] = [];
-  let elems: VNode[] = [];
+  let elms: VNode[] = [];
+  let rows: VNode[] = [];
 
+  let ply = 0;
   for (let i = 0; i < ctrl.trainingPath.length - 1; i++) {
     const node = ctrl.trainingPath[i];
-    if (i % 2 == 0) {
-      elems.push(indexNode(i / 2));
-    }
-    elems.push(moveNode(ctrl, node.data!.san, i)); //TODO pgn.length === 1 might ck
-    if (node.data.comments && node.data.comments.length > 0) {
-      if (i % 2 == 0) {
-        elems.push(emptyNode());
-        rows.push(rowNode(elems));
-      }
-      node.data.comments.forEach((comment, j) => {
-        rows.push(commentNode(ctrl, comment, i, j));
-      });
-      if (i % 2 == 0) {
-        elems = [indexNode(i / 2), emptyNode()];
-      }
-    }
-    if (i % 2 == 1) {
-      rows.push(rowNode(elems));
-      elems = [];
+    const move = node.data.san;
+    const evenMove = i % 2 == 0;
+    if (evenMove) elms.push(indexNode(Math.floor(ply / 2)));
+    //
+    elms.push(moveNode(ctrl, node.data.san!, i));
+    ply++;
+    const addEmptyMove = evenMove && node.data.comments;
+    if (addEmptyMove) elms.push(emptyNode());
+    node.data.comments?.forEach((comment, j) => elms.push(commentNode(ctrl, comment, i, j)));
+    if (addEmptyMove) elms.push(indexNode(Math.floor(ply / 2)), emptyNode());
+  }
+
+  let i = 0;
+  while (i < elms.length) {
+    // console.log('i', i);
+    // console.log('elms', elms);
+    const node = elms[i];
+    // console.log('node', node);
+    const type = node;
+    // console.log(type.sel)
+    // console.log(type.sel?.startsWith("div.comment"));
+
+    //TODO remove major hack, handle with CSS
+    // console.log('type.sel', type.sel);
+    if (type.sel?.startsWith('div.comment')) {
+      console.log('div.comment push to rows');
+      rows.push(node); // just the comment
+      i += 1;
+    } else {
+      rows.push(rowNode([...elms.slice(i, i + 3)])); // grab up to 3 non-comments
+      i += 3;
     }
   }
-  elems.push(veryEmptyNode());
-  rows.push(rowNode(elems));
 
   return (
     ctrl.trainingPath &&
@@ -204,7 +215,6 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
 
       toast(ctrl),
       pgnControls(ctrl),
-      
 
       h('div#add-comment-wrap.flex.flex-col.items-start', [
         h('textarea#comment-input.w-full.h.32.rounded-md.shadow-md.bg-stone-100'),

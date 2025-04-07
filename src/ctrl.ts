@@ -100,7 +100,7 @@ export default class PrepCtrl {
         by: 'depth',
         max: 100,
       },
-      // buckets: [1, 10, 20, 64, 1000],
+      buckets: [0, 0, 0],
     });
   }
 
@@ -386,7 +386,7 @@ export default class PrepCtrl {
     this.editingSubrep = this.editingSubrep ? false : true;
     console.log(this.editingSubrep);
     this.redraw();
-  }
+  };
 
   jump = (index: number) => {
     this.pathIndex = index;
@@ -630,6 +630,8 @@ export default class PrepCtrl {
         pos.play(move!);
 
         const metadata = node.comments![0].split(',');
+        node.comments!.shift();
+        console.log("node.comments", node.comments);
 
         const annotatedNode: TrainingData = {
           ...node,
@@ -641,10 +643,12 @@ export default class PrepCtrl {
             group: parseInt(metadata[3]),
             dueAt: metadata[4] == 'I' ? Infinity : currentTime - parseInt(metadata[4]),
           },
+          comments: node.comments || []
         };
 
         // remove control information
-        annotatedNode.comments!.shift();
+        console.log('annotatedNode', annotatedNode);
+        // annotatedNode.comments!.shift();
 
         // annotatedNode.training = {};
         // node.training.id = parseInt(metadata[0]);
@@ -655,11 +659,11 @@ export default class PrepCtrl {
         // console.log('node', node);
 
         //TODO dont remove all comments
-        node.comments!.shift();
+        // node.comments!.shift();
         // node.comments = [];
 
         return {
-          ...annotatedNode
+          ...annotatedNode,
         };
       });
 
