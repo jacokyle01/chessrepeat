@@ -100,7 +100,6 @@ export default class PrepCtrl {
         by: 'depth',
         max: 100,
       },
-      buckets: [0, 0, 0],
     });
   }
 
@@ -384,6 +383,7 @@ export default class PrepCtrl {
 
   toggleEditingSubrep = () => {
     this.editingSubrep = this.editingSubrep ? false : true;
+    console.log(this.editingSubrep);
     this.redraw();
   };
 
