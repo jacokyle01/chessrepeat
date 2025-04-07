@@ -100,7 +100,7 @@ export default class PrepCtrl {
         by: 'depth',
         max: 100,
       },
-      // buckets: [1, 10, 20, 64, 1000],
+      buckets: [0, 0, 0],
     });
   }
 

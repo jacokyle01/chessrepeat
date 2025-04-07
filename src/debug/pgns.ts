@@ -33,4 +33,8 @@ export const transpose = () => {
 
 export const slav = () => {
   return '1. d4 d5 (1... Nf6) 2. c4 (2. Bf4)';
-}
+};
+
+export const comments = () => {
+  return '1. d4 { claiming the center } 1... d5  2. c4 { c4 } 2... c6 { c6 } 3. Nf3 Nf6 4. Nc3 { nc3 } 4... e6 { e6, semislav } 5. Qd3 { Qd3 } *';
+};
