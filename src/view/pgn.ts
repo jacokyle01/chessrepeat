@@ -47,7 +47,7 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
           },
         },
       },
-      `${san} ${index}`,
+      `${san}`,
     );
   } else {
     return h(
@@ -67,7 +67,7 @@ const moveNode = (ctrl: PrepCtrl, san: string, index: number) => {
           },
         },
       },
-      [h('span', `${san} ${index}`), h('span.text-xl', '✓')],
+      [h('span', `${san}`), h('span.text-xl', '✓')],
     );
   }
 };
@@ -178,7 +178,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
     //
     elms.push(moveNode(ctrl, node.data.san!, i));
     ply++;
-    const addEmptyMove = evenMove && node.data.comments;
+    const addEmptyMove = evenMove && node.data.comments && node.data.comments.length;
     if (addEmptyMove) elms.push(emptyNode());
     node.data.comments?.forEach((comment, j) => elms.push(commentNode(ctrl, comment, i, j)));
     if (addEmptyMove) elms.push(indexNode(Math.floor(ply / 2)), emptyNode());
