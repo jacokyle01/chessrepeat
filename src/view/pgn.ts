@@ -186,16 +186,16 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
 
   let i = 0;
   while (i < elms.length) {
-    console.log('i', i);
-    console.log('elms', elms);
+    // console.log('i', i);
+    // console.log('elms', elms);
     const node = elms[i];
-    console.log('node', node);
+    // console.log('node', node);
     const type = node;
     // console.log(type.sel)
     // console.log(type.sel?.startsWith("div.comment"));
 
     //TODO remove major hack, handle with CSS
-    console.log('type.sel', type.sel);
+    // console.log('type.sel', type.sel);
     if (type.sel?.startsWith('div.comment')) {
       console.log('div.comment push to rows');
       rows.push(node); // just the comment

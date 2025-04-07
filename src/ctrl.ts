@@ -385,7 +385,7 @@ export default class PrepCtrl {
   toggleEditingSubrep = () => {
     this.editingSubrep = this.editingSubrep ? false : true;
     this.redraw();
-  }
+  };
 
   jump = (index: number) => {
     this.pathIndex = index;
@@ -629,6 +629,8 @@ export default class PrepCtrl {
         pos.play(move!);
 
         const metadata = node.comments![0].split(',');
+        node.comments!.shift();
+        console.log("node.comments", node.comments);
 
         const annotatedNode: TrainingData = {
           ...node,
@@ -640,10 +642,12 @@ export default class PrepCtrl {
             group: parseInt(metadata[3]),
             dueAt: metadata[4] == 'I' ? Infinity : currentTime - parseInt(metadata[4]),
           },
+          comments: node.comments || []
         };
 
         // remove control information
-        annotatedNode.comments!.shift();
+        console.log('annotatedNode', annotatedNode);
+        // annotatedNode.comments!.shift();
 
         // annotatedNode.training = {};
         // node.training.id = parseInt(metadata[0]);
@@ -654,11 +658,11 @@ export default class PrepCtrl {
         // console.log('node', node);
 
         //TODO dont remove all comments
-        node.comments!.shift();
+        // node.comments!.shift();
         // node.comments = [];
 
         return {
-          ...annotatedNode
+          ...annotatedNode,
         };
       });
 
