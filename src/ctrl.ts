@@ -98,7 +98,7 @@ export default class PrepCtrl {
     this.setSrsConfig({
       getNext: {
         by: 'depth',
-        max: 100,
+        max: 60, // ply
       },
     });
   }

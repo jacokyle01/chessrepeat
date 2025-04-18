@@ -235,5 +235,26 @@ export const settings = (ctrl: PrepCtrl) => {
         ],
       ),
     ]),
+    h('input#quantity.bg-gray-400.text-white.border.border-gray-600.rounded-md.px-2.py-1.w-20.text-center', {
+      props: {
+        type: 'number',
+        name: 'quantity',
+        min: 1,
+        max: 30,
+        value: ctrl.srsConfig.getNext?.max! / 2,
+      },
+      on: {
+        input: (e) => {
+          let quantity = parseInt(e.target.value);
+          ctrl.srsConfig.getNext!.max = quantity * 2;
+        },
+      },
+    }),
+    h('input.cursor-pointer.bg-blue-600.hover:bg-blue-700.text-white.font-semibold.px-4.py-1.rounded-md', {
+      props: {
+        type: 'submit',
+        value: 'Submit',
+      },
+    }),
   ]);
 };
