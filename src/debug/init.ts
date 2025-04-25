@@ -8,7 +8,7 @@ export const init = (ctrl: PrepCtrl) => {
 
   // // add 3 repertoire entries
 
-  // // ctrl.addToRepertoire(pgn3(), 'white', 'QGD Exchange')
+  ctrl.addToRepertoire(pgn3(), 'white', 'QGD Exchange')
   // // ctrl.addToRepertoire(transpose(), 'white', 'transpose')
 
   

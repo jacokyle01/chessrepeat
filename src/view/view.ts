@@ -15,6 +15,8 @@ import { clipboardI } from '../svg/clipboard';
 import { copyMe } from './copy';
 import { defaultHeaders, Game, makePgn, parsePgn, PgnNodeData } from 'chessops/pgn';
 import { mergePgns, mergeTrees } from '../spaced-repetition/util';
+import { noAccountI } from '../svg/no_account';
+import { accountSyncedI } from '../svg/account_synced';
 
 export const fieldValue = (id: string): string => {
   return (document.getElementById(id) as HTMLTextAreaElement | HTMLInputElement)?.value;
@@ -259,12 +261,12 @@ const editMenu = (ctrl: PrepCtrl): VNode | false => {
               const newTree = parsePgn(newPgn);
               console.log('old pgn', fieldValue('old-pgn'));
               console.log('new pgn', newPgn);
-              console.log("~~~~~~~~~~");
-              console.log('old tree', ctrl.subrep().moves)
-              console.log('new tree', newTree)
+              console.log('~~~~~~~~~~');
+              console.log('old tree', ctrl.subrep().moves);
+              console.log('new tree', newTree);
 
               const merged = mergeTrees(ctrl, ctrl.subrep(), newTree[0].moves);
-              console.log("merged", merged);
+              console.log('merged', merged);
               // replace subrepertoire
               ctrl.repertoire[ctrl.repertoireIndex].subrep = merged;
               console.log('Submitted');
@@ -324,6 +326,23 @@ const view = (ctrl: PrepCtrl): VNode => {
       h('img', { attrs: { src: 'logo.png', alt: 'Logo', class: 'h-12 w-12' } }),
       h('span.', 'chess'),
       h('span.text-stone-600', 'repeat'),
+      h(
+        'div.ml-auto.pr-20.flex.justify-center.items-center.float-right',
+        !!ctrl.accessContext?.token
+          ? accountSyncedI()
+          : h(
+              'div',
+              {
+                on: {
+                  click: () => {
+                    console.log('clicked sync');
+                    ctrl.login();
+                  },
+                },
+              },
+              [noAccountI(), h('span.flex.text-sm', 'sync')],
+            ),
+      ),
     ]),
     h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [
       sidebar(ctrl),

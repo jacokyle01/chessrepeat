@@ -21,3 +21,5 @@ let vnode = patch(inner, view(ctrl));
 function redraw() {
   vnode = patch(vnode, view(ctrl));
 }
+
+ctrl.init();

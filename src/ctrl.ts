@@ -22,6 +22,8 @@ import { DrawShape } from 'chessground/draw';
 import { correctMoveI } from './svg/correct_move';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
+import { AccessContext, OAuth2AuthCodePKCE } from '@bity/oauth2-auth-code-pkce';
+import { here, lichessHost } from './services/constants';
 //TODO rename
 export default class PrepCtrl {
   // training
@@ -57,6 +59,19 @@ export default class PrepCtrl {
 
   //sound
   sounds: Record<string, HTMLAudioElement>;
+
+  // oauth
+  oauth = new OAuth2AuthCodePKCE({
+    authorizationUrl: `${lichessHost}/oauth`,
+    tokenUrl: `${lichessHost}/api/token`,
+    clientId: 'example.com',
+    scopes: ['study:read'],
+    redirectUrl: here,
+    onAccessTokenExpiry: (refreshAccessToken) => refreshAccessToken(),
+    onInvalidGrant: (_retry) => {},
+  });
+
+  accessContext?: AccessContext;
 
   constructor(readonly redraw: Redraw) {
     //we are initially learning
@@ -101,6 +116,27 @@ export default class PrepCtrl {
         max: 60, // ply
       },
     });
+  }
+
+  async init() {
+    try {
+      const hasAuthCode = await this.oauth.isReturningFromAuthServer();
+      if (hasAuthCode) {
+        // Might want to persist accessContext.token until the user logs out.
+        this.accessContext = await this.oauth.getAccessToken();
+        this.redraw();
+
+        // Can also use this convenience wrapper for fetch() instead of
+        // using manually using getAccessToken() and setting the
+        // "Authorization: Bearer ..." header.
+        const fetch = this.oauth.decorateFetchHTTPClient(window.fetch);
+
+        // await this.useApi(fetch);
+      }
+    } catch (err) {
+      // this.error = err;
+      this.redraw();
+    }
   }
 
   setSrsConfig = (config: SrsConfig): void => {
@@ -630,7 +666,7 @@ export default class PrepCtrl {
 
         const metadata = node.comments![0].split(',');
         node.comments!.shift();
-        console.log("node.comments", node.comments);
+        console.log('node.comments', node.comments);
 
         const annotatedNode: TrainingData = {
           ...node,
@@ -642,7 +678,7 @@ export default class PrepCtrl {
             group: parseInt(metadata[3]),
             dueAt: metadata[4] == 'I' ? Infinity : currentTime - parseInt(metadata[4]),
           },
-          comments: node.comments || []
+          comments: node.comments || [],
         };
 
         // remove control information
@@ -699,4 +735,9 @@ export default class PrepCtrl {
     this.redraw();
     return;
   };
+
+  async login() {
+    // Redirect to authentication prompt.
+    await this.oauth.fetchAuthorizationCode();
+  }
 }

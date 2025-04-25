@@ -17,6 +17,7 @@
     "vite": "^5.2.0"
   },
   "dependencies": {
+    "@bity/oauth2-auth-code-pkce": "^2.13.0",
     "chart.js": "^4.4.3",
     "chartjs-plugin-datalabels": "^2.2.0",
     "chessground": "^9",
