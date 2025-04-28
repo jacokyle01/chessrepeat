@@ -15,12 +15,13 @@ export const init = (ctrl: PrepCtrl) => {
   // // ctrl.addToRepertoire(pgn1(), 'white', 'Catalan');
   // // ctrl.addToRepertoire(pgn2(), 'black', 'Catalan 2');
   // // ctrl.addToRepertoire(pgn6(), 'black', 'Alekhine');
-  // // ctrl.addToRepertoire(pgn5(), 'black', 'Classical Sicilian');
+  ctrl.addToRepertoire(pgn3(), 'black', 'Classical Sicilian');
 
   // // train
-  // ctrl.selectSubrepertoire(0);
-  // ctrl.markAllSeen();
-  // ctrl.syncTime();
+  ctrl.selectSubrepertoire(1);
+  ctrl.markAllSeen();
+  ctrl.handleRecall();
+  ctrl.syncTime();
   // ctrl.handleRecall();
   // console.log("INITIAL REPERTOIRE", ctrl.repertoire);
   ctrl.chessground?.redrawAll();

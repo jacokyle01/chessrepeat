@@ -116,6 +116,7 @@ export default class PrepCtrl {
     this.correctMoveIndices = [];
 
     this.setSrsConfig({
+      // buckets: [0, 0, 0],
       getNext: {
         by: 'depth',
         max: 60, // ply

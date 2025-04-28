@@ -96,23 +96,23 @@ export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, starts
             },
           },
           [
-            h('div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.px-4.py-0.5', [
-              h('span.font-bold.pr-3', (index + startsAt + 1).toString()),
+            h('div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.pl-4.py-0.5', [
+              h('span.font-bold.pr-3.text-blue-600', (index + startsAt + 1).toString()),
               h('h3.text-lg.font-light.flex-1.gap-2.flex.items-end', [
                 h('span.text-md', name),
                 h('span.text-xs.font-bold.font-mono.mb-1', '' + meta.nodeCount),
               ]),
               unseenCount > 0 &&
                 h(
-                  'button.text-sm.font-medium.text-blue-700.px-1.5.bg-blue-500/20.rounded-full.px-2',
+                  'button.text-sm.font-medium.text-blue-700.bg-blue-500/20.rounded-full.px-2.font-black',
                   `Learn ${unseenCount}`,
                 ),
               entry.lastDueCount > 0 &&
                 h(
-                  'button.text-sm.font-medium.text-orange-700.px-1.5.bg-orange-500/20.rounded-full.px-2',
+                  'button.text-sm.font-medium.text-orange-700.bg-orange-500/20.rounded-full.px-2.font-black',
                   `Recall ${entry.lastDueCount}`,
                 ),
-              h('div#subrep-settings', [
+              h('div#subrep-settings.ml-auto', [
                 h(
                   'div.cursor-pointer.transition-all.hover:bg-gray-300.active:scale-90.rounded-md',
                   {

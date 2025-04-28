@@ -29,7 +29,7 @@ const controls = (ctrl: PrepCtrl) => {
     'div#training-controls.flex.items-end.gap-1.p-1.h-14.mr-auto.shadow-md.rounded-b-md.p-4.bg-white.items-center',
     [
       h(
-        'button.text-white.font-bold.py-1.px-4.rounded.flex.border-blue-700.hover:border-blue-500.hover:bg-blue-400.active:transform.active:translate-y-px.active:border-b',
+        'button.gap-1.text-white.font-bold.py-1.px-4.rounded.flex.border-blue-700.hover:border-blue-500.hover:bg-blue-400.active:transform.active:translate-y-px.active:border-b',
         {
           on: {
             click: () => ctrl.handleLearn(),
@@ -43,10 +43,10 @@ const controls = (ctrl: PrepCtrl) => {
             'bg-blue-500': ctrl.method != 'learn',
           },
         },
-        [h('span', 'LEARN'), bookI()],
+        [h('span', 'Learn'), bookI()],
       ),
       h(
-        'button.text-white.font-bold.py-1.px-4.rounded.flex.border-orange-700.hover:border-orange-500.hover:bg-orange-400.active:transform.active:translate-y-px.active:border-b',
+        'button.gap-1.text-white.font-bold.py-1.px-4.rounded.flex.border-orange-700.hover:border-orange-500.hover:bg-orange-400.active:transform.active:translate-y-px.active:border-b',
         {
           on: {
             click: () => ctrl.handleRecall(),
@@ -60,7 +60,7 @@ const controls = (ctrl: PrepCtrl) => {
             'bg-orange-500': ctrl.method != 'recall',
           },
         },
-        [h('span', 'RECALL'), recallI()],
+        [h('span', 'Recall'), recallI()],
       ),
       h(
         'div.ml-3',
@@ -328,7 +328,7 @@ const view = (ctrl: PrepCtrl): VNode => {
       h('span.text-stone-600', 'repeat'),
       h(
         'div.ml-auto.pr-20.flex.justify-center.items-center.float-right',
-        !!!ctrl.accessContext?.token
+        !!ctrl.accessContext?.token
           ? h('div.flex', [
               accountSyncedI(),
               h('span.flex.text-sm', `${ctrl.lichessUsername}`),
