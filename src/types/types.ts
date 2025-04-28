@@ -36,3 +36,10 @@ export interface RepertoireEntry {
 	subrep: Subrepertoire<TrainingData>
 	lastDueCount: number
 }
+
+export interface LichessStudy {
+  id: number,
+  name: string,
+  createdAt: number,
+  updatedAt: number
+}

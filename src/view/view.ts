@@ -328,8 +328,14 @@ const view = (ctrl: PrepCtrl): VNode => {
       h('span.text-stone-600', 'repeat'),
       h(
         'div.ml-auto.pr-20.flex.justify-center.items-center.float-right',
-        !!ctrl.accessContext?.token
-          ? accountSyncedI()
+        !!!ctrl.accessContext?.token
+          ? h('div.flex', [
+              accountSyncedI(),
+              h('span.flex.text-sm', `${ctrl.lichessUsername}`),
+              h('button.bg-blue-200.ring.rounded-full.px-2', { on: { click: () => {} } }, [
+                h('span.text-sm', 'Import study into repertoire'),
+              ]),
+            ])
           : h(
               'div',
               {

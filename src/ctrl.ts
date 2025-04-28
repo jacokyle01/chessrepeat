@@ -1,5 +1,5 @@
 import { Api } from 'chessground/api';
-import { Redraw, RepertoireEntry } from './types/types';
+import { LichessStudy, Redraw, RepertoireEntry } from './types/types';
 import { initial } from 'chessground/fen';
 import { Key, MoveMetadata } from 'chessground/types';
 import { Config as CgConfig } from 'chessground/config';
@@ -22,7 +22,7 @@ import { DrawShape } from 'chessground/draw';
 import { correctMoveI } from './svg/correct_move';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
-import { AccessContext, OAuth2AuthCodePKCE } from '@bity/oauth2-auth-code-pkce';
+import { AccessContext, HttpClient, OAuth2AuthCodePKCE } from '@bity/oauth2-auth-code-pkce';
 import { here, lichessHost } from './services/constants';
 //TODO rename
 export default class PrepCtrl {
@@ -73,6 +73,11 @@ export default class PrepCtrl {
 
   accessContext?: AccessContext;
 
+  // fetched from lichess
+  lichessUsername: string
+  lichessStudies: LichessStudy[]
+
+
   constructor(readonly redraw: Redraw) {
     //we are initially learning
     document.addEventListener('DOMContentLoaded', (_) => {
@@ -116,6 +121,11 @@ export default class PrepCtrl {
         max: 60, // ply
       },
     });
+
+    // lichess
+    this.lichessUsername = '';
+    this.lichessStudies = [];
+
   }
 
   async init() {
@@ -130,6 +140,7 @@ export default class PrepCtrl {
         // using manually using getAccessToken() and setting the
         // "Authorization: Bearer ..." header.
         const fetch = this.oauth.decorateFetchHTTPClient(window.fetch);
+        await this.fetchData(fetch);
 
         // await this.useApi(fetch);
       }
@@ -739,5 +750,21 @@ export default class PrepCtrl {
   async login() {
     // Redirect to authentication prompt.
     await this.oauth.fetchAuthorizationCode();
+  }
+
+
+  //TODO handle bad network
+  async fetchData(fetch: HttpClient) {
+    // Example request using @bity/oauth2-auth-code-pkce decorator:
+    // Lookup email associated with the Lichess account.
+    // Requests will fail with 401 Unauthorized if the access token expired
+    // or was revoked. Make sure to offer a chance to reauthenticate.
+    const account = await fetch(`${lichessHost}/api/account`);
+    const username = (await account.json()).username;
+    const studies = await fetch(`${lichessHost}/api/by/${username}`)
+    this.lichessUsername = username;
+    this.lichessStudies = studies;
+
+    this.redraw();
   }
 }
