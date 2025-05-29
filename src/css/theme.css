@@ -13,7 +13,7 @@
 }
 
 .merida cg-board piece.bishop.white {
-  background-image: url('../images/pieces/merida/wB.svg');
+  background-image: url('/images/pieces/merida/wB.svg');
 }
 
 .merida cg-board piece.knight.white {
