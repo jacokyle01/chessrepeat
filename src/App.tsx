@@ -5,6 +5,7 @@ const App: React.FC = () => {
   return (
     <main className="flex justify-center items-center h-screen">
       <ChessOpeningTrainer />
+      <div>hi</div>
     </main>
   );
 };

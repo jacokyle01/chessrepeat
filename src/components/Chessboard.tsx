@@ -30,7 +30,7 @@ const Chessboard = forwardRef<Api | undefined, Props>(
 
     useEffect(() => {
       if (divRef.current) {
-        divRef.current.classList.add('merida');
+        divRef.current.classList.add('alpha');
         divRef.current.classList.add('blue');
 
         if (!api) {
