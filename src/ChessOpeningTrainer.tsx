@@ -66,6 +66,10 @@ import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 import { DrawShape } from 'chessground/draw';
 import { MoveMetadata } from 'chessground/types';
+import { useAtom } from 'jotai';
+import { useTrainerStore } from './state/atoms';
+import { Feedback, FeedbackProps } from './components/Feedback';
+import { PgnTree, PgnTreeProps } from './components/PgnTree';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -82,7 +86,7 @@ const MOVES = (
 ).split(' ');
 
 const SRS_CONFIG = {
-  // buckets: [0, 0, 0],
+  buckets: [1, 1, 1],
   getNext: {
     by: 'depth',
     max: 60, // ply
@@ -96,28 +100,45 @@ const SOUNDS = {
 };
 
 export const ChessOpeningTrainer = () => {
-  const [trainingMethod, setTrainingMethod] = useState<Method>('unselected');
-  const [showTrainingSettings, setShowTrainingSettings] = useState(false);
-  const [showingAddToRepertoireMenu, setShowingAddToRepertoireMenu] = useState<boolean>(false);
-  const [sounds, setSounds] = useState<Record<string, HTMLAudioElement>>(SOUNDS);
+  const {
+    trainingMethod,
+    setTrainingMethod,
+    showTrainingSettings,
+    setShowTrainingSettings,
+    showingAddToRepertoireMenu,
+    setShowingAddToRepertoireMenu,
 
-  // repertoire
-  const [repertoire, setRepertoire] = useState<RepertoireEntry[]>([]);
-  const [numWhiteEntries, setNumWhiteEntries] = useState<number>(0);
-  const [repertoireIndex, setRepertoireIndex] = useState<number>(0);
+    repertoire,
+    setRepertoire,
+    numWhiteEntries,
+    setNumWhiteEntries,
+    repertoireIndex,
+    setRepertoireIndex,
 
-  // training
-  const [trainingPath, setTrainingPath] = useState<TrainingPath>([]);
-  const [pathIndex, setPathIndex] = useState<number>(-1);
-  const [showingHint, setShowingHint] = useState<boolean>(false);
-  const [lastFeedback, setLastFeedback] = useState('init'); // TODO use types
-  const [lastResult, setLastResult] = useState('none');
-  const [lastGuess, setLastGuess] = useState('');
-  const [dueTimes, setDueTimes] = useState([]);
+    trainingPath,
+    setTrainingPath,
+    pathIndex,
+    setPathIndex,
+    showingHint,
+    setShowingHint,
+    lastFeedback,
+    setLastFeedback,
+    lastResult,
+    setLastResult,
+    lastGuess,
+    setLastGuess,
+    dueTimes,
+    setDueTimes,
 
-  const [orientation, setOrientation] = useState<'white' | 'black'>('white');
-  const [srsConfig, setSrsConfig] = useState<SrsConfig>(defaults() as SrsConfig);
-  const [cbConfig, setCbConfig] = useState<CbConfig>({});
+    orientation,
+    setOrientation,
+    srsConfig,
+    setSrsConfig,
+    cbConfig,
+    setCbConfig,
+  } = useTrainerStore();
+
+  const [sounds, setSounds] = useState(SOUNDS);
 
   const subrep = () => {
     return repertoire[repertoireIndex]?.subrep;
@@ -143,7 +164,7 @@ export const ChessOpeningTrainer = () => {
       ctx.count++;
       if (!data.training.disabled && data.training.seen) {
         const secondsTilDue = data.training.dueAt - currentTime();
-        console.log('seconds til due', secondsTilDue);
+        // console.log('seconds til due', secondsTilDue);
         if (secondsTilDue <= 0) {
           dueCounts[0]++;
         } else {
@@ -160,13 +181,16 @@ export const ChessOpeningTrainer = () => {
   };
 
   // TODO return trainingPath, then we set it
-  const getNext = (method: Method) => {
+  const getNext = () => {
+    let method = useTrainerStore.getState().trainingMethod;
+
     console.log(repertoireIndex, trainingMethod);
     if (repertoireIndex == -1 || method == 'unselected') return false; // no subrepertoire selected
-    console.log("GET NEXT NOW");
+    console.log('GET NEXT NOW');
     //initialization
     let deque: DequeEntry[] = [];
     let subrep = repertoire[repertoireIndex].subrep;
+    console.log('tree', subrep);
     //initialize deque
     for (const child of subrep.moves.children) {
       deque.push({
@@ -196,7 +220,8 @@ export const ChessOpeningTrainer = () => {
             break;
           case 'learn': //learn if unseen
             if (!pos.data.training.seen) {
-              console.log("Here");
+              console.log('Here');
+              console.log('path', entry.path);
               // this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
               setTrainingPath(entry.path);
               return true;
@@ -222,19 +247,24 @@ export const ChessOpeningTrainer = () => {
   };
 
   const atLast = () => {
-    return pathIndex === trainingPath.length - 2;
+    return useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingPath.length - 2;
   };
 
   const flipBoard = () => {
     const newOrientation = orientation === 'white' ? 'black' : 'white';
     setOrientation(newOrientation);
-    setCbConfig((prev) => ({
-      ...prev,
-      orientation: newOrientation,
+    useTrainerStore.setState((state) => ({
+      cbConfig: {
+        ...state.cbConfig,
+        orientation: newOrientation,
+      },
     }));
   };
 
   const succeed = () => {
+    let trainingPath = useTrainerStore.getState().trainingPath;
+    console.log('state', useTrainerStore.getState());
+
     const node = trainingPath?.at(-1);
     const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
@@ -361,31 +391,44 @@ export const ChessOpeningTrainer = () => {
     updateDueCounts();
     repertoire[repertoireIndex].lastDueCount = dueTimes[0];
     setLastFeedback('learn');
-    
+
     setTrainingMethod('learn');
-    console.log("handlelearn --> ", trainingMethod);
+    console.log('handlelearn --> ', useTrainerStore.getState().trainingMethod);
     // mututes path
     if (!getNext('learn')) {
       // lastFeedback = 'empty';
       setLastFeedback('empty');
-      console.log("no next");
+      console.log('no next');
     } else {
       // update path and pathIndex
       // pathIndex = trainingPath.length - 2;
+      let trainingPath = useTrainerStore.getState().trainingPath;
       setPathIndex(trainingPath.length - 2);
-      const opts = makeCgOpts();
-      setCbConfig(opts);
+      // console.log('new opts', opts);
+      // setCbConfig(opts);
       // this.chessground!.set(opts);
+      const opts = makeCgOpts();
+      useTrainerStore.setState((state) => ({
+        cbConfig: {
+          ...state.cbConfig,
+          ...opts,
+        },
+      }));
 
       // this.redraw();
       // update scroll height
-      const movesElement = document.getElementById('moves');
-      movesElement!.scrollTop = movesElement!.scrollHeight;
+      // TODO
+      // const movesElement = document.getElementById('moves');
+      // movesElement!.scrollTop = movesElement!.scrollHeight;
     }
   };
 
   // TODO refactor out of file? (since it doesnt deal w/ UI) (maybe a hook?)
   const makeCgOpts = (): CbConfig => {
+    let trainingPath = useTrainerStore.getState().trainingPath;
+    let pathIndex = useTrainerStore.getState().pathIndex;
+    console.log('trainingPath in opts from store', trainingPath);
+    console.log('pathIndex in opts', pathIndex);
     console.log('Make CG OPTS');
     console.log('trainingPath', trainingPath);
 
@@ -429,6 +472,9 @@ export const ChessOpeningTrainer = () => {
 
     // shapes.push({orig: 'e5', brush: 'green', customSvg: {html: correctMoveI()}})
 
+    console.log('pathIndex', useTrainerStore.getState().pathIndex);
+    console.log('trainingPath', trainingPath);
+
     const config: CbConfig = {
       orientation: subrep().meta.trainAs,
       fen: trainingPath[pathIndex]?.data.fen || initial,
@@ -449,7 +495,7 @@ export const ChessOpeningTrainer = () => {
             metadata.captured
               ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
               : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
-
+            console.log('atlast?', atLast());
             if (atLast()) {
               switch (trainingMethod) {
                 case 'learn':
@@ -488,6 +534,8 @@ export const ChessOpeningTrainer = () => {
   };
 
   const handleRecall = () => {
+    let trainingPath = useTrainerStore.getState().trainingPath;
+
     resetTrainingContext();
     updateDueCounts();
     setLastFeedback('recall');
@@ -506,96 +554,132 @@ export const ChessOpeningTrainer = () => {
 
     if (!getNext()) {
       setLastFeedback('empty');
+      console.log('no next in recall');
     } else {
       setPathIndex(trainingPath.length - 2);
       // const opts = this.makeCgOpts();
       // this.chessground!.set(opts);
-      setCbConfig(makeCgOpts());
+      // setCbConfig(makeCgOpts());
+      const opts = makeCgOpts();
+      console.log('recall opts', opts);
+      useTrainerStore.setState((state) => ({
+        cbConfig: {
+          ...state.cbConfig,
+          ...opts,
+        },
+      }));
 
       // update scroll height
       const movesElement = document.getElementById('moves');
       movesElement!.scrollTop = movesElement!.scrollHeight;
-    }}
-
-    const apiRef = useRef<Api | undefined>();
-
-    const addToRepertoire = (pgn: string, color: Color, name: string) => {
-      // TODO why is PGN undefined?
-      const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
-      subreps.forEach((subrep, i) => {
-        //augment subrepertoire with a) color to train as, and b) training data
-        const annotatedSubrep: Subrepertoire<TrainingData> = {
-          ...subrep,
-          ...generateSubrepertoire(subrep.moves, color, srsConfig.buckets!),
-        };
-        if (i > 0) name += ` (${i + 1})`;
-        const entry: RepertoireEntry = {
-          subrep: annotatedSubrep,
-          name,
-          lastDueCount: 0,
-        };
-        addRepertoireEntry(entry, color);
-      });
-    };
-
-    const addRepertoireEntry = (entry: RepertoireEntry, color: Color) => {
-      // TODO place repertoire correctly
-      setRepertoire([...repertoire, entry]);
-
-      // if (color == 'white') {
-      //   this.repertoire = [
-      //     ...this.repertoire.slice(0, this.numWhiteEntries),
-      //     entry,
-      //     ...this.repertoire.slice(this.numWhiteEntries),
-      //   ];
-      //   this.numWhiteEntries++;
-      // } else {
-      //   this.repertoire.push(entry);
-      //   this.numBlackEntries++;
-      // }
-    };
-
-    //TODO dont use useEffect here?
-    useEffect(() => {
-      addToRepertoire(pgn3(), 'white', 'QGD Exchange');
-      addToRepertoire(pgn3(), 'white', 'QGD Exchange');
-      addToRepertoire(pgn3(), 'white', 'QGD Exchange');
-    }, []);
-
-    // useEffect(() => {
-    //   // Make a move every 2 seconds
-    //   const interval = setInterval(() => {
-    //     const move = MOVES.shift();
-    //     if (move) {
-    //       apiRef.current!.move(move.substring(0, 2) as Key, move.substring(2, 4) as Key);
-    //     } else {
-    //       clearInterval(interval);
-    //     }
-    //   }, 2000);
-    //   return () => clearInterval(interval);
-    // });
-
-    const controlsProps: ControlsProps = {
-      trainingMethod,
-      handleLearn,
-      handleRecall,
-      setShowTrainingSettings,
-    };
-    const repertoireProps: RepertoireProps = {
-      repertoire,
-      numWhiteEntries,
-      setShowingAddToRepertoireMenu,
-      repertoireIndex,
-    };
-    return (
-      <>
-        <Chessboard width={640} height={640} config={cbConfig} ref={apiRef} />
-        <button onClick={flipBoard} className="mb-4 px-4 py-2 bg-gray-200 rounded">
-          Flip Board
-        </button>
-        <Controls {...controlsProps}></Controls>
-        <Repertoire {...repertoireProps}></Repertoire>
-      </>
-    );
+    }
   };
-export default ChessOpeningTrainer
+
+  const apiRef = useRef<Api | undefined>();
+
+  const addToRepertoire = (pgn: string, color: Color, name: string) => {
+    // TODO why is PGN undefined?
+    const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
+    subreps.forEach((subrep, i) => {
+      //augment subrepertoire with a) color to train as, and b) training data
+      const annotatedSubrep: Subrepertoire<TrainingData> = {
+        ...subrep,
+        ...generateSubrepertoire(subrep.moves, color, srsConfig.buckets!),
+      };
+      if (i > 0) name += ` (${i + 1})`;
+      const entry: RepertoireEntry = {
+        subrep: annotatedSubrep,
+        name,
+        lastDueCount: 0,
+      };
+      addRepertoireEntry(entry, color);
+    });
+  };
+
+  const addRepertoireEntry = (entry: RepertoireEntry, color: Color) => {
+    // TODO place repertoire correctly
+    setRepertoire([...repertoire, entry]);
+
+    // if (color == 'white') {
+    //   this.repertoire = [
+    //     ...this.repertoire.slice(0, this.numWhiteEntries),
+    //     entry,
+    //     ...this.repertoire.slice(this.numWhiteEntries),
+    //   ];
+    //   this.numWhiteEntries++;
+    // } else {
+    //   this.repertoire.push(entry);
+    //   this.numBlackEntries++;
+    // }
+  };
+
+  const jump = (index: number) => {
+    // this.pathIndex = index;
+    // const opts = this.makeCgOpts();
+    // this.chessground!.set(opts);
+    // this.redraw();
+    setPathIndex(index);
+    const opts = makeCgOpts();
+    useTrainerStore.setState((state) => ({
+      cbConfig: {
+        ...state.cbConfig,
+        ...opts,
+      },
+    }));
+  };
+
+  //TODO dont use useEffect here?
+  useEffect(() => {
+    addToRepertoire(pgn3(), 'white', 'QGD Exchange');
+    setRepertoireIndex(0);
+  }, []);
+
+  // useEffect(() => {
+  //   // Make a move every 2 seconds
+  //   const interval = setInterval(() => {
+  //     const move = MOVES.shift();
+  //     if (move) {
+  //       apiRef.current!.move(move.substring(0, 2) as Key, move.substring(2, 4) as Key);
+  //     } else {
+  //       clearInterval(interval);
+  //     }
+  //   }, 2000);
+  //   return () => clearInterval(interval);
+  // });
+
+  const controlsProps: ControlsProps = {
+    trainingMethod,
+    handleLearn,
+    handleRecall,
+    setShowTrainingSettings,
+  };
+  const repertoireProps: RepertoireProps = {
+    repertoire,
+    numWhiteEntries,
+    setShowingAddToRepertoireMenu,
+    repertoireIndex,
+  };
+  const feedbackProps: FeedbackProps = {
+    handleFail,
+  };
+  const pgnTreeProps: PgnTreeProps = {
+    jump,
+  };
+  return (
+    <>
+      <Repertoire {...repertoireProps}></Repertoire>
+      <button onClick={flipBoard} className="mb-4 px-4 py-2 bg-gray-200 rounded">
+        Flip Board
+      </button>
+      <div className="flex-row">
+        <Chessboard width={640} height={640} config={cbConfig} ref={apiRef} />
+        <Controls {...controlsProps}></Controls>
+      </div>
+      <div className="side">
+        <PgnTree jump={jump}></PgnTree>
+        <Feedback {...feedbackProps}></Feedback>
+      </div>
+    </>
+  );
+};
+export default ChessOpeningTrainer;

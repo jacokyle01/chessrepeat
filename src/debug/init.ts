@@ -1,5 +1,5 @@
 import PrepCtrl from '../ctrl';
-import { comments, pgn1, pgn2, pgn3, slav, transpose} from './pgns';
+import { alternates, comments, pgn1, pgn2, pgn3, slav, transpose} from './pgns';
 
 export const init = (ctrl: PrepCtrl) => {
   // initial zoom
@@ -16,9 +16,10 @@ export const init = (ctrl: PrepCtrl) => {
   // // ctrl.addToRepertoire(pgn2(), 'black', 'Catalan 2');
   // // ctrl.addToRepertoire(pgn6(), 'black', 'Alekhine');
   ctrl.addToRepertoire(pgn3(), 'black', 'Classical Sicilian');
+  ctrl.addToRepertoire(alternates(), 'black', 'Alternates');
 
   // // train
-  ctrl.selectSubrepertoire(1);
+  ctrl.selectSubrepertoire(0);
   ctrl.markAllSeen();
   ctrl.handleRecall();
   ctrl.syncTime();

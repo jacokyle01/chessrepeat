@@ -89,6 +89,33 @@ const fail = (ctrl: PrepCtrl): VNode => {
   ]);
 };
 
+const alternate = (ctrl: PrepCtrl): VNode => {
+  const isWhite = ctrl.subrep().meta.trainAs === 'white';
+  return h('div#recall.border-t-2', [
+    h('div.bg-white.py-10.shadow-md.flex.flex-col.items-center', [
+      h('div.flex.flex-row.justify-center.items-center.w-full.space-x-5', [
+        h('div.text-red-500.text-6xl.font-bold', '✗'),
+        h('div#failure', [
+          h('h2.text-xl.font-semibold', `${ctrl.lastGuess} is Incorrect`),
+          h('p.text-lg', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`),
+        ]),
+      ]),
+      h(
+        'button#continue-btn.bg-orange-400.text-white.font-bold.py-2.px-6.mt-6.rounded.hover:bg-orange-500.active:transform.active:translate-y-px.active:border-b-2.border-orange-700',
+        {
+          on: {
+            click: () => {
+              ctrl.fail();
+              ctrl.handleRecall();
+            },
+          },
+        },
+        'Continue Training ⮕',
+      ),
+    ]),
+  ]);
+};
+
 export const toast = (ctrl: PrepCtrl): VNode | null => {
   switch (ctrl.lastFeedback) {
     case 'recall':
@@ -99,6 +126,8 @@ export const toast = (ctrl: PrepCtrl): VNode | null => {
       return empty();
     case 'fail':
       return fail(ctrl);
+    case 'alternate':
+      return alternate(ctrl);
     default:
       return h('div', 'Other');
   }

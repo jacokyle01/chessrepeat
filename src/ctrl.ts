@@ -52,7 +52,7 @@ export default class PrepCtrl {
   subrepSettingsIndex: number;
   // TODO better naming
   lastFeedback: 'init' | 'learn' | 'recall' | 'fail' | 'alternate' | 'empty';
-  lastResult: `succeed` | `fail` | `none`;
+  lastResult: `succeed` | `fail` | `alternate` | 'none';
   showingTrainingSettings: boolean;
   showingHint: boolean;
   lastGuess: string | null;
@@ -74,9 +74,8 @@ export default class PrepCtrl {
   accessContext?: AccessContext;
 
   // fetched from lichess
-  lichessUsername: string
-  lichessStudies: LichessStudy[]
-
+  lichessUsername: string;
+  lichessStudies: LichessStudy[];
 
   constructor(readonly redraw: Redraw) {
     //we are initially learning
@@ -116,7 +115,7 @@ export default class PrepCtrl {
     this.correctMoveIndices = [];
 
     this.setSrsConfig({
-      // buckets: [0, 0, 0],
+      buckets: [1, 1, 1],
       getNext: {
         by: 'depth',
         max: 60, // ply
@@ -126,7 +125,6 @@ export default class PrepCtrl {
     // lichess
     this.lichessUsername = '';
     this.lichessStudies = [];
-
   }
 
   async init() {
@@ -337,6 +335,36 @@ export default class PrepCtrl {
     }
   };
 
+  alternate = () => {
+    const node = this.trainingPath?.at(-1);
+    const subrep = this.repertoire[this.repertoireIndex].subrep;
+    if (!node) return;
+    // annotate node
+    // node
+    this.correctMoveIndices.push(this.trainingPath.length - 1);
+    // console.log('INDICES' + this.correctMoveIndices);
+
+    this.lastResult = 'alternate';
+    let groupIndex = node.data.training.group;
+    subrep.meta.bucketEntries[groupIndex]--;
+    switch (this.srsConfig!.promotion) {
+      case 'most':
+        groupIndex = this.srsConfig!.buckets!.length - 1;
+        break;
+      case 'next':
+        groupIndex = Math.min(groupIndex + 1, this.srsConfig!.buckets!.length - 1);
+        break;
+    }
+    subrep.meta.bucketEntries[groupIndex]++;
+    const interval = this.srsConfig!.buckets![groupIndex];
+
+    node.data.training = {
+      ...node.data.training,
+      group: groupIndex,
+      dueAt: this.currentTime + interval,
+    };
+  };
+
   fail = () => {
     let node = this.trainingPath?.at(-1);
     const subrep = this.repertoire[this.repertoireIndex].subrep;
@@ -526,8 +554,8 @@ export default class PrepCtrl {
                       this.handleRecall();
                       break;
                     case 'alternate':
-                      this.succeed();
-                      this.handleRecall();
+                      this.alternate();
+                      // this.handleRecall();
                       break;
                     case 'failure':
                       //TODO maybe dont fail right away?
@@ -753,7 +781,6 @@ export default class PrepCtrl {
     await this.oauth.fetchAuthorizationCode();
   }
 
-
   //TODO handle bad network
   async fetchData(fetch: HttpClient) {
     // Example request using @bity/oauth2-auth-code-pkce decorator:
@@ -762,7 +789,7 @@ export default class PrepCtrl {
     // or was revoked. Make sure to offer a chance to reauthenticate.
     const account = await fetch(`${lichessHost}/api/account`);
     const username = (await account.json()).username;
-    const studies = await fetch(`${lichessHost}/api/by/${username}`)
+    const studies = await fetch(`${lichessHost}/api/by/${username}`);
     this.lichessUsername = username;
     this.lichessStudies = studies;
 

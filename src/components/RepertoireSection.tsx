@@ -5,6 +5,9 @@ import { RepertoireEntry } from '../types/types';
 import { smallGear } from '../svg/smallGear';
 import RepertoireDropdown from './RepertoireDropdown';
 import { Settings } from 'lucide-react';
+import { useAtom } from 'jotai';
+import { useStore } from 'zustand';
+import { useTrainerStore } from '../state/atoms';
 
 interface RepertoireSectionProps {
   repertoire: RepertoireEntry[];
@@ -13,6 +16,9 @@ interface RepertoireSectionProps {
 }
 
 export const RepertoireSection: React.FC<RepertoireSectionProps> = ({ repertoire, startsAt, repertoireIndex }) => {
+  // const [repertoireIndex, setRepertoireIndex] = useAtom(repertoireIndexAtom);
+  const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
+
   return (
     <div id="subrepertoire-tree-wrap" className="flex-row rounded-md">
       {repertoire.map((entry, index) => {
@@ -23,6 +29,9 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({ repertoire
 
         const handleClick = () => {
           // ctrl.selectSubrepertoire(fullIndex);
+          setRepertoireIndex(fullIndex);
+
+          
         };
 
         // const handleSettingsClick = (e: React.MouseEvent) => {
