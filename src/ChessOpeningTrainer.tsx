@@ -67,9 +67,11 @@ import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 import { DrawShape } from 'chessground/draw';
 import { MoveMetadata } from 'chessground/types';
 import { useAtom } from 'jotai';
-import { useTrainerStore } from './state/atoms';
+import { useTrainerStore } from './state/state';
 import { Feedback, FeedbackProps } from './components/Feedback';
 import { PgnTree, PgnTreeProps } from './components/PgnTree';
+import InsightChart from './components/InsightChart';
+import Schedule from './components/Schedule';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -666,20 +668,29 @@ export const ChessOpeningTrainer = () => {
     jump,
   };
   return (
-    <>
-      <Repertoire {...repertoireProps}></Repertoire>
-      <button onClick={flipBoard} className="mb-4 px-4 py-2 bg-gray-200 rounded">
-        Flip Board
-      </button>
-      <div className="flex-row">
-        <Chessboard width={640} height={640} config={cbConfig} ref={apiRef} />
-        <Controls {...controlsProps}></Controls>
+    <div id="root">
+      <div id="header" className="flex items-end justify-left text-3xl mb-3">
+        <img src="logo.png" alt="Logo" className="h-12 w-12" />
+        <span>chess</span>
+        <span className="text-stone-600">repeat</span>
       </div>
-      <div className="side">
-        <PgnTree jump={jump}></PgnTree>
-        <Feedback {...feedbackProps}></Feedback>
+      {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
+      <div className="flex justify-center gap-5 items-start w-full px-10">
+        <div className="flex-row">
+          <Repertoire {...repertoireProps}></Repertoire>
+          {/* <InsightChart></InsightChart> */}
+          <Schedule></Schedule>
+        </div>
+        <div className="flex-row">
+          <Chessboard width={640} height={640} config={cbConfig} ref={apiRef} />
+          <Controls {...controlsProps}></Controls>
+        </div>
+        <div className="side">
+          <PgnTree jump={jump}></PgnTree>
+          <Feedback {...feedbackProps}></Feedback>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 export default ChessOpeningTrainer;

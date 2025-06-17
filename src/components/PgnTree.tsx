@@ -1,6 +1,6 @@
 import React from 'react';
 // import { backI, firstI, lastI, nextI, commentI, trashI, clipboardI, addCommentI } from '../svg';
-import { useTrainerStore } from '../state/atoms';
+import { useTrainerStore } from '../state/state';
 import { fieldValue } from '../view/view';
 import {
   ChevronFirst,

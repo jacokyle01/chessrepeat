@@ -25,7 +25,7 @@ const Repertoire: React.FC<RepertoireProps> = ({
   const blackEntries: RepertoireEntry[] = repertoire.slice(numWhiteEntries);
 
   return (
-    <div id="sidebar" className="flex flex-col flex-1 h-lvh">
+    <div id="sidebar" className="flex flex-col flex-1">
       <div className="flex flex-col bg-white bg-clip-border text-gray-700 shadow-md rounded-md border border-gray-200 pb-2 h-2/5 overflow-y-auto">
         <span className="text-xl font-bold py-2 pl-2 border-b-2 mb-2 border-gray-300">My Repertoire</span>
         <div id="repertoire-wrap">

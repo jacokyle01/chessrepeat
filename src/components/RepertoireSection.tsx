@@ -7,7 +7,7 @@ import RepertoireDropdown from './RepertoireDropdown';
 import { Settings } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { useStore } from 'zustand';
-import { useTrainerStore } from '../state/atoms';
+import { useTrainerStore } from '../state/state';
 
 interface RepertoireSectionProps {
   repertoire: RepertoireEntry[];
@@ -15,7 +15,11 @@ interface RepertoireSectionProps {
   repertoireIndex: number;
 }
 
-export const RepertoireSection: React.FC<RepertoireSectionProps> = ({ repertoire, startsAt, repertoireIndex }) => {
+export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
+  repertoire,
+  startsAt,
+  repertoireIndex,
+}) => {
   // const [repertoireIndex, setRepertoireIndex] = useAtom(repertoireIndexAtom);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
 
@@ -30,8 +34,6 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({ repertoire
         const handleClick = () => {
           // ctrl.selectSubrepertoire(fullIndex);
           setRepertoireIndex(fullIndex);
-
-          
         };
 
         // const handleSettingsClick = (e: React.MouseEvent) => {

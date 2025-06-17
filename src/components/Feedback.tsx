@@ -1,7 +1,7 @@
 import React from 'react';
 import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
-import { useTrainerStore } from '../state/atoms';
+import { useTrainerStore } from '../state/state';
 import { F } from 'vite/dist/node/types.d-aGj9QkWt';
 
 export interface FeedbackProps {
@@ -12,7 +12,7 @@ export interface FeedbackProps {
 }
 const isWhite = true;
 const Recall = () => {
-  //TODO change 
+  //TODO change
   let isWhite = true;
   // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
   const toggleShowingHint = useTrainerStore.getState().showingHint;
@@ -50,7 +50,7 @@ const Recall = () => {
 
 const Learn = () => {
   // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
-  const san = useTrainerStore(s => s.trainingPath.at(-1)?.data.san);
+  const san = useTrainerStore((s) => s.trainingPath.at(-1)?.data.san);
 
   return (
     <div className="bg-white flex items-center justify-center py-12 px-6 rounded-md shadow-lg border-t-4 border-blue-500 gap-3">
@@ -76,7 +76,7 @@ const Empty = () => (
 
 const FailOrAlternate = () => {
   // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
-  const san = useTrainerStore(s => s.trainingPath.at(-1)?.data.san);
+  const san = useTrainerStore((s) => s.trainingPath.at(-1)?.data.san);
   const lastGuess = useTrainerStore.getState().lastGuess;
   // const fail = useTrainerStore(s => s.fail);
   // const handleRecall = useTrainerStore(s => s.handleRecall);
@@ -108,10 +108,8 @@ const FailOrAlternate = () => {
   );
 };
 
-export const Feedback: React.FC<FeedbackProps> = ({
-  handleFail
-}) => {
-  const lastFeedback = useTrainerStore(s => s.lastFeedback);
+export const Feedback: React.FC<FeedbackProps> = ({ handleFail }) => {
+  const lastFeedback = useTrainerStore((s) => s.lastFeedback);
 
   switch (lastFeedback) {
     case 'recall':

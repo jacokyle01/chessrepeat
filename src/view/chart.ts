@@ -88,6 +88,7 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
     // console.log(d);
     chart.data = {
       labels: ["now", ...ctrl.srsConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)],
+      
       datasets: [
         {
           // @ts-ignore: Suppress the error for this line
