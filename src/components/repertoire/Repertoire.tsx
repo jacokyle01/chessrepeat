@@ -4,7 +4,7 @@ import { RepertoireEntry } from '../../types/types';
 import { chart } from './chart';
 import { downloadI } from '../../svg/download';
 import RepertoireSection from './RepertoireSection';
-import { BookDown, BookPlus } from 'lucide-react';
+import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
 // import { progress } from './progress'; // Uncomment if needed
 
 export interface RepertoireProps {
@@ -24,14 +24,25 @@ const Repertoire: React.FC<RepertoireProps> = ({
   const whiteEntries: RepertoireEntry[] = repertoire.slice(0, numWhiteEntries);
   const blackEntries: RepertoireEntry[] = repertoire.slice(numWhiteEntries);
 
+  // div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-md.border.border-gray-200.mt-4.pb-5
+  // class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+
   return (
-    <div id="reperoire" className="flex flex-col flex-1">
-      <div className="flex flex-col bg-white bg-clip-border text-gray-700 shadow-md rounded-md border border-gray-200 pb-2 h-2/5 overflow-y-auto">
-        <span className="text-xl font-bold py-2 pl-2 border-b-2 mb-2 border-gray-300">My Repertoire</span>
+    <div
+      id="repertoire"
+      className="flex flex-col rounded-2xl border border-gray-200 bg-white"
+    >
+      <div className="flex flex-col rounded-md pb-2 h-2/5 overflow-y-auto">
+        <div id="repertoire-header" className="flex flex-row items-center justify-left p-3 gap-2">
+          <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
+            <BookOpenIcon></BookOpenIcon>
+          </div>
+          <span className="text-gray-800 font-semibold text-xl border-gray-300">My Repertoire</span>
+        </div>
         <div id="repertoire-wrap">
-          <span className="font-semibold text-sm uppercase px-2 text-gray-600 space-x-1">White</span>
+          <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600 space-x-1">White</span>
           <RepertoireSection repertoire={whiteEntries} startsAt={0} repertoireIndex={repertoireIndex} />
-          <span className="font-semibold text-sm uppercase px-2 text-gray-600">Black</span>
+          <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600">Black</span>
           <RepertoireSection
             repertoire={blackEntries}
             startsAt={numWhiteEntries}

@@ -4,7 +4,7 @@ import React from 'react';
 import { RepertoireEntry } from '../../types/types';
 import { smallGear } from '../../svg/smallGear';
 import RepertoireDropdown from './RepertoireDropdown';
-import { Settings } from 'lucide-react';
+import { LucideFileEdit, Settings } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
@@ -53,26 +53,26 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
               <span className="font-bold pr-3 text-blue-600">{fullIndex + 1}</span>
               <h3 className="text-lg font-light flex-1 gap-2 flex items-end">
                 <span className="text-md">{name}</span>
-                <span className="text-xs font-bold font-mono mb-1">{meta.nodeCount}</span>
+                <span className="text-xs italic font-mono mb-1">{meta.nodeCount}</span>
               </h3>
               {unseenCount > 0 && (
-                <button className="text-sm font-medium text-blue-700 bg-blue-500/20 rounded-full px-2 font-black">
+                <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-full px-2 font-black mr-2">
                   Learn {unseenCount}
                 </button>
               )}
               {entry.lastDueCount > 0 && (
-                <button className="text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black">
+                <button className="text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black mr-2">
                   Recall {entry.lastDueCount}
                 </button>
               )}
-              <div id="subrep-settings" className="ml-auto">
+              <div id="subrep-settings" className="ml-auto mr-2 text-gray-500">
                 <div
                 // className={`cursor-pointer transition-all hover:bg-gray-300 active:scale-90 rounded-md ${
                 //   // ctrl.subrepSettingsIndex === fullIndex ? 'bg-gray-300' : ''
                 // }`}
                 // onClick={handleSettingsClick}
                 >
-                  <Settings />
+                  <LucideFileEdit />
                 </div>
               </div>
             </div>

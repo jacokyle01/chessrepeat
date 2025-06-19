@@ -1,13 +1,17 @@
-import React from "react";
-import InsightChart from "./InsightChart";
+import React from 'react';
+import InsightChart from './InsightChart';
+import { ChartBarIncreasing } from 'lucide-react';
 
 const Schedule: React.FC = () => {
   return (
-    <div className="flex flex-col bg-white bg-clip-border text-gray-700 shadow-md rounded-md border border-gray-200 pb-5">
-      <span className="text-xl font-bold py-2 pl-2 border-b-2 mb-2 border-gray-300">
-        Memory Schedule
+    <div className="flex flex-col rounded-2xl border border-gray-200 bg-white pb-5">
+      <span id="schedule-header" className="flex flex-row items-center justify-left p-3 gap-2">
+        <div id="schedule-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
+          <ChartBarIncreasing></ChartBarIncreasing>
+        </div>
+        <span className="text-xl text-gray-800 font-semibold">Memory Schedule</span>
       </span>
-      <span className="font-semibold text-gray-600 px-1">Due at</span>
+      <span className="font-semibold text-gray-600 text-sm px-1 uppercase pl-4">Due at</span>
       <div id="chart-wrap" className="px-1">
         <InsightChart />
       </div>

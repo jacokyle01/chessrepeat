@@ -15,7 +15,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Outfit', 'Roboto']
+        sans: ['Outfit', 'Roboto'],
+        roboto: ['Roboto']
       },
       width: {
         '97': '97%',
