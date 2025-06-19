@@ -67,7 +67,6 @@ import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 import { DrawShape } from 'chessground/draw';
 import { MoveMetadata } from 'chessground/types';
 import { useAtom } from 'jotai';
-import { useTrainerStore } from './state/state';
 import { Feedback, FeedbackProps } from './components/Feedback';
 import { PgnTree, PgnTreeProps } from './components/PgnTree';
 import InsightChart from './components/InsightChart';
@@ -104,44 +103,22 @@ const SOUNDS = {
 };
 
 export const ChessOpeningTrainer = () => {
-  const {
-    trainingMethod,
-    setTrainingMethod,
-    showTrainingSettings,
-    setShowTrainingSettings,
-    showingAddToRepertoireMenu,
-    setShowingAddToRepertoireMenu,
-
-    repertoire,
-    setRepertoire,
-    numWhiteEntries,
-    setNumWhiteEntries,
-    repertoireIndex,
-    setRepertoireIndex,
-
-    trainingPath,
-    setTrainingPath,
-    pathIndex,
-    setPathIndex,
-    showingHint,
-    setShowingHint,
-    lastFeedback,
-    setLastFeedback,
-    lastResult,
-    setLastResult,
-    lastGuess,
-    setLastGuess,
-    dueTimes,
-    setDueTimes,
-
-    orientation,
-    setOrientation,
-    srsConfig,
-    setSrsConfig,
-    cbConfig,
-    setCbConfig,
-  } = useTrainerStore();
-
+  const [trainingMethod, setTrainingMethod] = useState('learn');
+  const [showTrainingSettings, setShowTrainingSettings] = useState(false);
+  const [showingAddToRepertoireMenu, setShowingAddToRepertoireMenu] = useState(false);
+  const [repertoire, setRepertoire] = useState([]);
+  const [numWhiteEntries, setNumWhiteEntries] = useState(0);
+  const [repertoireIndex, setRepertoireIndex] = useState(-1);
+  const [trainingPath, setTrainingPath] = useState([]);
+  const [pathIndex, setPathIndex] = useState(-1);
+  const [showingHint, setShowingHint] = useState(false);
+  const [lastFeedback, setLastFeedback] = useState('init');
+  const [lastResult, setLastResult] = useState('none');
+  const [lastGuess, setLastGuess] = useState('');
+  const [dueTimes, setDueTimes] = useState([]);
+  const [orientation, setOrientation] = useState('white');
+  const [srsConfig, setSrsConfig] = useState(defaults());
+  const [cbConfig, setCbConfig] = useState({});
   const [sounds, setSounds] = useState(SOUNDS);
 
   const subrep = () => {
@@ -186,12 +163,8 @@ export const ChessOpeningTrainer = () => {
 
   // TODO return trainingPath, then we set it
   const getNext = () => {
-    let method = useTrainerStore.getState().trainingMethod;
-    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
-    let repertoire = useTrainerStore.getState().repertoire;
-
     console.log(repertoireIndex, trainingMethod);
-    if (repertoireIndex == -1 || method == 'unselected') return false; // no subrepertoire selected
+    if (repertoireIndex == -1 || trainingMethod == 'unselected') return false; // no subrepertoire selected
     console.log('GET NEXT NOW');
     //initialization
     let deque: DequeEntry[] = [];
@@ -212,7 +185,7 @@ export const ChessOpeningTrainer = () => {
 
       //test if match
       if (!pos.data.training.disabled) {
-        switch (method) {
+        switch (trainingMethod) {
           case 'recall': //recall if due
             if (pos.data.training.dueAt <= currentTime()) {
               // this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
@@ -254,27 +227,19 @@ export const ChessOpeningTrainer = () => {
   };
 
   const atLast = () => {
-    return useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingPath.length - 2;
+    return pathIndex === trainingPath.length - 2;
   };
 
   const flipBoard = () => {
     const newOrientation = orientation === 'white' ? 'black' : 'white';
     setOrientation(newOrientation);
-    useTrainerStore.setState((state) => ({
-      cbConfig: {
-        ...state.cbConfig,
-        orientation: newOrientation,
-      },
-    }));
+    setCbConfig({
+      ...state.cbConfig,
+      orientation: newOrientation,
+    });
   };
 
   const succeed = () => {
-    let trainingPath = useTrainerStore.getState().trainingPath;
-    let repertoire = useTrainerStore.getState().repertoire;
-    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
-
-    console.log('state', useTrainerStore.getState());
-
     const node = trainingPath?.at(-1);
     const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
@@ -398,9 +363,6 @@ export const ChessOpeningTrainer = () => {
 
   // TODO refactor out of file? (since it doesnt deal w/ UI) (maybe a hook?)
   const makeCgOpts = (): CbConfig => {
-    let trainingPath = useTrainerStore.getState().trainingPath;
-    let pathIndex = useTrainerStore.getState().pathIndex;
-    let trainingMethod = useTrainerStore.getState().trainingMethod;
     // console.log('trainingPath in opts from store', trainingPath);
     // console.log('pathIndex in opts', pathIndex);
     // console.log('Make CG OPTS');
@@ -447,9 +409,6 @@ export const ChessOpeningTrainer = () => {
     // }
 
     // shapes.push({orig: 'e5', brush: 'green', customSvg: {html: correctMoveI()}})
-
-    console.log('pathIndex', useTrainerStore.getState().pathIndex);
-    console.log('trainingPath', trainingPath);
 
     const config: CbConfig = {
       orientation: subrep().meta.trainAs,
@@ -517,7 +476,6 @@ export const ChessOpeningTrainer = () => {
     setLastFeedback('learn');
 
     setTrainingMethod('learn');
-    console.log('handlelearn --> ', useTrainerStore.getState().trainingMethod);
     // mututes path
     if (!getNext('learn')) {
       // lastFeedback = 'empty';
@@ -526,20 +484,17 @@ export const ChessOpeningTrainer = () => {
     } else {
       // update path and pathIndex
       // pathIndex = trainingPath.length - 2;
-      let trainingPath = useTrainerStore.getState().trainingPath;
       setPathIndex(trainingPath.length - 2);
       // console.log('new opts', opts);
       // setCbConfig(opts);
       // this.chessground!.set(opts);
       const opts = makeCgOpts();
-      useTrainerStore.setState((state) => ({
-        cbConfig: {
-          ...state.cbConfig,
-          ...opts,
-        },
-      }));
+      setCbConfig({
+        ...state.cbConfig,
+        ...opts,
+      });
 
-      console.log('config state at learn', useTrainerStore.getState().cbConfig);
+      console.log('config state at learn', cbConfig);
       console.log('real config rn', apiRef.current.state);
       console.log;
 
@@ -551,14 +506,12 @@ export const ChessOpeningTrainer = () => {
     }
   };
   const handleRecall = () => {
-    let trainingPath = useTrainerStore.getState().trainingPath;
-
     resetTrainingContext();
     updateDueCounts();
     setLastFeedback('recall');
     // TODO do w/ usetrainerstore?
     repertoire[repertoireIndex].lastDueCount = dueTimes[0];
-    // this.chessground?.setAutoShapes([]); // TODO in separate method?
+    // this.chessground?.setAutoShapes([]); // TODO in separate trainingMethod?
     setCbConfig({
       ...cbConfig,
       drawable: {
@@ -578,12 +531,10 @@ export const ChessOpeningTrainer = () => {
       // setCbConfig(makeCgOpts());
       const opts = makeCgOpts();
       console.log('recall opts', opts);
-      useTrainerStore.setState((state) => ({
-        cbConfig: {
-          ...state.cbConfig,
-          ...opts,
-        },
-      }));
+      setCbConfig({
+        ...state.cbConfig,
+        ...opts,
+      });
 
       // update scroll height
       const movesElement = document.getElementById('moves');
@@ -636,19 +587,17 @@ export const ChessOpeningTrainer = () => {
     // this.redraw();
     setPathIndex(index);
     const opts = makeCgOpts();
-    useTrainerStore.setState((state) => ({
-      cbConfig: {
-        ...state.cbConfig,
-        ...opts,
-      },
-    }));
+    setCbConfig({
+      ...state.cbConfig,
+      ...opts,
+    });
   };
 
   // TODO fix (really glitched)
   const markAllSeen = () => {
     if (
-      useTrainerStore.getState().repertoireIndex == -1 ||
-      useTrainerStore.getState().trainingMethod != 'learn'
+      repertoireIndex == -1 ||
+      trainingMethod != 'learn'
     )
       return;
     console.log('damn');
@@ -680,24 +629,6 @@ export const ChessOpeningTrainer = () => {
   //   return () => clearInterval(interval);
   // });
 
-  const controlsProps: ControlsProps = {
-    trainingMethod,
-    handleLearn,
-    handleRecall,
-    setShowTrainingSettings,
-  };
-  const repertoireProps: RepertoireProps = {
-    repertoire,
-    numWhiteEntries,
-    setShowingAddToRepertoireMenu,
-    repertoireIndex,
-  };
-  const feedbackProps: FeedbackProps = {
-    handleFail,
-  };
-  const pgnTreeProps: PgnTreeProps = {
-    jump,
-  };
   return (
     <div id="root" className="w-full">
       <div id="header" className="flex items-end justify-left text-3xl mb-3">
@@ -705,22 +636,36 @@ export const ChessOpeningTrainer = () => {
         <span>chess</span>
         <span className="text-stone-600">repeat</span>
       </div>
-      {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-      {showingAddToRepertoireMenu && <AddToReperotireModal></AddToReperotireModal>}
+      {showingAddToRepertoireMenu && <AddToReperotireModal />}
       <div className="flex justify-between items-start w-full px-10 gap-5">
         <div className="flex flex-col flex-1">
-          <Repertoire {...repertoireProps} />
+          <Repertoire
+            repertoire={repertoire}
+            numWhiteEntries={numWhiteEntries}
+            setShowingAddToRepertoireMenu={setShowingAddToRepertoireMenu}
+            repertoireIndex={repertoireIndex}
+          />
           {/* <InsightChart /> */}
-          <RepertoireActions></RepertoireActions>
+          <RepertoireActions />
           <Schedule />
         </div>
         <div className="flex flex-col items-center flex-1">
           <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
-          <Controls {...controlsProps} />
+          <Controls
+            trainingMethod={trainingMethod}
+            handleLearn={handleLearn}
+            handleRecall={handleRecall}
+            setShowTrainingSettings={setShowTrainingSettings}
+          />
         </div>
         <div className="flex flex-col flex-1">
           <PgnTree jump={jump} />
-          <Feedback {...feedbackProps} />
+          <Feedback
+            handleFail={handleFail}
+            lastFeedback={lastFeedback}
+            trainingPath={trainingPath}
+            lastGuess={lastGuess}
+          />
         </div>
       </div>
     </div>
