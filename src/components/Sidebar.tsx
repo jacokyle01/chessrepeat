@@ -7,11 +7,7 @@ import { chart } from './chart';
 import { downloadI } from '../svg/download';
 // import { progress } from './progress'; // Uncomment if needed
 
-interface SidebarProps {
-  ctrl: PrepCtrl;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ ctrl }) => {
+const Sidebar = ({ ctrl }) => {
   const whiteEntries: RepertoireEntry[] = ctrl.repertoire.slice(0, ctrl.numWhiteEntries);
   const blackEntries: RepertoireEntry[] = ctrl.repertoire.slice(ctrl.numWhiteEntries);
 

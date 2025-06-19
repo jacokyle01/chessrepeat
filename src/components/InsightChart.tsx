@@ -1,23 +1,18 @@
-import React from 'react';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, ChartData, ChartOptions } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { formatTime } from '../util/time';
-import { useTrainerStore } from '../state/state';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, ChartDataLabels);
 
-const InsightChart: React.FC = () => {
-  // const labels = ['now', ...ctrl.srsConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)];
-  const labels = ["now", ...useTrainerStore.getState().srsConfig.buckets.map((x) => `≤ ${formatTime(x)}`)];
-  // const barData = ctrl.dueTimes;
-  const barData = useTrainerStore.getState().dueTimes;
+const InsightChart = ({ srsConfig, dueTimes }) => {
+  const labels = ["now", ...srsConfig.buckets.map((x) => `≤ ${formatTime(x)}`)];
 
   const data: ChartData<'bar'> = {
     labels,
     datasets: [
       {
-        data: barData,
+        data: dueTimes,
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,

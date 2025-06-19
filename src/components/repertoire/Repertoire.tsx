@@ -5,21 +5,13 @@ import { chart } from './chart';
 import { downloadI } from '../../svg/download';
 import RepertoireSection from './RepertoireSection';
 import { BookDown, BookPlus } from 'lucide-react';
-// import { progress } from './progress'; // Uncomment if needed
 
-export interface RepertoireProps {
-  repertoire: RepertoireEntry[];
-  //TODO calculate this dynamically??
-  numWhiteEntries: number;
-  setShowingAddToRepertoireMenu: Dispatch<SetStateAction<boolean>>;
-  repertoireIndex: number;
-}
-
-const Repertoire: React.FC<RepertoireProps> = ({
+const Repertoire = ({
   repertoire,
   numWhiteEntries,
   setShowingAddToRepertoireMenu,
   repertoireIndex,
+  setRepertoireIndex,
 }) => {
   const whiteEntries: RepertoireEntry[] = repertoire.slice(0, numWhiteEntries);
   const blackEntries: RepertoireEntry[] = repertoire.slice(numWhiteEntries);
@@ -30,12 +22,18 @@ const Repertoire: React.FC<RepertoireProps> = ({
         <span className="text-xl font-bold py-2 pl-2 border-b-2 mb-2 border-gray-300">My Repertoire</span>
         <div id="repertoire-wrap">
           <span className="font-semibold text-sm uppercase px-2 text-gray-600 space-x-1">White</span>
-          <RepertoireSection repertoire={whiteEntries} startsAt={0} repertoireIndex={repertoireIndex} />
+          <RepertoireSection
+            repertoire={whiteEntries}
+            startsAt={0}
+            repertoireIndex={repertoireIndex}
+            setRepertoireIndex={setRepertoireIndex}
+          />
           <span className="font-semibold text-sm uppercase px-2 text-gray-600">Black</span>
           <RepertoireSection
             repertoire={blackEntries}
             startsAt={numWhiteEntries}
             repertoireIndex={repertoireIndex}
+            setRepertoireIndex={setRepertoireIndex}
           />
         </div>
       </div>

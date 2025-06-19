@@ -2,56 +2,6 @@ import React, { useState } from 'react';
 import { Chess } from 'chess.js';
 import Chessboard, { Key } from './components/Chessboard';
 import Controls, { ControlsProps } from './components/Controls';
-
-// const pgn = 'd4 d5 c4 e6 Nf3 Nf6 g3';
-// const moves = pgn.split(' ');
-
-// const ChessOpeningTrainer: React.FC = () => {
-//   const [game, setGame] = useState(new Chess());
-//   const [moveIndex, setMoveIndex] = useState(0);
-//   const [message, setMessage] = useState('Your move (White)');
-
-//   const onDrop = (sourceSquare: string, targetSquare: string) => {
-//     const move = {
-//       from: sourceSquare,
-//       to: targetSquare,
-//       promotion: 'q',
-//     };
-
-//     const expectedMove = moves[moveIndex];
-//     const tempGame = new Chess(game.fen());
-//     const result = tempGame.move(move);
-
-//     if (result && result.san === expectedMove) {
-//       setGame(tempGame);
-//       setMoveIndex(moveIndex + 1);
-//       setMessage('✔ Correct');
-
-//       setTimeout(() => {
-//         const blackMove = moves[moveIndex + 1];
-//         if (blackMove) {
-//           const updatedGame = new Chess(tempGame.fen());
-//           updatedGame.move(blackMove);
-//           setGame(updatedGame);
-//           setMoveIndex((prev) => prev + 1);
-//         }
-//       }, 400);
-//     } else {
-//       setMessage(`✘ Incorrect. Expected: ${expectedMove}`);
-//     }
-//   };
-
-//   return (
-//     <div className="flex flex-col items-center p-4">
-//       <h1 className="text-xl mb-2 font-semibold">Chess Opening Trainer</h1>
-//       <p className="mb-2">{message}</p>
-//       <Chessboard position={game.fen()} onPieceDrop={onDrop} boardWidth={400} />
-//     </div>
-//   );
-// };
-
-// export default ChessOpeningTrainer;
-
 import { useEffect, useRef } from 'react';
 import { Config as CbConfig } from './components/Chessboard';
 import { DequeEntry, Method, Subrepertoire, TrainingData, TrainingPath } from './spaced-repetition/types';
@@ -73,7 +23,6 @@ import InsightChart from './components/InsightChart';
 import Schedule from './components/Schedule';
 import AddToReperotireModal from './components/repertoire/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
-// import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
 // import "chessground/assets/chessground.base.css";
@@ -103,7 +52,7 @@ const SOUNDS = {
 };
 
 export const ChessOpeningTrainer = () => {
-  const [trainingMethod, setTrainingMethod] = useState('learn');
+  const [trainingMethod, setTrainingMethod] = useState('unset');
   const [showTrainingSettings, setShowTrainingSettings] = useState(false);
   const [showingAddToRepertoireMenu, setShowingAddToRepertoireMenu] = useState(false);
   const [repertoire, setRepertoire] = useState([]);
@@ -363,14 +312,8 @@ export const ChessOpeningTrainer = () => {
 
   // TODO refactor out of file? (since it doesnt deal w/ UI) (maybe a hook?)
   const makeCgOpts = (): CbConfig => {
-    // console.log('trainingPath in opts from store', trainingPath);
-    // console.log('pathIndex in opts', pathIndex);
-    // console.log('Make CG OPTS');
-    // console.log('trainingPath', trainingPath);
-
     const fen = trainingPath.at(-2)?.data.fen || initial;
 
-    // get last move, if it exists
     let lastMoves: Key[] = [];
     if (atLast() && trainingPath && trainingPath!.length > 1) {
       const fen2 = trainingPath?.at(-3)?.data.fen || initial;
@@ -616,19 +559,6 @@ export const ChessOpeningTrainer = () => {
     // markAllSeen();
   }, []);
 
-  // useEffect(() => {
-  //   // Make a move every 2 seconds
-  //   const interval = setInterval(() => {
-  //     const move = MOVES.shift();
-  //     if (move) {
-  //       apiRef.current!.move(move.substring(0, 2) as Key, move.substring(2, 4) as Key);
-  //     } else {
-  //       clearInterval(interval);
-  //     }
-  //   }, 2000);
-  //   return () => clearInterval(interval);
-  // });
-
   return (
     <div id="root" className="w-full">
       <div id="header" className="flex items-end justify-left text-3xl mb-3">
@@ -644,10 +574,10 @@ export const ChessOpeningTrainer = () => {
             numWhiteEntries={numWhiteEntries}
             setShowingAddToRepertoireMenu={setShowingAddToRepertoireMenu}
             repertoireIndex={repertoireIndex}
+            setRepertoireIndex={setRepertoireIndex}
           />
-          {/* <InsightChart /> */}
-          <RepertoireActions />
-          <Schedule />
+          <RepertoireActions setShowTrainingSettings={setShowTrainingSettings} />
+          <Schedule srsConfig={srsConfig} dueTimes={dueTimes} />
         </div>
         <div className="flex flex-col items-center flex-1">
           <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
@@ -659,12 +589,16 @@ export const ChessOpeningTrainer = () => {
           />
         </div>
         <div className="flex flex-col flex-1">
-          <PgnTree jump={jump} />
+          <PgnTree
+            trainingPath={trainingPath}
+            pathIndex={pathIndex} jump={jump}
+          />
           <Feedback
             handleFail={handleFail}
             lastFeedback={lastFeedback}
             trainingPath={trainingPath}
             lastGuess={lastGuess}
+            showingHint={showingHint}
           />
         </div>
       </div>

@@ -7,22 +7,13 @@ import RepertoireDropdown from './RepertoireDropdown';
 import { Settings } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { useStore } from 'zustand';
-import { useTrainerStore } from '../../state/state';
 
-interface RepertoireSectionProps {
-  repertoire: RepertoireEntry[];
-  startsAt: number;
-  repertoireIndex: number;
-}
-
-export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
+export const RepertoireSection = ({
   repertoire,
   startsAt,
   repertoireIndex,
+  setRepertoireIndex,
 }) => {
-  // const [repertoireIndex, setRepertoireIndex] = useAtom(repertoireIndexAtom);
-  const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
-
   return (
     <div id="subrepertoire-tree-wrap" className="flex-row rounded-md">
       {repertoire.map((entry, index) => {

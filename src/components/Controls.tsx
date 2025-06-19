@@ -1,16 +1,8 @@
-import React, { Dispatch, SetStateAction } from 'react';
+import { Dispatch, SetStateAction } from 'react';
 import { Method } from '../spaced-repetition/types';
 import { Book, Lightbulb, Repeat2, Settings, Settings2 } from 'lucide-react';
-// import { bookI, recallI, gearI } from './Icons'; // Update the path if necessary
 
-export interface ControlsProps {
-  trainingMethod: Method;
-  handleLearn: () => void;
-  handleRecall: () => void;
-  setShowTrainingSettings: Dispatch<SetStateAction<boolean>>;
-}
-
-const Controls: React.FC<ControlsProps> = ({
+const Controls = ({
   trainingMethod,
   handleLearn,
   handleRecall,

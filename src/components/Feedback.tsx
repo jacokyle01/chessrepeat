@@ -1,4 +1,3 @@
-import React from 'react';
 import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
 import { F } from 'vite/dist/node/types.d-aGj9QkWt';
@@ -64,11 +63,8 @@ const Empty = () => (
 );
 
 const FailOrAlternate = ({ trainingPath, lastGuess }) => {
-  // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
-  // const fail = useTrainerStore(s => s.fail);
-  // const handleRecall = useTrainerStore(s => s.handleRecall);
-
   const onContinue = () => {
+    // TODO
     // fail();
     // handleRecall();
   };
@@ -95,12 +91,12 @@ const FailOrAlternate = ({ trainingPath, lastGuess }) => {
   );
 };
 
-export const Feedback: React.FC<FeedbackProps> = ({ handleFail, lastFeedback, trainingPath, lastGuess }) => {
+export const Feedback = ({ handleFail, lastFeedback, trainingPath, lastGuess, showingHint }) => {
   switch (lastFeedback) {
     case 'recall':
-      return <Recall handleFail={handleFail} />;
+      return <Recall handleFail={handleFail} showingHint={showingHint} />;
     case 'learn':
-      return <Learn />;
+      return <Learn trainingPath={trainingPath} />;
     case 'empty':
       return <Empty />;
     case 'fail':

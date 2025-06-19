@@ -1,7 +1,6 @@
-import React from 'react';
 import ChessOpeningTrainer from './ChessOpeningTrainer';
 
-const App: React.FC = () => {
+const App = () => {
   return (
     <main className="flex justify-center items-center h-screen">
       <ChessOpeningTrainer />
