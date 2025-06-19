@@ -152,7 +152,9 @@ export const ChessOpeningTrainer = () => {
               console.log('Here');
               console.log('path', entry.path);
               // this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
+              console.log("entry.path", entry.path);
               setTrainingPath(entry.path);
+              console.log("training path", trainingPath);
               return true;
             }
             break;
@@ -321,8 +323,9 @@ export const ChessOpeningTrainer = () => {
       const uci2 = calcTarget(fen2, oppMoveSan!);
       lastMoves = [uci2[0], uci2[1]];
     }
-
+    console.log("trainingPath", trainingPath);
     const targetSan = trainingPath?.at(-1)?.data.san;
+    console.log("san", targetSan);
     const uci = calcTarget(fen, targetSan!);
 
     // shapes
