@@ -56,7 +56,7 @@ import { useEffect, useRef } from 'react';
 import { Config as CbConfig } from './components/Chessboard';
 import { DequeEntry, Method, Subrepertoire, TrainingData, TrainingPath } from './spaced-repetition/types';
 import { RepertoireEntry } from './types/types';
-import Repertoire, { RepertoireProps } from './components/Repertoire';
+import Repertoire, { RepertoireProps } from './components/repertoire/Repertoire';
 import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
 import { Color } from 'chessops';
 import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
@@ -72,6 +72,8 @@ import { Feedback, FeedbackProps } from './components/Feedback';
 import { PgnTree, PgnTreeProps } from './components/PgnTree';
 import InsightChart from './components/InsightChart';
 import Schedule from './components/Schedule';
+import AddToReperotireModal from './components/repertoire/AddToRepertoireModal';
+import RepertoireActions from './components/repertoire/RepertoireActions';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -697,27 +699,28 @@ export const ChessOpeningTrainer = () => {
     jump,
   };
   return (
-    <div id="root">
+    <div id="root" className="w-full">
       <div id="header" className="flex items-end justify-left text-3xl mb-3">
         <img src="logo.png" alt="Logo" className="h-12 w-12" />
         <span>chess</span>
         <span className="text-stone-600">repeat</span>
       </div>
       {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-      <div className="flex justify-center gap-5 items-start w-full px-10">
-        <div className="flex-row">
-          <Repertoire {...repertoireProps}></Repertoire>
-          {/* <InsightChart></InsightChart> */}
-          <Schedule></Schedule>
+      {showingAddToRepertoireMenu && <AddToReperotireModal></AddToReperotireModal>}
+      <div className="flex justify-between items-start w-full px-10 gap-5">
+        <div className="flex flex-col flex-1">
+          <Repertoire {...repertoireProps} />
+          {/* <InsightChart /> */}
+          <RepertoireActions></RepertoireActions>
+          <Schedule />
         </div>
-        <div className="flex-row">
-          {/* // TODO make config properties props */}
-          <Chessboard width={640} height={640} config={cbConfig} ref={apiRef} />
-          <Controls {...controlsProps}></Controls>
+        <div className="flex flex-col items-center flex-1">
+          <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
+          <Controls {...controlsProps} />
         </div>
-        <div className="side">
-          <PgnTree jump={jump}></PgnTree>
-          <Feedback {...feedbackProps}></Feedback>
+        <div className="flex flex-col flex-1">
+          <PgnTree jump={jump} />
+          <Feedback {...feedbackProps} />
         </div>
       </div>
     </div>

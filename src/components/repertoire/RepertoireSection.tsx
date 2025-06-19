@@ -1,13 +1,13 @@
 //TODO better name?
 
 import React from 'react';
-import { RepertoireEntry } from '../types/types';
-import { smallGear } from '../svg/smallGear';
+import { RepertoireEntry } from '../../types/types';
+import { smallGear } from '../../svg/smallGear';
 import RepertoireDropdown from './RepertoireDropdown';
 import { Settings } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { useStore } from 'zustand';
-import { useTrainerStore } from '../state/state';
+import { useTrainerStore } from '../../state/state';
 
 interface RepertoireSectionProps {
   repertoire: RepertoireEntry[];
@@ -77,7 +77,7 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
               </div>
             </div>
             {/* {dropdownMenu(index, startsAt)} */}
-            <RepertoireDropdown thisIndex={index} startsAt={startsAt}></RepertoireDropdown>
+            {/* <RepertoireDropdown thisIndex={index} startsAt={startsAt}></RepertoireDropdown> */}
           </div>
         );
       })}

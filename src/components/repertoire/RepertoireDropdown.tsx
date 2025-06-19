@@ -1,9 +1,9 @@
 import React from 'react';
-import PrepCtrl from '../ctrl';
-import { trashI } from '../svg/trash';
-import { renameI } from '../svg/rename';
-import { seenI } from '../svg/seen';
-import { editI } from '../svg/edit';
+import PrepCtrl from '../../ctrl';
+import { trashI } from '../../svg/trash';
+import { renameI } from '../../svg/rename';
+import { seenI } from '../../svg/seen';
+import { editI } from '../../svg/edit';
 import { Glasses, Pencil, PencilLine, Trash } from 'lucide-react';
 
 interface RepertoireDropdownProps {
