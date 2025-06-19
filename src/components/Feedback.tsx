@@ -1,21 +1,9 @@
-import React from 'react';
 import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
-import { useTrainerStore } from '../state/state';
 import { F } from 'vite/dist/node/types.d-aGj9QkWt';
 
-export interface FeedbackProps {
-  // repertoire: RepertoireEntry[];
-  handleFail: () => void;
-
-  //TODO calculate this dynamically??
-}
-const isWhite = true;
-const Recall = ({handleFail}) => {
-  //TODO change
+const Recall = ({ handleFail, showingHint }) => {
   let isWhite = true;
-  // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
-  const toggleShowingHint = useTrainerStore.getState().showingHint;
 
   return (
     <div id="recall" className="border-t-4 border-blue-500 rounded-md shadow-lg">
@@ -49,9 +37,8 @@ const Recall = ({handleFail}) => {
   );
 };
 
-const Learn = () => {
-  // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
-  const san = useTrainerStore((s) => s.trainingPath.at(-1)?.data.san);
+const Learn = ({ trainingPath }) => {
+  let isWhite = true;
 
   return (
     <div className="bg-white flex items-center justify-center py-12 px-6 rounded-md shadow-lg border-t-4 border-blue-500 gap-3">
@@ -75,14 +62,9 @@ const Empty = () => (
   </div>
 );
 
-const FailOrAlternate = () => {
-  // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
-  const san = useTrainerStore((s) => s.trainingPath.at(-1)?.data.san);
-  const lastGuess = useTrainerStore.getState().lastGuess;
-  // const fail = useTrainerStore(s => s.fail);
-  // const handleRecall = useTrainerStore(s => s.handleRecall);
-
+const FailOrAlternate = ({ trainingPath, lastGuess }) => {
   const onContinue = () => {
+    // TODO
     // fail();
     // handleRecall();
   };
@@ -109,19 +91,17 @@ const FailOrAlternate = () => {
   );
 };
 
-export const Feedback: React.FC<FeedbackProps> = ({ handleFail }) => {
-  const lastFeedback = useTrainerStore((s) => s.lastFeedback);
-
+export const Feedback = ({ handleFail, lastFeedback, trainingPath, lastGuess, showingHint }) => {
   switch (lastFeedback) {
     case 'recall':
-      return <Recall handleFail={handleFail} />;
+      return <Recall handleFail={handleFail} showingHint={showingHint} />;
     case 'learn':
-      return <Learn />;
+      return <Learn trainingPath={trainingPath} />;
     case 'empty':
       return <Empty />;
     case 'fail':
     case 'alternate':
-      return <FailOrAlternate />;
+      return <FailOrAlternate trainingPath={trainingPath} lastGuess={lastGuess} />;
     default:
       return <div>Other</div>;
   }

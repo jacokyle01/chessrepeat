@@ -6,12 +6,7 @@ import { seenI } from '../../svg/seen';
 import { editI } from '../../svg/edit';
 import { Glasses, Pencil, PencilLine, Trash } from 'lucide-react';
 
-interface RepertoireDropdownProps {
-  thisIndex: number;
-  startsAt: number;
-}
-
-const RepertoireDropdown: React.FC<RepertoireDropdownProps> = ({ thisIndex, startsAt }) => {
+const RepertoireDropdown = ({ thisIndex, startsAt }) => {
   const absoluteIndex = thisIndex + startsAt;
   // const visible = ctrl.subrepSettingsIndex === absoluteIndex;
 

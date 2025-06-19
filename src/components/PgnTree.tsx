@@ -1,6 +1,4 @@
 import React from 'react';
-// import { backI, firstI, lastI, nextI, commentI, trashI, clipboardI, addCommentI } from '../svg';
-import { useTrainerStore } from '../state/state';
 import { fieldValue } from '../view/view';
 import {
   ChevronFirst,
@@ -19,13 +17,10 @@ const IndexNode = ({ turn }: { turn: number }) => (
   </div>
 );
 
-const MoveNode = ({ san, index }: { san: string; index: number }) => {
-  const pathIndex = useTrainerStore((s) => s.pathIndex);
-
+const MoveNode = ({ san, index, pathIndex }: { san: string; index: number, pathIndex: number }) => {
   //TODO actually use this
   const correctMoveIndices = [];
   //TODO add back jump
-  // const jump = useTrainerStore((s) => s.jump);
 
   const isCorrect = correctMoveIndices.includes(index);
   const isActive = pathIndex === index;
@@ -41,8 +36,6 @@ const MoveNode = ({ san, index }: { san: string; index: number }) => {
       : 'hover:bg-sky-100';
 
   return (
-    // <div className={`${baseClass} ${activeClass} ${bgClass}`} onClick={() => jump(index)}>
-
     <div className={`${baseClass} ${activeClass} ${bgClass}`}>
       <span>{san}</span>
       {isCorrect && <span className="text-xl">✓</span>}
@@ -58,13 +51,13 @@ const CommentNode = ({
   text,
   nodeNumber,
   commentNumber,
+  trainingPath,
 }: {
   text: string;
   nodeNumber: number;
   commentNumber: number;
+  trainingPath: any; // TODO have a type file for this
 }) => {
-  const trainingPath = useTrainerStore((s) => s.trainingPath);
-
   const handleDelete = () => {
     const comments = trainingPath[nodeNumber]?.data?.comments;
     if (comments) {
@@ -85,17 +78,14 @@ const CommentNode = ({
   );
 };
 
-const RowNode = ({ children }: { children: React.ReactNode }) => (
+const RowNode = ({ children }) => (
   <div id="move-row" className="flex">
     {children}
   </div>
 );
 
-const PgnControls = (jump: (index: number) => void) => {
-  //TODO store these f's within store
-  let atLast = useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingPath.length - 2;
-  const pathIndex = useTrainerStore((s) => s.pathIndex);
-  const trainingPath = useTrainerStore((s) => s.trainingPath);
+const PgnControls = ({ trainingPath, pathIndex, jump }) => {
+  let atLast = pathIndex === trainingPath.length - 2;
 
   return (
     <div id="pgn-control" className="flex justify-center w-full mt-3">
@@ -111,20 +101,7 @@ const PgnControls = (jump: (index: number) => void) => {
   );
 };
 
-export interface PgnTreeProps {
-  // repertoire: RepertoireEntry[];
-  jump: (index: number) => void;
-
-  //TODO calculate this dynamically??
-}
-
-export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
-  // const trainingPath = useTrainerStore((s) => s.trainingPath);
-  // const pathIndex = useTrainerStore((s) => s.pathIndex);
-  // const redraw = useTrainerStore((s) => s.redraw);
-  const trainingPath = useTrainerStore.getState().trainingPath;
-  const pathIndex = useTrainerStore.getState().pathIndex;
-
+export const PgnTree = ({ trainingPath, pathIndex, jump }) => {
   const rows: React.ReactNode[] = [];
   let elms: React.ReactNode[] = [];
   let ply = 0;
@@ -133,13 +110,13 @@ export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
     const even = i % 2 === 0;
 
     if (even) elms.push(<IndexNode key={`idx-${i}`} turn={Math.floor(ply / 2)} />);
-    elms.push(<MoveNode key={`mv-${i}`} san={node.data.san!} index={i} />);
+    elms.push(<MoveNode key={`mv-${i}`} san={node.data.san!} index={i} pathIndex={pathIndex} />);
     ply++;
 
     const addEmpty = even && node.data.comments?.length;
     if (addEmpty) elms.push(<EmptyNode key={`empty-${i}`} />);
     node.data.comments?.forEach((comment, j) => {
-      elms.push(<CommentNode key={`cmt-${i}-${j}`} text={comment} nodeNumber={i} commentNumber={j} />);
+      elms.push(<CommentNode key={`cmt-${i}-${j}`} text={comment} nodeNumber={i} commentNumber={j} trainingPath={trainingPath} />);
     });
     if (addEmpty) {
       elms.push(<IndexNode key={`idx2-${i}`} turn={Math.floor(ply / 2)} />);
@@ -172,7 +149,7 @@ export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
           {rows}
         </div>
       </div>
-      <PgnControls jump={jump} />
+      <PgnControls trainingPath={trainingPath} pathIndex={pathIndex} jump={jump} />
       <div id="add-comment-wrap" className="flex flex-col items-start">
         <textarea id="comment-input" className="w-full h-32 rounded-md shadow-md bg-stone-100" />
         <button

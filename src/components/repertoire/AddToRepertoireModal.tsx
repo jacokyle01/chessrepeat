@@ -2,11 +2,7 @@ import React, { useRef } from 'react';
 import { closeI } from '../../svg/close'; // adjust import path if needed
 import { CircleXIcon } from 'lucide-react';
 
-type Props = {
-  ctrl: any; // TODO: replace with actual PrepCtrl type
-};
-
-const AddToReperotireModal: React.FC<Props> = ({ ctrl }) => {
+const AddToReperotireModal = ({ ctrl }) => {
   const nameRef = useRef<HTMLInputElement>(null);
   const pgnRef = useRef<HTMLTextAreaElement>(null);
   const colorRef = useRef<HTMLInputElement>(null);

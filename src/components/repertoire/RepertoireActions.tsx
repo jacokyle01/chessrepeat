@@ -1,9 +1,6 @@
 import { BookDownIcon, BookPlus } from 'lucide-react';
-import { useTrainerStore } from '../../state/state';
 
-const RepertoireActions: React.FC = () => {
-  const setShowingAddToRepertoireMenu = useTrainerStore((state) => state.setShowingAddToRepertoireMenu);
-
+const RepertoireActions = ({ setShowingAddToRepertoireMenu }) => {
   return (
     <div
       id="repertoire-actions"
