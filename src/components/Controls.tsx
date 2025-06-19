@@ -45,7 +45,7 @@ const Controls: React.FC<ControlsProps> = ({
         < Repeat2 />
       </button>
 
-      <div className="ml-3 cursor-pointer" onClick={() => setShowTrainingSettings(true)}>
+      <div className="ml-3 cursor-pointer bg-gray-400 p-1 rounded" onClick={() => setShowTrainingSettings(true)}>
         < Settings2 />
       </div>
     </div>

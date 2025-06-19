@@ -74,6 +74,7 @@ import InsightChart from './components/InsightChart';
 import Schedule from './components/Schedule';
 import AddToReperotireModal from './components/repertoire/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
+import SettingsModal from './components/SettingsModal';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -699,7 +700,7 @@ export const ChessOpeningTrainer = () => {
     jump,
   };
   return (
-    <div id="root" className="w-full">
+    <div id="root" className="w-full h-full">
       <div id="header" className="flex items-end justify-left text-3xl mb-3">
         <img src="logo.png" alt="Logo" className="h-12 w-12" />
         <span>chess</span>
@@ -707,6 +708,7 @@ export const ChessOpeningTrainer = () => {
       </div>
       {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
       {showingAddToRepertoireMenu && <AddToReperotireModal></AddToReperotireModal>}
+      {showTrainingSettings && <SettingsModal></SettingsModal>}
       <div className="flex justify-between items-start w-full px-10 gap-5">
         <div className="flex flex-col flex-1">
           <Repertoire {...repertoireProps} />
