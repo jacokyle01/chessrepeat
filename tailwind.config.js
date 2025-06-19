@@ -14,6 +14,9 @@ export default {
   content: ['./src/**/*.{html,js,ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Outfit', 'Roboto']
+      },
       width: {
         '97': '97%',
       },
@@ -38,3 +41,4 @@ export default {
   },
   plugins: [],
 };
+import defaultTheme from 'tailwindcss/defaultTheme';
