@@ -1,6 +1,6 @@
 import React, { Dispatch, SetStateAction } from 'react';
 import { Method } from '../spaced-repetition/types';
-import { Book, Lightbulb, Repeat2, Settings } from 'lucide-react';
+import { Book, Lightbulb, Repeat2, Settings, Settings2 } from 'lucide-react';
 // import { bookI, recallI, gearI } from './Icons'; // Update the path if necessary
 
 export interface ControlsProps {
@@ -46,7 +46,7 @@ const Controls: React.FC<ControlsProps> = ({
       </button>
 
       <div className="ml-3 cursor-pointer" onClick={() => setShowTrainingSettings(true)}>
-        < Settings />
+        < Settings2 />
       </div>
     </div>
   );
