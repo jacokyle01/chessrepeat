@@ -185,12 +185,15 @@ export const ChessOpeningTrainer = () => {
   // TODO return trainingPath, then we set it
   const getNext = () => {
     let method = useTrainerStore.getState().trainingMethod;
+    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+    let repertoire = useTrainerStore.getState().repertoire;
 
     console.log(repertoireIndex, trainingMethod);
     if (repertoireIndex == -1 || method == 'unselected') return false; // no subrepertoire selected
     console.log('GET NEXT NOW');
     //initialization
     let deque: DequeEntry[] = [];
+    console.log('rep index', repertoireIndex);
     let subrep = repertoire[repertoireIndex].subrep;
     console.log('tree', subrep);
     //initialize deque
@@ -265,6 +268,9 @@ export const ChessOpeningTrainer = () => {
 
   const succeed = () => {
     let trainingPath = useTrainerStore.getState().trainingPath;
+    let repertoire = useTrainerStore.getState().repertoire;
+    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
     console.log('state', useTrainerStore.getState());
 
     const node = trainingPath?.at(-1);
@@ -388,51 +394,15 @@ export const ChessOpeningTrainer = () => {
     // console.log(this.chessground!.state);
   };
 
-  const handleLearn = () => {
-    resetTrainingContext();
-    updateDueCounts();
-    repertoire[repertoireIndex].lastDueCount = dueTimes[0];
-    setLastFeedback('learn');
-
-    setTrainingMethod('learn');
-    console.log('handlelearn --> ', useTrainerStore.getState().trainingMethod);
-    // mututes path
-    if (!getNext('learn')) {
-      // lastFeedback = 'empty';
-      setLastFeedback('empty');
-      console.log('no next');
-    } else {
-      // update path and pathIndex
-      // pathIndex = trainingPath.length - 2;
-      let trainingPath = useTrainerStore.getState().trainingPath;
-      setPathIndex(trainingPath.length - 2);
-      // console.log('new opts', opts);
-      // setCbConfig(opts);
-      // this.chessground!.set(opts);
-      const opts = makeCgOpts();
-      useTrainerStore.setState((state) => ({
-        cbConfig: {
-          ...state.cbConfig,
-          ...opts,
-        },
-      }));
-
-      // this.redraw();
-      // update scroll height
-      // TODO
-      // const movesElement = document.getElementById('moves');
-      // movesElement!.scrollTop = movesElement!.scrollHeight;
-    }
-  };
-
   // TODO refactor out of file? (since it doesnt deal w/ UI) (maybe a hook?)
   const makeCgOpts = (): CbConfig => {
     let trainingPath = useTrainerStore.getState().trainingPath;
     let pathIndex = useTrainerStore.getState().pathIndex;
-    console.log('trainingPath in opts from store', trainingPath);
-    console.log('pathIndex in opts', pathIndex);
-    console.log('Make CG OPTS');
-    console.log('trainingPath', trainingPath);
+    let trainingMethod = useTrainerStore.getState().trainingMethod;
+    // console.log('trainingPath in opts from store', trainingPath);
+    // console.log('pathIndex in opts', pathIndex);
+    // console.log('Make CG OPTS');
+    // console.log('trainingPath', trainingPath);
 
     const fen = trainingPath.at(-2)?.data.fen || initial;
 
@@ -450,7 +420,9 @@ export const ChessOpeningTrainer = () => {
 
     // shapes
     const shapes: DrawShape[] = [];
+    console.log('atlast?', atLast());
     if (trainingMethod === 'learn' && atLast()) {
+      console.log(`orig: ${uci[0]}, dest: ${uci[1]}`);
       shapes.push({ orig: uci[0], dest: uci[1], brush: 'green' });
     } else if (showingHint) {
       shapes.push({ orig: uci[0], brush: 'yellow' });
@@ -484,6 +456,7 @@ export const ChessOpeningTrainer = () => {
       turnColor: subrep().meta.trainAs,
 
       movable: {
+        free: false,
         color: subrep().meta.trainAs,
         dests:
           lastFeedback != 'fail' && atLast()
@@ -535,12 +508,53 @@ export const ChessOpeningTrainer = () => {
     return config;
   };
 
+  const handleLearn = () => {
+    resetTrainingContext();
+    updateDueCounts();
+    repertoire[repertoireIndex].lastDueCount = dueTimes[0];
+    setLastFeedback('learn');
+
+    setTrainingMethod('learn');
+    console.log('handlelearn --> ', useTrainerStore.getState().trainingMethod);
+    // mututes path
+    if (!getNext('learn')) {
+      // lastFeedback = 'empty';
+      setLastFeedback('empty');
+      console.log('no next');
+    } else {
+      // update path and pathIndex
+      // pathIndex = trainingPath.length - 2;
+      let trainingPath = useTrainerStore.getState().trainingPath;
+      setPathIndex(trainingPath.length - 2);
+      // console.log('new opts', opts);
+      // setCbConfig(opts);
+      // this.chessground!.set(opts);
+      const opts = makeCgOpts();
+      useTrainerStore.setState((state) => ({
+        cbConfig: {
+          ...state.cbConfig,
+          ...opts,
+        },
+      }));
+
+      console.log('config state at learn', useTrainerStore.getState().cbConfig);
+      console.log('real config rn', apiRef.current.state);
+      console.log;
+
+      // this.redraw();
+      // update scroll height
+      // TODO
+      // const movesElement = document.getElementById('moves');
+      // movesElement!.scrollTop = movesElement!.scrollHeight;
+    }
+  };
   const handleRecall = () => {
     let trainingPath = useTrainerStore.getState().trainingPath;
 
     resetTrainingContext();
     updateDueCounts();
     setLastFeedback('recall');
+    // TODO do w/ usetrainerstore?
     repertoire[repertoireIndex].lastDueCount = dueTimes[0];
     // this.chessground?.setAutoShapes([]); // TODO in separate method?
     setCbConfig({
@@ -549,8 +563,6 @@ export const ChessOpeningTrainer = () => {
         autoShapes: [],
       },
     });
-
-    setTrainingMethod('recall');
 
     setTrainingMethod('recall');
 
@@ -630,10 +642,27 @@ export const ChessOpeningTrainer = () => {
     }));
   };
 
+  // TODO fix (really glitched)
+  const markAllSeen = () => {
+    if (
+      useTrainerStore.getState().repertoireIndex == -1 ||
+      useTrainerStore.getState().trainingMethod != 'learn'
+    )
+      return;
+    console.log('damn');
+    while (getNext()) {
+      console.log('damn');
+      succeed();
+    }
+    return;
+  };
+
   //TODO dont use useEffect here?
   useEffect(() => {
     addToRepertoire(pgn3(), 'white', 'QGD Exchange');
     setRepertoireIndex(0);
+    setTrainingMethod('learn');
+    // markAllSeen();
   }, []);
 
   // useEffect(() => {
@@ -682,6 +711,7 @@ export const ChessOpeningTrainer = () => {
           <Schedule></Schedule>
         </div>
         <div className="flex-row">
+          {/* // TODO make config properties props */}
           <Chessboard width={640} height={640} config={cbConfig} ref={apiRef} />
           <Controls {...controlsProps}></Controls>
         </div>

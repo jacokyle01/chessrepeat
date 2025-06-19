@@ -11,7 +11,7 @@ export interface FeedbackProps {
   //TODO calculate this dynamically??
 }
 const isWhite = true;
-const Recall = () => {
+const Recall = ({handleFail}) => {
   //TODO change
   let isWhite = true;
   // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
@@ -39,7 +39,8 @@ const Recall = () => {
         <span
           id="recall-hint"
           className="bg-blue-100 text-blue-700 font-semibold text-lg uppercase flex-1 text-center py-3 cursor-pointer transition hover:bg-blue-200"
-          onClick={toggleShowingHint}
+          // TODO hint
+          // onClick={}
         >
           Show hint
         </span>

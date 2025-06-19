@@ -41,6 +41,7 @@ const Chessboard = forwardRef<Api | undefined, Props>(
     }, [divRef.current, api]);
 
     useEffect(() => {
+      console.log("config in cg", config);
       if (api) {
         api.set(config);
       }

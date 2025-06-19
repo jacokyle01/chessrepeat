@@ -35,7 +35,7 @@ export const chessground = (ctrl: PrepCtrl): VNode => {
           ctrl.chessground = Chessground(el, makeConfig(ctrl));
         },
       },
-    }),
+    }),1
     // ctrl.showingTrainingSettings && settings(ctrl)
   ]);
 };

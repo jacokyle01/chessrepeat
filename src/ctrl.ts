@@ -769,10 +769,11 @@ export default class PrepCtrl {
   markAllSeen = () => {
     if (this.repertoireIndex == -1) return;
     this.method = 'learn';
-    while (this.getNext()) {
+    let x = 1000;
+    while (this.getNext() && x >= 0) {
       this.succeed();
+      x--;
     }
-    this.redraw();
     return;
   };
 

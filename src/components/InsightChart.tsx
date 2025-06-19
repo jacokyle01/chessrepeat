@@ -9,7 +9,7 @@ ChartJS.register(BarElement, CategoryScale, LinearScale, ChartDataLabels);
 
 const InsightChart: React.FC = () => {
   // const labels = ['now', ...ctrl.srsConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)];
-  const labels = useTrainerStore.getState().srsConfig.buckets.map((x) => `≤ ${formatTime(x)}`);
+  const labels = ["now", ...useTrainerStore.getState().srsConfig.buckets.map((x) => `≤ ${formatTime(x)}`)];
   // const barData = ctrl.dueTimes;
   const barData = useTrainerStore.getState().dueTimes;
 
