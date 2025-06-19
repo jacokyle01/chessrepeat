@@ -52,7 +52,7 @@ const SOUNDS = {
 };
 
 export const ChessOpeningTrainer = () => {
-  const [trainingMethod, setTrainingMethod] = useState('unset');
+  const [trainingMethod, setTrainingMethod] = useState('unselected');
   const [showTrainingSettings, setShowTrainingSettings] = useState(false);
   const [showingAddToRepertoireMenu, setShowingAddToRepertoireMenu] = useState(false);
   const [repertoire, setRepertoire] = useState([]);
