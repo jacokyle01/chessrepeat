@@ -7,6 +7,7 @@ import {
   ChevronLast,
   ChevronLeft,
   ChevronRight,
+  Edit,
   MessageSquarePlus,
   MessageSquareText,
   SkipForward,
@@ -75,10 +76,7 @@ const CommentNode = ({
   return (
     <div className="comment flex border-y-2 border-white-500">
       <div className="comment-icons flex flex-col bg-gray-100">
-        <div className="index bg-gray-100 px-5 justify-center flex w-8 p-1">{<MessageSquareText />}</div>
-        <div className="index bg-gray-100 px-5 justify-center flex w-8 p-1" onClick={handleDelete}>
-          {<Trash2Icon />}
-        </div>
+        <div className="index bg-gray-100 px-5 justify-center flex w-8 p-1">{< Edit/>}</div>
       </div>
       <div className="bg-gray-100 text-md flex items-center font-mono w-full">{text}</div>
     </div>
@@ -129,7 +127,9 @@ export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
 
   for (let i = 0; i < elms.length; ) {
     const maybeComment = elms[i];
-    if (React.isValidElement(maybeComment) && maybeComment.props?.className?.includes('comment')) {
+    // TODO 
+    if (maybeComment.props.commentNumber > -1) {
+      console.log("push");
       rows.push(maybeComment);
       i += 1;
     } else {
