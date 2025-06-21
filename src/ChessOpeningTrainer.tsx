@@ -276,18 +276,17 @@ export const ChessOpeningTrainer = () => {
   };
 
   const succeed = () => {
+    console.log('succeed');
     let trainingPath = useTrainerStore.getState().trainingPath;
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+    let trainingMethod = useTrainerStore.getState().trainingMethod;
 
-    console.log('state', useTrainerStore.getState());
-
+    // console.log('state', useTrainerStore.getState());
+    console.log('training path in succeed', trainingPath);
     const node = trainingPath?.at(-1);
     const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
-    // annotate node
-    // node
-    // console.log('INDICES' + this.correctMoveIndices);
 
     switch (trainingMethod) {
       case 'recall':
@@ -312,6 +311,7 @@ export const ChessOpeningTrainer = () => {
         };
         break;
       case 'learn':
+        console.log("succeed successful");
         node.data.training = {
           ...node.data.training,
           seen: true,
@@ -479,10 +479,11 @@ export const ChessOpeningTrainer = () => {
             metadata.captured
               ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
               : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
-            console.log('atlast?', atLast());
+            console.log('atlast? makecgopts', atLast());
             if (atLast()) {
               switch (trainingMethod) {
                 case 'learn':
+                  console.log("learn + atlast")
                   succeed();
                   handleLearn();
                   break;
@@ -672,13 +673,13 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     addToRepertoire(pgn3(), 'white', 'QGD Exchange');
-    setTrainingMethod('learn');
     setRepertoireIndex(0);
-    handleLearn();
-    succeed();
-    handleLearn();
-    handleLearn();
-    handleLearn();
+    // setTrainingMethod('learn');
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // handleLearn();
+    // handleLearn();
 
     // markAllSeen();
   }, []);
