@@ -69,12 +69,13 @@ import { MoveMetadata } from 'chessground/types';
 import { useAtom } from 'jotai';
 import { useTrainerStore } from './state/state';
 import { Feedback, FeedbackProps } from './components/Feedback';
-import { PgnTree, PgnTreeProps } from './components/PgnTree';
+import { PgnTree, PgnTreeProps } from './components/pgn/PgnTree';
 import InsightChart from './components/InsightChart';
 import Schedule from './components/Schedule';
 import AddToReperotireModal from './components/repertoire/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
 import SettingsModal from './components/SettingsModal';
+import PgnControls from './components/pgn/PgnControls';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -146,6 +147,9 @@ export const ChessOpeningTrainer = () => {
   const [sounds, setSounds] = useState(SOUNDS);
 
   const subrep = () => {
+    const repertoire = useTrainerStore.getState().repertoire;
+    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
     return repertoire[repertoireIndex]?.subrep;
   };
 
@@ -160,6 +164,8 @@ export const ChessOpeningTrainer = () => {
   // walk entire file and describe its state- when moves are due and such
   // store result in `dueTimes` array
   const updateDueCounts = (): void => {
+    const repertoire = useTrainerStore.getState().repertoire;
+    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
     const current = repertoire[repertoireIndex].subrep;
     const root = current.moves;
     const ctx = countDueContext(0);
@@ -512,6 +518,9 @@ export const ChessOpeningTrainer = () => {
   };
 
   const handleLearn = () => {
+    const repertoire = useTrainerStore.getState().repertoire;
+    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
     resetTrainingContext();
     updateDueCounts();
     repertoire[repertoireIndex].lastDueCount = dueTimes[0];
@@ -541,7 +550,7 @@ export const ChessOpeningTrainer = () => {
       }));
 
       console.log('config state at learn', useTrainerStore.getState().cbConfig);
-      console.log('real config rn', apiRef.current.state);
+      // console.log('real config rn', apiRef.current.state);
       console.log;
 
       // this.redraw();
@@ -663,8 +672,14 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     addToRepertoire(pgn3(), 'white', 'QGD Exchange');
-    setRepertoireIndex(0);
     setTrainingMethod('learn');
+    setRepertoireIndex(0);
+    handleLearn();
+    succeed();
+    handleLearn();
+    handleLearn();
+    handleLearn();
+
     // markAllSeen();
   }, []);
 
@@ -700,7 +715,7 @@ export const ChessOpeningTrainer = () => {
     jump,
   };
   return (
-    <div id="root" className="w-full h-full">
+    <div id="root" className="w-full h-full bg-gray-200">
       <div id="header" className="flex items-end justify-left text-3xl mb-3">
         <img src="logo.png" alt="Logo" className="h-12 w-12" />
         <span>chess</span>
@@ -720,9 +735,10 @@ export const ChessOpeningTrainer = () => {
           <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
           <Controls {...controlsProps} />
         </div>
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 h-full">
           <PgnTree jump={jump} />
           <Feedback {...feedbackProps} />
+          <PgnControls jump={jump}></PgnControls>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
 import { useTrainerStore } from '../state/state';
 import { F } from 'vite/dist/node/types.d-aGj9QkWt';
+import { Lightbulb } from 'lucide-react';
 
 export interface FeedbackProps {
   // repertoire: RepertoireEntry[];
@@ -11,7 +12,7 @@ export interface FeedbackProps {
   //TODO calculate this dynamically??
 }
 const isWhite = true;
-const Recall = ({handleFail}) => {
+const Recall = ({ handleFail }) => {
   //TODO change
   let isWhite = true;
   // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
@@ -22,6 +23,7 @@ const Recall = ({handleFail}) => {
       <div className="bg-white flex items-center justify-center py-12 px-6 gap-3">
         <div className="w-12 h-12 flex items-center justify-center">
           {/* {isWhite ? whiteKingI() : blackKingI()} */}
+          {/* <Lightbulb/> */}
         </div>
         <div>
           <h1 className="font-bold text-xl text-gray-800">Your move</h1>
@@ -54,13 +56,14 @@ const Learn = () => {
   const san = useTrainerStore((s) => s.trainingPath.at(-1)?.data.san);
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 px-6 rounded-md shadow-lg border-t-4 border-blue-500 gap-3">
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-5 rounded-b-xl">
       <div className="w-12 h-12 flex items-center justify-center">
         {/* {isWhite ? whiteKingI() : blackKingI()} */}
+        <Lightbulb className='w-20 h-20'/>
       </div>
       <div>
-        <h1 className="font-bold text-xl text-gray-800">Your move</h1>
-        <h2 className="text-md text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</h2>
+        <h1 className="font-bold text-2xl text-gray-800">Your move</h1>
+        <h2 className="text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</h2>
       </div>
     </div>
   );

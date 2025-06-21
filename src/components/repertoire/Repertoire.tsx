@@ -30,14 +30,14 @@ const Repertoire: React.FC<RepertoireProps> = ({
   return (
     <div
       id="repertoire"
-      className="flex flex-col rounded-2xl border border-gray-200 bg-white"
+      className="flex flex-col rounded-2xl border border-gray-300 bg-white pb-2"
     >
       <div className="flex flex-col rounded-md pb-2 h-2/5 overflow-y-auto">
         <div id="repertoire-header" className="flex flex-row items-center justify-left p-3 gap-2">
           <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
             <BookOpenIcon></BookOpenIcon>
           </div>
-          <span className="text-gray-800 font-semibold text-xl border-gray-300">My Repertoire</span>
+          <span className="text-gray-800 font-semibold text-xl">My Repertoire</span>
         </div>
         <div id="repertoire-wrap">
           <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600 space-x-1">White</span>

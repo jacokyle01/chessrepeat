@@ -22,7 +22,7 @@ const Controls: React.FC<ControlsProps> = ({
 
   return (
     <div
-      className="flex items-end gap-1 p-1 h-14 mr-auto shadow-md rounded-b-md p-4 bg-white items-center"
+      className="flex items-end gap-1 h-14 mr-auto shadow-md rounded-b-md p-3 bg-white items-center"
       id="training-controls"
     >
       <button
@@ -31,8 +31,8 @@ const Controls: React.FC<ControlsProps> = ({
           isLearn ? 'bg-blue-400 translate-y-px transform border-b' : 'bg-blue-500 border-b-4'
         }`}
       >
-        <span>Learn</span>
         < Lightbulb />
+        <span>Learn</span>
       </button>
 
       <button
@@ -41,12 +41,12 @@ const Controls: React.FC<ControlsProps> = ({
           isRecall ? 'bg-orange-400 translate-y-px transform border-b' : 'bg-orange-500 border-b-4' 
         }`}
       >
+        <Repeat2 />
         <span>Recall</span>
-        < Repeat2 />
       </button>
 
-      <div className="ml-3 cursor-pointer bg-gray-400 p-1 rounded" onClick={() => setShowTrainingSettings(true)}>
-        < Settings2 />
+      <div className="pl-2 cursor-pointer p-1 rounded text-gray-800" onClick={() => setShowTrainingSettings(true)}>
+        < Settings2 className='w-6 h-6'/>
       </div>
     </div>
   );

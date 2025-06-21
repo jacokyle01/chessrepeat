@@ -12,6 +12,7 @@ import { trashI } from '../svg/trash';
 import { addCommentI } from '../svg/addComment';
 import { fieldValue } from './view';
 import { clipboardI } from '../svg/clipboard';
+import { Feedback } from '../components/Feedback';
 
 //gets a PGN tree DOM node from a PGN string
 //e.x. d4 d5 c4 e6

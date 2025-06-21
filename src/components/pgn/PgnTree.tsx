@@ -1,7 +1,7 @@
 import React from 'react';
 // import { backI, firstI, lastI, nextI, commentI, trashI, clipboardI, addCommentI } from '../svg';
-import { useTrainerStore } from '../state/state';
-import { fieldValue } from '../view/view';
+import { useTrainerStore } from '../../state/state';
+import { fieldValue } from '../../view/view';
 import {
   ChevronFirst,
   ChevronLast,
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 const IndexNode = ({ turn }: { turn: number }) => (
-  <div className="index bg-gray-100 px-5 justify-center flex border-r-2 border-white-500 text-gray-700 basis-[12%]">
+  <div className="index bg-gray-100 px-5 justify-center flex border-r-2 border-white-500 text-gray-700 basis-[13%]">
     {turn + 1}
   </div>
 );
@@ -91,26 +91,6 @@ const RowNode = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const PgnControls = (jump: (index: number) => void) => {
-  //TODO store these f's within store
-  let atLast = useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingPath.length - 2;
-  const pathIndex = useTrainerStore((s) => s.pathIndex);
-  const trainingPath = useTrainerStore((s) => s.trainingPath);
-
-  return (
-    <div id="pgn-control" className="flex justify-center w-full mt-3">
-      <button onClick={() => jump(0)}>{<ChevronFirst />}</button>
-      <button onClick={() => jump(Math.max(0, pathIndex - 1))}>{<ChevronLeft />}</button>
-      <button onClick={() => jump(Math.min(trainingPath.length - 2, pathIndex + 1))}>
-        {<ChevronRight />}
-      </button>
-      <button onClick={() => jump(trainingPath.length - 2)} className={!atLast ? 'animate-pulse-blue' : ''}>
-        {<ChevronLast />}
-      </button>
-    </div>
-  );
-};
-
 export interface PgnTreeProps {
   // repertoire: RepertoireEntry[];
   jump: (index: number) => void;
@@ -158,30 +138,12 @@ export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
     }
   }
 
-  const addComment = () => {
-    const comment = fieldValue('comment-input');
-    const node = trainingPath[pathIndex];
-    if (!node.data.comments) node.data.comments = [];
-    node.data.comments.push(comment);
-  };
-
   return (
-    <div>
-      <div id="pgn_side" className="h-1/3 flex flex-col shadow-md rounded-t-lg bg-white">
+    <div className='bg-white flex-1 h-full border border-gray-300 gap-5 rounded-t-xl'>
+      <div id="pgn_side" className="flex flex-col">
         <div id="moves" className="overflow-auto h-80">
           {rows}
         </div>
-      </div>
-      <PgnControls jump={jump} />
-      <div id="add-comment-wrap" className="flex flex-col items-start">
-        <textarea id="comment-input" className="w-full h-32 rounded-md shadow-md bg-stone-100" />
-        <button
-          onClick={addComment}
-          className="flex bg-blue-500 text-white font-semibold rounded-md p-2 rounded-tl-lg gap-1 px-5 hover:bg-blue-600 active:scale-95 shadow-md hover:shadow-lg"
-        >
-          <div>{<MessageSquarePlus />}</div>
-          <div>Add Comment</div>
-        </button>
       </div>
     </div>
   );

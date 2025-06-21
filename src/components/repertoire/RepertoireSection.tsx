@@ -61,7 +61,7 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
                 </button>
               )}
               {entry.lastDueCount > 0 && (
-                <button className="text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black mr-2">
+                <button className="font-roboto text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black mr-2">
                   Recall {entry.lastDueCount}
                 </button>
               )}
