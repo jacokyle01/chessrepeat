@@ -60,7 +60,7 @@ import Repertoire, { RepertoireProps } from './components/repertoire/Repertoire'
 import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
 import { Color } from 'chessops';
 import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
-import { pgn3 } from './debug/pgns';
+import { alternates, pgn3 } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
@@ -133,6 +133,8 @@ export const ChessOpeningTrainer = () => {
     setLastResult,
     lastGuess,
     setLastGuess,
+    showSuccessfulGuess,
+    setShowSuccessfulGuess,
     dueTimes,
     setDueTimes,
 
@@ -291,6 +293,8 @@ export const ChessOpeningTrainer = () => {
     switch (trainingMethod) {
       case 'recall':
         setLastResult('succeed');
+        setShowSuccessfulGuess(true);
+
         let groupIndex = node.data.training.group;
         subrep.meta.bucketEntries[groupIndex]--;
         switch (srsConfig!.promotion) {
@@ -311,7 +315,7 @@ export const ChessOpeningTrainer = () => {
         };
         break;
       case 'learn':
-        console.log("succeed successful");
+        console.log('succeed successful');
         node.data.training = {
           ...node.data.training,
           seen: true,
@@ -324,6 +328,7 @@ export const ChessOpeningTrainer = () => {
   };
 
   const fail = () => {
+    setShowSuccessfulGuess(false);
     let node = trainingPath?.at(-1);
     const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
@@ -362,12 +367,17 @@ export const ChessOpeningTrainer = () => {
     });
     // showingHint = false;
     setShowingHint(false);
+    // setLastFeedback('')
     // this.lastGuess = null;
     // this.lastResult = "none";
   };
 
   const makeGuess = (san: string) => {
-    setLastGuess('san');
+    let trainingPath = useTrainerStore.getState().trainingPath;
+    let repertoire = useTrainerStore.getState().repertoire;
+    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+    setLastGuess(san);
     console.log('last guess', san);
     const index = repertoireIndex;
     if (index == -1 || !trainingPath || trainingMethod == 'learn') return;
@@ -483,7 +493,7 @@ export const ChessOpeningTrainer = () => {
             if (atLast()) {
               switch (trainingMethod) {
                 case 'learn':
-                  console.log("learn + atlast")
+                  console.log('learn + atlast');
                   succeed();
                   handleLearn();
                   break;
@@ -522,6 +532,8 @@ export const ChessOpeningTrainer = () => {
     const repertoire = useTrainerStore.getState().repertoire;
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
+    // TODO add reset functions for different context (repertoire, method) OR add conditionals to check those
+    setShowSuccessfulGuess(true);
     resetTrainingContext();
     updateDueCounts();
     repertoire[repertoireIndex].lastDueCount = dueTimes[0];
@@ -530,7 +542,7 @@ export const ChessOpeningTrainer = () => {
     setTrainingMethod('learn');
     console.log('handlelearn --> ', useTrainerStore.getState().trainingMethod);
     // mututes path
-    if (!getNext('learn')) {
+    if (!getNext()) {
       // lastFeedback = 'empty';
       setLastFeedback('empty');
       console.log('no next');
@@ -563,6 +575,8 @@ export const ChessOpeningTrainer = () => {
   };
   const handleRecall = () => {
     let trainingPath = useTrainerStore.getState().trainingPath;
+    let repertoire = useTrainerStore.getState().repertoire;
+    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
     resetTrainingContext();
     updateDueCounts();
@@ -583,6 +597,7 @@ export const ChessOpeningTrainer = () => {
       setLastFeedback('empty');
       console.log('no next in recall');
     } else {
+      let trainingPath = useTrainerStore.getState().trainingPath;
       setPathIndex(trainingPath.length - 2);
       // const opts = this.makeCgOpts();
       // this.chessground!.set(opts);
@@ -672,12 +687,28 @@ export const ChessOpeningTrainer = () => {
 
   //TODO dont use useEffect here?
   useEffect(() => {
-    addToRepertoire(pgn3(), 'white', 'QGD Exchange');
+    // addToRepertoire(alternates(), 'black', 'Alternates');
+    addToRepertoire(pgn3(), 'white', 'QGD');
+
     setRepertoireIndex(0);
-    // setTrainingMethod('learn');
-    // handleLearn();
-    // succeed();
-    // handleLearn();
+    setTrainingMethod('learn');
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleRecall();
+    handleRecall();
+
     // handleLearn();
     // handleLearn();
 

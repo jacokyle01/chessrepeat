@@ -45,6 +45,9 @@ interface TrainerState {
   lastGuess: string;
   setLastGuess: (g: string) => void;
 
+  showSuccessfulGuess: boolean;
+  setShowSuccessfulGuess: (val: boolean) => void;
+
   dueTimes: number[];
   setDueTimes: (t: number[]) => void;
 
@@ -98,6 +101,9 @@ export const useTrainerStore = create<TrainerState>((set) => ({
 
   lastGuess: '',
   setLastGuess: (g) => set({ lastGuess: g }),
+
+  showSuccessfulGuess: false,
+  setShowSuccessfulGuess: (val) => set({ showSuccessfulGuess: val }),
 
   dueTimes: [],
   setDueTimes: (t) => set({ dueTimes: t }),

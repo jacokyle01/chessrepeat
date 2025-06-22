@@ -39,7 +39,7 @@ export function defaults(): Config {
       max: Infinity,
     },
     // buckets: [30, 86400, 259200, 604800, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
-    buckets: [1, 1, 1, 1, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
+    buckets: [2, 5, 10, 15, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
 
     promotion: 'next',
     demotion: 'next',
