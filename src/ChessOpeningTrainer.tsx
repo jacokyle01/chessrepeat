@@ -400,6 +400,7 @@ export const ChessOpeningTrainer = () => {
 
   // TODO better name vs. ctrl.fail()
   const handleFail = (attempt?: string) => {
+    setShowSuccessfulGuess(false);
     // TODO better solution than this below?
     console.log(attempt);
     setLastGuess(attempt ?? null);
@@ -533,7 +534,7 @@ export const ChessOpeningTrainer = () => {
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
     // TODO add reset functions for different context (repertoire, method) OR add conditionals to check those
-    setShowSuccessfulGuess(true);
+    setShowSuccessfulGuess(false);
     resetTrainingContext();
     updateDueCounts();
     repertoire[repertoireIndex].lastDueCount = dueTimes[0];

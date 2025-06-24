@@ -68,7 +68,7 @@ const Learn = () => {
 };
 
 const Empty = () => (
-  <div className="bg-white flex flex-col items-center justify-center py-12 px-6 rounded-md shadow-lg border-t-4 border-blue-500">
+  <div className="bg-white flex flex-col items-center justify-center py-12 border border-gray-300 rounded-b-xl">
     <h1 className="font-bold text-xl text-gray-800">No moves</h1>
     <h2 className="text-md text-gray-600 mt-2 text-center">
       Try training a different repertoire or switching modes

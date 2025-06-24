@@ -36,7 +36,7 @@ const Controls: React.FC<ControlsProps> = ({
   return (
     <div className='mr-auto flex flex-start items-start gap-5 justify-start'>
       <div
-        className="flex items-end gap-1 h-14 mr-auto shadow-md rounded-b-md p-3 bg-white items-center"
+        className="flex items-end gap-1 h-14 mr-auto p-3 bg-white items-center border border-gray-300 rounded-b"
         id="training-controls"
       >
         <button
