@@ -769,9 +769,9 @@ export const ChessOpeningTrainer = () => {
           <Controls {...controlsProps} />
         </div>
         <div className="flex flex-col flex-1 h-full">
-          <PgnTree jump={jump} />
+          <PgnTree makeCgOpts={makeCgOpts} />
           <Feedback {...feedbackProps} />
-          <PgnControls jump={jump}></PgnControls>
+          <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
         </div>
       </div>
     </div>

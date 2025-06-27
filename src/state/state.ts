@@ -33,6 +33,10 @@ interface TrainerState {
   pathIndex: number;
   setPathIndex: (i: number) => void;
 
+
+
+  
+
   showingHint: boolean;
   setShowingHint: (v: boolean) => void;
 

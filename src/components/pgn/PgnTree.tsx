@@ -20,8 +20,9 @@ const IndexNode = ({ turn }: { turn: number }) => (
   </div>
 );
 
-const MoveNode = ({ san, index }: { san: string; index: number }) => {
+const MoveNode = ({ san, index, makeCgOpts }: { san: string; index: number; makeCgOpts: () => void }) => {
   const pathIndex = useTrainerStore((s) => s.pathIndex);
+  const setPathIndex = useTrainerStore((state) => state.setPathIndex);
 
   //TODO actually use this
   const correctMoveIndices = [];
@@ -42,9 +43,20 @@ const MoveNode = ({ san, index }: { san: string; index: number }) => {
       : 'hover:bg-sky-100';
 
   return (
-    // <div className={`${baseClass} ${activeClass} ${bgClass}`} onClick={() => jump(index)}>
-
-    <div className={`${baseClass} ${activeClass} ${bgClass}`}>
+    <div
+      className={`${baseClass} ${activeClass} ${bgClass}`}
+      //TODO dont explicitly set this.. find a better way
+      onClick={() => {
+        setPathIndex(index);
+        const opts = makeCgOpts();
+        useTrainerStore.setState((state) => ({
+          cbConfig: {
+            ...state.cbConfig,
+            ...opts,
+          },
+        }));
+      }}
+    >
       <span>{san}</span>
       {isCorrect && <span className="text-xl">✓</span>}
     </div>
@@ -76,7 +88,7 @@ const CommentNode = ({
   return (
     <div className="comment flex border-y-2 border-white-500">
       <div className="comment-icons flex flex-col bg-gray-100">
-        <div className="index bg-gray-100 px-5 justify-center flex w-8 p-1">{< Edit/>}</div>
+        <div className="index bg-gray-100 px-5 justify-center flex w-8 p-1">{<Edit />}</div>
       </div>
       <div className="bg-gray-100 text-md flex items-center font-mono w-full">{text}</div>
     </div>
@@ -91,12 +103,13 @@ const RowNode = ({ children }: { children: React.ReactNode }) => (
 
 export interface PgnTreeProps {
   // repertoire: RepertoireEntry[];
-  jump: (index: number) => void;
+  // jump: (index: number) => void;
+  makeCgOpts: () => void;
 
   //TODO calculate this dynamically??
 }
 
-export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
+export const PgnTree: React.FC<PgnTreeProps> = ({ makeCgOpts }) => {
   // const trainingPath = useTrainerStore((s) => s.trainingPath);
   // const pathIndex = useTrainerStore((s) => s.pathIndex);
   // const redraw = useTrainerStore((s) => s.redraw);
@@ -111,7 +124,7 @@ export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
     const even = i % 2 === 0;
 
     if (even) elms.push(<IndexNode key={`idx-${i}`} turn={Math.floor(ply / 2)} />);
-    elms.push(<MoveNode key={`mv-${i}`} san={node.data.san!} index={i} />);
+    elms.push(<MoveNode key={`mv-${i}`} san={node.data.san!} index={i} makeCgOpts={makeCgOpts} />);
     ply++;
 
     const addEmpty = even && node.data.comments?.length;
@@ -127,9 +140,9 @@ export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
 
   for (let i = 0; i < elms.length; ) {
     const maybeComment = elms[i];
-    // TODO 
+    // TODO
     if (maybeComment.props.commentNumber > -1) {
-      console.log("push");
+      console.log('push');
       rows.push(maybeComment);
       i += 1;
     } else {
@@ -139,7 +152,7 @@ export const PgnTree: React.FC<PgnTreeProps> = ({ jump }) => {
   }
 
   return (
-    <div className='bg-white flex-1 h-full border border-gray-300 gap-5 rounded-t-xl'>
+    <div className="bg-white flex-1 h-full border border-gray-300 gap-5 rounded-t-xl">
       <div id="pgn_side" className="flex flex-col">
         <div id="moves" className="overflow-auto h-80">
           {rows}
