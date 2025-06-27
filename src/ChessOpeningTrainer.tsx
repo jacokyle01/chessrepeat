@@ -745,7 +745,8 @@ export const ChessOpeningTrainer = () => {
     handleFail,
   };
   const pgnTreeProps: PgnTreeProps = {
-    jump,
+    // jump,
+    makeCgOpts
   };
   return (
     <div id="root" className="w-full h-full bg-gray-200">
@@ -756,7 +757,7 @@ export const ChessOpeningTrainer = () => {
       </div>
       {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
       {showingAddToRepertoireMenu && <AddToReperotireModal></AddToReperotireModal>}
-      {showTrainingSettings && <SettingsModal></SettingsModal>}
+      {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
       <div className="flex justify-between items-start w-full px-10 gap-5">
         <div className="flex flex-col flex-1">
           <Repertoire {...repertoireProps} />

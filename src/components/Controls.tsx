@@ -2,6 +2,7 @@ import React, { Dispatch, SetStateAction, useEffect } from 'react';
 import { Method } from '../spaced-repetition/types';
 import { Book, Lightbulb, Repeat2, Settings, Settings2 } from 'lucide-react';
 import { useTrainerStore } from '../state/state';
+import SettingsButton from './SettingsButton';
 // import { bookI, recallI, gearI } from './Icons'; // Update the path if necessary
 
 export interface ControlsProps {
@@ -34,7 +35,7 @@ const Controls: React.FC<ControlsProps> = ({
   });
 
   return (
-    <div className='mr-auto flex flex-start items-start gap-5 justify-start'>
+    <div className="mr-auto flex flex-start items-start gap-5 justify-start">
       <div
         className="flex items-end gap-1 h-14 mr-auto p-3 bg-white items-center border border-gray-300 rounded-b"
         id="training-controls"
@@ -59,12 +60,12 @@ const Controls: React.FC<ControlsProps> = ({
           <span>Recall</span>
         </button>
 
-        <div
+        {/* <div
           className="pl-2 cursor-pointer p-1 rounded text-gray-800"
           onClick={() => setShowTrainingSettings(true)}
         >
-          <Settings2 className="w-6 h-6" />
-        </div>
+          <Settings2 className="w-6 h-6" /> */}
+        <SettingsButton></SettingsButton>
       </div>
       {showLastMoveCorrect && <LastMoveCorrect></LastMoveCorrect>}
     </div>
