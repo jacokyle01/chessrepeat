@@ -18,8 +18,9 @@ const SettingsButton = () => {
           </div>
 
           {/* Bridge from popover down to icon */}
-          {/* <div className="absolute bottom-[calc(100%-4px)] left-1/2 -translate-x-1/2 w-[2px] h-2 bg-white z-40 shadow-sm" /> */}
+          {/* <div className="absolute  bottom-[calc(100%-4px)] left-1/2 -translate-x-1/2 w-[2px] h-2 bg-white z-40 shadow-sm" /> */}
         </>
+        
       )}
 
       {/* Settings Icon */}
