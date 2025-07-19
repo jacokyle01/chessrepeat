@@ -2,7 +2,7 @@ package internal
 
 import (
 	"sync"
-	"github.com/jacokyle01/chessrepeat-backend/model"
+	"github.com/jacokyle01/chessrepeat/backend/model"
 )
 
 type SessionStore struct {
@@ -10,6 +10,7 @@ type SessionStore struct {
 	sessions map[string]*model.RepertoireEntry
 }
 
+// should be global cache of all active chapters 
 func NewSessionStore() *SessionStore {
 	return &SessionStore{
 		sessions: make(map[string]*model.RepertoireEntry),
@@ -23,6 +24,7 @@ func (s *SessionStore) Get(id string) (*model.RepertoireEntry, bool) {
 	return game, ok
 }
 
+//TODO automatic purging of store? every 1 min ? 
 func (s *SessionStore) Set(id string, game *model.RepertoireEntry) {
 	s.Lock()
 	defer s.Unlock()

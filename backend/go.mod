@@ -1,4 +1,4 @@
-module github.com/jacokyle01/chessrepeat-backend
+module github.com/jacokyle01/chessrepeat/backend
 
 go 1.23.0
 

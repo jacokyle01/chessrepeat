@@ -1,6 +1,6 @@
 package model
 
-import chess "github.com/jacokyle01/chessrepeat-backend/chess"
+import chess "github.com/jacokyle01/chessrepeat/backend/chess"
 
 type RepertoireMeta struct {
 	TrainAs       chess.Color `bson:"trainAs" json:"trainAs"`
