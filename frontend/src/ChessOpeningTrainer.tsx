@@ -60,7 +60,7 @@ import Repertoire, { RepertoireProps } from './components/repertoire/Repertoire'
 import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
 import { Color } from 'chessops';
 import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
-import { alternates, pgn3 } from './debug/pgns';
+import { alternates, pgn3, transpose } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
@@ -76,6 +76,7 @@ import AddToReperotireModal from './components/repertoire/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
 import SettingsModal from './components/SettingsModal';
 import PgnControls from './components/pgn/PgnControls';
+import { postSubrepertoire } from './services/postSubrepertoire';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -620,7 +621,28 @@ export const ChessOpeningTrainer = () => {
 
   const apiRef = useRef<Api | undefined>();
 
-  const addToRepertoire = (pgn: string, color: Color, name: string) => {
+  // const addToRepertoire = (pgn: string, color: Color, name: string) => {
+  //   console.log('HERE');
+  //   // TODO why is PGN undefined?
+  //   const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
+  //   subreps.forEach((subrep, i) => {
+  //     //augment subrepertoire with a) color to train as, and b) training data
+  //     const annotatedSubrep: Subrepertoire<TrainingData> = {
+  //       ...subrep,
+  //       ...generateSubrepertoire(subrep.moves, color, srsConfig.buckets!),
+  //     };
+  //     if (i > 0) name += ` (${i + 1})`;
+  //     const entry: RepertoireEntry = {
+  //       subrep: annotatedSubrep,
+  //       name,
+  //       lastDueCount: 0,
+  //     };
+  //     addRepertoireEntry(entry, color);
+  //   });
+  // };
+
+    const importToRepertoire = (pgn: string, color: Color, name: string) => {
+    console.log('HERE');
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
@@ -635,7 +657,10 @@ export const ChessOpeningTrainer = () => {
         name,
         lastDueCount: 0,
       };
-      addRepertoireEntry(entry, color);
+      
+      // POST to backend 
+      console.log("entry", entry);
+      postSubrepertoire(entry, color, name);
     });
   };
 
@@ -689,7 +714,7 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     // addToRepertoire(alternates(), 'black', 'Alternates');
-    addToRepertoire(pgn3(), 'white', 'QGD');
+    importToRepertoire(transpose(), 'white', 'QGD');
 
     setRepertoireIndex(0);
     setTrainingMethod('learn');
@@ -746,7 +771,7 @@ export const ChessOpeningTrainer = () => {
   };
   const pgnTreeProps: PgnTreeProps = {
     // jump,
-    makeCgOpts
+    makeCgOpts,
   };
   return (
     <div id="root" className="w-full h-full bg-gray-200">
@@ -756,7 +781,9 @@ export const ChessOpeningTrainer = () => {
         <span className="text-stone-600">repeat</span>
       </div>
       {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-      {showingAddToRepertoireMenu && <AddToReperotireModal></AddToReperotireModal>}
+      {showingAddToRepertoireMenu && (
+        <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
+      )}
       {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
       <div className="flex justify-between items-start w-full px-10 gap-5">
         <div className="flex flex-col flex-1">

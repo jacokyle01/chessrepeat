@@ -41,7 +41,7 @@ func (s *GameService) LoadGame(id string) (*model.RepertoireEntry, error) {
 func (s *GameService) CreateChapter(chapter *model.RepertoireEntry) error {
 	if chapter.ID == "" {
 		chapter.ID = utils.GenerateID()
-	}
+}
 
 	// Save to DB
 	return s.repo.Save(chapter)

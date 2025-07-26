@@ -15,6 +15,26 @@ import (
 	"github.com/jacokyle01/chessrepeat/backend/service"
 )
 
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		// Handle preflight request
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Continue to actual handler
+		next.ServeHTTP(w, r)
+	})
+}
+
+
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -35,6 +55,9 @@ func main() {
 	// wsHandler := api.HandleWS(svc)
 
 	mux := http.NewServeMux()
+
+	
+
 	mux.HandleFunc("/games/add", api.HandleCreateChapter(svc))
 	mux.HandleFunc("/games/select", api.HandleSwitchChapter(svc))
 
@@ -43,8 +66,12 @@ func main() {
 	// ✅ Log startup message
 	log.Println("Starting HTTP server on :8080")
 
-	// ⛔ If this fails, log.Fatal will stop the program and log the error
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	handlerWithCORS := withCORS(mux)
+
+	log.Println("Server listening on :8080")
+	if err := http.ListenAndServe(":8080", handlerWithCORS); err != nil {
+		log.Fatal(err)
+	}
 
 
 	// go func() {

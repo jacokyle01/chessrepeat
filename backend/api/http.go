@@ -1,4 +1,5 @@
 // /api/http.go
+// TODO change name to handlers/* ? 
 package api
 
 import (
@@ -15,9 +16,16 @@ type AddAndSetGameRequest struct {
 	Meta model.RepertoireMeta `json:"meta"`
 }
 
+func enableCors(w http.ResponseWriter) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+}
+
 //TODO accept PGN / game tree 
 func HandleCreateChapter(svc *service.GameService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		enableCors(w);
 		var chapter model.RepertoireEntry
 		if err := json.NewDecoder(r.Body).Decode(&chapter); err != nil {
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -36,6 +44,7 @@ func HandleCreateChapter(svc *service.GameService) http.HandlerFunc {
 
 func HandleSwitchChapter (svc *service.GameService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		enableCors(w);
 		chapterID := r.Header.Get("X-Chapter-ID")
 		if chapterID == "" {
 			http.Error(w, "Missing X-Chapter-ID header", http.StatusBadRequest)

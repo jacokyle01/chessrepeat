@@ -6,7 +6,7 @@ type Props = {
   ctrl: any; // TODO: replace with actual PrepCtrl type
 };
 
-const AddToReperotireModal: React.FC<Props> = ({ ctrl }) => {
+const AddToReperotireModal: React.FC<Props> = ({ importToRepertoire }) => {
   const nameRef = useRef<HTMLInputElement>(null);
   const pgnRef = useRef<HTMLTextAreaElement>(null);
   const colorRef = useRef<HTMLInputElement>(null);
@@ -22,12 +22,14 @@ const AddToReperotireModal: React.FC<Props> = ({ ctrl }) => {
 
     if (!annotated) {
       console.log('annotated!');
-      ctrl.importAnnotatedSubrepertoire(pgn);
+      // ctrl.importAnnotatedSubrepertoire(pgn);
     } else {
-      ctrl.addToRepertoire(pgn, color, name);
-    }
+      // ctrl.addToRepertoire(pgn, color, name);
+      importToRepertoire(pgn, color, name);
 
-    ctrl.toggleAddingNewSubrep();
+    }
+    // TODO 
+    // ctrl.toggleAddingNewSubrep();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
