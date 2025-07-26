@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"github.com/jacokyle01/chessrepeat/backend/model"
+	// "github.com/jacokyle01/chessrepeat/backend/model"
 	"github.com/jacokyle01/chessrepeat/backend/service"
 
 	"github.com/gorilla/websocket"
@@ -56,20 +56,20 @@ func HandleWebSocket(svc *service.GameService) http.HandlerFunc {
 
 			switch msg.Type {
 			case "add_move":
-				parent := game.Root.FindByPath(msg.Path)
-				if parent != nil {
-					parent.Children = append(parent.Children, &model.MoveNode{
-						ID:   msg.NewID,
-						Move: msg.NewMove,
-					})
-				}
+				// parent := game.Root.FindByPath(msg.Path)
+				// if parent != nil {
+				// 	parent.Children = append(parent.Children, &model.MoveNode{
+				// 		ID:   msg.NewID,
+				// 		Move: msg.NewMove,
+					// })
+				// }
 			case "delete_move":
 				game.Root.DeleteNode(msg.Path)
 			case "replace_move":
-				game.Root.ReplaceNode(msg.Path, &model.MoveNode{
-					ID:   msg.NewID,
-					Move: msg.NewMove,
-				})
+				// game.Root.ReplaceNode(msg.Path, &model.MoveNode{
+				// 	ID:   msg.NewID,
+				// 	Move: msg.NewMove,
+				// })
 			default:
 				conn.WriteJSON(map[string]string{"error": "unknown message type"})
 				continue

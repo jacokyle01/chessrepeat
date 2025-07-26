@@ -7,6 +7,8 @@ import (
 	"github.com/jacokyle01/chessrepeat/backend/model"
 	"github.com/jacokyle01/chessrepeat/backend/service"
 	"net/http"
+	"io"
+	"log"
 )
 
 type AddAndSetGameRequest struct {
@@ -25,22 +27,40 @@ func enableCors(w http.ResponseWriter) {
 //TODO accept PGN / game tree 
 func HandleCreateChapter(svc *service.GameService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		enableCors(w);
+		enableCors(w)
+
+		// Read and log the raw request body
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Printf("Failed to read request body: %v", err)
+			http.Error(w, "Unable to read request body", http.StatusBadRequest)
+			return
+		}
+		log.Printf("Received JSON:\n%s\n", string(body))
+
+		// Decode from the raw body
 		var chapter model.RepertoireEntry
-		if err := json.NewDecoder(r.Body).Decode(&chapter); err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		if err := json.Unmarshal(body, &chapter); err != nil {
+			log.Printf("JSON unmarshal error: %v", err)
+			http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
+		// Create the chapter
 		if err := svc.CreateChapter(&chapter); err != nil {
+			log.Printf("Failed to create chapter: %v", err)
 			http.Error(w, "Failed to create chapter: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
+		// Success response
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(chapter)
+		if err := json.NewEncoder(w).Encode(chapter); err != nil {
+			log.Printf("Failed to write response: %v", err)
+		}
 	}
 }
+
 
 func HandleSwitchChapter (svc *service.GameService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
