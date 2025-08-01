@@ -2,10 +2,10 @@ import { RepertoireEntry } from '../types/types';
 import { baseUrl } from './constants';
 
 export const postSubrepertoire = async (entry: RepertoireEntry, color: string, alias: string) => {
+  console.log("entry", entry.subrep);
   const outgoingRequest = {
-    alias: alias,
-    moves: entry.subrep.moves,
-    x: entry.lastDueCount,
+    name: alias,
+    tree: entry.subrep.moves,
     meta: {
       trainAs: color,
       nodeCount: entry.subrep.meta.nodeCount,

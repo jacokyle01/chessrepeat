@@ -75,7 +75,7 @@ export const generateSubrepertoire = (
           disabled: context.trainable,
           seen: false,
           group: -1,
-          dueAt: Infinity,
+          dueAt: -1,
         },
       };
     }),

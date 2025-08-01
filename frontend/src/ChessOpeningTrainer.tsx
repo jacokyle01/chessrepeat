@@ -60,7 +60,7 @@ import Repertoire, { RepertoireProps } from './components/repertoire/Repertoire'
 import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
 import { Color } from 'chessops';
 import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
-import { alternates, pgn3, transpose } from './debug/pgns';
+import { alternates, foolsMate, nimzo, pgn3, transpose } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
@@ -77,6 +77,7 @@ import RepertoireActions from './components/repertoire/RepertoireActions';
 import SettingsModal from './components/SettingsModal';
 import PgnControls from './components/pgn/PgnControls';
 import { postSubrepertoire } from './services/postSubrepertoire';
+import NewPgnTree from './components/tree/NewPgnTree';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -168,6 +169,8 @@ export const ChessOpeningTrainer = () => {
   // store result in `dueTimes` array
   const updateDueCounts = (): void => {
     const repertoire = useTrainerStore.getState().repertoire;
+    console.log("repertoire", repertoire);
+    if (repertoire.length == 0) return;
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
     const current = repertoire[repertoireIndex].subrep;
     const root = current.moves;
@@ -657,6 +660,9 @@ export const ChessOpeningTrainer = () => {
         name,
         lastDueCount: 0,
       };
+
+      // add to local store
+      addRepertoireEntry(entry, color);
       
       // POST to backend 
       console.log("entry", entry);
@@ -714,26 +720,26 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     // addToRepertoire(alternates(), 'black', 'Alternates');
-    importToRepertoire(transpose(), 'white', 'QGD');
+    importToRepertoire(nimzo(), 'white', 'nimzo dimzo');
 
-    setRepertoireIndex(0);
-    setTrainingMethod('learn');
-    handleLearn();
-    succeed();
-    handleLearn();
-    succeed();
-    handleLearn();
-    succeed();
-    handleLearn();
-    succeed();
-    handleLearn();
-    succeed();
-    handleLearn();
-    succeed();
-    handleLearn();
-    succeed();
-    handleRecall();
-    handleRecall();
+    // setRepertoireIndex(0);
+    // setTrainingMethod('learn');
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // succeed();
+    // handleRecall();
+    // handleRecall();
 
     // handleLearn();
     // handleLearn();
@@ -774,34 +780,37 @@ export const ChessOpeningTrainer = () => {
     makeCgOpts,
   };
   return (
-    <div id="root" className="w-full h-full bg-gray-200">
-      <div id="header" className="flex items-end justify-left text-3xl mb-3">
-        <img src="logo.png" alt="Logo" className="h-12 w-12" />
-        <span>chess</span>
-        <span className="text-stone-600">repeat</span>
-      </div>
-      {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-      {showingAddToRepertoireMenu && (
-        <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
-      )}
-      {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
-      <div className="flex justify-between items-start w-full px-10 gap-5">
-        <div className="flex flex-col flex-1">
-          <Repertoire {...repertoireProps} />
-          {/* <InsightChart /> */}
-          <RepertoireActions></RepertoireActions>
-          <Schedule />
-        </div>
-        <div className="flex flex-col items-center flex-1">
-          <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
-          <Controls {...controlsProps} />
-        </div>
-        <div className="flex flex-col flex-1 h-full">
-          <PgnTree makeCgOpts={makeCgOpts} />
-          <Feedback {...feedbackProps} />
-          <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
-        </div>
-      </div>
+    // <div id="root" className="w-full h-full bg-gray-200">
+    //   <div id="header" className="flex items-end justify-left text-3xl mb-3">
+    //     <img src="logo.png" alt="Logo" className="h-12 w-12" />
+    //     <span>chess</span>
+    //     <span className="text-stone-600">repeat</span>
+    //   </div>
+    //   {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
+    //   {showingAddToRepertoireMenu && (
+    //     <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
+    //   )}
+    //   {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
+    //   <div className="flex justify-between items-start w-full px-10 gap-5">
+    //     <div className="flex flex-col flex-1">
+    //       <Repertoire {...repertoireProps} />
+    //       {/* <InsightChart /> */}
+    //       <RepertoireActions></RepertoireActions>
+    //       <Schedule />
+    //     </div>
+    //     <div className="flex flex-col items-center flex-1">
+    //       <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
+    //       <Controls {...controlsProps} />
+    //     </div>
+    //     <div className="flex flex-col flex-1 h-full">
+    //       <PgnTree makeCgOpts={makeCgOpts} />
+    //       <Feedback {...feedbackProps} />
+    //       <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
+    //     </div>
+    //   </div>
+    // </div>
+    <div>
+      <NewPgnTree></NewPgnTree>
     </div>
   );
 };
