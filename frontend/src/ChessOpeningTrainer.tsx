@@ -720,7 +720,7 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     // addToRepertoire(alternates(), 'black', 'Alternates');
-    importToRepertoire(nimzo(), 'white', 'nimzo dimzo');
+    importToRepertoire(foolsMate(), 'white', 'nimzo dimzo');
 
     // setRepertoireIndex(0);
     // setTrainingMethod('learn');

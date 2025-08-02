@@ -44,7 +44,7 @@ export const alternates = () => {
 };
 
 export const foolsMate = () => {
-  return '1. f3 e5 2. g4 Qh4#';
+  return '1. f3 e5 2. g4 (2. g3 Qh4) Qh4#';
 };
 
 export const nimzo = () => {

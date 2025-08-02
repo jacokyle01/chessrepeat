@@ -1,8 +1,5 @@
+
 // TODO: comments:
-// import { renderInlineCommentsOf, renderComment } from './common';
-// import Move from './Move';
-// import Inline from './Inline';
-// import Children from './Children';
 import { useTrainerStore } from '../../state/state';
 import { type ChildNode, Game, parsePgn, type PgnNodeData, startingPosition } from 'chessops/pgn';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
@@ -11,18 +8,9 @@ import { makeUci, Position } from 'chessops';
 
 import { build as makeTree, path as treePath, ops as treeOps, type TreeWrapper } from './tree';
 
-
 import React from 'react';
-import { nimzo } from '../../debug/pgns';
-// import { isEmpty } from 'common';
-// import { path as treePath, ops as treeOps } from 'tree';
-// import * as moveView from '../view/moveView';
-// import { nodeClasses, renderingCtx } from './common';
-// export interface Ctx {
-//   truncateComments: boolean;
-// currentPath: Tree.Path | undefined;
-// }
-
+import { foolsMate, nimzo } from '../../debug/pgns';
+import { PlusIcon } from 'lucide-react';
 export interface Opts {
   parentPath: Tree.Path;
   isMainline: boolean;
@@ -33,20 +21,15 @@ export interface Opts {
 }
 
 export interface Ctx {
-  // showComputer: boolean;
-  // showGlyphs: boolean;
-  // showEval: boolean;
   truncateComments: boolean;
   currentPath: Tree.Path | undefined;
 }
 
 
-// export const renderingCtx = (): Ctx => ({
-//   ctrl,
-//   currentPath: findCurrentPath(ctrl),
-// });
+//TODO
+// export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
+//   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
 
-//TODO convert to tree... pgnimport.ts
 export function treeReconstruct(parts: Tree.Node[], sidelines?: Tree.Node[][]): Tree.Node {
   const root = parts[0],
     nb = parts.length;
@@ -62,7 +45,6 @@ export function treeReconstruct(parts: Tree.Node[], sidelines?: Tree.Node[][]): 
   node.children = node.children || [];
   return root;
 }
-
 
 const readNode = (
   node: ChildNode<PgnNodeData>,
@@ -108,36 +90,38 @@ const convertToTree = (root: Game<PgnNodeData>): TreeWrapper => {
     tree = mainline;
     index += 1;
   }
-  console.log("treeparts", treeParts);
-  console.log("sidelines", sidelines);
+  console.log('treeparts', treeParts);
+  console.log('sidelines', sidelines);
   const newTree = makeTree(treeReconstruct(treeParts, sidelines));
   return newTree;
 };
 
-//
-
-//
-
-//
-
-// const commentTags = renderMainlineCommentsOf(ctx, root, false, false, '');
-
-//   function renderInlineCommentsOf(ctx: Ctx, node: Tree.Node, path: string): MaybeVNodes {
-//   // if (!ctx.ctrl.showComments || isEmpty(node.comments)) return []; //TODO
-//   return node
-//     .comments!.map(comment => renderComment(comment, node.comments!, 'comment', ctx, path, 300))
-//     .filter(nonEmpty);
-// }
-
+//TODO maybe dont style this as if it was a real move?
 function EmptyMove() {
-  return <div className="empty">...</div>;
+  return (
+    <div className="empty move items-center self-start flex shadow-md basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] pr-[4.74px] text-[#4d4d4d] overflow-hidden font-bold text-red-400">
+      ...
+    </div>
+  );
 }
 
-function RenderMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function IndexNode(ply: number) {
+  return (
+    <div className="index flex items-center self-start basis-[13%] justify-center border-r border-[#d9d9d9] bg-[#f9f9f9] text-[#999]">
+      {ply}
+    </div>
+  );
+}
+
+function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   // const path = opts.parentPath + node.id; // TODO paths
   // const classes = nodeClasses(ctx, node);
-  const classes = "";
-  return <div className={classes}>{node.ply}</div>;
+  const classes = '';
+  return (
+    <div className="move items-center self-start flex shadow-md basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] pr-[4.74px] text-[#4d4d4d] overflow-hidden font-bold text-red-400">
+      {node.san}
+    </div>
+  );
 }
 
 function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
@@ -145,17 +129,25 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
   const withIndex = opts.withIndex || node.ply % 2 === 1;
   const content = (
     <>
-      {withIndex && node.ply}
+      {withIndex && `${Math.floor(node.ply / 2) + 1}. `}
       {node.san}
     </>
   );
   // const classes = nodeClasses(ctx, node, path);
-  return <div>{content}</div>;
+  return (
+    <span className="move variation text-[15.8px] px-[7.9px] pr-[4.74px] overflow-hidden">{content}</span>
+  );
 }
+
+type RenderMainlineMoveOfProps = {
+  ctx: Ctx;
+  node: Tree.Node;
+  opts: Opts;
+};
 
 function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   return opts.isMainline ? (
-    <RenderMove ctx={ctx} node={node} opts={opts} />
+    <RenderMainlineMove ctx={ctx} node={node} opts={opts} />
   ) : (
     <RenderVariationMove ctx={ctx} node={node} opts={opts} />
   );
@@ -163,7 +155,7 @@ function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Op
 
 function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   return (
-    <div>
+    <div className="inline italic">
       <RenderMoveAndChildren
         ctx={ctx}
         node={node}
@@ -197,7 +189,6 @@ function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node;
           parentPath: path,
           isMainline: opts.isMainline,
           depth: opts.depth,
-          // noConceal: opts.noConceal,
           truncate: opts.truncate ? opts.truncate - 1 : undefined,
         }}
       />
@@ -212,63 +203,63 @@ function RenderInlined({ ctx, nodes, opts }: { ctx: Ctx; nodes: Tree.Node[]; opt
     <RenderMoveAndChildren
       ctx={ctx}
       node={nodes[0]}
-      opts={{ ...opts, isMainline: false, inline: nodes[1] }}
+      opts={{ parentPath: opts.parentPath, isMainline: false, depth: opts.depth, inline: nodes[1] }}
     />
   );
 }
 
-function RenderLines({
-  ctx,
-  parentNode,
-  nodes,
-  opts,
-}: {
-  ctx: Ctx;
-  parentNode: Tree.Node;
-  nodes: Tree.Node[];
-  opts: Opts;
-}) {
+export function RenderLines({ ctx, parentNode, nodes, opts }) {
   const collapsed =
     parentNode.collapsed === undefined ? opts.depth >= 2 && opts.depth % 2 === 0 : parentNode.collapsed;
+  console.log('render lines w/ parent', parentNode.san);
   if (collapsed) {
     return (
-      <div className="collapsed">
-        <div className="expand">
-          <div />
-          <a
-            data-icon="plus"
-            title="Expand Variations"
-            // onClick={() => ctx.ctrl.setCollapsed(opts.parentPath, false)}
-          ></a>
-        </div>
+      <div className={`lines single ${collapsed ? 'collapsed' : ''}`}>
+        <line className="expand">
+          <div className="branch" />
+          {/* <a
+            data-icon={licon.PlusButton}
+            title={i18n.site.expandVariations}
+            onClick={() => ctx.ctrl.setCollapsed(opts.parentPath, false)}
+          /> */}
+          <PlusIcon></PlusIcon>
+        </line>
       </div>
     );
   }
+
   return (
-    <div className={!nodes[1] ? 'single' : undefined}>
-      {nodes.map((n) => (
-        <div>
-          <div />
-          <RenderMoveAndChildren
-            ctx={ctx}
-            node={n}
-            opts={{
-              parentPath: opts.parentPath,
-              isMainline: false,
-              depth: opts.depth + 1,
-              withIndex: true,
-              // noConceal: opts.noConceal,
-              // truncate: n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined,
-            }}
-          />
-        </div>
-      ))}
+    <div className={`lines ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
+      {nodes.map((n) => {
+        // const retro = retroLine(ctx, n);
+        // if (retro) return retro;
+
+        const truncate = n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined;
+
+        return (
+          <div className="line block relative ps-[7px]" key={n.id}>
+            <div className="branch" />
+            <RenderMoveAndChildren
+              ctx={ctx}
+              node={n}
+              opts={{
+                parentPath: opts.parentPath,
+                isMainline: false,
+                depth: opts.depth + 1,
+                withIndex: true,
+                // noConceal: opts.noConceal,
+                // truncate: n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined,
+              }}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
-  console.log("node", node);
+  // console.log('node', node);
   const cs = node.children.filter((x) => ctx.showComputer || !x.comp);
   const main = cs[0];
   if (!main) return null;
@@ -276,10 +267,11 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   if (opts.isMainline) {
     const isWhite = main.ply % 2 === 1;
 
+    //TODO why is this different than lichess ?  math.floor(..) line
     if (!cs[1] && !main.forceVariation) {
       return (
         <>
-          {isWhite && main.ply}
+          {isWhite && IndexNode(Math.floor(main.ply / 2) + 1)}
           <RenderMoveAndChildren
             ctx={ctx}
             node={main}
@@ -307,7 +299,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
 
     return (
       <>
-        {isWhite && main.ply}
+        {isWhite && IndexNode(Math.floor(main.ply / 2) + 1)}
         {!main.forceVariation && (
           <RenderMoveOf
             ctx={ctx}
@@ -320,7 +312,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
           />
         )}
         {isWhite && !main.forceVariation && <EmptyMove />}
-        <div>
+        <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border">
           <RenderLines
             ctx={ctx}
             parentNode={node}
@@ -333,7 +325,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
             }}
           />
         </div>
-        {isWhite && mainChildren && main.ply}
+        {isWhite && mainChildren && IndexNode(Math.floor(main.ply / 2) + 1)}
         {isWhite && mainChildren && <EmptyMove />}
         {mainChildren}
       </>
@@ -344,41 +336,37 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
     return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts} />;
   }
 
-  //TODO
-  // return (
-  //   <RenderInlined ctx={ctx} nodes={cs} opts={opts} /> || (
-  //     <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />
-  //   )
-  // );
+  const nodes = cs;
+  let shouldRenderLines = !nodes[1] || nodes[2] || treeOps.hasBranching(nodes[1], 6);
+  console.log('in render children');
+  if (shouldRenderLines) {
+    return (
+      <>
+        <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />
+      </>
+    );
+  }
+  // TODO - fix infinite render loop, figure out if we need renderInlined
+  // TODO - we just need a way to ensure that the whole PGN is viewable
+  // return <RenderInlined ctx={ctx} nodes={cs} opts={opts} />;
 }
 
 export default function NewPgnTree() {
-  // const root = ctrl.tree.root;
-  // TODO
-  // const blackStarts = false;
-
-  // let trainingPath = useTrainerStore.getState().trainingPath;
-  // let repertoire = useTrainerStore.getState().repertoire;
-  // let repertoireIndex = useTrainerStore.getState().repertoireIndex;
-
-  // const chapter = repertoire[repertoireIndex];
-  // const root = convertToTree(chapter.subrep);
-  const game = parsePgn(nimzo())
-  // const subgame = game[0].moves;
+  const game = parsePgn(nimzo());
   const tree = convertToTree(game[0]);
   console.log('tree', tree);
 
   const root = tree.root;
 
   const ctx: Ctx = {
-    currentPath: "",
-    truncateComments: false
+    currentPath: '',
+    truncateComments: false,
   };
 
   const blackStarts = (root.ply & 1) === 1;
 
   return (
-    <div className="tview2 tview2-column">
+    <div className="tview2 tview2-column overflow-y-auto max-h-[1000px] flex flex-row flex-wrap items-start">
       {blackStarts && root.ply}
       {blackStarts && <EmptyMove />}
       <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
