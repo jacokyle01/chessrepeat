@@ -50,12 +50,9 @@ const Controls: React.FC<ControlsProps> = ({
 
   */
   return (
-    <div className="mr-auto flex flex-start items-start justify-start gap-5 bg-white">
+    <div className="flex flex-row justify-between items-start">
       {/* train/edit controls */}
-      <div
-        className="flex gap-1 bg-white flex items-end h-14 mr-auto p-1 items-center"
-        id="training-controls"
-      >
+      <div className="flex gap-1 bg-white flex items-end h-12 mr-auto p-1" id="training-controls">
         <button
           onClick={handleLearn}
           className={`text-white font-bold py-2 px-4 rounded flex border-gray-700 hover:border-gray-600 hover:bg-gray-400 active:transform active:translate-y-px active:border-b ${
@@ -79,9 +76,10 @@ const Controls: React.FC<ControlsProps> = ({
 
       {/* training-specifc controls */}
       <div
-        className="flex gap-1 bg-white flex items-end h-12 mr-auto p-2 items-center my-auto"
+        className="flex h-11 p-2 items-center"
         id="training-controls"
       >
+        <div className="bg-white flex gap-1 flex h-11 p-2 items-center my-0">
         <button
           onClick={handleLearn}
           className={`text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
@@ -101,13 +99,17 @@ const Controls: React.FC<ControlsProps> = ({
           <Repeat2 />
           <span>Recall</span>
         </button>
+        </div>
+        <div id="settings-wrap" className="flex mx-auto p-2">
+          <SettingsButton></SettingsButton>
+        </div>
       </div>
 
       {showLastMoveCorrect && <LastMoveCorrect></LastMoveCorrect>}
 
-      <div id="settings-wrap" className="flex justify-center items-center m-auto">
+      {/* <div id="settings-wrap" className="flex justify-center items-center m-auto">
         <SettingsButton></SettingsButton>
-      </div>
+      </div> */}
     </div>
   );
 };

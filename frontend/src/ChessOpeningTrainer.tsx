@@ -798,7 +798,7 @@ export const ChessOpeningTrainer = () => {
           <RepertoireActions></RepertoireActions>
           <Schedule />
         </div>
-        <div className="flex flex-col items-center flex-1">
+        <div className="flex flex-col items-between flex-1">
           <div id="board-wrap" className='bg-white p-1'>
           <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
           </div>

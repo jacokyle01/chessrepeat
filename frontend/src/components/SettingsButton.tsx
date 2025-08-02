@@ -25,10 +25,10 @@ const SettingsButton = () => {
 
       {/* Settings Icon */}
       <div
-        className={`cursor-pointer p-2 rounded-l text-gray-900 bg-gray-200 border border-gray-700`}
+        className={`cursor-pointer p-1 rounded-md text-gray-900 m-auto bg-gray-400 m-1`}
         onClick={() => setShowTrainingSettings(!showTrainingSettings)}
       >
-        <Settings className="w-7 h-7" />
+        <Settings2 className="w-6 h-6" />
       </div>
     </div>
   );
