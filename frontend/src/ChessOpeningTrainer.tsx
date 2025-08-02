@@ -780,37 +780,37 @@ export const ChessOpeningTrainer = () => {
     makeCgOpts,
   };
   return (
-    // <div id="root" className="w-full h-full bg-gray-200">
-    //   <div id="header" className="flex items-end justify-left text-3xl mb-3">
-    //     <img src="logo.png" alt="Logo" className="h-12 w-12" />
-    //     <span>chess</span>
-    //     <span className="text-stone-600">repeat</span>
-    //   </div>
-    //   {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-    //   {showingAddToRepertoireMenu && (
-    //     <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
-    //   )}
-    //   {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
-    //   <div className="flex justify-between items-start w-full px-10 gap-5">
-    //     <div className="flex flex-col flex-1">
-    //       <Repertoire {...repertoireProps} />
-    //       {/* <InsightChart /> */}
-    //       <RepertoireActions></RepertoireActions>
-    //       <Schedule />
-    //     </div>
-    //     <div className="flex flex-col items-center flex-1">
-    //       <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
-    //       <Controls {...controlsProps} />
-    //     </div>
-    //     <div className="flex flex-col flex-1 h-full">
-    //       <PgnTree makeCgOpts={makeCgOpts} />
-    //       <Feedback {...feedbackProps} />
-    //       <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
-    //     </div>
-    //   </div>
-    // </div>
-    <div>
-      <NewPgnTree></NewPgnTree>
+    <div id="root" className="w-full h-full bg-gray-200">
+      <div id="header" className="flex items-end justify-left text-3xl mb-3">
+        <img src="logo.png" alt="Logo" className="h-12 w-12" />
+        <span>chess</span>
+        <span className="text-stone-600">repeat</span>
+      </div>
+      {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
+      {showingAddToRepertoireMenu && (
+        <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
+      )}
+      {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
+      <div className="flex justify-between items-start w-full px-10 gap-5">
+        <div className="flex flex-col flex-1">
+          <Repertoire {...repertoireProps} />
+          {/* <InsightChart /> */}
+          <RepertoireActions></RepertoireActions>
+          <Schedule />
+        </div>
+        <div className="flex flex-col items-center flex-1">
+          <div id="board-wrap" className='bg-white p-1'>
+          <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
+          </div>
+            
+          <Controls {...controlsProps} />
+        </div>
+        <div className="flex flex-col flex-1 h-full">
+          <PgnTree makeCgOpts={makeCgOpts} />
+          <Feedback {...feedbackProps} />
+          <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
+        </div>
+      </div>
     </div>
   );
 };

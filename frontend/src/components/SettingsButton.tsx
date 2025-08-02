@@ -1,4 +1,4 @@
-import { Settings2 } from 'lucide-react';
+import { Settings, Settings2 } from 'lucide-react';
 import { useTrainerStore } from '../state/state';
 import SettingsPopover from './SettingsPopover';
 
@@ -25,10 +25,10 @@ const SettingsButton = () => {
 
       {/* Settings Icon */}
       <div
-        className={`cursor-pointer p-2 rounded-xl shadow text-gray-800 ${backgroundColor}`}
+        className={`cursor-pointer p-2 rounded-l text-gray-900 bg-gray-200 border border-gray-700`}
         onClick={() => setShowTrainingSettings(!showTrainingSettings)}
       >
-        <Settings2 className="w-5 h-5" />
+        <Settings className="w-7 h-7" />
       </div>
     </div>
   );

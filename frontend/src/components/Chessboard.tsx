@@ -32,6 +32,10 @@ const Chessboard = forwardRef<Api | undefined, Props>(
       if (divRef.current) {
         divRef.current.classList.add('alpha');
         divRef.current.classList.add('blue');
+        // divRef.current.classList.add('p-3');
+        // divRef.current.classList.add('bg-white');
+
+
 
         if (!api) {
           const chessgroundApi = ChessgroundApi(divRef.current, config);
