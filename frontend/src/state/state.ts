@@ -1,7 +1,7 @@
 // state/trainerStore.ts
 import { create } from 'zustand';
 import { RepertoireChapter, RepertoireEntry, RepertoireMode } from '../types/types';
-import { Method, TrainingPath } from '../spaced-repetition/types';
+import { Method} from '../spaced-repetition/types';
 import { Config as SrsConfig, defaults } from '../spaced-repetition/config';
 import { Config as CbConfig } from 'chessground/config';
 
@@ -30,8 +30,8 @@ interface TrainerState {
   setRepertoireIndex: (i: number) => void;
 
   // Training
-  trainingPath: TrainingPath;
-  setTrainingPath: (p: TrainingPath) => void;
+  trainingPath: Tree.Node[];
+  setTrainingPath: (p: Tree.Node[]) => void;
 
   pathIndex: number;
   setPathIndex: (i: number) => void;  
@@ -86,7 +86,7 @@ export const useTrainerStore = create<TrainerState>((set) => ({
   numWhiteEntries: 0,
   setNumWhiteEntries: (n) => set({ numWhiteEntries: n }),
 
-  repertoireIndex: -1,
+  repertoireIndex: 0,
   setRepertoireIndex: (i) => set({ repertoireIndex: i }),
 
   // Training

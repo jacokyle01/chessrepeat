@@ -62,7 +62,7 @@ import { useEffect, useRef } from 'react';
 import { Config as CbConfig } from './components/Chessboard';
 import { DequeEntry, Method, Chapter, TrainingData, TrainingPath } from './spaced-repetition/types';
 import { RepertoireChapter, RepertoireEntry } from './types/types';
-import Repertoire, { RepertoireProps } from './components/repertoire/Repertoire';
+import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
 import { Color, Position } from 'chessops';
 import { annotateMoves, countDueContext } from './spaced-repetition/util';
@@ -200,7 +200,7 @@ export const ChessOpeningTrainer = () => {
   }
 
   const readNode = (
-    node: ChildNode<PgnNodeData>,
+    node: ChildNode<TrainingData>,
     pos: Position,
     ply: number,
     withChildren = true,
@@ -213,6 +213,13 @@ export const ChessOpeningTrainer = () => {
       san: makeSanAndPlay(pos, move),
       fen: makeFen(pos.toSetup()),
       // uci: makeUci(move),
+
+      //TODO flatten <TrainingData>
+      disabled: node.data.training.disabled,
+      seen: node.data.training.seen,
+      group: node.data.training.group,
+      dueAt: node.data.training.dueAt,
+
       children: withChildren ? node.children.map((child) => readNode(child, pos.clone(), ply + 1)) : [],
       // check: pos.isCheck() ? makeSquare(pos.toSetup().board.kingOf(pos.turn)!) : undefined,
     };
@@ -224,32 +231,32 @@ export const ChessOpeningTrainer = () => {
   // walk entire file and describe its state- when moves are due and such
   // store result in `dueTimes` array
   const updateDueCounts = (): void => {
-    if (repertoire.length == 0) return;
-    const chapter = repertoire[repertoireIndex];
-    //TODO Node<unknown>
-    const root = chapter.tree.root;
-
-    const ctx = countDueContext(0);
-    const dueCounts = new Array(1 + srsConfig.buckets!.length).fill(0);
-
-    walk(root, ctx, (ctx, data) => {
-      ctx.count++;
-      if (!data.training.disabled && data.training.seen) {
-        const secondsTilDue = data.training.dueAt - currentTime();
-        // console.log('seconds til due', secondsTilDue);
-        if (secondsTilDue <= 0) {
-          dueCounts[0]++;
-        } else {
-          for (let i = 0; i < dueCounts.length; i++) {
-            if (secondsTilDue <= srsConfig.buckets!.at(i)!) {
-              dueCounts[i + 1]++;
-              break;
-            }
-          }
-        }
-      }
-    });
-    setDueTimes(dueCounts);
+    // if (repertoire.length == 0) return;
+    // const chapter = repertoire[repertoireIndex];
+    // //TODO Node<unknown>
+    // const root = chapter.tree.root;
+    // const ctx = countDueContext(0);
+    // const dueCounts = new Array(1 + srsConfig.buckets!.length).fill(0);
+    // TODO implement walk for Tree type
+    // use updateAll in opts.ts lichess
+    // walk(root, ctx, (ctx, data) => {
+    //   ctx.count++;
+    //   if (!data.training.disabled && data.training.seen) {
+    //     const secondsTilDue = data.training.dueAt - currentTime();
+    //     // console.log('seconds til due', secondsTilDue);
+    //     if (secondsTilDue <= 0) {
+    //       dueCounts[0]++;
+    //     } else {
+    //       for (let i = 0; i < dueCounts.length; i++) {
+    //         if (secondsTilDue <= srsConfig.buckets!.at(i)!) {
+    //           dueCounts[i + 1]++;
+    //           break;
+    //         }
+    //       }
+    //     }
+    //   }
+    // });
+    // setDueTimes(dueCounts);
   };
 
   // TODO return trainingPath, then we set it
@@ -262,12 +269,20 @@ export const ChessOpeningTrainer = () => {
     if (repertoireIndex == -1 || method == 'unselected') return false; // no chapter selected
     console.log('GET NEXT NOW');
     //initialization
-    let deque: DequeEntry[] = [];
-    console.log('rep index', repertoireIndex);
-    let subrep = repertoire[repertoireIndex].subrep;
-    console.log('tree', subrep);
+    // TODO refactor to ops or tree file?
+    interface DequeEntry {
+      path: Tree.Node[];
+      layer: number;
+    }
+
+    const deque: DequeEntry[] = [];
+
+    let tree = repertoire[repertoireIndex].tree;
+    console.log('tree', tree);
     //initialize deque
-    for (const child of subrep.moves.children) {
+    const root = tree.root;
+    for (const child of root.children) {
+      console.log('tree child', child);
       deque.push({
         path: [child],
         layer: 0,
@@ -279,10 +294,10 @@ export const ChessOpeningTrainer = () => {
       const pos = entry.path.at(-1)!;
 
       //test if match
-      if (!pos.data.training.disabled) {
+      if (!pos.disabled) {
         switch (method) {
           case 'recall': //recall if due
-            if (pos.data.training.dueAt <= currentTime()) {
+            if (pos.dueAt <= currentTime()) {
               // this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
               // TODO better way of doing this
               // shouldn't be handled in getNext(). use handleLineChange().
@@ -294,7 +309,7 @@ export const ChessOpeningTrainer = () => {
             }
             break;
           case 'learn': //learn if unseen
-            if (!pos.data.training.seen) {
+            if (!pos.seen) {
               console.log('Here');
               console.log('path', entry.path);
               // this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
@@ -347,7 +362,7 @@ export const ChessOpeningTrainer = () => {
 
     // console.log('state', useTrainerStore.getState());
     console.log('training path in succeed', trainingPath);
-    const node = trainingPath?.at(-1);
+    let node = trainingPath?.at(-1);
     // const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
 
@@ -356,7 +371,7 @@ export const ChessOpeningTrainer = () => {
         setLastResult('succeed');
         setShowSuccessfulGuess(true);
 
-        let groupIndex = node.data.training.group;
+        let groupIndex = node.group;
         chapter.bucketEntries[groupIndex]--;
         switch (srsConfig!.promotion) {
           case 'most':
@@ -369,16 +384,16 @@ export const ChessOpeningTrainer = () => {
         chapter.bucketEntries[groupIndex]++;
         const interval = srsConfig!.buckets![groupIndex];
 
-        node.data.training = {
-          ...node.data.training,
+        node = {
+          ...node,
           group: groupIndex,
           dueAt: currentTime() + interval,
         };
         break;
       case 'learn':
         console.log('succeed successful');
-        node.data.training = {
-          ...node.data.training,
+        node = {
+          ...node,
           seen: true,
           dueAt: currentTime() + srsConfig!.buckets![0],
           group: 0,
@@ -394,7 +409,7 @@ export const ChessOpeningTrainer = () => {
     //TODO need more recent version?
     const chapter = repertoire[repertoireIndex];
     if (!node) return;
-    let groupIndex = node.data.training.group;
+    let groupIndex = node.group;
     chapter.bucketEntries[groupIndex]--;
     if (trainingMethod === 'recall') {
       setLastResult('fail');
@@ -409,8 +424,8 @@ export const ChessOpeningTrainer = () => {
       chapter.bucketEntries[groupIndex]++;
       const interval = srsConfig!.buckets![groupIndex];
 
-      node.data.training = {
-        ...node.data.training,
+      node = {
+        ...node,
         group: groupIndex,
         dueAt: currentTime() + interval,
       };
@@ -434,17 +449,19 @@ export const ChessOpeningTrainer = () => {
     // this.lastResult = "none";
   };
 
+  //TODO clean this up
   const makeGuess = (san: string) => {
+    setLastGuess(san);
+    console.log('last guess', san);
     let trainingPath = useTrainerStore.getState().trainingPath;
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
+    if (repertoireIndex == -1 || !trainingPath || trainingMethod == 'learn') return;
 
     const chapter = repertoire[repertoireIndex];
-    setLastGuess(san);
-    console.log('last guess', san);
-    if (repertoireIndex == -1 || !trainingPath || trainingMethod == 'learn') return;
-    let candidates: ChildNode<TrainingData>[] = [];
+
+    let candidates: Tree.Node[] = [];
     if (trainingPath.length == 1) {
       repertoire[repertoireIndex].tree.root.children.forEach((child) => candidates.push(child));
     } else {
@@ -452,13 +469,9 @@ export const ChessOpeningTrainer = () => {
     }
 
     let moves: string[] = [];
-    moves = candidates.map((candidate) => candidate.data.san);
+    moves = candidates.map((candidate) => candidate.san);
 
-    return moves.includes(san)
-      ? trainingPath.at(-1)?.data.san === san
-        ? 'success'
-        : 'alternate'
-      : 'failure';
+    return moves.includes(san) ? (trainingPath.at(-1)?.san === san ? 'success' : 'alternate') : 'failure';
   };
 
   // TODO better name vs. ctrl.fail()
@@ -483,8 +496,6 @@ export const ChessOpeningTrainer = () => {
     let pathIndex = useTrainerStore.getState().pathIndex;
     let trainingMethod = useTrainerStore.getState().trainingMethod;
 
-
-
     //TODO get this
     const chapter = repertoire[repertoireIndex];
     // console.log('trainingPath in opts from store', trainingPath);
@@ -492,18 +503,18 @@ export const ChessOpeningTrainer = () => {
     // console.log('Make CG OPTS');
     // console.log('trainingPath', trainingPath);
 
-    const fen = trainingPath.at(-2)?.data.fen || initial;
+    const fen = trainingPath.at(-2)?.fen || initial;
 
     // get last move, if it exists
     let lastMoves: Key[] = [];
     if (atLast() && trainingPath && trainingPath!.length > 1) {
-      const fen2 = trainingPath?.at(-3)?.data.fen || initial;
-      const oppMoveSan = trainingPath?.at(-2)?.data.san;
+      const fen2 = trainingPath?.at(-3)?.fen || initial;
+      const oppMoveSan = trainingPath?.at(-2)?.san;
       const uci2 = calcTarget(fen2, oppMoveSan!);
       lastMoves = [uci2[0], uci2[1]];
     }
 
-    const targetSan = trainingPath?.at(-1)?.data.san;
+    const targetSan = trainingPath?.at(-1).san;
     const uci = calcTarget(fen, targetSan!);
 
     // shapes
@@ -539,7 +550,7 @@ export const ChessOpeningTrainer = () => {
 
     const config: CbConfig = {
       orientation: chapter.trainAs,
-      fen: trainingPath[pathIndex]?.data.fen || initial,
+      fen: trainingPath[pathIndex]?.fen || initial,
       lastMove: lastMoves,
       turnColor: chapter.trainAs,
 
@@ -601,11 +612,18 @@ export const ChessOpeningTrainer = () => {
     const repertoire = useTrainerStore.getState().repertoire;
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
+    if (repertoire.length == 0) return;
+    console.log("repertoire", repertoire);
+    
+    const chapter = repertoire[repertoireIndex];
+    console.log("chapter", chapter);
     // TODO add reset functions for different context (repertoire, method) OR add conditionals to check those
     setShowSuccessfulGuess(false);
     resetTrainingContext();
     updateDueCounts();
-    repertoire[repertoireIndex].lastDueCount = dueTimes[0];
+    //TODO
+    // repertoire[repertoireIndex].lastDueCount = dueTimes[0];
+    chapter.lastDueCount = 420;
     setLastFeedback('learn');
 
     setTrainingMethod('learn');
@@ -732,6 +750,11 @@ export const ChessOpeningTrainer = () => {
           ply: initialPly,
           fen,
           children: [],
+          //TODO ???? make this optional?
+          disabled: false,
+          dueAt: -1,
+          group: 0,
+          seen: false,
         },
       ];
       let tree = annotatedMoves.moves;
@@ -773,22 +796,22 @@ export const ChessOpeningTrainer = () => {
     });
   };
 
-  const addRepertoireEntry = (entry: RepertoireEntry, color: Color) => {
-    // TODO place repertoire correctly
-    setRepertoire([...repertoire, entry]);
+  // const addRepertoireEntry = (entry: RepertoireEntry, color: Color) => {
+  //   // TODO place repertoire correctly
+  //   setRepertoire([...repertoire, entry]);
 
-    // if (color == 'white') {
-    //   this.repertoire = [
-    //     ...this.repertoire.slice(0, this.numWhiteEntries),
-    //     entry,
-    //     ...this.repertoire.slice(this.numWhiteEntries),
-    //   ];
-    //   this.numWhiteEntries++;
-    // } else {
-    //   this.repertoire.push(entry);
-    //   this.numBlackEntries++;
-    // }
-  };
+  //   // if (color == 'white') {
+  //   //   this.repertoire = [
+  //   //     ...this.repertoire.slice(0, this.numWhiteEntries),
+  //   //     entry,
+  //   //     ...this.repertoire.slice(this.numWhiteEntries),
+  //   //   ];
+  //   //   this.numWhiteEntries++;
+  //   // } else {
+  //   //   this.repertoire.push(entry);
+  //   //   this.numBlackEntries++;
+  //   // }
+  // };
 
   const jump = (index: number) => {
     // this.pathIndex = index;
@@ -869,12 +892,12 @@ export const ChessOpeningTrainer = () => {
     handleRecall,
     setShowTrainingSettings,
   };
-  const repertoireProps: RepertoireProps = {
-    repertoire,
-    numWhiteEntries,
-    setShowingAddToRepertoireMenu,
-    repertoireIndex,
-  };
+  // const repertoireProps: RepertoireProps = {
+  //   repertoire,
+  //   numWhiteEntries,
+  //   setShowingAddToRepertoireMenu,
+  //   repertoireIndex,
+  // };
   const feedbackProps: FeedbackProps = {
     handleFail,
   };
@@ -896,7 +919,7 @@ export const ChessOpeningTrainer = () => {
       {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
       <div className="flex justify-between items-start w-full px-10 gap-5">
         <div className="flex flex-col flex-1">
-          <Repertoire {...repertoireProps} />
+          <Repertoire />
           {/* <InsightChart /> */}
           <RepertoireActions></RepertoireActions>
           <Schedule />

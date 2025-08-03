@@ -1,7 +1,7 @@
 //TODO better name?
 
 import React from 'react';
-import { RepertoireEntry } from '../../types/types';
+import { RepertoireChapter, RepertoireEntry } from '../../types/types';
 import { smallGear } from '../../svg/smallGear';
 import RepertoireDropdown from './RepertoireDropdown';
 import { LucideFileEdit, Settings } from 'lucide-react';
@@ -10,7 +10,7 @@ import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
 
 interface RepertoireSectionProps {
-  repertoire: RepertoireEntry[];
+  repertoire: RepertoireChapter[];
   startsAt: number;
   repertoireIndex: number;
 }
@@ -26,7 +26,7 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
   return (
     <div id="chapter-tree-wrap" className="flex-row rounded-md">
       {repertoire.map((entry, index) => {
-        const meta = entry.chapter;
+        const meta = entry;
         const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
         const name = entry.name;
         const fullIndex = index + startsAt;

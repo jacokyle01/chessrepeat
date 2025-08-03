@@ -19,6 +19,12 @@ declare namespace Tree {
     san?: string;
     threefold?: boolean;
     fail?: boolean;
+
+    // training-specific values 
+    disabled: boolean;
+    seen: boolean; //TODO combine seen&dueAt
+    group: number;
+    dueAt: number;
   }
   export interface NodeFromServer extends NodeBase {
     children?: Node[];
@@ -28,13 +34,6 @@ declare namespace Tree {
     collapsed?: boolean;
   }
 
-  export interface NodeCrazy {
-    pockets: [CrazyPocket, CrazyPocket];
-  }
-
-  export interface CrazyPocket {
-    [role: string]: number;
-  }
 
   export interface Comment {
     id: string;
