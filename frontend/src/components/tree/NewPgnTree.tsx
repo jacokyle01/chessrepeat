@@ -1,7 +1,13 @@
-
 // TODO: comments:
 import { useTrainerStore } from '../../state/state';
-import { type ChildNode, defaultHeaders, Game, parsePgn, type PgnNodeData, startingPosition } from 'chessops/pgn';
+import {
+  type ChildNode,
+  defaultHeaders,
+  Game,
+  parsePgn,
+  type PgnNodeData,
+  startingPosition,
+} from 'chessops/pgn';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
 import { makeUci, Position } from 'chessops';
@@ -25,77 +31,9 @@ export interface Ctx {
   currentPath: Tree.Path | undefined;
 }
 
-
 //TODO
 // export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
 //   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
-
-export function treeReconstruct(parts: Tree.Node[], sidelines?: Tree.Node[][]): Tree.Node {
-  const root = parts[0],
-    nb = parts.length;
-  let node = root;
-  root.id = '';
-  for (let i = 1; i < nb; i++) {
-    const n = parts[i];
-    const variations = sidelines ? sidelines[i] : [];
-    if (node.children) node.children.unshift(n, ...variations);
-    else node.children = [n, ...variations];
-    node = n;
-  }
-  node.children = node.children || [];
-  return root;
-}
-
-const readNode = (
-  node: ChildNode<PgnNodeData>,
-  pos: Position,
-  ply: number,
-  withChildren = true,
-): Tree.Node => {
-  const move = parseSan(pos, node.data.san);
-  if (!move) throw new Error(`Can't play ${node.data.san} at move ${Math.ceil(ply / 2)}, ply ${ply}`);
-  return {
-    id: '', //TODO
-    ply,
-    san: makeSanAndPlay(pos, move),
-    fen: makeFen(pos.toSetup()),
-    // uci: makeUci(move),
-    children: withChildren ? node.children.map((child) => readNode(child, pos.clone(), ply + 1)) : [],
-    // check: pos.isCheck() ? makeSquare(pos.toSetup().board.kingOf(pos.turn)!) : undefined,
-  };
-};
-
-const convertToTree = (root: Game<PgnNodeData>): TreeWrapper => {
-  // const headers = new Map(Array.from(root.headers, ([key, value]) => [key.toLowerCase(), value]));
-  const start = startingPosition(defaultHeaders()).unwrap();
-  const fen = makeFen(start.toSetup());
-  const initialPly = (start.toSetup().fullmoves - 1) * 2 + (start.turn === 'white' ? 0 : 1);
-  const treeParts: Tree.Node[] = [
-    {
-      id: '',
-      ply: initialPly,
-      fen,
-      children: [],
-    },
-  ];
-  console.log("root in CtT", root);
-  let tree = root.moves;
-  const pos = start;
-  const sidelines: Tree.Node[][] = [[]];
-  let index = 0;
-  while (tree.children.length) {
-    const [mainline, ...variations] = tree.children;
-    const ply = initialPly + index + 1;
-    sidelines.push(variations.map((variation) => readNode(variation, pos.clone(), ply)));
-    treeParts.push(readNode(mainline, pos, ply, false));
-    tree = mainline;
-    index += 1;
-  }
-  console.log('treeparts', treeParts);
-  console.log('sidelines', sidelines);
-  const newTree = makeTree(treeReconstruct(treeParts, sidelines));
-  return newTree;
-};
 
 //TODO maybe dont style this as if it was a real move?
 function EmptyMove() {
@@ -260,8 +198,52 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
 }
 
 function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
-  // console.log('node', node);
-  const cs = node.children.filter((x) => ctx.showComputer || !x.comp);
+const mode = useTrainerStore.getState().repertoireMode;
+
+  console.log('node', node);
+  const ply = node.ply;
+  const path = useTrainerStore.getState().trainingPath;
+  console.log(ply, 'ply', path, 'path');
+
+  /*
+  e.x. d4 --> c4 
+
+  trainingPath = d4,c4
+
+  d4, ply=1
+  c4, ply=3 
+
+  0
+: 
+{id: '', ply: 1, san: 'd4', fen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1', disabled: false, …}
+1
+: 
+{id: '', ply: 2, san: 'd5', fen: 'rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2', disabled: true, …}
+2
+: 
+{id: '', ply: 3, san: 'c4', 
+
+*/
+
+  //TODO, match by ID instead
+  // console.log('%%%%%%%%%%%%%%');
+  // console.log('%%%%%%%%%%%%%%');
+  // console.log('%%%%%%%%%%%%%%');
+  // console.log('PARENT', node.san);
+  // console.log(
+  //   'CHILDREN',
+  //   node.children.map((x) => x.san),
+  // );
+  // console.log('PLY', ply);
+  // console.log('path', path);
+  // console.log(
+  //   'PATH',
+  //   path.map((x) => x.san),
+  // );
+  const cs = node.children.filter(
+    (x, i) => (mode == 'edit' || (ply < path.length - 1 && x.san == path[ply].san)) && (ctx.showComputer || !x.comp),
+  );
+  console.log('FOUND', cs);
   const main = cs[0];
   if (!main) return null;
 
@@ -359,36 +341,29 @@ export default function NewPgnTree() {
 
   // const root = tree.root;
 
-    const repertoire = useTrainerStore.getState().repertoire;
-    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
-    // const pathIndex = useTrainerStore.getState().pathIndex;
-    // const pathIndex = useTrainerStore.getState().pathIndex;
+  const repertoire = useTrainerStore.getState().repertoire;
+  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+  const chapter = repertoire[repertoireIndex];
+  if (!chapter) return;
+  const root = chapter.tree.root;
+  console.log('root path');
+  // TODO conditionally use path or root, depending on context
 
-    
-    
-    // TODO conditionally use path or root, depending on context  
-
-
-    // TODO ???
-    if (!repertoire[repertoireIndex]) return;
-    const game = repertoire[repertoireIndex].subrep;
-    console.log("game", game);
-    // TODO handle multiple root nodes, possibly upon PGN import... (dont allow chapter w/ multiple roots)
-    const tree = convertToTree(game);
-    const root = tree.root;
-  
-
+  // TODO ???
+  // if (!repertoire[repertoireIndex]) return;
+  // const game = repertoire[repertoireIndex].subrep;
+  // console.log("game", game);
+  // TODO handle multiple root nodes, possibly upon PGN import... (dont allow chapter w/ multiple roots)
 
   const ctx: Ctx = {
     currentPath: '',
     truncateComments: false,
   };
 
-
   const blackStarts = (root.ply & 1) === 1;
 
   return (
-    <div className="tview2 tview2-column overflow-y-auto max-h-[1000px] flex flex-row flex-wrap items-start">
+    <div className="tview2 tview2-column overflow-y-auto max-h-[1000px] flex flex-row flex-wrap items-start bg-white">
       {blackStarts && root.ply}
       {blackStarts && <EmptyMove />}
       <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />

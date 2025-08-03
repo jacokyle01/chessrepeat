@@ -66,7 +66,7 @@ import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
 import { Color, Position } from 'chessops';
 import { annotateMoves, countDueContext } from './spaced-repetition/util';
-import { alternates, foolsMate, nimzo, pgn3, transpose } from './debug/pgns';
+import { alternates, catalan, foolsMate, nimzo, pgn3, transpose } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
@@ -358,7 +358,11 @@ export const ChessOpeningTrainer = () => {
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
     let trainingMethod = useTrainerStore.getState().trainingMethod;
 
+    console.log("method", trainingMethod);
+
     const chapter = repertoire[repertoireIndex];
+
+    console.log("&&&&&&&& bucket entries", chapter.bucketEntries);
 
     // console.log('state', useTrainerStore.getState());
     console.log('training path in succeed', trainingPath);
@@ -384,23 +388,35 @@ export const ChessOpeningTrainer = () => {
         chapter.bucketEntries[groupIndex]++;
         const interval = srsConfig!.buckets![groupIndex];
 
-        node = {
-          ...node,
-          group: groupIndex,
-          dueAt: currentTime() + interval,
-        };
+        // node = {
+        //   ...node,
+        //   group: groupIndex,
+        //   dueAt: currentTime() + interval,
+        // };
+        node.group = groupIndex;
+        node.dueAt = currentTime() + interval;
         break;
       case 'learn':
+        console.log("node in question", node);
         console.log('succeed successful');
-        node = {
-          ...node,
-          seen: true,
-          dueAt: currentTime() + srsConfig!.buckets![0],
-          group: 0,
-        };
+        // node = {
+        //   ...node,
+        //   seen: true,
+        //   dueAt: currentTime() + srsConfig!.buckets![0],
+        //   group: 0,
+        // };
+        // TODO use node.training instead? 
+        node.seen = true;
+        node.dueAt = currentTime() + srsConfig!.buckets![0];
+        node.group = 0;
         chapter.bucketEntries[0]++; //globally, mark node as seen
+        console.log("node in question", node);
+        console.log("repertoire should change", useTrainerStore.getState().repertoire)
         break;
     }
+
+    console.log("&&&&&&&& bucket entries", chapter.bucketEntries);
+
   };
 
   const fail = () => {
@@ -424,11 +440,13 @@ export const ChessOpeningTrainer = () => {
       chapter.bucketEntries[groupIndex]++;
       const interval = srsConfig!.buckets![groupIndex];
 
-      node = {
-        ...node,
-        group: groupIndex,
-        dueAt: currentTime() + interval,
-      };
+      // node = {
+      //   ...node,
+      //   group: groupIndex,
+      //   dueAt: currentTime() + interval,
+      // };
+      node.group = groupIndex;
+      node.dueAt = currentTime() + interval;
     }
   };
 
@@ -495,9 +513,12 @@ export const ChessOpeningTrainer = () => {
     let trainingPath = useTrainerStore.getState().trainingPath;
     let pathIndex = useTrainerStore.getState().pathIndex;
     let trainingMethod = useTrainerStore.getState().trainingMethod;
-
-    //TODO get this
     const chapter = repertoire[repertoireIndex];
+    
+
+    //TODO guarantee that this function can only be called when we have a chapter 
+    if (!chapter) return;
+    //TODO get this
     // console.log('trainingPath in opts from store', trainingPath);
     // console.log('pathIndex in opts', pathIndex);
     // console.log('Make CG OPTS');
@@ -547,6 +568,7 @@ export const ChessOpeningTrainer = () => {
 
     console.log('pathIndex', useTrainerStore.getState().pathIndex);
     console.log('trainingPath', trainingPath);
+    console.log("Chatper in opts", chapter);
 
     const config: CbConfig = {
       orientation: chapter.trainAs,
@@ -727,6 +749,7 @@ export const ChessOpeningTrainer = () => {
   // };
 
   const importToRepertoire = (pgn: string, color: Color, name: string) => {
+    let repertoire = useTrainerStore.getState().repertoire;
     console.log('HERE');
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
@@ -787,6 +810,9 @@ export const ChessOpeningTrainer = () => {
         trainAs: color,
       };
 
+      // TODO handle correct placement
+      setRepertoire([...repertoire, chapter]);
+
       // // add to local store
       // addRepertoireEntry(entry, color);
 
@@ -846,17 +872,16 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     // addToRepertoire(alternates(), 'black', 'Alternates');
-    importToRepertoire(nimzo(), 'black', 'nimzo dimzo');
+    importToRepertoire(nimzo(), 'white', 'nimzo dimzo');
 
-    setRepertoireIndex(0);
     setTrainingMethod('learn');
     handleLearn();
     succeed();
-    handleLearn();
-    succeed();
-    handleLearn();
-    succeed();
-    handleLearn();
+    // handleLearn();
+    // succeed();
+    // handleLearn();
+    // succeed();
+    // handleLearn();
     // succeed();
     // handleLearn();
     // succeed();

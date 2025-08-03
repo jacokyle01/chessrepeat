@@ -50,3 +50,7 @@ export const foolsMate = () => {
 export const nimzo = () => {
   return '1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Qc2 c5 5. dxc5 (5. e3 cxd4 6. exd4 d5) (5. Nf3 cxd4 6. Nxd4 e5) (5. a3 Bxc3+ 6. bxc3 Nc6 7. Nf3 d6 8. e4 e5) 5... O-O 6. a3 (6. Nf3 Na6 7. g3 (7. a3 Bxc3+ 8. Qxc3 Nxc5 9. e3 (9. b4 Nce4) 9... Nfe4 10. Qc2 Qf6) (7. c6 bxc6 8. e3 (8. g3 d5) 8... Bxc3+ 9. Qxc3 d5) (7. Bd2 Nxc5 8. a3 Bxc3 9. Bxc3 d6 10. b4 Nce4) (7. e3 Nxc5 8. Bd2 b6 9. Be2 Bb7 10. O-O Qe7) 7... Nxc5 8. Bg2 Nce4 9. O-O (9. Bd2 Nxd2 10. Nxd2 d5 11. O-O d4 12. Nce4 e5) 9... Bxc3 10. bxc3 Qc7 11. Nd4 d5 12. cxd5 exd5 13. Bf4 (13. Ba3 Re8 14. Rac1 Bd7) 13... Qc5 { TODO: More? }) (6. Bg5 Na6 7. a3 Bxc3+ 8. Qxc3 Nxc5 9. Bxf6 Qxf6 10. Qxf6 gxf6 11. b4 Na4 12. Nf3 b6) 6... Bxc5 7. Nf3 (7. Bf4 Nc6 8. Nf3 (8. e3 d5) 8... e5 { transposes }) (7. b4 Be7 8. Nf3 a5 9. b5 d5) 7... Nc6 8. Bg5 (8. Bf4 e5 9. Bg5 Nd4 10. Nxd4 exd4) (8. e3 d5 9. b4 Bd6 10. Bb2 Qe7) (8. b4 Nd4 9. Nxd4 Bxd4 10. e3 Be5 11. Bb2 b6) 8... h6 9. Bh4 Be7 10. Rd1 (10. e3 d5) 10... d5 *';
 };
+
+export const catalan = () => {
+  return '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Be7';
+}

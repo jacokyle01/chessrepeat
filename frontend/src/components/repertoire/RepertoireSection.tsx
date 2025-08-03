@@ -22,7 +22,7 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
 }) => {
   // const [repertoireIndex, setRepertoireIndex] = useAtom(repertoireIndexAtom);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
-
+  // console.log("repertoire section", repertoire);
   return (
     <div id="chapter-tree-wrap" className="flex-row rounded-md">
       {repertoire.map((entry, index) => {

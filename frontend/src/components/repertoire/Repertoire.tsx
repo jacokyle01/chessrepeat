@@ -12,6 +12,7 @@ const Repertoire: React.FC = () => {
   const numWhiteEntries = useTrainerStore().numWhiteEntries;
   const repertoireIndex = useTrainerStore().repertoireIndex;
 
+  // console.log("repertoire", repertoire);
   const whiteEntries: RepertoireChapter[] = repertoire.slice(0, numWhiteEntries);
   const blackEntries: RepertoireChapter[] = repertoire.slice(numWhiteEntries);
 
