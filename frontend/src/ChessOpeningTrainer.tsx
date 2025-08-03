@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { Chess } from 'chess.js';
 import Chessboard, { Key } from './components/Chessboard';
 import Controls, { ControlsProps } from './components/Controls';
+import {
+  build as makeTree,
+  path as treePath,
+  ops as treeOps,
+  type TreeWrapper,
+} from './components/tree/tree';
 
 // const pgn = 'd4 d5 c4 e6 Nf3 Nf6 g3';
 // const moves = pgn.split(' ');
@@ -54,12 +60,12 @@ import Controls, { ControlsProps } from './components/Controls';
 
 import { useEffect, useRef } from 'react';
 import { Config as CbConfig } from './components/Chessboard';
-import { DequeEntry, Method, Subrepertoire, TrainingData, TrainingPath } from './spaced-repetition/types';
-import { RepertoireEntry } from './types/types';
+import { DequeEntry, Method, Chapter, TrainingData, TrainingPath } from './spaced-repetition/types';
+import { RepertoireChapter, RepertoireEntry } from './types/types';
 import Repertoire, { RepertoireProps } from './components/repertoire/Repertoire';
-import { ChildNode, Game, parsePgn, PgnNodeData, walk } from 'chessops/pgn';
-import { Color } from 'chessops';
-import { countDueContext, generateSubrepertoire } from './spaced-repetition/util';
+import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
+import { Color, Position } from 'chessops';
+import { annotateMoves, countDueContext } from './spaced-repetition/util';
 import { alternates, foolsMate, nimzo, pgn3, transpose } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
@@ -76,8 +82,10 @@ import AddToReperotireModal from './components/repertoire/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
 import SettingsModal from './components/SettingsModal';
 import PgnControls from './components/pgn/PgnControls';
-import { postSubrepertoire } from './services/postSubrepertoire';
+import { postChapter } from './services/postChapter';
 import NewPgnTree from './components/tree/NewPgnTree';
+import { makeFen } from 'chessops/fen';
+import { makeSanAndPlay, parseSan } from 'chessops/san';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -109,6 +117,8 @@ const SOUNDS = {
 
 export const ChessOpeningTrainer = () => {
   const {
+    repertoireMode,
+    setRepertoireMode,
     trainingMethod,
     setTrainingMethod,
     showTrainingSettings,
@@ -149,17 +159,63 @@ export const ChessOpeningTrainer = () => {
   } = useTrainerStore();
 
   const [sounds, setSounds] = useState(SOUNDS);
-
-  const subrep = () => {
-    const repertoire = useTrainerStore.getState().repertoire;
-    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
-
-    return repertoire[repertoireIndex]?.subrep;
-  };
-
   //TODO put in util
   const currentTime = (): number => {
     return Math.round(Date.now() / 1000);
+  };
+
+  //TODO move somewhere else?
+  interface Opts {
+    parentPath: Tree.Path;
+    isMainline: boolean;
+    depth: number;
+    inline?: Tree.Node;
+    withIndex?: boolean;
+    truncate?: number;
+  }
+
+  interface Ctx {
+    truncateComments: boolean;
+    currentPath: Tree.Path | undefined;
+  }
+
+  //TODO
+  // export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
+  //   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
+
+  function treeReconstruct(parts: Tree.Node[], sidelines?: Tree.Node[][]): Tree.Node {
+    const root = parts[0],
+      nb = parts.length;
+    let node = root;
+    root.id = '';
+    for (let i = 1; i < nb; i++) {
+      const n = parts[i];
+      const variations = sidelines ? sidelines[i] : [];
+      if (node.children) node.children.unshift(n, ...variations);
+      else node.children = [n, ...variations];
+      node = n;
+    }
+    node.children = node.children || [];
+    return root;
+  }
+
+  const readNode = (
+    node: ChildNode<PgnNodeData>,
+    pos: Position,
+    ply: number,
+    withChildren = true,
+  ): Tree.Node => {
+    const move = parseSan(pos, node.data.san);
+    if (!move) throw new Error(`Can't play ${node.data.san} at move ${Math.ceil(ply / 2)}, ply ${ply}`);
+    return {
+      id: '', //TODO
+      ply,
+      san: makeSanAndPlay(pos, move),
+      fen: makeFen(pos.toSetup()),
+      // uci: makeUci(move),
+      children: withChildren ? node.children.map((child) => readNode(child, pos.clone(), ply + 1)) : [],
+      // check: pos.isCheck() ? makeSquare(pos.toSetup().board.kingOf(pos.turn)!) : undefined,
+    };
   };
 
   // TODO provide a more detailed breakdown, like when each one is due.
@@ -168,12 +224,11 @@ export const ChessOpeningTrainer = () => {
   // walk entire file and describe its state- when moves are due and such
   // store result in `dueTimes` array
   const updateDueCounts = (): void => {
-    const repertoire = useTrainerStore.getState().repertoire;
-    console.log("repertoire", repertoire);
     if (repertoire.length == 0) return;
-    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
-    const current = repertoire[repertoireIndex].subrep;
-    const root = current.moves;
+    const chapter = repertoire[repertoireIndex];
+    //TODO Node<unknown>
+    const root = chapter.tree.root;
+
     const ctx = countDueContext(0);
     const dueCounts = new Array(1 + srsConfig.buckets!.length).fill(0);
 
@@ -204,7 +259,7 @@ export const ChessOpeningTrainer = () => {
     let repertoire = useTrainerStore.getState().repertoire;
 
     console.log(repertoireIndex, trainingMethod);
-    if (repertoireIndex == -1 || method == 'unselected') return false; // no subrepertoire selected
+    if (repertoireIndex == -1 || method == 'unselected') return false; // no chapter selected
     console.log('GET NEXT NOW');
     //initialization
     let deque: DequeEntry[] = [];
@@ -288,10 +343,12 @@ export const ChessOpeningTrainer = () => {
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
     let trainingMethod = useTrainerStore.getState().trainingMethod;
 
+    const chapter = repertoire[repertoireIndex];
+
     // console.log('state', useTrainerStore.getState());
     console.log('training path in succeed', trainingPath);
     const node = trainingPath?.at(-1);
-    const subrep = repertoire[repertoireIndex].subrep;
+    // const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
 
     switch (trainingMethod) {
@@ -300,7 +357,7 @@ export const ChessOpeningTrainer = () => {
         setShowSuccessfulGuess(true);
 
         let groupIndex = node.data.training.group;
-        subrep.meta.bucketEntries[groupIndex]--;
+        chapter.bucketEntries[groupIndex]--;
         switch (srsConfig!.promotion) {
           case 'most':
             groupIndex = srsConfig!.buckets!.length - 1;
@@ -309,7 +366,7 @@ export const ChessOpeningTrainer = () => {
             groupIndex = Math.min(groupIndex + 1, srsConfig!.buckets!.length - 1);
             break;
         }
-        subrep.meta.bucketEntries[groupIndex]++;
+        chapter.bucketEntries[groupIndex]++;
         const interval = srsConfig!.buckets![groupIndex];
 
         node.data.training = {
@@ -326,7 +383,7 @@ export const ChessOpeningTrainer = () => {
           dueAt: currentTime() + srsConfig!.buckets![0],
           group: 0,
         };
-        subrep.meta.bucketEntries[0]++; //globally, mark node as seen
+        chapter.bucketEntries[0]++; //globally, mark node as seen
         break;
     }
   };
@@ -334,10 +391,11 @@ export const ChessOpeningTrainer = () => {
   const fail = () => {
     setShowSuccessfulGuess(false);
     let node = trainingPath?.at(-1);
-    const subrep = repertoire[repertoireIndex].subrep;
+    //TODO need more recent version?
+    const chapter = repertoire[repertoireIndex];
     if (!node) return;
     let groupIndex = node.data.training.group;
-    subrep.meta.bucketEntries[groupIndex]--;
+    chapter.bucketEntries[groupIndex]--;
     if (trainingMethod === 'recall') {
       setLastResult('fail');
       switch (srsConfig!.demotion) {
@@ -348,7 +406,7 @@ export const ChessOpeningTrainer = () => {
           groupIndex = Math.max(groupIndex - 1, 0);
           break;
       }
-      subrep.meta.bucketEntries[groupIndex]++;
+      chapter.bucketEntries[groupIndex]++;
       const interval = srsConfig!.buckets![groupIndex];
 
       node.data.training = {
@@ -381,13 +439,14 @@ export const ChessOpeningTrainer = () => {
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
+
+    const chapter = repertoire[repertoireIndex];
     setLastGuess(san);
     console.log('last guess', san);
-    const index = repertoireIndex;
-    if (index == -1 || !trainingPath || trainingMethod == 'learn') return;
+    if (repertoireIndex == -1 || !trainingPath || trainingMethod == 'learn') return;
     let candidates: ChildNode<TrainingData>[] = [];
     if (trainingPath.length == 1) {
-      repertoire[index].subrep.moves.children.forEach((child) => candidates.push(child));
+      repertoire[repertoireIndex].tree.root.children.forEach((child) => candidates.push(child));
     } else {
       trainingPath.at(-2)?.children.forEach((child) => candidates.push(child));
     }
@@ -423,6 +482,11 @@ export const ChessOpeningTrainer = () => {
     let trainingPath = useTrainerStore.getState().trainingPath;
     let pathIndex = useTrainerStore.getState().pathIndex;
     let trainingMethod = useTrainerStore.getState().trainingMethod;
+
+
+
+    //TODO get this
+    const chapter = repertoire[repertoireIndex];
     // console.log('trainingPath in opts from store', trainingPath);
     // console.log('pathIndex in opts', pathIndex);
     // console.log('Make CG OPTS');
@@ -474,14 +538,14 @@ export const ChessOpeningTrainer = () => {
     console.log('trainingPath', trainingPath);
 
     const config: CbConfig = {
-      orientation: subrep().meta.trainAs,
+      orientation: chapter.trainAs,
       fen: trainingPath[pathIndex]?.data.fen || initial,
       lastMove: lastMoves,
-      turnColor: subrep().meta.trainAs,
+      turnColor: chapter.trainAs,
 
       movable: {
         free: false,
-        color: subrep().meta.trainAs,
+        color: chapter.trainAs,
         dests:
           lastFeedback != 'fail' && atLast()
             ? trainingMethod === 'learn'
@@ -629,10 +693,10 @@ export const ChessOpeningTrainer = () => {
   //   // TODO why is PGN undefined?
   //   const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
   //   subreps.forEach((subrep, i) => {
-  //     //augment subrepertoire with a) color to train as, and b) training data
-  //     const annotatedSubrep: Subrepertoire<TrainingData> = {
+  //     //augment chapter with a) color to train as, and b) training data
+  //     const annotatedSubrep: Chapter<TrainingData> = {
   //       ...subrep,
-  //       ...generateSubrepertoire(subrep.moves, color, srsConfig.buckets!),
+  //       ...generateChapter(subrep.moves, color, srsConfig.buckets!),
   //     };
   //     if (i > 0) name += ` (${i + 1})`;
   //     const entry: RepertoireEntry = {
@@ -644,29 +708,68 @@ export const ChessOpeningTrainer = () => {
   //   });
   // };
 
-    const importToRepertoire = (pgn: string, color: Color, name: string) => {
+  const importToRepertoire = (pgn: string, color: Color, name: string) => {
     console.log('HERE');
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
-      //augment subrepertoire with a) color to train as, and b) training data
-      const annotatedSubrep: Subrepertoire<TrainingData> = {
-        ...subrep,
-        ...generateSubrepertoire(subrep.moves, color, srsConfig.buckets!),
-      };
+      //augment chapter with a) color to train as, and b) training data
+      // const annotatedSubrep: Chapter<TrainingData> = {
+      //   ...subrep,
+      //   ...generateChapter(subrep.moves, color, srsConfig.buckets!),
+      // };
+
+      const annotatedMoves = annotateMoves(subrep.moves, color);
+      // game<trainingData> --> Tree.Node
+      // empower chapters w/ tree operations
+
+      const start = startingPosition(defaultHeaders()).unwrap();
+      const fen = makeFen(start.toSetup());
+      const initialPly = (start.toSetup().fullmoves - 1) * 2 + (start.turn === 'white' ? 0 : 1);
+      const treeParts: Tree.Node[] = [
+        {
+          id: '',
+          ply: initialPly,
+          fen,
+          children: [],
+        },
+      ];
+      let tree = annotatedMoves.moves;
+      const pos = start;
+      const sidelines: Tree.Node[][] = [[]];
+      let index = 0;
+      while (tree.children.length) {
+        const [mainline, ...variations] = tree.children;
+        const ply = initialPly + index + 1;
+        sidelines.push(variations.map((variation) => readNode(variation, pos.clone(), ply)));
+        treeParts.push(readNode(mainline, pos, ply, false));
+        tree = mainline;
+        index += 1;
+      }
+      console.log('treeparts', treeParts);
+      console.log('sidelines', sidelines);
+      const newTree = makeTree(treeReconstruct(treeParts, sidelines));
+      // return newTree;
+      console.log('new tree', newTree);
+
       if (i > 0) name += ` (${i + 1})`;
-      const entry: RepertoireEntry = {
-        subrep: annotatedSubrep,
-        name,
+
+      //TODO refactor (and possibly combine) annotateMoves and the above logic ^ creating a Tree
+      const chapter: RepertoireChapter = {
+        tree: newTree,
+        name: name,
+        bucketEntries: srsConfig.buckets.map(() => 0),
+        nodeCount: 100, //TODO
         lastDueCount: 0,
+        trainAs: color,
       };
 
-      // add to local store
-      addRepertoireEntry(entry, color);
-      
-      // POST to backend 
-      console.log("entry", entry);
-      postSubrepertoire(entry, color, name);
+      // // add to local store
+      // addRepertoireEntry(entry, color);
+
+      // // POST to backend
+      // console.log('entry', entry);
+      // postChapter(entry, color, name);
     });
   };
 
@@ -720,17 +823,17 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     // addToRepertoire(alternates(), 'black', 'Alternates');
-    importToRepertoire(foolsMate(), 'white', 'nimzo dimzo');
+    importToRepertoire(nimzo(), 'black', 'nimzo dimzo');
 
-    // setRepertoireIndex(0);
-    // setTrainingMethod('learn');
-    // handleLearn();
-    // succeed();
-    // handleLearn();
-    // succeed();
-    // handleLearn();
-    // succeed();
-    // handleLearn();
+    setRepertoireIndex(0);
+    setTrainingMethod('learn');
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleLearn();
+    succeed();
+    handleLearn();
     // succeed();
     // handleLearn();
     // succeed();
@@ -799,14 +902,15 @@ export const ChessOpeningTrainer = () => {
           <Schedule />
         </div>
         <div className="flex flex-col items-between flex-1">
-          <div id="board-wrap" className='bg-white p-1'>
-          <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
+          <div id="board-wrap" className="bg-white p-1">
+            <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
           </div>
-            
+
           <Controls {...controlsProps} />
         </div>
         <div className="flex flex-col flex-1 h-full">
-          <PgnTree makeCgOpts={makeCgOpts} />
+          {/* <PgnTree makeCgOpts={makeCgOpts} /> */}
+          <NewPgnTree></NewPgnTree>
           <Feedback {...feedbackProps} />
           <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
         </div>

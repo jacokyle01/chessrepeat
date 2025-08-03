@@ -136,7 +136,7 @@ const newSubrepForm = (ctrl: PrepCtrl): VNode | false => {
               //TODO fix reverse
               if (!checked('annotated')) {
                 console.log('annotated!');
-                ctrl.importAnnotatedSubrepertoire(fieldValue('pgn'));
+                ctrl.importAnnotatedChapter(fieldValue('pgn'));
               } else {
                 ctrl.addToRepertoire(
                   fieldValue('pgn'),
@@ -267,7 +267,7 @@ const editMenu = (ctrl: PrepCtrl): VNode | false => {
 
               const merged = mergeTrees(ctrl, ctrl.subrep(), newTree[0].moves);
               console.log('merged', merged);
-              // replace subrepertoire
+              // replace chapter
               ctrl.repertoire[ctrl.repertoireIndex].subrep = merged;
               console.log('Submitted');
               //TODO different conditional?
@@ -317,7 +317,7 @@ const editMenu = (ctrl: PrepCtrl): VNode | false => {
   );
 };
 
-//TODO add sidebar under repertoire tree with information specific to this subrepertoire that we are training
+//TODO add sidebar under repertoire tree with information specific to this chapter that we are training
 //stats & # due
 //date added
 const view = (ctrl: PrepCtrl): VNode => {

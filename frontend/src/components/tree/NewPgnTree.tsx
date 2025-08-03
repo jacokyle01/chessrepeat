@@ -1,7 +1,7 @@
 
 // TODO: comments:
 import { useTrainerStore } from '../../state/state';
-import { type ChildNode, Game, parsePgn, type PgnNodeData, startingPosition } from 'chessops/pgn';
+import { type ChildNode, defaultHeaders, Game, parsePgn, type PgnNodeData, startingPosition } from 'chessops/pgn';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
 import { makeUci, Position } from 'chessops';
@@ -66,8 +66,8 @@ const readNode = (
 };
 
 const convertToTree = (root: Game<PgnNodeData>): TreeWrapper => {
-  const headers = new Map(Array.from(root.headers, ([key, value]) => [key.toLowerCase(), value]));
-  const start = startingPosition(root.headers).unwrap();
+  // const headers = new Map(Array.from(root.headers, ([key, value]) => [key.toLowerCase(), value]));
+  const start = startingPosition(defaultHeaders()).unwrap();
   const fen = makeFen(start.toSetup());
   const initialPly = (start.toSetup().fullmoves - 1) * 2 + (start.turn === 'white' ? 0 : 1);
   const treeParts: Tree.Node[] = [
@@ -78,6 +78,7 @@ const convertToTree = (root: Game<PgnNodeData>): TreeWrapper => {
       children: [],
     },
   ];
+  console.log("root in CtT", root);
   let tree = root.moves;
   const pos = start;
   const sidelines: Tree.Node[][] = [[]];
@@ -352,16 +353,37 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
 }
 
 export default function NewPgnTree() {
-  const game = parsePgn(nimzo());
-  const tree = convertToTree(game[0]);
-  console.log('tree', tree);
+  // const game = parsePgn(nimzo());
+  // const tree = convertToTree(game[0]);
+  // console.log('tree', tree);
 
-  const root = tree.root;
+  // const root = tree.root;
+
+    const repertoire = useTrainerStore.getState().repertoire;
+    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+    // const pathIndex = useTrainerStore.getState().pathIndex;
+    // const pathIndex = useTrainerStore.getState().pathIndex;
+
+    
+    
+    // TODO conditionally use path or root, depending on context  
+
+
+    // TODO ???
+    if (!repertoire[repertoireIndex]) return;
+    const game = repertoire[repertoireIndex].subrep;
+    console.log("game", game);
+    // TODO handle multiple root nodes, possibly upon PGN import... (dont allow chapter w/ multiple roots)
+    const tree = convertToTree(game);
+    const root = tree.root;
+  
+
 
   const ctx: Ctx = {
     currentPath: '',
     truncateComments: false,
   };
+
 
   const blackStarts = (root.ply & 1) === 1;
 

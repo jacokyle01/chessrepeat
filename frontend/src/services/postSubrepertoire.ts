@@ -1,16 +1,16 @@
 import { RepertoireEntry } from '../types/types';
 import { baseUrl } from './constants';
 
-export const postSubrepertoire = async (entry: RepertoireEntry, color: string, alias: string) => {
-  console.log("entry", entry.subrep);
+export const postChapter = async (entry: RepertoireEntry, color: string, alias: string) => {
+  console.log('entry', entry.subrep);
   const outgoingRequest = {
     name: alias,
     tree: entry.subrep.moves,
     meta: {
       trainAs: color,
-      nodeCount: entry.subrep.meta.nodeCount,
-      bucketEntries: entry.subrep.meta.bucketEntries
-    }
+      nodeCount: entry.chapter.nodeCount,
+      bucketEntries: entry.chapter.bucketEntries,
+    },
   };
 
   const url = baseUrl + '/games/add';

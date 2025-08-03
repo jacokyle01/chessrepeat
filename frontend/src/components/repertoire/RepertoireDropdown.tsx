@@ -17,7 +17,7 @@ const RepertoireDropdown: React.FC<RepertoireDropdownProps> = ({ thisIndex, star
 
   const handleDelete = () => {
     console.log('Delete clicked');
-    // ctrl.deleteSubrepertoire(absoluteIndex);
+    // ctrl.deleteChapter(absoluteIndex);
     // ctrl.subrepSettingsIndex = -1;
   };
 

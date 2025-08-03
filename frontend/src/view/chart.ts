@@ -80,15 +80,15 @@ function insightChart(ctrl: PrepCtrl, el: HTMLCanvasElement, data: BarData) {
       },
     },
   };
-  
-// @ts-ignore: Suppress the error for this line
+
+  // @ts-ignore: Suppress the error for this line
   const chart = new Chart(el, config) as BarChart;
   chart.updateData = (d) => {
     // console.log('UPDATING CHART');
     // console.log(d);
     chart.data = {
-      labels: ["now", ...ctrl.srsConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)],
-      
+      labels: ['now', ...ctrl.srsConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)],
+
       datasets: [
         {
           // @ts-ignore: Suppress the error for this line
@@ -124,9 +124,9 @@ function chartHook(vnode: VNode, ctrl: PrepCtrl) {
   const subrep = ctrl.subrep();
   if (!subrep) return;
   // console.log(subrep);
-  // console.log(subrep.meta.bucketEntries);
+  // console.log(chapter.bucketEntries);
 
-  // const meta = ctrl.subrep().meta;
+  // const meta = ctrl.chapter;
   // const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
 
   const barData = ctrl.dueTimes;

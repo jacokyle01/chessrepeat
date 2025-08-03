@@ -1,4 +1,4 @@
-import { Color, CountDueContext, PathContext, Subrepertoire, TrainingContext, TrainingData } from './types';
+import { Color, CountDueContext, PathContext, Chapter, TrainingContext, TrainingData } from './types';
 import { defaultPosition } from 'chessops/variant';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
@@ -37,17 +37,17 @@ export const countDueContext = (count: number): CountDueContext => {
 //a) marks moves made by our color as "trainable"
 //b) disables training of moves made by opposite color
 
-export const generateSubrepertoire = (
+export const annotateMoves = (
   root: Node<PgnNodeData>,
   color: Color,
-  buckets: number[],
+  // buckets: number[],
 ): {
   moves: Node<TrainingData>;
-  meta: {
-    trainAs: Color;
-    nodeCount: number;
-    bucketEntries: number[];
-  };
+  // meta: {
+  //   trainAs: Color;
+  //   nodeCount: number;
+  //   bucketEntries: number[];
+  // };
 } => {
   const context = trainingContext(color);
   let idCount = 0;
@@ -79,11 +79,11 @@ export const generateSubrepertoire = (
         },
       };
     }),
-    meta: {
-      trainAs: color,
-      nodeCount: trainableNodes,
-      bucketEntries: buckets.map(() => 0),
-    },
+    // meta: {
+    //   trainAs: color,
+    //   nodeCount: trainableNodes,
+    //   bucketEntries: buckets.map(() => 0),
+    // },
   };
 };
 
@@ -101,9 +101,9 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
   // add training control headers
   headers.set('RepertoireFileName', entry.name);
   headers.set('LastDueCount', `${entry.lastDueCount}`);
-  headers.set('TrainAs', entry.subrep.meta.trainAs);
-  headers.set('bucketEntries', entry.subrep.meta.bucketEntries.toString());
-  headers.set('nodeCount', `${entry.subrep.meta.nodeCount}`);
+  headers.set('TrainAs', entry.chapter.trainAs);
+  headers.set('bucketEntries', entry.chapter.bucketEntries.toString());
+  headers.set('nodeCount', `${entry.chapter.nodeCount}`);
   headers.set('Event', 'ChessrepeatRepertoireFile');
   headers.set('Time', currentTime.toString());
 
@@ -119,11 +119,11 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
     return newNode;
   });
 
-  let subrep: Subrepertoire<TrainingData> = {
+  let subrep: Chapter<TrainingData> = {
     meta: {
-      trainAs: entry.subrep.meta.trainAs,
-      nodeCount: entry.subrep.meta.nodeCount,
-      bucketEntries: entry.subrep.meta.bucketEntries,
+      trainAs: entry.chapter.trainAs,
+      nodeCount: entry.chapter.nodeCount,
+      bucketEntries: entry.chapter.bucketEntries,
     },
     headers,
     moves: annotatedMoves,
@@ -133,18 +133,21 @@ export const exportRepertoireEntry = (entry: RepertoireEntry) => {
   return pgn;
 };
 
-export const mergeTrees = (ctrl: PrepCtrl, subrep: Subrepertoire<TrainingData>, newPgn: Node<PgnNodeData>): Subrepertoire<TrainingData> => {
-  // annotate newPgn moves 
-  const newSubrep = generateSubrepertoire(newPgn, subrep.meta.trainAs, ctrl.srsConfig.buckets!);
+export const mergeTrees = (
+  ctrl: PrepCtrl,
+  subrep: Chapter<TrainingData>,
+  newPgn: Node<PgnNodeData>,
+): Chapter<TrainingData> => {
+  // annotate newPgn moves
+  const newSubrep = generateChapter(newPgn, chapter.trainAs, ctrl.srsConfig.buckets!);
   console.log(newPgn);
   const mergedPgn = mergePgns(subrep.moves, newSubrep.moves);
-  const mergedSubrep: Subrepertoire<TrainingData> = {
+  const mergedSubrep: Chapter<TrainingData> = {
     ...subrep,
-    moves: mergedPgn
-  }
+    moves: mergedPgn,
+  };
   return mergedSubrep;
-}
-
+};
 
 let i = 0;
 export const mergePgns = (oldPgn: Node<PgnNodeData>, newPgn: Node<PgnNodeData>): Node<TrainingData> => {

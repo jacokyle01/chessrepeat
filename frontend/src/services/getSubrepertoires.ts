@@ -1,8 +1,8 @@
-import { NewSubrepertoire } from '../types/types';
+import { NewChapter } from '../types/types';
 import { baseUrl } from './constants';
 
-export const fetchSubrepertoires = async (): Promise<NewSubrepertoire[]> => {
-  const url = baseUrl + '/subrepertoires'
+export const fetchChapters = async (): Promise<NewChapter[]> => {
+  const url = baseUrl + '/chapters';
   try {
     const response = await fetch(url, {
       headers: {
@@ -14,11 +14,11 @@ export const fetchSubrepertoires = async (): Promise<NewSubrepertoire[]> => {
     }
 
     const json = await response.json();
-    const subreps: NewSubrepertoire[] = json.map((subrep: any) => {
+    const subreps: NewChapter[] = json.map((subrep: any) => {
       return {
         pgn: subrep.pgn,
         trainAs: subrep.color === 1 ? 'black' : 'white',
-        alias: subrep.alias
+        alias: subrep.alias,
       };
     });
     return subreps;

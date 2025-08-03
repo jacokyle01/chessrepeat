@@ -24,15 +24,15 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
 
   return (
-    <div id="subrepertoire-tree-wrap" className="flex-row rounded-md">
+    <div id="chapter-tree-wrap" className="flex-row rounded-md">
       {repertoire.map((entry, index) => {
-        const meta = entry.subrep.meta;
+        const meta = entry.chapter;
         const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
         const name = entry.name;
         const fullIndex = index + startsAt;
 
         const handleClick = () => {
-          // ctrl.selectSubrepertoire(fullIndex);
+          // ctrl.selectChapter(fullIndex);
           setRepertoireIndex(fullIndex);
         };
 
@@ -45,11 +45,11 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
         return (
           <div
             key={fullIndex}
-            id="subrepertoire-wrap"
+            id="chapter-wrap"
             onClick={handleClick}
             className={repertoireIndex === fullIndex ? 'bg-cyan-50' : ''}
           >
-            <div className="subrepertoire flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
+            <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
               <span className="font-bold pr-3 text-blue-600">{fullIndex + 1}</span>
               <h3 className="text-lg font-light flex-1 gap-2 flex items-end">
                 <span className="text-md">{name}</span>

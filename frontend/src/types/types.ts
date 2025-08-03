@@ -1,8 +1,12 @@
 import { Chart } from 'chart.js';
-import { Color, Subrepertoire, TrainingData } from '../spaced-repetition/types';
+import { Color, Chapter, TrainingData } from '../spaced-repetition/types';
+import { TreeWrapper } from '../components/tree/tree';
+
+//TODO better organizatoin of types
+export type RepertoireMode = 'train' | 'edit';
 
 export type Redraw = () => void;
-export interface NewSubrepertoire {
+export interface NewChapter {
   pgn: string;
   trainAs: Color;
   alias: string;
@@ -20,26 +24,32 @@ export interface BarChart extends Chart {
   updateData(d: BarData): void;
 }
 
-export interface BarData {
-}
-
+export interface BarData {}
 
 //Dont do this?? Remember each node has FEN
 export interface PgnViewContext {
   splitFen: string[] | null;
-  index: number | "last"
+  index: number | 'last';
 }
 
-//TODO remove this and only use headers 
 export interface RepertoireEntry {
-  name: string 
-	subrep: Subrepertoire<TrainingData>
-	lastDueCount: number
+  name: string;
+  subrep: Chapter<TrainingData>;
+  lastDueCount: number;
 }
 
 export interface LichessStudy {
-  id: number,
-  name: string,
-  createdAt: number,
-  updatedAt: number
+  id: number;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RepertoireChapter {
+  tree: TreeWrapper;
+  name: string;
+  lastDueCount: number;
+  trainAs: Color;
+  nodeCount: number;
+  bucketEntries: number[];
 }

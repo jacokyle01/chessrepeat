@@ -4,7 +4,7 @@ import { looseH as h } from '../types/snabbdom';
 import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
 const recall = (ctrl: PrepCtrl): VNode => {
-  const isWhite = ctrl.subrep().meta.trainAs === 'white';
+  const isWhite = ctrl.chapter.trainAs === 'white';
   return h('div#recall.border-t-4.border-blue-500.rounded-md.shadow-lg', [
     h('div.bg-white.flex.items-center.justify-center.py-12.px-6.gap-3', [
       h('div.w-12.h-12.flex.items-center.justify-center', isWhite ? whiteKingI() : blackKingI()),
@@ -33,7 +33,7 @@ const recall = (ctrl: PrepCtrl): VNode => {
 };
 
 const learn = (ctrl: PrepCtrl): VNode => {
-  const isWhite = ctrl.subrep().meta.trainAs === 'white';
+  const isWhite = ctrl.chapter.trainAs === 'white';
   return h(
     'div.bg-white.flex.items-center.justify-center.py-12.px-6.rounded-md.shadow-lg.border-t-4.border-blue-500.gap-3',
     [
@@ -63,7 +63,7 @@ const empty = (): VNode => {
 };
 
 const fail = (ctrl: PrepCtrl): VNode => {
-  const isWhite = ctrl.subrep().meta.trainAs === 'white';
+  const isWhite = ctrl.chapter.trainAs === 'white';
   return h('div#recall.border-t-2', [
     h('div.bg-white.py-10.shadow-md.flex.flex-col.items-center', [
       h('div.flex.flex-row.justify-center.items-center.w-full.space-x-5', [
@@ -90,7 +90,7 @@ const fail = (ctrl: PrepCtrl): VNode => {
 };
 
 const alternate = (ctrl: PrepCtrl): VNode => {
-  const isWhite = ctrl.subrep().meta.trainAs === 'white';
+  const isWhite = ctrl.chapter.trainAs === 'white';
   return h('div#recall.border-t-2', [
     h('div.bg-white.py-10.shadow-md.flex.flex-col.items-center', [
       h('div.flex.flex-row.justify-center.items-center.w-full.space-x-5', [

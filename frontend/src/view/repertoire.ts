@@ -21,7 +21,7 @@ const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
             click: () => {
               console.log('Delete clicked');
               console.log(thisIndex + startsAt);
-              ctrl.deleteSubrepertoire(thisIndex + startsAt);
+              ctrl.deleteChapter(thisIndex + startsAt);
               ctrl.subrepSettingsIndex = -1;
               ctrl.redraw();
             },
@@ -73,7 +73,7 @@ const dropdownMenu = (ctrl: PrepCtrl, thisIndex: number, startsAt: number) =>
 
 export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, startsAt: number): VNode => {
   // console.log(repertoire.length);
-  return h('div#subrepertoire-tree-wrap.flex-row.rounded-md', [
+  return h('div#chapter-tree-wrap.flex-row.rounded-md', [
     ...repertoire.map(
       (
         entry,
@@ -81,22 +81,22 @@ export const repertoire = (repertoire: RepertoireEntry[], ctrl: PrepCtrl, starts
       ) => {
         // console.log("subreperoire index", index);
         // console.log("reperoire length", repertoire.length);
-        const meta = entry.subrep.meta;
+        const meta = entry.chapter;
         const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
         const name = entry.name;
 
         return h(
-          'div#subrepertoire-wrap',
+          'div#chapter-wrap',
           {
             on: {
-              click: () => ctrl.selectSubrepertoire(index + startsAt),
+              click: () => ctrl.selectChapter(index + startsAt),
             },
             class: {
               'bg-cyan-50': ctrl.repertoireIndex == index + startsAt,
             },
           },
           [
-            h('div.subrepertoire.flex.items-center.justify-around.hover:bg-cyan-50.pl-4.py-0.5', [
+            h('div.chapter.flex.items-center.justify-around.hover:bg-cyan-50.pl-4.py-0.5', [
               h('span.font-bold.pr-3.text-blue-600', (index + startsAt + 1).toString()),
               h('h3.text-lg.font-light.flex-1.gap-2.flex.items-end', [
                 h('span.text-md', name),

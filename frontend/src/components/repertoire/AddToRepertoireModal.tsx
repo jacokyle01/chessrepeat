@@ -22,13 +22,12 @@ const AddToReperotireModal: React.FC<Props> = ({ importToRepertoire }) => {
 
     if (!annotated) {
       console.log('annotated!');
-      // ctrl.importAnnotatedSubrepertoire(pgn);
+      // ctrl.importAnnotatedChapter(pgn);
     } else {
       // ctrl.addToRepertoire(pgn, color, name);
       importToRepertoire(pgn, color, name);
-
     }
-    // TODO 
+    // TODO
     // ctrl.toggleAddingNewSubrep();
   };
 

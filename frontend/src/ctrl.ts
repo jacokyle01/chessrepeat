@@ -5,16 +5,9 @@ import { Key, MoveMetadata } from 'chessground/types';
 import { Config as CgConfig } from 'chessground/config';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 import { configure, Config as SrsConfig } from '../src/spaced-repetition/config';
-import {
-  Color,
-  DequeEntry,
-  Method,
-  TrainingPath,
-  Subrepertoire,
-  TrainingData,
-} from './spaced-repetition/types';
+import { Color, DequeEntry, Method, TrainingPath, Chapter, TrainingData } from './spaced-repetition/types';
 import { ChildNode, Game, parsePgn, PgnNodeData, startingPosition, walk, transform } from 'chessops/pgn';
-import { countDueContext, exportRepertoireEntry, generateSubrepertoire } from './spaced-repetition/util';
+import { countDueContext, exportRepertoireEntry, generateChapter } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
 import { init } from './debug/init';
 
@@ -172,10 +165,10 @@ export default class PrepCtrl {
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
-      //augment subrepertoire with a) color to train as, and b) training data
-      const annotatedSubrep: Subrepertoire<TrainingData> = {
+      //augment chapter with a) color to train as, and b) training data
+      const annotatedSubrep: Chapter<TrainingData> = {
         ...subrep,
-        ...generateSubrepertoire(subrep.moves, color, this.srsConfig!.buckets!),
+        ...generateChapter(subrep.moves, color, this.srsConfig!.buckets!),
       };
       if (i > 0) name += ` (${i + 1})`;
       const entry: RepertoireEntry = {
@@ -214,7 +207,7 @@ export default class PrepCtrl {
 
   // TODO return trainingPath, then we set it
   getNext = () => {
-    if (this.repertoireIndex == -1 || this.method == 'unselected') return false; // no subrepertoire selected
+    if (this.repertoireIndex == -1 || this.method == 'unselected') return false; // no chapter selected
     //initialization
     let deque: DequeEntry[] = [];
     let subrep = this.repertoire[this.repertoireIndex].subrep;
@@ -305,7 +298,7 @@ export default class PrepCtrl {
       case 'recall':
         this.lastResult = 'succeed';
         let groupIndex = node.data.training.group;
-        subrep.meta.bucketEntries[groupIndex]--;
+        chapter.bucketEntries[groupIndex]--;
         switch (this.srsConfig!.promotion) {
           case 'most':
             groupIndex = this.srsConfig!.buckets!.length - 1;
@@ -314,7 +307,7 @@ export default class PrepCtrl {
             groupIndex = Math.min(groupIndex + 1, this.srsConfig!.buckets!.length - 1);
             break;
         }
-        subrep.meta.bucketEntries[groupIndex]++;
+        chapter.bucketEntries[groupIndex]++;
         const interval = this.srsConfig!.buckets![groupIndex];
 
         node.data.training = {
@@ -330,7 +323,7 @@ export default class PrepCtrl {
           dueAt: this.currentTime + this.srsConfig!.buckets![0],
           group: 0,
         };
-        subrep.meta.bucketEntries[0]++; //globally, mark node as seen
+        chapter.bucketEntries[0]++; //globally, mark node as seen
         break;
     }
   };
@@ -346,7 +339,7 @@ export default class PrepCtrl {
 
     this.lastResult = 'alternate';
     let groupIndex = node.data.training.group;
-    subrep.meta.bucketEntries[groupIndex]--;
+    chapter.bucketEntries[groupIndex]--;
     switch (this.srsConfig!.promotion) {
       case 'most':
         groupIndex = this.srsConfig!.buckets!.length - 1;
@@ -355,7 +348,7 @@ export default class PrepCtrl {
         groupIndex = Math.min(groupIndex + 1, this.srsConfig!.buckets!.length - 1);
         break;
     }
-    subrep.meta.bucketEntries[groupIndex]++;
+    chapter.bucketEntries[groupIndex]++;
     const interval = this.srsConfig!.buckets![groupIndex];
 
     node.data.training = {
@@ -370,7 +363,7 @@ export default class PrepCtrl {
     const subrep = this.repertoire[this.repertoireIndex].subrep;
     if (!node) return;
     let groupIndex = node.data.training.group;
-    subrep.meta.bucketEntries[groupIndex]--;
+    chapter.bucketEntries[groupIndex]--;
     if (this.method === 'recall') {
       this.lastResult = 'fail';
       switch (this.srsConfig!.demotion) {
@@ -381,7 +374,7 @@ export default class PrepCtrl {
           groupIndex = Math.max(groupIndex - 1, 0);
           break;
       }
-      subrep.meta.bucketEntries[groupIndex]++;
+      chapter.bucketEntries[groupIndex]++;
       const interval = this.srsConfig!.buckets![groupIndex];
 
       node.data.training = {
@@ -423,10 +416,10 @@ export default class PrepCtrl {
     this.dueTimes = dueCounts;
   };
 
-  // resets subrepertoire-specific context,
-  // e.x. for selecting a different subrepertoire for training
+  // resets chapter-specific context,
+  // e.x. for selecting a different chapter for training
 
-  clearSubrepertoireContext = () => {
+  clearChapterContext = () => {
     this.lastFeedback = 'init';
     //TODO do automatic recall/learn
     // reset board
@@ -443,11 +436,11 @@ export default class PrepCtrl {
     return this.repertoire[this.repertoireIndex]?.subrep;
   };
 
-  selectSubrepertoire = (which: number) => {
+  selectChapter = (which: number) => {
     if (which == this.repertoireIndex) return;
     this.repertoireIndex = which;
     this.method = 'unselected';
-    this.clearSubrepertoireContext();
+    this.clearChapterContext();
     this.redraw();
     this.chessground?.setAutoShapes([]);
   };
@@ -519,13 +512,13 @@ export default class PrepCtrl {
     // shapes.push({orig: 'e5', brush: 'green', customSvg: {html: correctMoveI()}})
 
     const config: CgConfig = {
-      orientation: this.subrep().meta.trainAs,
+      orientation: this.chapter.trainAs,
       fen: this.trainingPath[this.pathIndex]?.data.fen || initial,
       lastMove: lastMoves,
-      turnColor: this.subrep().meta.trainAs,
+      turnColor: this.chapter.trainAs,
 
       movable: {
-        color: this.subrep().meta.trainAs,
+        color: this.chapter.trainAs,
         dests:
           this.lastFeedback != 'fail' && this.atLast()
             ? this.method === 'learn'
@@ -689,7 +682,7 @@ export default class PrepCtrl {
     An annotated repertoire is one that's already been labeled (headers & comments) 
     for training 
   */
-  importAnnotatedSubrepertoire = (pgn: string) => {
+  importAnnotatedChapter = (pgn: string) => {
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
@@ -747,7 +740,7 @@ export default class PrepCtrl {
       newEntry.lastDueCount = parseInt(subrep.headers.get('LastDueCount')!);
       newEntry.subrep = subrep;
 
-      newEntry.subrep.meta = {
+      newEntry.chapter = {
         trainAs: subrep.headers.get('TrainAs')! as Color,
         nodeCount: parseInt(subrep.headers.get('nodeCount')!),
         bucketEntries: subrep.headers
@@ -757,12 +750,12 @@ export default class PrepCtrl {
       };
 
       // this.repertoire.push(newEntry);
-      this.addRepertoireEntry(newEntry, newEntry.subrep.meta.trainAs);
+      this.addRepertoireEntry(newEntry, newEntry.chapter.trainAs);
     });
     this.redraw();
   };
 
-  deleteSubrepertoire = (index: number) => {
+  deleteChapter = (index: number) => {
     this.repertoire.splice(index, 1);
   };
 

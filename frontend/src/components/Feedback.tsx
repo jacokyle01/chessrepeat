@@ -15,14 +15,14 @@ const isWhite = true;
 const Recall = ({ handleFail }) => {
   //TODO change
   let isWhite = true;
-  // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
+  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
   const toggleShowingHint = useTrainerStore.getState().showingHint;
 
   return (
     <div className="bg-white justify-center border border-gray-300 gap-5 rounded-b-xl">
       <div className="bg-white flex items-center justify-center py-12 px-6 gap-3">
         <div className="w-12 h-12 flex items-center justify-center">
-        <Repeat2 className="w-14 h-14" />
+          <Repeat2 className="w-14 h-14" />
         </div>
         <div>
           <h1 className="font-bold text-2xl text-gray-800">Your move</h1>
@@ -51,7 +51,7 @@ const Recall = ({ handleFail }) => {
 };
 
 const Learn = () => {
-  // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
+  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
   const san = useTrainerStore((s) => s.trainingPath.at(-1)?.data.san);
 
   return (
@@ -77,7 +77,7 @@ const Empty = () => (
 );
 
 const FailOrAlternate = () => {
-  // const isWhite = useTrainerStore(s => s.subrep.meta.trainAs === 'white');
+  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
   const san = useTrainerStore((s) => s.trainingPath.at(-1)?.data.san);
   const lastGuess = useTrainerStore.getState().lastGuess;
   // const fail = useTrainerStore(s => s.fail);

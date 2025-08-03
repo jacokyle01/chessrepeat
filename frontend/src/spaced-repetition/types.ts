@@ -9,7 +9,7 @@ export type TrainingOutcome = 'success' | 'alternate' | 'failure';
 export interface TrainingContext {
   trainable: boolean;
   id: number;
-  pos: Position
+  pos: Position;
   clone(): TrainingContext;
 }
 
@@ -21,13 +21,13 @@ export interface TrainingData extends PgnNodeData {
     group: number;
     dueAt: number;
   };
-  fen: string
+  fen: string;
 }
 
-export interface Subrepertoire<T> extends Game<T> {
+export interface Chapter<T> extends Game<T> {
   meta: {
     trainAs: Color;
-    //TODO should be determined dynamically ? or at least at import time 
+    //TODO should be determined dynamically ? or at least at import time
     nodeCount: number;
     bucketEntries: number[];
     //all unseen nodes can be derived from:
@@ -52,6 +52,6 @@ export interface PathContext {
 }
 
 export interface CountDueContext {
-  count: number
+  count: number;
   clone(): CountDueContext;
 }

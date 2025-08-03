@@ -1,12 +1,15 @@
 // state/trainerStore.ts
 import { create } from 'zustand';
-import { RepertoireEntry } from '../types/types';
+import { RepertoireChapter, RepertoireEntry, RepertoireMode } from '../types/types';
 import { Method, TrainingPath } from '../spaced-repetition/types';
 import { Config as SrsConfig, defaults } from '../spaced-repetition/config';
 import { Config as CbConfig } from 'chessground/config';
 
 interface TrainerState {
   // UI
+  repertoireMode: RepertoireMode;
+  setRepertoireMode: (r: RepertoireMode) => void;
+
   trainingMethod: Method;
   setTrainingMethod: (m: Method) => void;
 
@@ -17,8 +20,8 @@ interface TrainerState {
   setShowingAddToRepertoireMenu: (val: boolean) => void;
 
   // Repertoire
-  repertoire: RepertoireEntry[];
-  setRepertoire: (r: RepertoireEntry[]) => void;
+  repertoire: RepertoireChapter[];
+  setRepertoire: (r: RepertoireChapter[]) => void;
 
   numWhiteEntries: number;
   setNumWhiteEntries: (n: number) => void;
@@ -31,11 +34,7 @@ interface TrainerState {
   setTrainingPath: (p: TrainingPath) => void;
 
   pathIndex: number;
-  setPathIndex: (i: number) => void;
-
-
-
-  
+  setPathIndex: (i: number) => void;  
 
   showingHint: boolean;
   setShowingHint: (v: boolean) => void;
@@ -68,6 +67,9 @@ interface TrainerState {
 
 export const useTrainerStore = create<TrainerState>((set) => ({
   // UI
+  repertoireMode: 'train',
+  setRepertoireMode: (repertoireMode) => set({ repertoireMode }),
+
   trainingMethod: 'unselected',
   setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
 
@@ -93,6 +95,8 @@ export const useTrainerStore = create<TrainerState>((set) => ({
 
   pathIndex: -1,
   setPathIndex: (i) => set({ pathIndex: i }),
+
+
 
   showingHint: false,
   setShowingHint: (v) => set({ showingHint: v }),
