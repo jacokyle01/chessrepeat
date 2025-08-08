@@ -60,7 +60,13 @@ import {
 
 import { useEffect, useRef } from 'react';
 import { Config as CbConfig } from './components/Chessground';
-import { DequeEntry, Chapter, TrainingData, trainingNodeList } from './spaced-repetition/types';
+import {
+  DequeEntry,
+  Chapter,
+  TrainingData,
+  trainingNodeList,
+  TrainableContext,
+} from './spaced-repetition/types';
 import { RepertoireChapter, RepertoireEntry } from './types/types';
 import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
@@ -88,6 +94,7 @@ import { makeFen } from 'chessops/fen';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { MantineProvider } from '@mantine/core';
+import { Debug } from './components/Debug';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -130,8 +137,8 @@ export const ChessOpeningTrainer = () => {
     repertoireIndex,
     setRepertoireIndex,
 
-    trainingNodeList,
-    setTrainingNodeList,
+    // trainingNodeList,
+    // setTrainingNodeList,
     // pathIndex,
     // setPathIndex,
     showingHint,
@@ -159,11 +166,14 @@ export const ChessOpeningTrainer = () => {
 
     selectedNode,
 
-    trainingPath,
-    setTrainingPath,
+    // trainingPath,
+    // setTrainingPath,
 
     repertoireMethod,
     setRepertoireMethod,
+
+    trainableContext,
+    setTrainableContext,
   } = useTrainerStore();
 
   const [sounds, setSounds] = useState(SOUNDS);
@@ -275,7 +285,8 @@ Returns a Tree.Path string
 - TODO: more verbose return values - give more context for why `nextTrainablePath()` failed
  */
 
-  const nextTrainablePath = (): Tree.Path | null => {
+  //TODO return path to position + target Tree.Node
+  const nextTrainablePath = (): TrainableContext | null => {
     let method = useTrainerStore.getState().repertoireMethod;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
     let repertoire = useTrainerStore.getState().repertoire;
@@ -288,7 +299,8 @@ Returns a Tree.Path string
     interface DequeEntry {
       nodeList: Tree.Node[];
       layer: number;
-      path: string;
+      pathToHere: string;
+      targetNode: Tree.Node;
     }
 
     const deque: DequeEntry[] = [];
@@ -302,7 +314,8 @@ Returns a Tree.Path string
       deque.push({
         nodeList: [child],
         layer: 0,
-        path: child.id,
+        pathToHere: '',
+        targetNode: child,
       });
     }
     while (deque.length != 0) {
@@ -323,7 +336,11 @@ Returns a Tree.Path string
 
               // settrainingNodeList(entry.nodeList);
               // return true;
-              return entry.path;
+              return {
+                startingPath: entry.pathToHere,
+                targetMove: entry.targetNode,
+              };
+              // entry.path
             }
             break;
           case 'learn': //learn if unseen
@@ -333,7 +350,10 @@ Returns a Tree.Path string
               // this.changedLines = !this.pathIsContinuation(this.trainingNodeList, entry.path);
               // settrainingNodeList(entry.nodeList);
               // return true;
-              return entry.path;
+              return {
+                startingPath: entry.pathToHere,
+                targetMove: entry.targetNode,
+              };
             }
             break;
         }
@@ -347,7 +367,8 @@ Returns a Tree.Path string
           const DequeEntry: DequeEntry = {
             nodeList: [...entry.nodeList, child],
             layer: ++entry.layer,
-            path: entry.path + child.id,
+            pathToHere: entry.pathToHere + entry.targetNode.id,
+            targetNode: child,
           };
           deque.push(DequeEntry);
         }
@@ -360,12 +381,13 @@ Returns a Tree.Path string
   are we at the end of the training path?
   */
   const atLast = (): boolean => {
+    if (!trainableContext) return false;
     // return useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingNodeList.length - 2;
     //
     const selectedPath = useTrainerStore.getState().selectedPath;
-    const trainingPath = useTrainerStore.getState().trainingPath;
+    const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
 
-    return selectedPath == trainingPath;
+    return selectedPath && trainingPath && selectedPath == trainingPath;
   };
 
   const flipBoard = () => {
@@ -380,15 +402,18 @@ Returns a Tree.Path string
   };
 
   const succeed = () => {
-    console.log('succeed');
-    let trainingNodeList = useTrainerStore.getState().trainingNodeList;
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+    const chapter = repertoire[repertoireIndex];
+    const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
+    const targetNode = useTrainerStore.getState().trainableContext.targetMove;
+    const trainingNodeList: Tree.Node[] = [...chapter.tree.getNodeList(pathToTrain), targetNode];
+    console.log('succeed');
+
     let repertoireMethod = useTrainerStore.getState().repertoireMethod;
 
     // console.log('method', trainingMethod);
-
-    const chapter = repertoire[repertoireIndex];
 
     // console.log('&&&&&&&& bucket entries', chapter.bucketEntries);
 
@@ -448,7 +473,8 @@ Returns a Tree.Path string
 
   const fail = () => {
     setShowSuccessfulGuess(false);
-    let node = trainingNodeList?.at(-1);
+    let node = useTrainerStore.getState().trainableContext.targetMove;
+
     //TODO need more recent version?
     const chapter = repertoire[repertoireIndex];
     if (!node) return;
@@ -497,10 +523,18 @@ Returns a Tree.Path string
   //TODO clean this up
   const makeGuess = (san: string) => {
     setLastGuess(san);
-    console.log('last guess', san);
-    let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+    const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
+    const targetNode = useTrainerStore.getState().trainableContext.targetMove;
+    const trainingNodeList: Tree.Node[] = chapter.tree.getNodeList(pathToTrain).push(targetNode);
+
+    console.log('succeed');
+
+    console.log('last guess', san);
+    // let trainingNodeList = useTrainerStore.getState().trainingNodeList;
 
     if (repertoireIndex == -1 || !trainingNodeList || repertoireMethod == 'learn') return;
 
@@ -510,7 +544,7 @@ Returns a Tree.Path string
     if (trainingNodeList.length == 1) {
       repertoire[repertoireIndex].tree.root.children.forEach((child) => candidates.push(child));
     } else {
-      trainingNodeList.at(-2)?.children.forEach((child) => candidates.push(child));
+      trainingNodeList.at(-1)?.children.forEach((child) => candidates.push(child));
     }
 
     let moves: string[] = [];
@@ -685,17 +719,22 @@ Returns a Tree.Path string
     console.log('handlelearn --> ', useTrainerStore.getState().repertoireMethod);
     // mututes path
 
-    const maybePath: Tree.Path | null = nextTrainablePath();
-    if (!maybePath) {
+    const maybeCtx: TrainableContext | null = nextTrainablePath();
+    if (!maybeCtx) {
       setLastFeedback('empty');
       // console.log('no next');
     } else {
-      const path = maybePath;
-      setSelectedPath(path);
-      setTrainingPath(path);
-      const nodeList = chapter.tree.getNodeList(path);
-      setTrainingNodeList(nodeList);
-      setSelectedNode(nodeList.at(-2));
+      setTrainableContext(maybeCtx);
+      const targetPath = maybeCtx.startingPath;
+      setSelectedPath(targetPath);
+      const nodeList = chapter.tree.getNodeList(targetPath);
+      setSelectedNode(nodeList.at(-1));
+
+      // setSelectedPath(path);
+      // setTrainingPath(path);
+      // const nodeList = chapter.tree.getNodeList(path);
+      // setTrainingNodeList(nodeList);
+      // setSelectedNode(nodeList.at(-2));
       // console.log('nodeList in learn', nodeList);
 
       // console.log('TRAINING PATH', useTrainerStore.getState().trainingNodeList);
@@ -1078,14 +1117,14 @@ Returns a Tree.Path string
   The current move we're training
   */
   const targetDest = (): Key[] => {
-    const targetSan = trainingNodeList?.at(-1)?.san || 'e4';
-    const uci = calcTarget(selectedNode?.fen || initial, targetSan!);
+    const targetNode = useTrainerStore.getState().trainableContext.targetMove;
+    const uci = calcTarget(selectedNode?.fen || initial, targetNode.san!);
     return uci;
   };
 
   const createShapes = (): DrawShape[] => {
     const result = [];
-    console.log("method", repertoireMethod)
+    console.log('method', repertoireMethod);
     if (!isEditing) {
       const uci = targetDest();
       if (repertoireMethod === 'learn' && atLast()) {
@@ -1115,7 +1154,7 @@ Returns a Tree.Path string
       console.log('result', result);
       return result;
     }
-    // no moves when in edit - temporary solution 
+    // no moves when in edit - temporary solution
     return new Map();
   };
 
@@ -1205,6 +1244,7 @@ Returns a Tree.Path string
           </div>
         </div>
       </div>
+      <Debug atLast={atLast} />
     </MantineProvider>
   );
 };

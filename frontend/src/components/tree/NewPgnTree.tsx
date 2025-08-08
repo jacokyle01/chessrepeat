@@ -65,7 +65,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; op
       data-path={path}
       className={`move items-center self-start flex shadow-md basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] pr-[4.74px] text-[#4d4d4d] overflow-hidden font-bold text-red-400 ${activeClass}`}
     >
-      {node.san}
+      {`${node.san} ${path}`}
     </div>
   );
 }
@@ -215,11 +215,17 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
 }
 
 function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+  let repertoire = useTrainerStore.getState().repertoire;
+  let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+  const chapter = repertoire[repertoireIndex];
+
+  const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
+  const path: Tree.Node[] = chapter.tree.getNodeList(pathToTrain);
+
   const method = useTrainerStore.getState().repertoireMethod;
 
   // console.log('node', node);
   const ply = node.ply;
-  const path = useTrainerStore.getState().trainingNodeList;
   // console.log('PATH', path);
   // console.log(ply, 'ply', path, 'path');
 
@@ -261,7 +267,8 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   const cs = node.children.filter((x, i) => {
     // console.log('x.san', x.san, 'vs', path[ply + 1].san);
     return (
-      method == 'edit' || (ply < path.length - 2 && x.san == path[ply + 1].san && (ctx.showComputer || !x.comp))
+      method == 'edit' ||
+      (ply < path.length - 1 && x.san == path[ply + 1].san && (ctx.showComputer || !x.comp))
     );
   });
   // console.log('FOUND', cs);
@@ -406,7 +413,7 @@ export default function NewPgnTree({ jump }) {
   return (
     <div
       onMouseDown={handleMouseDown}
-      className="tview2 tview2-column overflow-y-auto max-h-[1000px] flex flex-row flex-wrap items-start bg-white"
+      className="tview2 tview2-column overflow-y-auto max-h-[500px] flex flex-row flex-wrap items-start bg-white"
     >
       {blackStarts && root.ply}
       {blackStarts && <EmptyMove />}

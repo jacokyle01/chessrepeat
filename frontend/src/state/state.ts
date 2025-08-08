@@ -1,7 +1,7 @@
 // state/trainerStore.ts
 import { create } from 'zustand';
 import { RepertoireChapter, RepertoireEntry, RepertoireMode } from '../types/types';
-import { Method, RepertoireMethod } from '../spaced-repetition/types';
+import { RepertoireMethod, TrainableContext } from '../spaced-repetition/types';
 import { Config as SrsConfig, defaults } from '../spaced-repetition/config';
 import { Config as CbConfig } from 'chessground/config';
 
@@ -32,12 +32,21 @@ interface TrainerState {
   repertoireIndex: number;
   setRepertoireIndex: (i: number) => void;
 
-  // Training //TODO do we need both? 
-  trainingNodeList: Tree.Node[];
-  setTrainingNodeList: (p: Tree.Node[]) => void;
+  // // Training //TODO do we need both? 
+  // trainingNodeList: Tree.Node[];
+  // setTrainingNodeList: (p: Tree.Node[]) => void;
 
-  trainingPath: Tree.Path;
-  setTrainingPath: (p: Tree.Path) => void;
+  // trainingPath: Tree.Path;
+  // setTrainingPath: (p: Tree.Path) => void;
+
+
+
+  /*
+  Context relevant to describe a trainable position- 
+  the path to the position and the node itself 
+  */
+  trainableContext: TrainableContext | undefined;
+  setTrainableContext: (t: TrainableContext) => void;
 
 
 
@@ -108,12 +117,15 @@ export const useTrainerStore = create<TrainerState>((set) => ({
   repertoireIndex: 0,
   setRepertoireIndex: (i) => set({ repertoireIndex: i }),
 
-  // Training
-  trainingNodeList: [],
-  setTrainingNodeList: (path) => set({ trainingNodeList: path }),
+  // // Training
+  // trainingNodeList: [],
+  // setTrainingNodeList: (path) => set({ trainingNodeList: path }),
 
-  trainingPath: '',
-  setTrainingPath: (path) => set({trainingPath: path}),
+  // trainingPath: '',
+  // setTrainingPath: (path) => set({trainingPath: path}),
+
+  trainableContext: undefined,
+  setTrainableContext: (t) => set({trainableContext: t}),
 
   selectedPath: '',
   setSelectedPath: (path) => set({ selectedPath: path }),

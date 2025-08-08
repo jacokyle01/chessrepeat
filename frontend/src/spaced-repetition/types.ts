@@ -1,10 +1,15 @@
-// TODO "core" folder or something for main spaced repetition logic and types 
+// TODO "core" folder or something for main spaced repetition logic and types
 import { Position } from 'chessops';
 import { ChildNode, Game, PgnNodeData } from 'chessops/pgn';
 
 export type Color = 'white' | 'black';
 // export type Method = 'recall' | 'learn' | 'unselected';
 export type TrainingOutcome = 'success' | 'alternate' | 'failure';
+
+export interface TrainableContext {
+  startingPath: Tree.Path;
+  targetMove: Tree.Node;
+}
 
 //TODO trainAsColor, depth, only first child
 export interface TrainingContext {
