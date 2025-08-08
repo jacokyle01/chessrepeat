@@ -360,9 +360,9 @@ const view = (ctrl: PrepCtrl): VNode => {
             h('div#add-comment-wrap.flex', []),
             h('div#copy-wrap', [
               h('div.text-md.font-bold', 'FEN'),
-              copyMe(ctrl, ctrl.trainingPath[ctrl.pathIndex]?.data.fen || ''),
+              copyMe(ctrl, ctrl.trainingNodeList[ctrl.pathIndex]?.data.fen || ''),
               h('div.text-md.font-bold', 'PGN'),
-              copyMe(ctrl, ctrl.trainingPath.map((node) => node.data.san).join(' ') || ''),
+              copyMe(ctrl, ctrl.trainingNodeList.map((node) => node.data.san).join(' ') || ''),
             ]),
           ]), //TODO from top-to-bottom: mode-wrap, board, informational messages
       h('div#side.w-1/3.flex-col', [pgnTree(ctrl)]),

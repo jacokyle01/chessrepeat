@@ -76,10 +76,10 @@ const CommentNode = ({
   nodeNumber: number;
   commentNumber: number;
 }) => {
-  const trainingPath = useTrainerStore((s) => s.trainingPath);
+  const trainingNodeList = useTrainerStore((s) => s.trainingNodeList);
 
   const handleDelete = () => {
-    const comments = trainingPath[nodeNumber]?.data?.comments;
+    const comments = trainingNodeList[nodeNumber]?.data?.comments;
     if (comments) {
       comments.splice(commentNumber, 1);
     }
@@ -110,17 +110,17 @@ export interface PgnTreeProps {
 }
 
 export const PgnTree: React.FC<PgnTreeProps> = ({ makeCgOpts }) => {
-  // const trainingPath = useTrainerStore((s) => s.trainingPath);
+  // const trainingNodeList = useTrainerStore((s) => s.trainingNodeList);
   // const pathIndex = useTrainerStore((s) => s.pathIndex);
   // const redraw = useTrainerStore((s) => s.redraw);
-  const trainingPath = useTrainerStore.getState().trainingPath;
+  const trainingNodeList = useTrainerStore.getState().trainingNodeList;
   const pathIndex = useTrainerStore.getState().pathIndex;
 
   const rows: React.ReactNode[] = [];
   let elms: React.ReactNode[] = [];
   let ply = 0;
-  for (let i = 0; i < trainingPath.length - 1; i++) {
-    const node = trainingPath[i];
+  for (let i = 0; i < trainingNodeList.length - 1; i++) {
+    const node = trainingNodeList[i];
     const even = i % 2 === 0;
 
     if (even) elms.push(<IndexNode key={`idx-${i}`} turn={Math.floor(ply / 2)} />);

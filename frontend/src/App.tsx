@@ -1,5 +1,5 @@
 import React from 'react';
-import ChessOpeningTrainer from './ChessOpeningTrainer';
+import ChessOpeningTrainer from './Chessrepeat';
 
 const App: React.FC = () => {
   return (

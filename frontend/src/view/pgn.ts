@@ -94,10 +94,10 @@ const commentNode = (ctrl: PrepCtrl, text: string, nodeNumber: number, commentNu
         {
           on: {
             click: () => {
-              let data = ctrl.trainingPath.at(nodeNumber)!.data.comments;
+              let data = ctrl.trainingNodeList.at(nodeNumber)!.data.comments;
               console.log('comment clicked');
-              console.log('move', ctrl.trainingPath.at(nodeNumber)!.data.san);
-              console.log('comment', ctrl.trainingPath.at(nodeNumber)!.data.comments);
+              console.log('move', ctrl.trainingNodeList.at(nodeNumber)!.data.san);
+              console.log('comment', ctrl.trainingNodeList.at(nodeNumber)!.data.comments);
               // remove comment at commentNumber
               data!.splice(commentNumber, 1);
               ctrl.redraw();
@@ -143,7 +143,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
       {
         on: {
           click: () => {
-            ctrl.jump(Math.min(ctrl.trainingPath.length - 2, ctrl.pathIndex + 1));
+            ctrl.jump(Math.min(ctrl.trainingNodeList.length - 2, ctrl.pathIndex + 1));
           },
         },
       },
@@ -154,7 +154,7 @@ const pgnControls = (ctrl: PrepCtrl): VNode => {
       {
         on: {
           click: () => {
-            ctrl.jump(ctrl.trainingPath.length - 2);
+            ctrl.jump(ctrl.trainingNodeList.length - 2);
           },
         },
         class: {
@@ -171,8 +171,8 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
   let rows: VNode[] = [];
 
   let ply = 0;
-  for (let i = 0; i < ctrl.trainingPath.length - 1; i++) {
-    const node = ctrl.trainingPath[i];
+  for (let i = 0; i < ctrl.trainingNodeList.length - 1; i++) {
+    const node = ctrl.trainingNodeList[i];
     const move = node.data.san;
     const evenMove = i % 2 == 0;
     if (evenMove) elms.push(indexNode(Math.floor(ply / 2)));
@@ -208,7 +208,7 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
   }
 
   return (
-    ctrl.trainingPath &&
+    ctrl.trainingNodeList &&
     h('div', [
       h('div#pgn_side.h-1/3.flex.flex-col.shadow-md.rounded-t-lg.bg-white', [
         h('div#moves.overflow-auto.h-80', rows),
@@ -225,10 +225,10 @@ export const pgnTree = (ctrl: PrepCtrl): VNode => {
             on: {
               click: () => {
                 let comment = fieldValue('comment-input');
-                if (!ctrl.trainingPath.at(ctrl.pathIndex)!.data.comments) {
-                  ctrl.trainingPath.at(ctrl.pathIndex)!.data.comments = [];
+                if (!ctrl.trainingNodeList.at(ctrl.pathIndex)!.data.comments) {
+                  ctrl.trainingNodeList.at(ctrl.pathIndex)!.data.comments = [];
                 }
-                ctrl.trainingPath!.at(ctrl.pathIndex)!.data!.comments!.push(comment);
+                ctrl.trainingNodeList!.at(ctrl.pathIndex)!.data!.comments!.push(comment);
                 ctrl.redraw();
               },
             },

@@ -89,7 +89,7 @@ export function merge(n1: Tree.Node, n2: Tree.Node): void {
 }
 
 export const hasBranching = (node: Tree.Node, maxDepth: number): boolean => {
-  console.log("has branching?");
+  // console.log("has branching?");
   return maxDepth <= 0 || !!node.children[1] || (node.children[0] && hasBranching(node.children[0], maxDepth - 1));
 }
 export const mainlineNodeList = (from: Tree.Node): Tree.Node[] => collect(from, pickFirstChild);

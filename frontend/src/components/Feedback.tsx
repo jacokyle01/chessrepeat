@@ -52,7 +52,7 @@ const Recall = ({ handleFail }) => {
 
 const Learn = () => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-  const san = useTrainerStore((s) => s.trainingPath.at(-1)?.san);
+  const san = useTrainerStore((s) => s.trainingNodeList.at(-1)?.san);
 
   return (
     <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-5 rounded-b-xl">
@@ -78,7 +78,7 @@ const Empty = () => (
 
 const FailOrAlternate = () => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-  const san = useTrainerStore((s) => s.trainingPath.at(-1)?.san);
+  const san = useTrainerStore((s) => s.trainingNodeList.at(-1)?.san);
   const lastGuess = useTrainerStore.getState().lastGuess;
   // const fail = useTrainerStore(s => s.fail);
   // const handleRecall = useTrainerStore(s => s.handleRecall);

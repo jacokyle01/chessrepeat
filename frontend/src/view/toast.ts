@@ -42,7 +42,7 @@ const learn = (ctrl: PrepCtrl): VNode => {
         h('h1.font-bold.text-xl.text-gray-800', 'Your move'),
         h(
           'h2.text-md.text-gray-600',
-          `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`,
+          `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingNodeList.at(-1)!.data.san}`,
         ),
       ]),
     ],
@@ -70,7 +70,7 @@ const fail = (ctrl: PrepCtrl): VNode => {
         h('div.text-red-500.text-6xl.font-bold', '✗'),
         h('div#failure', [
           h('h2.text-xl.font-semibold', `${ctrl.lastGuess} is Incorrect`),
-          h('p.text-lg', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`),
+          h('p.text-lg', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingNodeList.at(-1)!.data.san}`),
         ]),
       ]),
       h(
@@ -97,7 +97,7 @@ const alternate = (ctrl: PrepCtrl): VNode => {
         h('div.text-red-500.text-6xl.font-bold', '✗'),
         h('div#failure', [
           h('h2.text-xl.font-semibold', `${ctrl.lastGuess} is Incorrect`),
-          h('p.text-lg', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingPath.at(-1)!.data.san}`),
+          h('p.text-lg', `${isWhite ? 'White' : 'Black'} plays ${ctrl.trainingNodeList.at(-1)!.data.san}`),
         ]),
       ]),
       h(

@@ -8,6 +8,7 @@ import { LucideFileEdit, Settings } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
+// const { setOrientation } = useTrainerStore();
 
 interface RepertoireSectionProps {
   repertoire: RepertoireChapter[];
@@ -21,7 +22,10 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
   repertoireIndex,
 }) => {
   // const [repertoireIndex, setRepertoireIndex] = useAtom(repertoireIndexAtom);
+
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
+  const setOrientation = useStore(useTrainerStore, (s) => s.setOrientation);
+
   // console.log("repertoire section", repertoire);
   return (
     <div id="chapter-tree-wrap" className="flex-row rounded-md">
@@ -31,9 +35,11 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
         const name = entry.name;
         const fullIndex = index + startsAt;
 
-        const handleClick = () => {
+        const handleChangeChapter = () => {
           // ctrl.selectChapter(fullIndex);
           setRepertoireIndex(fullIndex);
+          const chapter = repertoire[repertoireIndex];
+          setOrientation(chapter.trainAs);
         };
 
         // const handleSettingsClick = (e: React.MouseEvent) => {
@@ -46,7 +52,7 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
           <div
             key={fullIndex}
             id="chapter-wrap"
-            onClick={handleClick}
+            onClick={handleChangeChapter}
             className={repertoireIndex === fullIndex ? 'bg-cyan-50' : ''}
           >
             <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">

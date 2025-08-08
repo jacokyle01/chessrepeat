@@ -1,14 +1,14 @@
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 
-const PgnControls = ({makeCgOpts}) => {
-  const trainingPath = useTrainerStore.getState().trainingPath;
+const PgnControls = ({ makeCgOpts }) => {
+  const trainingNodeList = useTrainerStore.getState().trainingNodeList;
   //TODO store these f's within store
-  let atLast = useTrainerStore.getState().pathIndex === trainingPath.length - 2;
+  let atLast = useTrainerStore.getState().pathIndex === trainingNodeList.length - 2;
   const pathIndex = useTrainerStore((s) => s.pathIndex);
   const setPathIndex = useTrainerStore((state) => state.setPathIndex);
-  const lastLength = trainingPath.length - 2;
-//TODO better solution for syncing chessground state w/ react store state 
+  const lastLength = trainingNodeList.length - 2;
+  //TODO better solution for syncing chessground state w/ react store state
   return (
     <div id="pgn-control" className="flex justify-between w-3/4 mt-3 items-center m-auto">
       <button
@@ -42,7 +42,7 @@ const PgnControls = ({makeCgOpts}) => {
       <button
         onClick={() => {
           setPathIndex(Math.min(lastLength, pathIndex + 1));
-           const opts = makeCgOpts();
+          const opts = makeCgOpts();
           useTrainerStore.setState((state) => ({
             cbConfig: {
               ...state.cbConfig,

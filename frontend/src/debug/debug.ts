@@ -6,7 +6,7 @@ export const debug = (ctrl: PrepCtrl): VNode => {
     h('div', 'DEBUG'),
     h('div', `pathIndex: ${ctrl.pathIndex}`),
 
-    h('div', `path length: ${ctrl.trainingPath.length + ''}`),
+    h('div', `path length: ${ctrl.trainingNodeList.length + ''}`),
     h('div', `at last? : ${ctrl.atLast()}`),
     h('div', `train by: ${ctrl.method}`),
     // h('div', `exploration strategy: ${ctrl}`),
@@ -19,7 +19,6 @@ export const debug = (ctrl: PrepCtrl): VNode => {
     h('div', `Subrep settings index, ${ctrl.subrepSettingsIndex}`),
     h('div', `LastDueCount: ${ctrl.repertoire[ctrl.repertoireIndex]?.lastDueCount}`),
 
-
     h(
       'button', // Element type
       {
@@ -30,10 +29,14 @@ export const debug = (ctrl: PrepCtrl): VNode => {
       },
       'CONFIG', // Button text
     ),
-    h('button', {
-      on: {
-        click: () => ctrl?.chessground!.redrawAll()
-      }
-    }, 'REDRAW')
+    h(
+      'button',
+      {
+        on: {
+          click: () => ctrl?.chessground!.redrawAll(),
+        },
+      },
+      'REDRAW',
+    ),
   ]);
 };

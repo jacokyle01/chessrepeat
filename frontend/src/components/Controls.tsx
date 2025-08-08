@@ -31,9 +31,9 @@ const Controls: React.FC<ControlsProps> = ({
 
   const lastGuess = useTrainerStore.getState().lastGuess;
   const showLastMoveCorrect = useTrainerStore.getState().showSuccessfulGuess;
-  const setRepertoireMode = useTrainerStore((s) => s.setRepertoireMode);
-  const repertoireMode = useTrainerStore.getState().repertoireMode;
-  const isTrain = repertoireMode == 'train';
+  const setRepertoireMethod = useTrainerStore((s) => s.setRepertoireMethod);
+  const repertoireMethod = useTrainerStore.getState().repertoireMethod;
+  const isTrain = repertoireMethod == 'learn' || repertoireMethod == 'recall';
 
 
   const LastMoveCorrect = () => {
@@ -58,7 +58,7 @@ const Controls: React.FC<ControlsProps> = ({
       {/* train/edit controls */}
       <div className="flex gap-1 bg-white flex items-end h-12 mr-auto p-1" id="training-controls">
         <button
-          onClick={() => setRepertoireMode('train')}
+          onClick={() => setRepertoireMethod('')}
           className={`text-white font-bold py-2 px-4 rounded flex border-gray-700 hover:border-gray-600 hover:bg-gray-400 active:transform active:translate-y-px active:border-b ${
             isTrain ? 'bg-gray-500 translate-y-px transform border-b' : 'bg-gray-600 border-b-4'
           }`}
@@ -68,7 +68,7 @@ const Controls: React.FC<ControlsProps> = ({
         </button>
 
         <button
-          onClick={() => setRepertoireMode('edit')}
+          onClick={() => setRepertoireMethod('edit')}
           className={`gap-1 text-white font-bold py-2 px-4 rounded flex border-gray-700 hover:border-gray-500 hover:bg-gray-300 active:transform active:translate-y-px active:border-b ${
             !isTrain ? 'bg-gray-400 translate-y-px transform border-b' : 'bg-gray-500 border-b-4'
           }`}

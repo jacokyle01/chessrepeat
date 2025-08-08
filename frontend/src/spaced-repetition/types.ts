@@ -1,8 +1,9 @@
+// TODO "core" folder or something for main spaced repetition logic and types 
 import { Position } from 'chessops';
 import { ChildNode, Game, PgnNodeData } from 'chessops/pgn';
 
 export type Color = 'white' | 'black';
-export type Method = 'recall' | 'learn' | 'unselected';
+// export type Method = 'recall' | 'learn' | 'unselected';
 export type TrainingOutcome = 'success' | 'alternate' | 'failure';
 
 //TODO trainAsColor, depth, only first child
@@ -35,10 +36,10 @@ export interface Chapter<T> extends Game<T> {
   };
 }
 
-export type TrainingPath = ChildNode<TrainingData>[];
+export type trainingNodeList = ChildNode<TrainingData>[];
 
 export interface DequeEntry {
-  path: TrainingPath;
+  path: trainingNodeList;
   layer: number;
 }
 

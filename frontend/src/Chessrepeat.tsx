@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Chess } from 'chess.js';
-import Chessboard, { Key } from './components/Chessboard';
+import Chessboard, { Chessground, Key } from './components/Chessground';
 import Controls, { ControlsProps } from './components/Controls';
 import {
   build as makeTree,
@@ -59,8 +59,8 @@ import {
 // export default ChessOpeningTrainer;
 
 import { useEffect, useRef } from 'react';
-import { Config as CbConfig } from './components/Chessboard';
-import { DequeEntry, Method, Chapter, TrainingData, TrainingPath } from './spaced-repetition/types';
+import { Config as CbConfig } from './components/Chessground';
+import { DequeEntry, Chapter, TrainingData, trainingNodeList } from './spaced-repetition/types';
 import { RepertoireChapter, RepertoireEntry } from './types/types';
 import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
@@ -86,6 +86,8 @@ import { postChapter } from './services/postChapter';
 import NewPgnTree from './components/tree/NewPgnTree';
 import { makeFen } from 'chessops/fen';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
+import { scalachessCharPair } from 'chessops/compat';
+import { MantineProvider } from '@mantine/core';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -114,13 +116,8 @@ const SOUNDS = {
   move: new Audio('/sound/public_sound_standard_Move.mp3'),
   capture: new Audio('/sound/public_sound_standard_Capture.mp3'),
 };
-
 export const ChessOpeningTrainer = () => {
   const {
-    repertoireMode,
-    setRepertoireMode,
-    trainingMethod,
-    setTrainingMethod,
     showTrainingSettings,
     setShowTrainingSettings,
     showingAddToRepertoireMenu,
@@ -133,10 +130,10 @@ export const ChessOpeningTrainer = () => {
     repertoireIndex,
     setRepertoireIndex,
 
-    trainingPath,
-    setTrainingPath,
-    pathIndex,
-    setPathIndex,
+    trainingNodeList,
+    setTrainingNodeList,
+    // pathIndex,
+    // setPathIndex,
     showingHint,
     setShowingHint,
     lastFeedback,
@@ -156,6 +153,17 @@ export const ChessOpeningTrainer = () => {
     setSrsConfig,
     cbConfig,
     setCbConfig,
+
+    setSelectedPath,
+    setSelectedNode,
+
+    selectedNode,
+
+    trainingPath,
+    setTrainingPath,
+
+    repertoireMethod,
+    setRepertoireMethod,
   } = useTrainerStore();
 
   const [sounds, setSounds] = useState(SOUNDS);
@@ -208,7 +216,7 @@ export const ChessOpeningTrainer = () => {
     const move = parseSan(pos, node.data.san);
     if (!move) throw new Error(`Can't play ${node.data.san} at move ${Math.ceil(ply / 2)}, ply ${ply}`);
     return {
-      id: '', //TODO
+      id: scalachessCharPair(move),
       ply,
       san: makeSanAndPlay(pos, move),
       fen: makeFen(pos.toSetup()),
@@ -226,7 +234,7 @@ export const ChessOpeningTrainer = () => {
   };
 
   // TODO provide a more detailed breakdown, like when each one is due.
-  // TODO combine this with getNext() so we don't need to walk the tree twice
+  // TODO combine this with nextTrainablePath() so we don't need to walk the tree twice
 
   // walk entire file and describe its state- when moves are due and such
   // store result in `dueTimes` array
@@ -259,62 +267,73 @@ export const ChessOpeningTrainer = () => {
     // setDueTimes(dueCounts);
   };
 
-  // TODO return trainingPath, then we set it
-  const getNext = () => {
-    let method = useTrainerStore.getState().trainingMethod;
+  /*
+Returns a Tree.Path string 
+- easier to set selected node in the DOM 
+- have to use getNodeList() to convert to Tree.Node[] 
+- generally easier to convert from path to node
+- TODO: more verbose return values - give more context for why `nextTrainablePath()` failed
+ */
+
+  const nextTrainablePath = (): Tree.Path | null => {
+    let method = useTrainerStore.getState().repertoireMethod;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
     let repertoire = useTrainerStore.getState().repertoire;
 
-    console.log(repertoireIndex, trainingMethod);
-    if (repertoireIndex == -1 || method == 'unselected') return false; // no chapter selected
-    console.log('GET NEXT NOW');
+    // console.log(repertoireIndex, trainingMethod);
+    if (repertoireIndex == -1 || method == 'edit') return null; // no chapter selected
+    // console.log('GET NEXT NOW');
     //initialization
     // TODO refactor to ops or tree file?
     interface DequeEntry {
-      path: Tree.Node[];
+      nodeList: Tree.Node[];
       layer: number;
+      path: string;
     }
 
     const deque: DequeEntry[] = [];
 
     let tree = repertoire[repertoireIndex].tree;
-    console.log('tree', tree);
+    // console.log('tree', tree);
     //initialize deque
     const root = tree.root;
     for (const child of root.children) {
-      console.log('tree child', child);
+      // console.log('tree child', child);
       deque.push({
-        path: [child],
+        nodeList: [child],
         layer: 0,
+        path: child.id,
       });
     }
     while (deque.length != 0) {
       //initialize dedequed path
       const entry = srsConfig!.getNext!.by == 'breadth' ? deque.shift()! : deque.pop()!;
-      const pos = entry.path.at(-1)!;
+      const pos = entry.nodeList.at(-1)!;
 
       //test if match
       if (!pos.disabled) {
         switch (method) {
           case 'recall': //recall if due
             if (pos.dueAt <= currentTime()) {
-              // this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
+              // this.changedLines = !this.pathIsContinuation(this.trainingNodeList, entry.path);
               // TODO better way of doing this
-              // shouldn't be handled in getNext(). use handleLineChange().
+              // shouldn't be handled in nextTrainablePath(). use handleLineChange().
               // if (this.changedLines) {
               // }
 
-              setTrainingPath(entry.path);
-              return true;
+              // settrainingNodeList(entry.nodeList);
+              // return true;
+              return entry.path;
             }
             break;
           case 'learn': //learn if unseen
             if (!pos.seen) {
-              console.log('Here');
-              console.log('path', entry.path);
-              // this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
-              setTrainingPath(entry.path);
-              return true;
+              // console.log('Here');
+              // console.log('path', entry.nodeList);
+              // this.changedLines = !this.pathIsContinuation(this.trainingNodeList, entry.path);
+              // settrainingNodeList(entry.nodeList);
+              // return true;
+              return entry.path;
             }
             break;
         }
@@ -326,18 +345,27 @@ export const ChessOpeningTrainer = () => {
         // TODO ?
         for (const child of pos.children) {
           const DequeEntry: DequeEntry = {
-            path: [...entry.path, child],
+            nodeList: [...entry.nodeList, child],
             layer: ++entry.layer,
+            path: entry.path + child.id,
           };
           deque.push(DequeEntry);
         }
       }
     }
-    return false;
+    return null;
   };
 
-  const atLast = () => {
-    return useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingPath.length - 2;
+  /*
+  are we at the end of the training path?
+  */
+  const atLast = (): boolean => {
+    // return useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingNodeList.length - 2;
+    //
+    const selectedPath = useTrainerStore.getState().selectedPath;
+    const trainingPath = useTrainerStore.getState().trainingPath;
+
+    return selectedPath == trainingPath;
   };
 
   const flipBoard = () => {
@@ -353,24 +381,24 @@ export const ChessOpeningTrainer = () => {
 
   const succeed = () => {
     console.log('succeed');
-    let trainingPath = useTrainerStore.getState().trainingPath;
+    let trainingNodeList = useTrainerStore.getState().trainingNodeList;
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
-    let trainingMethod = useTrainerStore.getState().trainingMethod;
+    let repertoireMethod = useTrainerStore.getState().repertoireMethod;
 
-    console.log("method", trainingMethod);
+    // console.log('method', trainingMethod);
 
     const chapter = repertoire[repertoireIndex];
 
-    console.log("&&&&&&&& bucket entries", chapter.bucketEntries);
+    // console.log('&&&&&&&& bucket entries', chapter.bucketEntries);
 
     // console.log('state', useTrainerStore.getState());
-    console.log('training path in succeed', trainingPath);
-    let node = trainingPath?.at(-1);
+    // console.log('training path in succeed', trainingNodeList);
+    let node = trainingNodeList?.at(-1);
     // const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
 
-    switch (trainingMethod) {
+    switch (repertoireMethod) {
       case 'recall':
         setLastResult('succeed');
         setShowSuccessfulGuess(true);
@@ -397,37 +425,36 @@ export const ChessOpeningTrainer = () => {
         node.dueAt = currentTime() + interval;
         break;
       case 'learn':
-        console.log("node in question", node);
-        console.log('succeed successful');
+        // console.log('node in question', node);
+        // console.log('succeed successful');
         // node = {
         //   ...node,
         //   seen: true,
         //   dueAt: currentTime() + srsConfig!.buckets![0],
         //   group: 0,
         // };
-        // TODO use node.training instead? 
+        // TODO use node.training instead?
         node.seen = true;
         node.dueAt = currentTime() + srsConfig!.buckets![0];
         node.group = 0;
         chapter.bucketEntries[0]++; //globally, mark node as seen
-        console.log("node in question", node);
-        console.log("repertoire should change", useTrainerStore.getState().repertoire)
+        // console.log('node in question', node);
+        // console.log('repertoire should change', useTrainerStore.getState().repertoire);
         break;
     }
 
-    console.log("&&&&&&&& bucket entries", chapter.bucketEntries);
-
+    // console.log('&&&&&&&& bucket entries', chapter.bucketEntries);
   };
 
   const fail = () => {
     setShowSuccessfulGuess(false);
-    let node = trainingPath?.at(-1);
+    let node = trainingNodeList?.at(-1);
     //TODO need more recent version?
     const chapter = repertoire[repertoireIndex];
     if (!node) return;
     let groupIndex = node.group;
     chapter.bucketEntries[groupIndex]--;
-    if (trainingMethod === 'recall') {
+    if (repertoireMethod === 'recall') {
       setLastResult('fail');
       switch (srsConfig!.demotion) {
         case 'most':
@@ -471,25 +498,25 @@ export const ChessOpeningTrainer = () => {
   const makeGuess = (san: string) => {
     setLastGuess(san);
     console.log('last guess', san);
-    let trainingPath = useTrainerStore.getState().trainingPath;
+    let trainingNodeList = useTrainerStore.getState().trainingNodeList;
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
-    if (repertoireIndex == -1 || !trainingPath || trainingMethod == 'learn') return;
+    if (repertoireIndex == -1 || !trainingNodeList || repertoireMethod == 'learn') return;
 
     const chapter = repertoire[repertoireIndex];
 
     let candidates: Tree.Node[] = [];
-    if (trainingPath.length == 1) {
+    if (trainingNodeList.length == 1) {
       repertoire[repertoireIndex].tree.root.children.forEach((child) => candidates.push(child));
     } else {
-      trainingPath.at(-2)?.children.forEach((child) => candidates.push(child));
+      trainingNodeList.at(-2)?.children.forEach((child) => candidates.push(child));
     }
 
     let moves: string[] = [];
     moves = candidates.map((candidate) => candidate.san);
 
-    return moves.includes(san) ? (trainingPath.at(-1)?.san === san ? 'success' : 'alternate') : 'failure';
+    return moves.includes(san) ? (trainingNodeList.at(-1)?.san === san ? 'success' : 'alternate') : 'failure';
   };
 
   // TODO better name vs. ctrl.fail()
@@ -501,41 +528,42 @@ export const ChessOpeningTrainer = () => {
     setLastFeedback('fail');
 
     // opts should look at lastFeedback
-    const opts = makeCgOpts();
-    console.log(opts);
-    // this.chessground!.set(opts);
-    setCbConfig(opts);
+    //TODO
+    // const opts = makeCgOpts();
     // console.log(this.chessground!.state);
   };
 
   // TODO refactor out of file? (since it doesnt deal w/ UI) (maybe a hook?)
   const makeCgOpts = (): CbConfig => {
-    let trainingPath = useTrainerStore.getState().trainingPath;
-    let pathIndex = useTrainerStore.getState().pathIndex;
-    let trainingMethod = useTrainerStore.getState().trainingMethod;
-    const chapter = repertoire[repertoireIndex];
-    
+    const trainingNodeList = useTrainerStore.getState().trainingNodeList;
+    const pathIndex = useTrainerStore.getState().pathIndex;
+    const trainingMethod = useTrainerStore.getState().repertoireMethod;
+    const node = useTrainerStore.getState().selectedNode;
 
-    //TODO guarantee that this function can only be called when we have a chapter 
+    const selectedPath = useTrainerStore.getState().selectedPath;
+
+    const chapter = repertoire[repertoireIndex];
+
+    //TODO guarantee that this function can only be called when we have a chapter
     if (!chapter) return;
     //TODO get this
-    // console.log('trainingPath in opts from store', trainingPath);
+    // console.log('trainingNodeList in opts from store', trainingNodeList);
     // console.log('pathIndex in opts', pathIndex);
     // console.log('Make CG OPTS');
-    // console.log('trainingPath', trainingPath);
+    // console.log('trainingNodeList', trainingNodeList);
 
-    const fen = trainingPath.at(-2)?.fen || initial;
+    const fen = trainingNodeList.at(-2)?.fen || initial;
 
     // get last move, if it exists
     let lastMoves: Key[] = [];
-    if (atLast() && trainingPath && trainingPath!.length > 1) {
-      const fen2 = trainingPath?.at(-3)?.fen || initial;
-      const oppMoveSan = trainingPath?.at(-2)?.san;
+    if (atLast() && trainingNodeList && trainingNodeList!.length > 1) {
+      const fen2 = trainingNodeList?.at(-3)?.fen || initial;
+      const oppMoveSan = trainingNodeList?.at(-2)?.san;
       const uci2 = calcTarget(fen2, oppMoveSan!);
       lastMoves = [uci2[0], uci2[1]];
     }
 
-    const targetSan = trainingPath?.at(-1).san;
+    const targetSan = trainingNodeList?.at(-1).san;
     const uci = calcTarget(fen, targetSan!);
 
     // shapes
@@ -555,10 +583,10 @@ export const ChessOpeningTrainer = () => {
     //   let fen3 = initial;
     //   // TODO fix
     //   if (this.pathIndex > 0) {
-    //     fen3 = this.trainingPath.at(this.pathIndex - 1)?.data.fen || initial;
+    //     fen3 = this.trainingNodeList.at(this.pathIndex - 1)?.data.fen || initial;
     //   }
 
-    //   const targetSan = this.trainingPath?.at(this.pathIndex)?.data.san;
+    //   const targetSan = this.trainingNodeList?.at(this.pathIndex)?.data.san;
     //   const uci = calcTarget(fen3, targetSan!);
 
     //   shapes.push({ orig: uci[1], customSvg: { html: correctMoveI() } });
@@ -567,12 +595,17 @@ export const ChessOpeningTrainer = () => {
     // shapes.push({orig: 'e5', brush: 'green', customSvg: {html: correctMoveI()}})
 
     console.log('pathIndex', useTrainerStore.getState().pathIndex);
-    console.log('trainingPath', trainingPath);
-    console.log("Chatper in opts", chapter);
+    console.log('trainingNodeList', trainingNodeList);
+    console.log('Chatper in opts', chapter);
+
+    /*
+    instead of trainingNodeList[pathIndex], directly store current Tree.Node
+    */
 
     const config: CbConfig = {
       orientation: chapter.trainAs,
-      fen: trainingPath[pathIndex]?.fen || initial,
+      // fen: trainingNodeList[pathIndex]?.fen || initial,
+      fen: node.fen || initial,
       lastMove: lastMoves,
       turnColor: chapter.trainAs,
 
@@ -635,10 +668,10 @@ export const ChessOpeningTrainer = () => {
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
     if (repertoire.length == 0) return;
-    console.log("repertoire", repertoire);
-    
+    // console.log('repertoire', repertoire);
+
     const chapter = repertoire[repertoireIndex];
-    console.log("chapter", chapter);
+    // console.log('chapter', chapter);
     // TODO add reset functions for different context (repertoire, method) OR add conditionals to check those
     setShowSuccessfulGuess(false);
     resetTrainingContext();
@@ -648,42 +681,81 @@ export const ChessOpeningTrainer = () => {
     chapter.lastDueCount = 420;
     setLastFeedback('learn');
 
-    setTrainingMethod('learn');
-    console.log('handlelearn --> ', useTrainerStore.getState().trainingMethod);
+    setRepertoireMethod('learn');
+    console.log('handlelearn --> ', useTrainerStore.getState().repertoireMethod);
     // mututes path
-    if (!getNext()) {
-      // lastFeedback = 'empty';
+
+    const maybePath: Tree.Path | null = nextTrainablePath();
+    if (!maybePath) {
       setLastFeedback('empty');
-      console.log('no next');
+      // console.log('no next');
     } else {
-      // update path and pathIndex
-      // pathIndex = trainingPath.length - 2;
-      let trainingPath = useTrainerStore.getState().trainingPath;
-      setPathIndex(trainingPath.length - 2);
-      // console.log('new opts', opts);
-      // setCbConfig(opts);
-      // this.chessground!.set(opts);
-      const opts = makeCgOpts();
-      useTrainerStore.setState((state) => ({
-        cbConfig: {
-          ...state.cbConfig,
-          ...opts,
-        },
-      }));
+      const path = maybePath;
+      setSelectedPath(path);
+      setTrainingPath(path);
+      const nodeList = chapter.tree.getNodeList(path);
+      setTrainingNodeList(nodeList);
+      setSelectedNode(nodeList.at(-2));
+      // console.log('nodeList in learn', nodeList);
 
-      console.log('config state at learn', useTrainerStore.getState().cbConfig);
-      // console.log('real config rn', apiRef.current.state);
-      console.log;
-
-      // this.redraw();
-      // update scroll height
-      // TODO
-      // const movesElement = document.getElementById('moves');
-      // movesElement!.scrollTop = movesElement!.scrollHeight;
+      // console.log('TRAINING PATH', useTrainerStore.getState().trainingNodeList);
     }
+
+    // if (!nextTrainablePath()) {
+    //   // lastFeedback = 'empty';
+    //   setLastFeedback('empty');
+    //   console.log('no next');
+    // } else {
+    //   /*
+    //   Successful nextTrainablePath() sets a new trainingNodeList
+    //   TODO - return instead of set trainingNodeList ?
+    //   */
+    //   // update path and pathIndex
+    //   // pathIndex = trainingNodeList.length - 2;
+    //   let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+
+    //   // setSelectedPath(path);
+    //   // // TODO why are we storing this logic here ?
+    //   // const nodeList = tree.getNodeList(path);
+    //   // const node = treeOps.last(nodeList)
+    //   // setSelectedNode(node);
+    //   // const opts = makeCgOpts();
+    //   // useTrainerStore.setState((state) => ({
+    //   //   cbConfig: {
+    //   //     ...state.cbConfig,
+    //   //     ...opts,
+    //   //   },
+
+    //   //TODO setpath function
+    //   // setSelectedPath()
+
+    //   // setPathIndex(trainingNodeList.length - 2);
+    //   //TODO - set currentpath, currentnode
+
+    //   // console.log('new opts', opts);
+    //   // setCbConfig(opts);
+    //   // this.chessground!.set(opts);
+    //   const opts = makeCgOpts();
+    //   useTrainerStore.setState((state) => ({
+    //     cbConfig: {
+    //       ...state.cbConfig,
+    //       ...opts,
+    //     },
+    //   }));
+
+    //   console.log('config state at learn', useTrainerStore.getState().cbConfig);
+    //   // console.log('real config rn', apiRef.current.state);
+    //   console.log;
+
+    // this.redraw();
+    // update scroll height
+    // TODO
+    // const movesElement = document.getElementById('moves');
+    // movesElement!.scrollTop = movesElement!.scrollHeight;
+    // }
   };
   const handleRecall = () => {
-    let trainingPath = useTrainerStore.getState().trainingPath;
+    let trainingNodeList = useTrainerStore.getState().trainingNodeList;
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
@@ -700,30 +772,31 @@ export const ChessOpeningTrainer = () => {
       },
     });
 
-    setTrainingMethod('recall');
+    setRepertoireMethod('recall');
 
-    if (!getNext()) {
-      setLastFeedback('empty');
-      console.log('no next in recall');
-    } else {
-      let trainingPath = useTrainerStore.getState().trainingPath;
-      setPathIndex(trainingPath.length - 2);
-      // const opts = this.makeCgOpts();
-      // this.chessground!.set(opts);
-      // setCbConfig(makeCgOpts());
-      const opts = makeCgOpts();
-      console.log('recall opts', opts);
-      useTrainerStore.setState((state) => ({
-        cbConfig: {
-          ...state.cbConfig,
-          ...opts,
-        },
-      }));
+    const maybePath = nextTrainablePath();
 
-      // update scroll height
-      const movesElement = document.getElementById('moves');
-      movesElement!.scrollTop = movesElement!.scrollHeight;
-    }
+    // if (!nextTrainablePath()) {
+    //   setLastFeedback('empty');
+    //   console.log('no next in recall');
+    // } else {
+    //   let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+    //   setPathIndex(trainingNodeList.length - 2);
+    //   // const opts = this.makeCgOpts();
+    //   // this.chessground!.set(opts);
+    //   // setCbConfig(makeCgOpts());
+    //   const opts = makeCgOpts();
+    //   console.log('recall opts', opts);
+    //   useTrainerStore.setState((state) => ({
+    //     cbConfig: {
+    //       ...state.cbConfig,
+    //       ...opts,
+    //     },
+    //   }));
+
+    // update scroll height
+    const movesElement = document.getElementById('moves');
+    movesElement!.scrollTop = movesElement!.scrollHeight;
   };
 
   const apiRef = useRef<Api | undefined>();
@@ -750,7 +823,6 @@ export const ChessOpeningTrainer = () => {
 
   const importToRepertoire = (pgn: string, color: Color, name: string) => {
     let repertoire = useTrainerStore.getState().repertoire;
-    console.log('HERE');
     // TODO why is PGN undefined?
     const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
     subreps.forEach((subrep, i) => {
@@ -792,11 +864,11 @@ export const ChessOpeningTrainer = () => {
         tree = mainline;
         index += 1;
       }
-      console.log('treeparts', treeParts);
-      console.log('sidelines', sidelines);
+      // console.log('treeparts', treeParts);
+      // console.log('sidelines', sidelines);
       const newTree = makeTree(treeReconstruct(treeParts, sidelines));
       // return newTree;
-      console.log('new tree', newTree);
+      // console.log('new tree', newTree);
 
       if (i > 0) name += ` (${i + 1})`;
 
@@ -839,12 +911,37 @@ export const ChessOpeningTrainer = () => {
   //   // }
   // };
 
-  const jump = (index: number) => {
-    // this.pathIndex = index;
-    // const opts = this.makeCgOpts();
-    // this.chessground!.set(opts);
-    // this.redraw();
-    setPathIndex(index);
+  // const jump = (index: number) => {
+  //   // this.pathIndex = index;
+  //   // const opts = this.makeCgOpts();
+  //   // this.chessground!.set(opts);
+  //   // this.redraw();
+  //   setPathIndex(index);
+  //   const opts = makeCgOpts();
+  //   useTrainerStore.setState((state) => ({
+  //     cbConfig: {
+  //       ...state.cbConfig,
+  //       ...opts,
+  //     },
+  //   }));
+  // };
+
+  const jump = (path: Tree.Path): void => {
+    const repertoire = useTrainerStore.getState().repertoire;
+    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+    const tree = repertoire[repertoireIndex].tree;
+
+    const currentPath = useTrainerStore.getState().selectedPath;
+    //TODO
+    // const pathChanged = path !== this.path,
+    // isForwardStep = pathChanged && path.length === this.path.length + 2;
+    setSelectedPath(path);
+
+    // TODO why are we storing this logic here ?
+    const nodeList = tree.getNodeList(path);
+    const node = treeOps.last(nodeList);
+    setSelectedNode(node);
     const opts = makeCgOpts();
     useTrainerStore.setState((state) => ({
       cbConfig: {
@@ -852,17 +949,53 @@ export const ChessOpeningTrainer = () => {
         ...opts,
       },
     }));
+    // if (pathChanged) {
+    //   if (this.study) this.study.setPath(path, this.node);
+    //   if (isForwardStep) site.sound.move(this.node);
+    //   this.threatMode(false);
+    //   this.ceval?.stop();
+    //   this.startCeval();
+    //   site.sound.saySan(this.node.san, true);
+    // }
+    // this.justPlayed = this.justDropped = this.justCaptured = undefined;
+    // this.explorer.setNode();
+    // this.updateHref();
+    // this.autoScroll();
+    // this.promotion.cancel();
+    // if (pathChanged) {
+    //   if (this.retro) this.retro.onJump();
+    //   if (this.practice) this.practice.onJump();
+    //   if (this.study) this.study.onJump();
+    // }
+    // pubsub.emit('ply', this.node.ply, this.tree.lastMainlineNode(this.path).ply === this.node.ply);
+    // this.showGround();
+    // this.pluginUpdate(this.node.fen);
   };
+
+  //   private setPath = (path: Tree.Path): void => {
+  //   this.path = path;
+  //   this.nodeList = this.tree.getNodeList(path);
+  //   this.node = treeOps.last(this.nodeList) as Tree.Node;
+  //   for (let i = 0; i < this.nodeList.length; i++) {
+  //     this.nodeList[i].collapsed = false;
+  //   }
+  //   this.mainline = treeOps.mainlineNodeList(this.tree.root);
+  //   this.onMainline = this.tree.pathIsMainline(path);
+  //   this.fenInput = undefined;
+  //   this.pgnInput = undefined;
+  //   if (this.wiki && this.data.game.variant.key === 'standard') this.wiki(this.nodeList);
+  //   this.persistence?.save();
+  // };
 
   // TODO fix (really glitched)
   const markAllSeen = () => {
     if (
       useTrainerStore.getState().repertoireIndex == -1 ||
-      useTrainerStore.getState().trainingMethod != 'learn'
+      useTrainerStore.getState().repertoireMethod != 'learn'
     )
       return;
     console.log('damn');
-    while (getNext()) {
+    while (nextTrainablePath()) {
       console.log('damn');
       succeed();
     }
@@ -872,9 +1005,10 @@ export const ChessOpeningTrainer = () => {
   //TODO dont use useEffect here?
   useEffect(() => {
     // addToRepertoire(alternates(), 'black', 'Alternates');
-    importToRepertoire(nimzo(), 'white', 'nimzo dimzo');
+    importToRepertoire(nimzo(), 'white', 'nimzo dimzo white');
+    importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
 
-    setTrainingMethod('learn');
+    setRepertoireMethod('learn');
     handleLearn();
     succeed();
     // handleLearn();
@@ -912,7 +1046,7 @@ export const ChessOpeningTrainer = () => {
   // });
 
   const controlsProps: ControlsProps = {
-    trainingMethod,
+    repertoireMethod,
     handleLearn,
     handleRecall,
     setShowTrainingSettings,
@@ -930,40 +1064,149 @@ export const ChessOpeningTrainer = () => {
     // jump,
     makeCgOpts,
   };
-  return (
-    <div id="root" className="w-full h-full bg-gray-200">
-      <div id="header" className="flex items-end justify-left text-3xl mb-3">
-        <img src="logo.png" alt="Logo" className="h-12 w-12" />
-        <span>chess</span>
-        <span className="text-stone-600">repeat</span>
-      </div>
-      {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-      {showingAddToRepertoireMenu && (
-        <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
-      )}
-      {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
-      <div className="flex justify-between items-start w-full px-10 gap-5">
-        <div className="flex flex-col flex-1">
-          <Repertoire />
-          {/* <InsightChart /> */}
-          <RepertoireActions></RepertoireActions>
-          <Schedule />
-        </div>
-        <div className="flex flex-col items-between flex-1">
-          <div id="board-wrap" className="bg-white p-1">
-            <Chessboard width={550} height={550} config={cbConfig} ref={apiRef} />
-          </div>
 
-          <Controls {...controlsProps} />
+  // TODO should be in different component?
+  const chapter = repertoire[repertoireIndex];
+  const isEditing = repertoireMethod == 'edit';
+
+  console.log('atlast?', atLast());
+
+  //TODO hints
+  //TODO fail
+
+  /*
+  The current move we're training
+  */
+  const targetDest = (): Key[] => {
+    const targetSan = trainingNodeList?.at(-1)?.san || 'e4';
+    const uci = calcTarget(selectedNode?.fen || initial, targetSan!);
+    return uci;
+  };
+
+  const createShapes = (): DrawShape[] => {
+    const result = [];
+    console.log("method", repertoireMethod)
+    if (!isEditing) {
+      const uci = targetDest();
+      if (repertoireMethod === 'learn' && atLast()) {
+        console.log(`orig: ${uci[0]}, dest: ${uci[1]}`);
+        result.push({ orig: uci[0], dest: uci[1], brush: 'green' });
+      } else if (showingHint) {
+        result.push({ orig: uci[0], brush: 'yellow' });
+      } else if (lastFeedback === 'fail') {
+        result.push({ orig: uci[0], dest: uci[1], brush: 'red' });
+      }
+    }
+
+    return result;
+  };
+
+  //TODO cleaner logic, reuse fenToDests w/ EDIT
+  const calculateDests = () => {
+    if (repertoireMethod != 'edit') {
+      const uci = targetDest();
+      console.log('dest map', toDestMap(uci[0], uci[1]));
+      const result =
+        lastFeedback != 'fail' && atLast()
+          ? repertoireMethod === 'learn'
+            ? toDestMap(uci[0], uci[1])
+            : fenToDests(selectedNode?.fen || initial)
+          : new Map();
+      console.log('result', result);
+      return result;
+    }
+    // no moves when in edit - temporary solution 
+    return new Map();
+  };
+
+  //TODO dont try to calculate properties when we haven't initialized the repertoire yet
+  return (
+    <MantineProvider>
+      <div id="root" className="w-full h-full bg-gray-200">
+        <div id="header" className="flex items-end justify-left text-3xl mb-3">
+          <img src="logo.png" alt="Logo" className="h-12 w-12" />
+          <span>chess</span>
+          <span className="text-stone-600">repeat</span>
         </div>
-        <div className="flex flex-col flex-1 h-full">
-          {/* <PgnTree makeCgOpts={makeCgOpts} /> */}
-          <NewPgnTree></NewPgnTree>
-          <Feedback {...feedbackProps} />
-          <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
+        {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
+        {showingAddToRepertoireMenu && (
+          <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
+        )}
+        {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
+        <div className="flex justify-between items-start w-full px-10 gap-5">
+          <div className="flex flex-col flex-1">
+            <Repertoire />
+            {/* <InsightChart /> */}
+            <RepertoireActions></RepertoireActions>
+            <Schedule />
+          </div>
+          <div className="flex flex-col items-between flex-1">
+            <div id="board-wrap" className="bg-white p-1">
+              {/* TODO fix || initial */}
+              <Chessground
+                orientation={orientation}
+                fen={selectedNode?.fen || initial}
+                turnColor={chapter?.trainAs || 'white'}
+                movable={{
+                  free: false,
+                  color: chapter?.trainAs || 'white',
+                  dests: calculateDests(),
+                  events: {
+                    after: (from: Key, to: Key, metadata: MoveMetadata) => {
+                      if (!isEditing) {
+                        console.log('after');
+                        // this.syncTime();
+                        metadata.captured
+                          ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
+                          : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
+                        console.log('atlast? makecgopts', atLast());
+                        if (atLast()) {
+                          switch (repertoireMethod) {
+                            case 'learn':
+                              console.log('learn + atlast');
+                              succeed();
+                              handleLearn();
+                              break;
+                            case 'recall':
+                              const san = chessgroundToSan(selectedNode.fen, from, to);
+                              //TODO be more permissive depending on config
+                              switch (makeGuess(san)) {
+                                case 'success':
+                                  succeed();
+                                  handleRecall();
+                                  break;
+                                case 'alternate':
+                                  succeed();
+                                  handleRecall();
+                                  break;
+                                case 'failure':
+                                  //TODO maybe dont fail right away?
+                                  handleFail(san);
+                                  break;
+                              }
+                              break;
+                          }
+                        }
+                      }
+                    },
+                  },
+                }}
+                drawable={{ autoShapes: createShapes() }}
+              />
+            </div>
+
+            <Controls {...controlsProps} />
+          </div>
+          <div className="flex flex-col flex-1 h-full">
+            {/* <PgnTree makeCgOpts={makeCgOpts} /> */}
+            <NewPgnTree jump={jump}></NewPgnTree>
+            <Feedback {...feedbackProps} />
+            <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
+          </div>
         </div>
       </div>
-    </div>
+    </MantineProvider>
   );
 };
+
 export default ChessOpeningTrainer;

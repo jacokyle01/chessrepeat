@@ -5,7 +5,14 @@ import { Key, MoveMetadata } from 'chessground/types';
 import { Config as CgConfig } from 'chessground/config';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
 import { configure, Config as SrsConfig } from '../src/spaced-repetition/config';
-import { Color, DequeEntry, Method, TrainingPath, Chapter, TrainingData } from './spaced-repetition/types';
+import {
+  Color,
+  DequeEntry,
+  Method,
+  trainingNodeList,
+  Chapter,
+  TrainingData,
+} from './spaced-repetition/types';
 import { ChildNode, Game, parsePgn, PgnNodeData, startingPosition, walk, transform } from 'chessops/pgn';
 import { countDueContext, exportRepertoireEntry, generateChapter } from './spaced-repetition/util';
 import { defaults } from './spaced-repetition/config';
@@ -26,10 +33,10 @@ export default class PrepCtrl {
   srsConfig: SrsConfig;
   currentTime: number;
   method: Method;
-  trainingPath: TrainingPath;
-  changedLines: boolean; // indicates whether or not the previous trainingPath is an ancestor (?) of the newest one.
+  trainingNodeList: trainingNodeList;
+  changedLines: boolean; // indicates whether or not the previous trainingNodeList is an ancestor (?) of the newest one.
   correctMoveIndices: number[]; // stores which moves we should annotate correct.
-  //TODO better way of doing this? someone integrating it w/ trainingPath?
+  //TODO better way of doing this? someone integrating it w/ trainingNodeList?
   //TODO use some kind of stack data structure? i.e. if we play
   // e4 e5 f4 d6 nf3 then it trains e4 e5 f4, we want to have e4 highlighted.
   // could have more information on continuation?
@@ -81,7 +88,7 @@ export default class PrepCtrl {
 
     this.currentTime = Math.round(Date.now() / 1000);
     this.repertoire = [];
-    this.trainingPath = [];
+    this.trainingNodeList = [];
     this.changedLines = true;
     this.repertoireIndex = 0;
     this.method = 'unselected';
@@ -186,7 +193,7 @@ export default class PrepCtrl {
     this.currentTime = Math.floor(Date.now() / 1000);
   };
 
-  pathIsContinuation = (oldPath: TrainingPath, newPath: TrainingPath) => {
+  pathIsContinuation = (oldPath: trainingNodeList, newPath: trainingNodeList) => {
     const isContinuation: boolean =
       oldPath.length < newPath.length &&
       oldPath.every((node, i) => {
@@ -205,7 +212,7 @@ export default class PrepCtrl {
     this.correctMoveIndices = [];
   };
 
-  // TODO return trainingPath, then we set it
+  // TODO return trainingNodeList, then we set it
   getNext = () => {
     if (this.repertoireIndex == -1 || this.method == 'unselected') return false; // no chapter selected
     //initialization
@@ -228,20 +235,20 @@ export default class PrepCtrl {
         switch (this.method) {
           case 'recall': //recall if due
             if (pos.data.training.dueAt <= this.currentTime) {
-              this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
+              this.changedLines = !this.pathIsContinuation(this.trainingNodeList, entry.path);
               // TODO better way of doing this
-              // shouldn't be handled in getNext(). use handleLineChange().
+              // shouldn't be handled in nextTrainablePath(). use handleLineChange().
               if (this.changedLines) {
               }
 
-              this.trainingPath = entry.path;
+              this.trainingNodeList = entry.path;
               return true;
             }
             break;
           case 'learn': //learn if unseen
             if (!pos.data.training.seen) {
-              this.changedLines = !this.pathIsContinuation(this.trainingPath, entry.path);
-              this.trainingPath = entry.path;
+              this.changedLines = !this.pathIsContinuation(this.trainingNodeList, entry.path);
+              this.trainingNodeList = entry.path;
               return true;
             }
             break;
@@ -267,31 +274,31 @@ export default class PrepCtrl {
     this.lastGuess = san;
     console.log('last guess', san);
     const index = this.repertoireIndex;
-    if (index == -1 || !this.trainingPath || this.method == 'learn') return;
+    if (index == -1 || !this.trainingNodeList || this.method == 'learn') return;
     let candidates: ChildNode<TrainingData>[] = [];
-    if (this.trainingPath.length == 1) {
+    if (this.trainingNodeList.length == 1) {
       this.repertoire[index].subrep.moves.children.forEach((child) => candidates.push(child));
     } else {
-      this.trainingPath.at(-2)?.children.forEach((child) => candidates.push(child));
+      this.trainingNodeList.at(-2)?.children.forEach((child) => candidates.push(child));
     }
 
     let moves: string[] = [];
     moves = candidates.map((candidate) => candidate.data.san);
 
     return moves.includes(san)
-      ? this.trainingPath.at(-1)?.data.san === san
+      ? this.trainingNodeList.at(-1)?.data.san === san
         ? 'success'
         : 'alternate'
       : 'failure';
   };
 
   succeed = () => {
-    const node = this.trainingPath?.at(-1);
+    const node = this.trainingNodeList?.at(-1);
     const subrep = this.repertoire[this.repertoireIndex].subrep;
     if (!node) return;
     // annotate node
     // node
-    this.correctMoveIndices.push(this.trainingPath.length - 1);
+    this.correctMoveIndices.push(this.trainingNodeList.length - 1);
     // console.log('INDICES' + this.correctMoveIndices);
 
     switch (this.method) {
@@ -329,12 +336,12 @@ export default class PrepCtrl {
   };
 
   alternate = () => {
-    const node = this.trainingPath?.at(-1);
+    const node = this.trainingNodeList?.at(-1);
     const subrep = this.repertoire[this.repertoireIndex].subrep;
     if (!node) return;
     // annotate node
     // node
-    this.correctMoveIndices.push(this.trainingPath.length - 1);
+    this.correctMoveIndices.push(this.trainingNodeList.length - 1);
     // console.log('INDICES' + this.correctMoveIndices);
 
     this.lastResult = 'alternate';
@@ -359,7 +366,7 @@ export default class PrepCtrl {
   };
 
   fail = () => {
-    let node = this.trainingPath?.at(-1);
+    let node = this.trainingNodeList?.at(-1);
     const subrep = this.repertoire[this.repertoireIndex].subrep;
     if (!node) return;
     let groupIndex = node.data.training.group;
@@ -386,7 +393,7 @@ export default class PrepCtrl {
   };
 
   // TODO provide a more detailed breakdown, like when each one is due.
-  // TODO combine this with getNext() so we don't need to walk the tree twice
+  // TODO combine this with nextTrainablePath() so we don't need to walk the tree twice
 
   // walk entire file and describe its state- when moves are due and such
   // store result in `dueTimes` array
@@ -464,25 +471,25 @@ export default class PrepCtrl {
   };
 
   atLast = () => {
-    return this.pathIndex === this.trainingPath.length - 2;
+    return this.pathIndex === this.trainingNodeList.length - 2;
   };
 
   makeCgOpts = (): CgConfig => {
     console.log('Make CG OPTS');
-    console.log('trainingPath', this.trainingPath);
+    console.log('trainingNodeList', this.trainingNodeList);
 
-    const fen = this.trainingPath.at(-2)?.data.fen || initial;
+    const fen = this.trainingNodeList.at(-2)?.data.fen || initial;
 
     // get last move, if it exists
     let lastMoves: Key[] = [];
-    if (this.atLast() && this.trainingPath && this.trainingPath!.length > 1) {
-      const fen2 = this.trainingPath?.at(-3)?.data.fen || initial;
-      const oppMoveSan = this.trainingPath?.at(-2)?.data.san;
+    if (this.atLast() && this.trainingNodeList && this.trainingNodeList!.length > 1) {
+      const fen2 = this.trainingNodeList?.at(-3)?.data.fen || initial;
+      const oppMoveSan = this.trainingNodeList?.at(-2)?.data.san;
       const uci2 = calcTarget(fen2, oppMoveSan!);
       lastMoves = [uci2[0], uci2[1]];
     }
 
-    const targetSan = this.trainingPath?.at(-1)?.data.san;
+    const targetSan = this.trainingNodeList?.at(-1)?.data.san;
     const uci = calcTarget(fen, targetSan!);
 
     // shapes
@@ -500,10 +507,10 @@ export default class PrepCtrl {
       let fen3 = initial;
       // TODO fix
       if (this.pathIndex > 0) {
-        fen3 = this.trainingPath.at(this.pathIndex - 1)?.data.fen || initial;
+        fen3 = this.trainingNodeList.at(this.pathIndex - 1)?.data.fen || initial;
       }
 
-      const targetSan = this.trainingPath?.at(this.pathIndex)?.data.san;
+      const targetSan = this.trainingNodeList?.at(this.pathIndex)?.data.san;
       const uci = calcTarget(fen3, targetSan!);
 
       shapes.push({ orig: uci[1], customSvg: { html: correctMoveI() } });
@@ -513,7 +520,7 @@ export default class PrepCtrl {
 
     const config: CgConfig = {
       orientation: this.chapter.trainAs,
-      fen: this.trainingPath[this.pathIndex]?.data.fen || initial,
+      fen: this.trainingNodeList[this.pathIndex]?.data.fen || initial,
       lastMove: lastMoves,
       turnColor: this.chapter.trainAs,
 
@@ -577,12 +584,12 @@ export default class PrepCtrl {
     this.method = 'learn';
 
     // mututes path
-    if (!this.getNext()) {
+    if (!this.nextTrainablePath()) {
       this.lastFeedback = 'empty';
       this.redraw();
     } else {
       // update path and pathIndex
-      this.pathIndex = this.trainingPath.length - 2;
+      this.pathIndex = this.trainingNodeList.length - 2;
       const opts = this.makeCgOpts();
       this.chessground!.set(opts);
       this.redraw();
@@ -619,11 +626,11 @@ export default class PrepCtrl {
     this.chessground?.setAutoShapes([]); // TODO in separate method?
     this.method = 'recall';
 
-    if (!this.getNext()) {
+    if (!this.nextTrainablePath()) {
       this.lastFeedback = 'empty';
       this.redraw();
     } else {
-      this.pathIndex = this.trainingPath.length - 2;
+      this.pathIndex = this.trainingNodeList.length - 2;
       const opts = this.makeCgOpts();
       this.chessground!.set(opts);
 
@@ -763,7 +770,7 @@ export default class PrepCtrl {
     if (this.repertoireIndex == -1) return;
     this.method = 'learn';
     let x = 1000;
-    while (this.getNext() && x >= 0) {
+    while (this.nextTrainablePath() && x >= 0) {
       this.succeed();
       x--;
     }

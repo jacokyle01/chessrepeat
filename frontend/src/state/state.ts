@@ -1,17 +1,20 @@
 // state/trainerStore.ts
 import { create } from 'zustand';
 import { RepertoireChapter, RepertoireEntry, RepertoireMode } from '../types/types';
-import { Method} from '../spaced-repetition/types';
+import { Method, RepertoireMethod } from '../spaced-repetition/types';
 import { Config as SrsConfig, defaults } from '../spaced-repetition/config';
 import { Config as CbConfig } from 'chessground/config';
 
 interface TrainerState {
   // UI
-  repertoireMode: RepertoireMode;
-  setRepertoireMode: (r: RepertoireMode) => void;
+  // repertoireMode: RepertoireMode;
+  // setRepertoireMode: (r: RepertoireMode) => void;
 
-  trainingMethod: Method;
-  setTrainingMethod: (m: Method) => void;
+  // trainingMethod: Method;
+  // setTrainingMethod: (m: Method) => void;
+
+  repertoireMethod: 'edit' | 'recall' | 'learn' | 'unselected'
+  setRepertoireMethod: (m: RepertoireMethod) => void;
 
   showTrainingSettings: boolean;
   setShowTrainingSettings: (val: boolean) => void;
@@ -29,12 +32,25 @@ interface TrainerState {
   repertoireIndex: number;
   setRepertoireIndex: (i: number) => void;
 
-  // Training
-  trainingPath: Tree.Node[];
-  setTrainingPath: (p: Tree.Node[]) => void;
+  // Training //TODO do we need both? 
+  trainingNodeList: Tree.Node[];
+  setTrainingNodeList: (p: Tree.Node[]) => void;
+
+  trainingPath: Tree.Path;
+  setTrainingPath: (p: Tree.Path) => void;
+
+
+
+  // Path to currently selected node
+  selectedPath: Tree.Path;
+  setSelectedPath: (p: string) => void;
+
+  // current selected node
+  selectedNode: Tree.Node;
+  setSelectedNode: (n: Tree.Node) => void;
 
   pathIndex: number;
-  setPathIndex: (i: number) => void;  
+  setPathIndex: (i: number) => void;
 
   showingHint: boolean;
   setShowingHint: (v: boolean) => void;
@@ -67,11 +83,14 @@ interface TrainerState {
 
 export const useTrainerStore = create<TrainerState>((set) => ({
   // UI
-  repertoireMode: 'train',
-  setRepertoireMode: (repertoireMode) => set({ repertoireMode }),
+  // repertoireMode: 'train',
+  // setRepertoireMode: (repertoireMode) => set({ repertoireMode }),
 
-  trainingMethod: 'unselected',
-  setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
+  // trainingMethod: 'unselected',
+  // setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
+
+  repertoireMethod: 'edit',
+  setRepertoireMethod: (repertoireMethod) => set({ repertoireMethod }),
 
   showTrainingSettings: false,
   setShowTrainingSettings: (val) => set({ showTrainingSettings: val }),
@@ -90,13 +109,20 @@ export const useTrainerStore = create<TrainerState>((set) => ({
   setRepertoireIndex: (i) => set({ repertoireIndex: i }),
 
   // Training
-  trainingPath: [],
-  setTrainingPath: (path) => set({ trainingPath: path }),
+  trainingNodeList: [],
+  setTrainingNodeList: (path) => set({ trainingNodeList: path }),
+
+  trainingPath: '',
+  setTrainingPath: (path) => set({trainingPath: path}),
+
+  selectedPath: '',
+  setSelectedPath: (path) => set({ selectedPath: path }),
+
+  selectedNode: null,
+  setSelectedNode: (node) => set({ selectedNode: node }),
 
   pathIndex: -1,
   setPathIndex: (i) => set({ pathIndex: i }),
-
-
 
   showingHint: false,
   setShowingHint: (v) => set({ showingHint: v }),
