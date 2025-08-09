@@ -1,7 +1,7 @@
 import { useTrainerStore } from '../state/state';
 
 export const Debug: React.FC = ({atLast}) => {
-  const trainingPath = useTrainerStore.getState().trainingPath;
+  const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
   const selectedPath = useTrainerStore.getState().selectedPath;
 
 

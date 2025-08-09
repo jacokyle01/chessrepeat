@@ -109,7 +109,7 @@ const Controls: React.FC<ControlsProps> = ({
         </div>
       </div>
 
-      {showLastMoveCorrect && <LastMoveCorrect></LastMoveCorrect>}
+      {/* {showLastMoveCorrect && <LastMoveCorrect></LastMoveCorrect>} */}
 
       {/* <div id="settings-wrap" className="flex justify-center items-center m-auto">
         <SettingsButton></SettingsButton>

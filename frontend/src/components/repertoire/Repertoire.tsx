@@ -20,7 +20,7 @@ const Repertoire: React.FC = () => {
   // class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
 
   return (
-    <div id="repertoire" className="flex flex-col rounded-2xl border border-gray-300 bg-white pb-2">
+    <div id="repertoire" className="flex flex-col rounded-xl border border-gray-300 bg-white pb-2">
       <div className="flex flex-col rounded-md pb-2 h-2/5 overflow-y-auto">
         <div id="repertoire-header" className="flex flex-row items-center justify-left p-3 gap-2">
           <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">

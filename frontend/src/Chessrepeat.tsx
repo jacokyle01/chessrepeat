@@ -95,6 +95,7 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { MantineProvider } from '@mantine/core';
 import { Debug } from './components/Debug';
+import { formatTime } from './util/time';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -249,16 +250,38 @@ export const ChessOpeningTrainer = () => {
   // walk entire file and describe its state- when moves are due and such
   // store result in `dueTimes` array
   const updateDueCounts = (): void => {
-    // if (repertoire.length == 0) return;
-    // const chapter = repertoire[repertoireIndex];
-    // //TODO Node<unknown>
-    // const root = chapter.tree.root;
-    // const ctx = countDueContext(0);
-    // const dueCounts = new Array(1 + srsConfig.buckets!.length).fill(0);
+    if (repertoire.length == 0) return;
+    const chapter = repertoire[repertoireIndex];
+    //TODO Node<unknown>
+    const root = chapter.tree.root;
+    const ctx = countDueContext(0);
+    const dueCounts = new Array(1 + srsConfig.buckets!.length).fill(0);
+
+    //TODO use explicit stack?
+    const countDueRecursive = (root: Tree.Node) => {
+      root.children.forEach((child) => countDueRecursive(child));
+      if (!root.disabled && root.seen) {
+        const secondsTilDue = root.dueAt - currentTime();
+        if (secondsTilDue <= 0) {
+          dueCounts[0]++;
+        } else {
+          for (let i = 0; i < dueCounts.length; i++) {
+            if (secondsTilDue <= srsConfig.buckets!.at(i)!) {
+              dueCounts[i + 1]++;
+              break;
+            }
+          }
+        }
+      }
+    };
+
+    countDueRecursive(root);
+    setDueTimes(dueCounts);
+
     // TODO implement walk for Tree type
     // use updateAll in opts.ts lichess
     // walk(root, ctx, (ctx, data) => {
-    //   ctx.count++;
+    // ctx.count++;
     //   if (!data.training.disabled && data.training.seen) {
     //     const secondsTilDue = data.training.dueAt - currentTime();
     //     // console.log('seconds til due', secondsTilDue);
@@ -274,7 +297,6 @@ export const ChessOpeningTrainer = () => {
     //     }
     //   }
     // });
-    // setDueTimes(dueCounts);
   };
 
   /*
@@ -387,7 +409,9 @@ Returns a Tree.Path string
     const selectedPath = useTrainerStore.getState().selectedPath;
     const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
 
-    return selectedPath && trainingPath && selectedPath == trainingPath;
+    const val = selectedPath == trainingPath;
+    console.log('val', val);
+    return val;
   };
 
   const flipBoard = () => {
@@ -401,7 +425,10 @@ Returns a Tree.Path string
     }));
   };
 
-  const succeed = () => {
+  /*
+  Move node to next bucket, return time until due
+  */
+  const succeed = (): number => {
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
@@ -423,6 +450,7 @@ Returns a Tree.Path string
     // const subrep = repertoire[repertoireIndex].subrep;
     if (!node) return;
 
+    let timeToAdd = 0;
     switch (repertoireMethod) {
       case 'recall':
         setLastResult('succeed');
@@ -439,7 +467,7 @@ Returns a Tree.Path string
             break;
         }
         chapter.bucketEntries[groupIndex]++;
-        const interval = srsConfig!.buckets![groupIndex];
+        timeToAdd = srsConfig!.buckets![groupIndex];
 
         // node = {
         //   ...node,
@@ -447,7 +475,6 @@ Returns a Tree.Path string
         //   dueAt: currentTime() + interval,
         // };
         node.group = groupIndex;
-        node.dueAt = currentTime() + interval;
         break;
       case 'learn':
         // console.log('node in question', node);
@@ -460,7 +487,8 @@ Returns a Tree.Path string
         // };
         // TODO use node.training instead?
         node.seen = true;
-        node.dueAt = currentTime() + srsConfig!.buckets![0];
+        // node.dueAt = currentTime() + srsConfig!.buckets![0];
+        timeToAdd = srsConfig!.buckets![0];
         node.group = 0;
         chapter.bucketEntries[0]++; //globally, mark node as seen
         // console.log('node in question', node);
@@ -469,6 +497,9 @@ Returns a Tree.Path string
     }
 
     // console.log('&&&&&&&& bucket entries', chapter.bucketEntries);
+
+    node.dueAt = currentTime() + timeToAdd;
+    return timeToAdd;
   };
 
   const fail = () => {
@@ -526,38 +557,22 @@ Returns a Tree.Path string
 
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+    const chapter = repertoire[repertoireIndex];
 
     const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
-    const trainingNodeList: Tree.Node[] = chapter.tree.getNodeList(pathToTrain).push(targetNode);
-
-    console.log('succeed');
-
-    console.log('last guess', san);
-    // let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+    const trainingNodeList: Tree.Node[] = chapter.tree.getNodeList(pathToTrain);
 
     if (repertoireIndex == -1 || !trainingNodeList || repertoireMethod == 'learn') return;
-
-    const chapter = repertoire[repertoireIndex];
-
-    let candidates: Tree.Node[] = [];
-    if (trainingNodeList.length == 1) {
-      repertoire[repertoireIndex].tree.root.children.forEach((child) => candidates.push(child));
-    } else {
-      trainingNodeList.at(-1)?.children.forEach((child) => candidates.push(child));
-    }
-
-    let moves: string[] = [];
-    moves = candidates.map((candidate) => candidate.san);
-
-    return moves.includes(san) ? (trainingNodeList.at(-1)?.san === san ? 'success' : 'alternate') : 'failure';
+    let possibleMoves = trainingNodeList.at(-1).children.map((_) => _.san);
+    return possibleMoves.includes(san) ? (targetNode.san === san ? 'success' : 'alternate') : 'failure';
   };
 
   // TODO better name vs. ctrl.fail()
   const handleFail = (attempt?: string) => {
     setShowSuccessfulGuess(false);
     // TODO better solution than this below?
-    console.log(attempt);
+    // console.log(attempt);
     setLastGuess(attempt ?? null);
     setLastFeedback('fail');
 
@@ -602,9 +617,9 @@ Returns a Tree.Path string
 
     // shapes
     const shapes: DrawShape[] = [];
-    console.log('atlast?', atLast());
+    // console.log('atlast?', atLast());
     if (trainingMethod === 'learn' && atLast()) {
-      console.log(`orig: ${uci[0]}, dest: ${uci[1]}`);
+      // console.log(`orig: ${uci[0]}, dest: ${uci[1]}`);
       shapes.push({ orig: uci[0], dest: uci[1], brush: 'green' });
     } else if (showingHint) {
       shapes.push({ orig: uci[0], brush: 'yellow' });
@@ -628,9 +643,9 @@ Returns a Tree.Path string
 
     // shapes.push({orig: 'e5', brush: 'green', customSvg: {html: correctMoveI()}})
 
-    console.log('pathIndex', useTrainerStore.getState().pathIndex);
-    console.log('trainingNodeList', trainingNodeList);
-    console.log('Chatper in opts', chapter);
+    // console.log('pathIndex', useTrainerStore.getState().pathIndex);
+    // console.log('trainingNodeList', trainingNodeList);
+    // console.log('Chatper in opts', chapter);
 
     /*
     instead of trainingNodeList[pathIndex], directly store current Tree.Node
@@ -658,11 +673,11 @@ Returns a Tree.Path string
             metadata.captured
               ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
               : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
-            console.log('atlast? makecgopts', atLast());
+            // console.log('atlast? makecgopts', atLast());
             if (atLast()) {
               switch (trainingMethod) {
                 case 'learn':
-                  console.log('learn + atlast');
+                  // console.log('learn + atlast');
                   succeed();
                   handleLearn();
                   break;
@@ -693,7 +708,7 @@ Returns a Tree.Path string
         autoShapes: shapes,
       },
     };
-    console.log('config', config);
+    // console.log('config', config);
     return config;
   };
 
@@ -794,48 +809,55 @@ Returns a Tree.Path string
     // }
   };
   const handleRecall = () => {
-    let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+    setRepertoireMethod('recall');
+    setLastFeedback('recall');
+
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
+    // let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+
     resetTrainingContext();
     updateDueCounts();
-    setLastFeedback('recall');
     // TODO do w/ usetrainerstore?
     repertoire[repertoireIndex].lastDueCount = dueTimes[0];
     // this.chessground?.setAutoShapes([]); // TODO in separate method?
-    setCbConfig({
-      ...cbConfig,
-      drawable: {
-        autoShapes: [],
-      },
-    });
+    // setCbConfig({
+    //   ...cbConfig,
+    //   drawable: {
+    //     autoShapes: [],
+    //   },
+    // });
 
-    setRepertoireMethod('recall');
+    const maybeCtx = nextTrainablePath();
 
-    const maybePath = nextTrainablePath();
-
-    // if (!nextTrainablePath()) {
-    //   setLastFeedback('empty');
-    //   console.log('no next in recall');
-    // } else {
-    //   let trainingNodeList = useTrainerStore.getState().trainingNodeList;
-    //   setPathIndex(trainingNodeList.length - 2);
-    //   // const opts = this.makeCgOpts();
-    //   // this.chessground!.set(opts);
-    //   // setCbConfig(makeCgOpts());
-    //   const opts = makeCgOpts();
-    //   console.log('recall opts', opts);
-    //   useTrainerStore.setState((state) => ({
-    //     cbConfig: {
-    //       ...state.cbConfig,
-    //       ...opts,
-    //     },
-    //   }));
+    if (!maybeCtx) {
+      setLastFeedback('empty');
+      console.log('no next in recall');
+    } else {
+      setTrainableContext(maybeCtx);
+      // let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+      // const opts = this.makeCgOpts();
+      // this.chessground!.set(opts);
+      // setCbConfig(makeCgOpts());
+      // const opts = makeCgOpts();
+      // console.log('recall opts', opts);
+      // useTrainerStore.setState((state) => ({
+      //   cbConfig: {
+      //     ...state.cbConfig,
+      //     ...opts,
+      //   },
+      //TODO factor out common logic in learn & recall
+      const targetPath = maybeCtx.startingPath;
+      setSelectedPath(targetPath);
+      const nodeList = chapter.tree.getNodeList(targetPath);
+      console.log('nodelist - recall', nodeList);
+      setSelectedNode(nodeList.at(-1));
+    }
 
     // update scroll height
-    const movesElement = document.getElementById('moves');
-    movesElement!.scrollTop = movesElement!.scrollHeight;
+    // const movesElement = document.getElementById('moves');
+    // movesElement!.scrollTop = movesElement!.scrollHeight;
   };
 
   const apiRef = useRef<Api | undefined>();
@@ -1109,7 +1131,7 @@ Returns a Tree.Path string
   const isEditing = repertoireMethod == 'edit';
 
   console.log('atlast?', atLast());
-
+  console.log('selected node', selectedNode);
   //TODO hints
   //TODO fail
 
@@ -1142,6 +1164,7 @@ Returns a Tree.Path string
 
   //TODO cleaner logic, reuse fenToDests w/ EDIT
   const calculateDests = () => {
+    console.log('calc dests at last', atLast());
     if (repertoireMethod != 'edit') {
       const uci = targetDest();
       console.log('dest map', toDestMap(uci[0], uci[1]));
@@ -1156,6 +1179,35 @@ Returns a Tree.Path string
     }
     // no moves when in edit - temporary solution
     return new Map();
+  };
+
+  function squareToCoords(square: string, bounds: DOMRect, orientation: 'white' | 'black') {
+    const file = square.charCodeAt(0) - 'a'.charCodeAt(0);
+    const rank = parseInt(square[1]) - 1;
+
+    const squareSize = bounds.width / 8;
+
+    let x = orientation === 'white' ? file : 7 - file;
+    let y = orientation === 'white' ? 7 - rank : rank;
+
+    return {
+      x: bounds.left + (x + 0.5) * squareSize,
+      y: bounds.top + (y + 0.5) * squareSize,
+    };
+  }
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<{ x: number; y: number; time: string } | null>(null);
+
+  const showBoxAtSquare = (square: string, time: number) => {
+    if (!containerRef.current) return;
+    const bounds = containerRef.current.getBoundingClientRect();
+    const coords = squareToCoords(square, bounds, orientation);
+
+    // store coordinates relative to container
+    const formattedTime = formatTime(time);
+    setBox({ x: coords.x, y: coords.y, time: formattedTime });
+    setTimeout(() => setBox(null), 1000);
   };
 
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
@@ -1180,7 +1232,7 @@ Returns a Tree.Path string
             <Schedule />
           </div>
           <div className="flex flex-col items-between flex-1">
-            <div id="board-wrap" className="bg-white p-1">
+            <div id="board-wrap" className="bg-white p-1" ref={containerRef}>
               {/* TODO fix || initial */}
               <Chessground
                 orientation={orientation}
@@ -1192,6 +1244,9 @@ Returns a Tree.Path string
                   dests: calculateDests(),
                   events: {
                     after: (from: Key, to: Key, metadata: MoveMetadata) => {
+                      // set box
+                      showBoxAtSquare(to);
+
                       if (!isEditing) {
                         console.log('after');
                         // this.syncTime();
@@ -1211,7 +1266,8 @@ Returns a Tree.Path string
                               //TODO be more permissive depending on config
                               switch (makeGuess(san)) {
                                 case 'success':
-                                  succeed();
+                                  const secsUntilDue = succeed();
+                                  showBoxAtSquare(to, secsUntilDue);
                                   handleRecall();
                                   break;
                                 case 'alternate':
@@ -1245,6 +1301,27 @@ Returns a Tree.Path string
         </div>
       </div>
       <Debug atLast={atLast} />
+      //TODO handle with animation, allow multiple feedback at the same time ... 
+      {box && repertoireMethod == 'recall' && (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${box.x - 5}px`,
+            top: `${box.y - 25}px`,
+            width: '40px',
+            height: '40px',
+            // backgroundColor: 'black',
+            pointerEvents: 'none',
+            transition: 'opacity 1s ease',
+            zIndex: 10,
+            fontStyle: 'oblique',
+            fontWeight: 'bold',
+            transform: 'rotate(45deg)', // <-- rotation here
+          }}
+        >
+          +{box.time}
+        </div>
+      )}
     </MantineProvider>
   );
 };
