@@ -280,7 +280,7 @@ export const ChessOpeningTrainer = () => {
     setDueTimes(dueCounts);
 
     chapter.lastDueCount = dueCounts[0];
-    // TODO what about the other elements in the `dueCounts` array? 
+    // TODO what about the other elements in the `dueCounts` array?
 
     // TODO implement walk for Tree type
     // use updateAll in opts.ts lichess
@@ -1068,13 +1068,12 @@ Returns a Tree.Path string
 
   //TODO dont use useEffect here?
   useEffect(() => {
+    // importToRepertoire(nimzo(), 'white', 'nimzo dimzo white');
     // addToRepertoire(alternates(), 'black', 'Alternates');
-    importToRepertoire(nimzo(), 'white', 'nimzo dimzo white');
-    importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
-
-    setRepertoireMethod('learn');
-    handleLearn();
-    succeed();
+    // importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
+    // setRepertoireMethod('learn');
+    // handleLearn();
+    // succeed();
     // handleLearn();
     // succeed();
     // handleLearn();
@@ -1089,10 +1088,8 @@ Returns a Tree.Path string
     // succeed();
     // handleRecall();
     // handleRecall();
-
     // handleLearn();
     // handleLearn();
-
     // markAllSeen();
   }, []);
 
@@ -1223,8 +1220,20 @@ Returns a Tree.Path string
           <span className="text-stone-600">repeat</span>
         </div>
         {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-        {showingAddToRepertoireMenu && (
+        {/* {showingAddToRepertoireMenu && (
           <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
+        )} */}
+        {showingAddToRepertoireMenu && (
+          <>
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowingAddToRepertoireMenu(false)} // close on backdrop click
+            ></div>
+
+            {/* Modal */}
+            <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
+          </>
         )}
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
         <div className="flex justify-between items-start w-full px-10 gap-5">

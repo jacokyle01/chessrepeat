@@ -219,7 +219,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   let repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
 
-  const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
+  const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
   const path: Tree.Node[] = chapter.tree.getNodeList(pathToTrain);
 
   const method = useTrainerStore.getState().repertoireMethod;
