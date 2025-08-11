@@ -95,7 +95,7 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { MantineProvider } from '@mantine/core';
 import { Debug } from './components/Debug';
-import { formatTime } from './util/time';
+import { formatTime } from './view/time';
 import Explorer from './components/Explorer';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
@@ -278,6 +278,9 @@ export const ChessOpeningTrainer = () => {
 
     countDueRecursive(root);
     setDueTimes(dueCounts);
+
+    chapter.lastDueCount = dueCounts[0];
+    // TODO what about the other elements in the `dueCounts` array? 
 
     // TODO implement walk for Tree type
     // use updateAll in opts.ts lichess
@@ -728,7 +731,6 @@ Returns a Tree.Path string
     updateDueCounts();
     //TODO
     // repertoire[repertoireIndex].lastDueCount = dueTimes[0];
-    chapter.lastDueCount = 420;
     setLastFeedback('learn');
 
     setRepertoireMethod('learn');
@@ -821,7 +823,7 @@ Returns a Tree.Path string
     resetTrainingContext();
     updateDueCounts();
     // TODO do w/ usetrainerstore?
-    repertoire[repertoireIndex].lastDueCount = dueTimes[0];
+    // repertoire[repertoireIndex].lastDueCount = dueTimes[0];
     // this.chessground?.setAutoShapes([]); // TODO in separate method?
     // setCbConfig({
     //   ...cbConfig,

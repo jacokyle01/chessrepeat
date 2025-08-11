@@ -4,7 +4,7 @@ import { Chart } from 'chart.js/auto';
 import PrepCtrl from '../ctrl';
 import { BarChart, BarData } from '../types/types';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { formatTime } from '../util/time';
+import { formatTime } from './time';
 
 Chart.register(ChartDataLabels);
 
