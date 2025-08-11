@@ -96,6 +96,7 @@ import { scalachessCharPair } from 'chessops/compat';
 import { MantineProvider } from '@mantine/core';
 import { Debug } from './components/Debug';
 import { formatTime } from './util/time';
+import Explorer from './components/Explorer';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -1295,13 +1296,13 @@ Returns a Tree.Path string
           <div className="flex flex-col flex-1 h-full">
             {/* <PgnTree makeCgOpts={makeCgOpts} /> */}
             <NewPgnTree jump={jump}></NewPgnTree>
-            <Feedback {...feedbackProps} />
+            {repertoireMethod == 'edit' ? <Explorer />: <Feedback {...feedbackProps} />}
             <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
           </div>
         </div>
       </div>
       <Debug atLast={atLast} />
-      //TODO handle with animation, allow multiple feedback at the same time ... 
+      {/*TODO handle with animation, allow multiple feedback at the same time */}
       {box && repertoireMethod == 'recall' && (
         <div
           style={{

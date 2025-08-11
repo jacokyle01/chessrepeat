@@ -38,7 +38,7 @@ export interface Ctx {
 //TODO maybe dont style this as if it was a real move?
 function EmptyMove() {
   return (
-    <div className="empty move items-center self-start flex shadow-md basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] pr-[4.74px] text-[#4d4d4d] overflow-hidden font-bold text-red-400">
+    <div className="empty move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] overflow-hidden font-bold text-gray-600">
       ...
     </div>
   );
@@ -63,9 +63,9 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; op
   return (
     <div
       data-path={path}
-      className={`move items-center self-start flex shadow-md basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] pr-[4.74px] text-[#4d4d4d] overflow-hidden font-bold text-red-400 ${activeClass}`}
+      className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold text-gray-600 ${activeClass}`}
     >
-      {`${node.san} ${path}`}
+      {node.san}
     </div>
   );
 }
