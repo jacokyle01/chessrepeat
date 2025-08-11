@@ -1295,8 +1295,10 @@ Returns a Tree.Path string
           </div>
           <div className="flex flex-col flex-1 h-full">
             {/* <PgnTree makeCgOpts={makeCgOpts} /> */}
-            <NewPgnTree jump={jump}></NewPgnTree>
-            {repertoireMethod == 'edit' ? <Explorer />: <Feedback {...feedbackProps} />}
+            <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
+              <NewPgnTree jump={jump}></NewPgnTree>
+              {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
+            </div>
             <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
           </div>
         </div>

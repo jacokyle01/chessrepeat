@@ -19,7 +19,7 @@ const Recall = ({ handleFail }) => {
   const toggleShowingHint = useTrainerStore.getState().showingHint;
 
   return (
-    <div className="bg-white justify-center border border-gray-300 gap-5 rounded-b-xl">
+    <div className="bg-white justify-center border border-gray-300 gap-5">
       <div className="bg-white flex items-center justify-center py-12 px-6 gap-3">
         <div className="w-12 h-12 flex items-center justify-center">
           <Repeat2 className="w-14 h-14" />
@@ -55,7 +55,7 @@ const Learn = () => {
   const san = useTrainerStore.getState().trainableContext.targetMove.san;
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-5 rounded-b-xl">
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-5">
       <div className="w-12 h-12 flex items-center justify-center">
         <Lightbulb className="w-20 h-20" />
       </div>
@@ -68,7 +68,7 @@ const Learn = () => {
 };
 
 const Empty = () => (
-  <div className="bg-white flex flex-col items-center justify-center py-12 border border-gray-300 rounded-b-xl">
+  <div className="bg-white flex flex-col items-center justify-center py-12 border border-gray-300">
     <h1 className="font-bold text-xl text-gray-800">No moves</h1>
     <h2 className="text-md text-gray-600 mt-2 text-center">
       Try training a different repertoire or switching modes

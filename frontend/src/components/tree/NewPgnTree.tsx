@@ -46,7 +46,7 @@ function EmptyMove() {
 
 function IndexNode(ply: number) {
   return (
-    <div className="index flex items-center self-start basis-[13%] justify-center border-r border-[#d9d9d9] bg-[#f9f9f9] text-[#999]">
+    <div className="index self-stretch flex items-center self-start basis-[13%] justify-center border-r bg-[#f9f9f9] text-[#999]">
       {ply}
     </div>
   );
@@ -411,13 +411,15 @@ export default function NewPgnTree({ jump }) {
   const blackStarts = (root.ply & 1) === 1;
 
   return (
-    <div
-      onMouseDown={handleMouseDown}
-      className="tview2 tview2-column overflow-y-auto max-h-[500px] flex flex-row flex-wrap items-start bg-white"
-    >
-      {blackStarts && root.ply}
-      {blackStarts && <EmptyMove />}
-      <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
+    <div className='h-[400px] bg-white'>
+      <div
+        onMouseDown={handleMouseDown}
+        className="tview2 tview2-column overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
+      >
+        {blackStarts && root.ply}
+        {blackStarts && <EmptyMove />}
+        <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
+      </div>
     </div>
   );
 }
