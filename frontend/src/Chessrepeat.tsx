@@ -1,3 +1,6 @@
+//TODO better solution for syncing chessground state w/ react store state
+
+
 import React, { useState } from 'react';
 import { Chess } from 'chess.js';
 import Chessboard, { Chessground, Key } from './components/Chessground';

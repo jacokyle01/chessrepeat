@@ -2,7 +2,6 @@ import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-rea
 import { useTrainerStore } from '../../state/state';
 
 const PgnControls = ({ makeCgOpts }) => {
-  //TODO better solution for syncing chessground state w/ react store state
   return (
     <div id="pgn-control" className="flex justify-between w-3/4 mt-3 items-center m-auto">
       <button
