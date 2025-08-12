@@ -949,6 +949,13 @@ Returns a Tree.Path string
       // TODO handle correct placement
       setRepertoire([...repertoire, chapter]);
 
+      /*
+      Set orientation to match repertoire orientation if this is the only entry
+      */
+      if (repertoire.length == 1) {
+        setOrientation(chapter.trainAs);
+      }
+
       // // add to local store
       // addRepertoireEntry(entry, color);
 
@@ -1068,7 +1075,7 @@ Returns a Tree.Path string
 
   //TODO dont use useEffect here?
   useEffect(() => {
-    // importToRepertoire(nimzo(), 'white', 'nimzo dimzo white');
+    importToRepertoire(nimzo(), 'black', 'Nimzo-Indian');
     // addToRepertoire(alternates(), 'black', 'Alternates');
     // importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
     // setRepertoireMethod('learn');
@@ -1330,6 +1337,7 @@ Returns a Tree.Path string
             zIndex: 10,
             fontStyle: 'oblique',
             fontWeight: 'bold',
+            color: 'black',
             transform: 'rotate(45deg)', // <-- rotation here
           }}
         >
