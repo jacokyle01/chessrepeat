@@ -1,6 +1,5 @@
 //TODO better solution for syncing chessground state w/ react store state
 
-
 import React, { useState } from 'react';
 import { Chess } from 'chess.js';
 import Chessboard, { Chessground, Key } from './components/Chessground';
@@ -253,6 +252,10 @@ export const ChessOpeningTrainer = () => {
 
   // walk entire file and describe its state- when moves are due and such
   // store result in `dueTimes` array
+
+  /*
+    Traverse repertoire and glean any useful information 
+  */
   const updateDueCounts = (): void => {
     if (repertoire.length == 0) return;
     const chapter = repertoire[repertoireIndex];
@@ -899,7 +902,7 @@ Returns a Tree.Path string
       //   ...generateChapter(subrep.moves, color, srsConfig.buckets!),
       // };
 
-      const annotatedMoves = annotateMoves(subrep.moves, color);
+      const { moves: moves, nodeCount: nodeCount } = annotateMoves(subrep.moves, color);
       // game<trainingData> --> Tree.Node
       // empower chapters w/ tree operations
 
@@ -919,7 +922,7 @@ Returns a Tree.Path string
           seen: false,
         },
       ];
-      let tree = annotatedMoves.moves;
+      let tree = moves;
       const pos = start;
       const sidelines: Tree.Node[][] = [[]];
       let index = 0;
@@ -939,12 +942,14 @@ Returns a Tree.Path string
 
       if (i > 0) name += ` (${i + 1})`;
 
+      //
+
       //TODO refactor (and possibly combine) annotateMoves and the above logic ^ creating a Tree
       const chapter: RepertoireChapter = {
         tree: newTree,
         name: name,
         bucketEntries: srsConfig.buckets.map(() => 0),
-        nodeCount: 100, //TODO
+        nodeCount: nodeCount,
         lastDueCount: 0,
         trainAs: color,
       };
