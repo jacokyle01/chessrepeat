@@ -1191,10 +1191,6 @@ Returns a Tree.Path string
 
   const calculateDests = () => {
     const isAtLast = atLast();
-    console.log("00000000000000000000")
-    console.log("calc dests");
-    console.log("at last", isAtLast);
-    console.log("method", repertoireMethod);
     if (repertoireMethod != 'edit' && !isAtLast) return new Map();
     if (repertoireMethod == 'learn' && isAtLast) {
       const uci = targetDest();

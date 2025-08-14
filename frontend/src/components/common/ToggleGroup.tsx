@@ -1,13 +1,29 @@
+
+
 import React, { useState } from 'react';
 
 interface ToggleGroupProps {
   label: string;
   labels: string[];
+  selected?: string; // which label is selected (controlled mode)
+  onChange?: (label: string) => void; // fired when selection changes
   onClickHandlers?: (() => void)[];
 }
 
-const ToggleGroup: React.FC<ToggleGroupProps> = ({ label, labels, onClickHandlers = [] }) => {
+const ToggleGroup: React.FC<ToggleGroupProps> = ({
+  label,
+  labels,
+  selected,
+  onChange,
+  onClickHandlers = [],
+}) => {
+  // Only use internal state if "selected" is not provided
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  const isControlled = selected !== undefined;
+  const currentIndex = isControlled
+    ? labels.findIndex((l) => l.toLowerCase() === selected.toLowerCase())
+    : activeIndex;
 
   return (
     <div className="mb-4">
@@ -19,12 +35,15 @@ const ToggleGroup: React.FC<ToggleGroupProps> = ({ label, labels, onClickHandler
             className={`flex-1 px-3 py-1 text-sm font-medium transition ${
               i === 0 ? 'rounded-l' : i === labels.length - 1 ? 'rounded-r' : ''
             } ${
-              activeIndex === i
+              currentIndex === i
                 ? 'bg-blue-500 text-white'
                 : 'bg-white hover:bg-gray-100 text-gray-700'
             }`}
             onClick={() => {
-              setActiveIndex(i);
+              if (!isControlled) {
+                setActiveIndex(i);
+              }
+              onChange?.(text);
               onClickHandlers[i]?.();
             }}
           >
