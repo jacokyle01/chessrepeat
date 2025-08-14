@@ -419,9 +419,7 @@ Returns a Tree.Path string
     const selectedPath = useTrainerStore.getState().selectedPath;
     const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
 
-    const val = selectedPath == trainingPath;
-    console.log('val', val);
-    return val;
+    return selectedPath == trainingPath;
   };
 
   const flipBoard = () => {
@@ -1021,13 +1019,7 @@ Returns a Tree.Path string
     const nodeList = tree.getNodeList(path);
     const node = treeOps.last(nodeList);
     setSelectedNode(node);
-    const opts = makeCgOpts();
-    useTrainerStore.setState((state) => ({
-      cbConfig: {
-        ...state.cbConfig,
-        ...opts,
-      },
-    }));
+
     // if (pathChanged) {
     //   if (this.study) this.study.setPath(path, this.node);
     //   if (isForwardStep) site.sound.move(this.node);
@@ -1160,6 +1152,7 @@ Returns a Tree.Path string
   };
 
   const createShapes = (): DrawShape[] => {
+    if (!atLast()) return []
     const result = [];
     console.log('method', repertoireMethod);
     if (!isEditing) {
@@ -1178,22 +1171,36 @@ Returns a Tree.Path string
   };
 
   //TODO cleaner logic, reuse fenToDests w/ EDIT
+  // const calculateDests = () => {
+  //   console.log('calc dests at last', atLast());
+  //   if (repertoireMethod != 'edit') {
+  //     const uci = targetDest();
+  //     console.log('dest map', toDestMap(uci[0], uci[1]));
+  //     const result =
+  //       lastFeedback != 'fail' && atLast()
+  //         ? repertoireMethod === 'learn'
+  //           ? toDestMap(uci[0], uci[1])
+  //           : fenToDests(selectedNode?.fen || initial)
+  //         : new Map();
+  //     console.log('result', result);
+  //     return result;
+  //   }
+  //   // no moves when in edit - temporary solution
+  //   return new Map();
+  // };
+
   const calculateDests = () => {
-    console.log('calc dests at last', atLast());
-    if (repertoireMethod != 'edit') {
+    const isAtLast = atLast();
+    console.log("00000000000000000000")
+    console.log("calc dests");
+    console.log("at last", isAtLast);
+    console.log("method", repertoireMethod);
+    if (repertoireMethod != 'edit' && !isAtLast) return new Map();
+    if (repertoireMethod == 'learn' && isAtLast) {
       const uci = targetDest();
-      console.log('dest map', toDestMap(uci[0], uci[1]));
-      const result =
-        lastFeedback != 'fail' && atLast()
-          ? repertoireMethod === 'learn'
-            ? toDestMap(uci[0], uci[1])
-            : fenToDests(selectedNode?.fen || initial)
-          : new Map();
-      console.log('result', result);
-      return result;
+      return toDestMap(uci[0], uci[1]);
     }
-    // no moves when in edit - temporary solution
-    return new Map();
+    return fenToDests(selectedNode?.fen || initial);
   };
 
   function squareToCoords(square: string, bounds: DOMRect, orientation: 'white' | 'black') {
@@ -1325,7 +1332,7 @@ Returns a Tree.Path string
               <NewPgnTree jump={jump}></NewPgnTree>
               {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
             </div>
-            <PgnControls makeCgOpts={makeCgOpts}></PgnControls>
+            <PgnControls jump={jump}></PgnControls>
           </div>
         </div>
       </div>
