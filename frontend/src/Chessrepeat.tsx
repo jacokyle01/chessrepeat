@@ -341,6 +341,7 @@ Returns a Tree.Path string
     // console.log('tree', tree);
     //initialize deque
     const root = tree.root;
+    console.log("root", root);
     for (const child of root.children) {
       // console.log('tree child', child);
       deque.push({
@@ -359,7 +360,7 @@ Returns a Tree.Path string
       if (!pos.disabled) {
         switch (method) {
           case 'recall': //recall if due
-            if (pos.dueAt <= currentTime()) {
+            if (pos.seen && pos.dueAt <= currentTime()) {
               // this.changedLines = !this.pathIsContinuation(this.trainingNodeList, entry.path);
               // TODO better way of doing this
               // shouldn't be handled in nextTrainablePath(). use handleLineChange().
@@ -837,6 +838,7 @@ Returns a Tree.Path string
     // });
 
     const maybeCtx = nextTrainablePath();
+    console.log("maybe ctx", maybeCtx);
 
     if (!maybeCtx) {
       setLastFeedback('empty');
