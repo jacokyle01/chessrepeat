@@ -3,7 +3,7 @@ import { whiteKingI } from '../svg/white_king';
 import { blackKingI } from '../svg/black_king';
 import { useTrainerStore } from '../state/state';
 import { F } from 'vite/dist/node/types.d-aGj9QkWt';
-import { Lightbulb, Repeat2 } from 'lucide-react';
+import { Lightbulb, LucideRepeat2, Repeat2 } from 'lucide-react';
 
 export interface FeedbackProps {
   // repertoire: RepertoireEntry[];
@@ -76,13 +76,11 @@ const Empty = () => (
   </div>
 );
 
-const FailOrAlternate = () => {
+const Fail = () => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
   // const san = useTrainerStore((s) => s.trainingNodeList.at(-1)?.san);
 
-
   const san = useTrainerStore.getState().trainableContext.targetMove.san;
-
   const lastGuess = useTrainerStore.getState().lastGuess;
   // const fail = useTrainerStore(s => s.fail);
   // const handleRecall = useTrainerStore(s => s.handleRecall);
@@ -114,6 +112,24 @@ const FailOrAlternate = () => {
   );
 };
 
+const Alternate = () => {
+  const lastGuess = useTrainerStore.getState().lastGuess;
+
+  return (
+    <div id="recall" className="border-t-2">
+      <div className="bg-white py-10 shadow-md flex flex-col items-center">
+        <div className="flex flex-row justify-center items-center w-full space-x-5">
+          <LucideRepeat2 size={48} color={"gold"}/>
+          <div id="failure">
+            <h2 className="font-bold text-2xl text-amber-400">{`${lastGuess} is an alternate move`}</h2>
+            <p className="text-lg text-gray-600">Try playing a different move</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Feedback: React.FC<FeedbackProps> = ({ handleFail }) => {
   const lastFeedback = useTrainerStore((s) => s.lastFeedback);
 
@@ -125,8 +141,9 @@ export const Feedback: React.FC<FeedbackProps> = ({ handleFail }) => {
     case 'empty':
       return <Empty />;
     case 'fail':
+      return <Fail />;
     case 'alternate':
-      return <FailOrAlternate />;
+      return <Alternate />;
     default:
       return <div>Other</div>;
   }

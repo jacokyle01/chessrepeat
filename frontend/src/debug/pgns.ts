@@ -43,6 +43,10 @@ export const alternates = () => {
   return '1. e4 e5 (1... c5 2. Nf3 d6 (2... e6)) 2. Nf3 Nc6 (2... Nf6)';
 };
 
+export const manyAlternates = () => {
+  return '1. e4 c5 (1... d6) (1... e5) (1... Nf6) (1... g6) (1... Na6)';
+};
+
 export const foolsMate = () => {
   return '1. f3 e5 2. g4 (2. g3 Qh4) Qh4#';
 };
@@ -53,4 +57,4 @@ export const nimzo = () => {
 
 export const catalan = () => {
   return '1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. g3 dxc4 5. Bg2 Be7';
-}
+};

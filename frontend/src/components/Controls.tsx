@@ -3,7 +3,9 @@ import { Method } from '../spaced-repetition/types';
 import {
   Book,
   FilePenLineIcon,
+  GraduationCap,
   GraduationCapIcon,
+  History,
   Lightbulb,
   Repeat2,
   Settings,
@@ -39,7 +41,7 @@ const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: Contro
               : 'bg-gray-500 border-b-4'
           }`}
         >
-          <GraduationCapIcon />
+          <Lightbulb />
           <span>Train</span>
         </button>
 
@@ -61,13 +63,13 @@ const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: Contro
         <div className="bg-white flex gap-1 flex h-11 p-2 items-center my-0">
           <button
             onClick={handleLearn}
-            className={`text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
+            className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
               repertoireMethod == 'learn'
                 ? 'bg-blue-400 translate-y-px transform border-b'
                 : 'bg-blue-500 border-b-4'
             }`}
           >
-            <Lightbulb />
+            <GraduationCap />
             <span>Learn</span>
           </button>
 
@@ -79,7 +81,7 @@ const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: Contro
                 : 'bg-orange-500 border-b-4'
             }`}
           >
-            <Repeat2 />
+            <History />
             <span>Recall</span>
           </button>
         </div>

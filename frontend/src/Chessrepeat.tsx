@@ -74,7 +74,7 @@ import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
 import { Color, Position } from 'chessops';
 import { annotateMoves, countDueContext } from './spaced-repetition/util';
-import { alternates, catalan, foolsMate, nimzo, pgn3, transpose } from './debug/pgns';
+import { alternates, catalan, foolsMate, manyAlternates, nimzo, pgn3, transpose } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
@@ -870,6 +870,62 @@ Returns a Tree.Path string
     // movesElement!.scrollTop = movesElement!.scrollHeight;
   };
 
+  /*
+    Only shows alternate box, which tells user
+    that a different move is needed 
+  */
+  const handleAlternate = () => {
+    setLastFeedback('alternate');
+
+    // let repertoire = useTrainerStore.getState().repertoire;
+    // let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+    // // let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+
+    // resetTrainingContext();
+    // updateDueCounts();
+    // // TODO do w/ usetrainerstore?
+    // // repertoire[repertoireIndex].lastDueCount = dueTimes[0];
+    // // this.chessground?.setAutoShapes([]); // TODO in separate method?
+    // // setCbConfig({
+    // //   ...cbConfig,
+    // //   drawable: {
+    // //     autoShapes: [],
+    // //   },
+    // // });
+
+    // const maybeCtx = nextTrainablePath();
+    // console.log('maybe ctx', maybeCtx);
+
+    // if (!maybeCtx) {
+    //   setLastFeedback('empty');
+    //   console.log('no next in recall');
+    // } else {
+    //   setTrainableContext(maybeCtx);
+    //   // let trainingNodeList = useTrainerStore.getState().trainingNodeList;
+    //   // const opts = this.makeCgOpts();
+    //   // this.chessground!.set(opts);
+    //   // setCbConfig(makeCgOpts());
+    //   // const opts = makeCgOpts();
+    //   // console.log('recall opts', opts);
+    //   // useTrainerStore.setState((state) => ({
+    //   //   cbConfig: {
+    //   //     ...state.cbConfig,
+    //   //     ...opts,
+    //   //   },
+    //   //TODO factor out common logic in learn & recall
+    //   const targetPath = maybeCtx.startingPath;
+    //   setSelectedPath(targetPath);
+    //   const nodeList = chapter.tree.getNodeList(targetPath);
+    //   console.log('nodelist - recall', nodeList);
+    //   setSelectedNode(nodeList.at(-1));
+    // }
+
+    // update scroll height
+    // const movesElement = document.getElementById('moves');
+    // movesElement!.scrollTop = movesElement!.scrollHeight;
+  };
+
   const apiRef = useRef<Api | undefined>();
 
   // const addToRepertoire = (pgn: string, color: Color, name: string) => {
@@ -1077,25 +1133,22 @@ Returns a Tree.Path string
   };
 
   const deleteChapter = (index) => {
-    setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)])
-  }
+    setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
+  };
 
   const renameChapter = (index, name) => {
     repertoire[index].name = name;
-  }
+  };
 
   //TODO dont use useEffect here?
   useEffect(() => {
     // importToRepertoire(nimzo(), 'black', 'Nimzo-Indian');
-    importToRepertoire(foolsMate(), 'black', 'Fools Mate');
+    importToRepertoire(manyAlternates(), 'black', 'alternates');
     // addToRepertoire(alternates(), 'black', 'Alternates');
     // importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
     setRepertoireMethod('learn');
     handleLearn();
     succeed();
-    handleRecall();
-    // succeed();
-    // handleLearn();
     // succeed();
     // handleLearn();
     // succeed();
@@ -1268,7 +1321,7 @@ Returns a Tree.Path string
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
         <div className="flex justify-between items-start w-full px-10 gap-5">
           <div className="flex flex-col flex-1">
-            <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter}/>
+            <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
             {/* <InsightChart /> */}
             <RepertoireActions></RepertoireActions>
             <Schedule />
@@ -1311,9 +1364,7 @@ Returns a Tree.Path string
                                   handleRecall();
                                   break;
                                 case 'alternate':
-                                  succeed();
-                                  showBoxAtSquare(to);
-                                  handleRecall();
+                                  handleAlternate(san);
                                   break;
                                 case 'failure':
                                   //TODO maybe dont fail right away?
