@@ -86,7 +86,7 @@ import { Feedback, FeedbackProps } from './components/Feedback';
 import { PgnTree, PgnTreeProps } from './components/pgn/PgnTree';
 import InsightChart from './components/InsightChart';
 import Schedule from './components/Schedule';
-import AddToReperotireModal from './components/repertoire/AddToRepertoireModal';
+import AddToReperotireModal from './components/modals/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
 import SettingsModal from './components/SettingsModal';
 import PgnControls from './components/pgn/PgnControls';
@@ -341,7 +341,7 @@ Returns a Tree.Path string
     // console.log('tree', tree);
     //initialize deque
     const root = tree.root;
-    console.log("root", root);
+    console.log('root', root);
     for (const child of root.children) {
       // console.log('tree child', child);
       deque.push({
@@ -360,6 +360,7 @@ Returns a Tree.Path string
       if (!pos.disabled) {
         switch (method) {
           case 'recall': //recall if due
+            //TODO remove some pos._ fields
             if (pos.seen && pos.dueAt <= currentTime()) {
               // this.changedLines = !this.pathIsContinuation(this.trainingNodeList, entry.path);
               // TODO better way of doing this
@@ -838,7 +839,7 @@ Returns a Tree.Path string
     // });
 
     const maybeCtx = nextTrainablePath();
-    console.log("maybe ctx", maybeCtx);
+    console.log('maybe ctx', maybeCtx);
 
     if (!maybeCtx) {
       setLastFeedback('empty');
@@ -1075,15 +1076,24 @@ Returns a Tree.Path string
     return;
   };
 
+  const deleteChapter = (index) => {
+    setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)])
+  }
+
+  const renameChapter = (index, name) => {
+    repertoire[index].name = name;
+  }
+
   //TODO dont use useEffect here?
   useEffect(() => {
-    importToRepertoire(nimzo(), 'black', 'Nimzo-Indian');
+    // importToRepertoire(nimzo(), 'black', 'Nimzo-Indian');
+    importToRepertoire(foolsMate(), 'black', 'Fools Mate');
     // addToRepertoire(alternates(), 'black', 'Alternates');
     // importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
-    // setRepertoireMethod('learn');
-    // handleLearn();
-    // succeed();
-    // handleLearn();
+    setRepertoireMethod('learn');
+    handleLearn();
+    succeed();
+    handleRecall();
     // succeed();
     // handleLearn();
     // succeed();
@@ -1154,7 +1164,7 @@ Returns a Tree.Path string
   };
 
   const createShapes = (): DrawShape[] => {
-    if (!atLast()) return []
+    if (!atLast()) return [];
     const result = [];
     console.log('method', repertoireMethod);
     if (!isEditing) {
@@ -1258,7 +1268,7 @@ Returns a Tree.Path string
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
         <div className="flex justify-between items-start w-full px-10 gap-5">
           <div className="flex flex-col flex-1">
-            <Repertoire />
+            <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter}/>
             {/* <InsightChart /> */}
             <RepertoireActions></RepertoireActions>
             <Schedule />
@@ -1277,8 +1287,6 @@ Returns a Tree.Path string
                   events: {
                     after: (from: Key, to: Key, metadata: MoveMetadata) => {
                       // set box
-                      showBoxAtSquare(to);
-
                       if (!isEditing) {
                         console.log('after');
                         // this.syncTime();
@@ -1304,6 +1312,7 @@ Returns a Tree.Path string
                                   break;
                                 case 'alternate':
                                   succeed();
+                                  showBoxAtSquare(to);
                                   handleRecall();
                                   break;
                                 case 'failure':

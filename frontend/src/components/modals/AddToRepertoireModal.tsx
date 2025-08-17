@@ -4,7 +4,7 @@ import { CircleXIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 
 const AddToReperotireModal: React.FC = ({ importToRepertoire }) => {
-const setShowModal = useTrainerStore((s) => s.setShowingAddToRepertoireMenu);
+  const setShowModal = useTrainerStore((s) => s.setShowingAddToRepertoireMenu);
   const [selectedColor, setSelectedColor] = useState(undefined);
   const nameRef = useRef<HTMLInputElement>(null);
   const pgnRef = useRef<HTMLTextAreaElement>(null);

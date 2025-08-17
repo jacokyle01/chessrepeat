@@ -1,30 +1,40 @@
 //TODO better name?
 
-import React from 'react';
+import React, { useState } from 'react';
 import { RepertoireChapter, RepertoireEntry } from '../../types/types';
 import { smallGear } from '../../svg/smallGear';
 import RepertoireDropdown from './RepertoireDropdown';
-import { LucideFileEdit, Settings } from 'lucide-react';
+import { FileX, LucideFileEdit, Settings } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
+import { Modal } from '../modals/Modal';
 // const { setOrientation } = useTrainerStore();
 
 interface RepertoireSectionProps {
   repertoire: RepertoireChapter[];
   startsAt: number;
   repertoireIndex: number;
+  deleteChapter: (index: number) => void;
+  renameChapter: (index: number, name: string) => void;
 }
 
 export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
   repertoire,
   startsAt,
   repertoireIndex,
+  deleteChapter,
+  renameChapter,
 }) => {
   // const [repertoireIndex, setRepertoireIndex] = useAtom(repertoireIndexAtom);
 
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const setOrientation = useStore(useTrainerStore, (s) => s.setOrientation);
+
+  //TODO BUG: renaming/deleting the wrong chapter? 
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [newName, setNewName] = useState(''); // holds input value
 
   // console.log("repertoire section", repertoire);
   return (
@@ -71,19 +81,66 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
                   Recall {entry.lastDueCount}
                 </button>
               )}
-              <div id="subrep-settings" className="ml-auto mr-2 text-gray-500">
-                <div
-                // className={`cursor-pointer transition-all hover:bg-gray-300 active:scale-90 rounded-md ${
-                //   // ctrl.subrepSettingsIndex === fullIndex ? 'bg-gray-300' : ''
-                // }`}
-                // onClick={handleSettingsClick}
-                >
-                  <LucideFileEdit />
-                </div>
+              <div
+                id="chapter-settings"
+                className="text-gray-600 cursor-pointer"
+                onClick={() => setRenameOpen(true)}
+              >
+                <LucideFileEdit />
+              </div>
+
+              {/* Delete icon → opens delete modal */}
+              <div
+                id="delete-chapter"
+                className="ml-auto mr-2 text-gray-600 cursor-pointer"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <FileX />
               </div>
             </div>
-            {/* {dropdownMenu(index, startsAt)} */}
-            {/* <RepertoireDropdown thisIndex={index} startsAt={startsAt}></RepertoireDropdown> */}
+
+            {/* Rename Modal */}
+            <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="Rename Chapter">
+              <input
+                type="text"
+                placeholder="New chapter name"
+                className="w-full border rounded-md p-2 mb-4"
+                onChange={(e) => setNewName(e.target.value)} // update state on typing
+              />
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                onClick={() => {
+                  renameChapter(index, newName);
+                  setRenameOpen(false);
+                }}
+              >
+                Save
+              </button>
+            </Modal>
+
+            {/* Delete Modal */}
+            <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete Chapter">
+              <p className="mb-4 text-gray-700">
+                Are you sure you want to delete this chapter? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  className="px-4 py-2 rounded-md border hover:bg-gray-100"
+                  onClick={() => setDeleteOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                  onClick={() => {
+                    deleteChapter(index);
+                    setDeleteOpen(false);
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </Modal>
           </div>
         );
       })}

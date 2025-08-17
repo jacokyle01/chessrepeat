@@ -1,3 +1,5 @@
+//TODO repertoire and repertoire section in same file
+
 import React, { Dispatch, SetStateAction } from 'react';
 import PrepCtrl from '../../ctrl';
 import { RepertoireChapter, RepertoireEntry } from '../../types/types';
@@ -7,7 +9,7 @@ import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 // import { progress } from './progress'; // Uncomment if needed
 
-const Repertoire: React.FC = () => {
+const Repertoire: React.FC = ({deleteChapter, renameChapter}) => {
   const repertoire = useTrainerStore().repertoire;
   const numWhiteEntries = useTrainerStore().numWhiteEntries;
   const repertoireIndex = useTrainerStore().repertoireIndex;
@@ -30,12 +32,20 @@ const Repertoire: React.FC = () => {
         </div>
         <div id="repertoire-wrap">
           <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600 space-x-1">White</span>
-          <RepertoireSection repertoire={whiteEntries} startsAt={0} repertoireIndex={repertoireIndex} />
+          <RepertoireSection
+            repertoire={whiteEntries}
+            startsAt={0}
+            repertoireIndex={repertoireIndex}
+            deleteChapter={deleteChapter}
+            renameChapter={renameChapter}
+          />
           <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600">Black</span>
           <RepertoireSection
             repertoire={blackEntries}
             startsAt={numWhiteEntries}
             repertoireIndex={repertoireIndex}
+            deleteChapter={deleteChapter}
+            renameChapter={renameChapter}
           />
         </div>
       </div>
