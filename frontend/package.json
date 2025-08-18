@@ -26,7 +26,6 @@
     "@mantine/hooks": "^8.2.4",
     "chart.js": "^4.5.0",
     "chartjs-plugin-datalabels": "^2.2.0",
-    "chess.js": "^1.2.0",
     "chessground": "^9",
     "chessops": "^0.14.1",
     "jotai": "^2.12.5",

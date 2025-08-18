@@ -2,7 +2,7 @@ import React from 'react';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, ChartData, ChartOptions } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { formatTime } from '../view/time';
+import { formatTime } from '../util/time'
 import { useTrainerStore } from '../state/state';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, ChartDataLabels);
