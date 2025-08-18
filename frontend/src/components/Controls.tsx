@@ -10,6 +10,7 @@ import {
   Repeat2,
   Settings,
   Settings2,
+  SquarePen,
 } from 'lucide-react';
 import { useTrainerStore } from '../state/state';
 import SettingsButton from './SettingsButton';
@@ -28,64 +29,51 @@ const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: Contro
   const lastGuess = useTrainerStore.getState().lastGuess;
   const showLastMoveCorrect = useTrainerStore.getState().showSuccessfulGuess;
 
-  //TODO difference between handleLearn and setting mode to learn? 
+  //TODO difference between handleLearn and setting mode to learn?
   return (
-    <div className="flex flex-row justify-between items-start">
+    <div className="flex flex-row justify-start items-start">
       {/* train/edit controls */}
-      <div className="flex gap-1 bg-white flex items-end h-12 mr-auto p-1" id="training-controls">
-        <button
-          onClick={handleLearn}
-          className={`gap-1 text-white font-bold py-2 px-4 rounded flex border-gray-700 hover:border-gray-500 hover:bg-gray-300 active:transform active:translate-y-px active:border-b ${
-            repertoireMethod == 'learn' || repertoireMethod == 'recall'
-              ? 'bg-gray-400 translate-y-px transform border-b'
-              : 'bg-gray-500 border-b-4'
-          }`}
-        >
-          <Lightbulb />
-          <span>Train</span>
-        </button>
-
+      <div className="flex gap-1 bg-white flex items-end p-1" id="training-controls">
         <button
           onClick={() => setRepertoireMethod('edit')}
-          className={`gap-1 text-white font-bold py-2 px-4 rounded flex border-gray-700 hover:border-gray-500 hover:bg-gray-300 active:transform active:translate-y-px active:border-b ${
+          className={`gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-gray-700 hover:border-gray-500 hover:bg-gray-300 active:transform active:translate-y-px active:border-b ${
             repertoireMethod == 'edit'
               ? 'bg-gray-400 translate-y-px transform border-b'
               : 'bg-gray-500 border-b-4'
           }`}
         >
-          <FilePenLineIcon />
-          <span>Edit</span>
+          <SquarePen size={22} />
+          <span className="">Edit</span>
+        </button>
+
+        <button
+          onClick={handleLearn}
+          className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
+            repertoireMethod == 'learn'
+              ? 'bg-blue-400 translate-y-px transform border-b'
+              : 'bg-blue-500 border-b-4'
+          }`}
+        >
+          <GraduationCap size={22}/>
+          <span className="">Learn</span>
+        </button>
+
+        <button
+          onClick={handleRecall}
+          className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-orange-700 hover:border-orange-500 hover:bg-orange-400 active:transform active:translate-y-px active:border-b ${
+            repertoireMethod == 'recall'
+              ? 'bg-orange-400 translate-y-px transform border-b'
+              : 'bg-orange-500 border-b-4'
+          }`}
+        >
+          <History size={22}/>
+          <span className="">Recall</span>
         </button>
       </div>
 
       {/* training-specifc controls */}
-      <div className="flex h-11 p-2 items-center" id="training-controls">
-        <div className="bg-white flex gap-1 flex h-11 p-2 items-center my-0">
-          <button
-            onClick={handleLearn}
-            className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
-              repertoireMethod == 'learn'
-                ? 'bg-blue-400 translate-y-px transform border-b'
-                : 'bg-blue-500 border-b-4'
-            }`}
-          >
-            <GraduationCap />
-            <span>Learn</span>
-          </button>
-
-          <button
-            onClick={handleRecall}
-            className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-orange-700 hover:border-orange-500 hover:bg-orange-400 active:transform active:translate-y-px active:border-b ${
-              repertoireMethod == 'recall'
-                ? 'bg-orange-400 translate-y-px transform border-b'
-                : 'bg-orange-500 border-b-4'
-            }`}
-          >
-            <History />
-            <span>Recall</span>
-          </button>
-        </div>
-        <div id="settings-wrap" className="flex mx-auto p-2">
+      <div className="flex h-11 items-center mr-auto" id="training-controls">
+        <div id="settings-wrap" className="flex p-2">
           <SettingsButton></SettingsButton>
         </div>
       </div>

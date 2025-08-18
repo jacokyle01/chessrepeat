@@ -98,7 +98,7 @@ export const useTrainerStore = create<TrainerState>((set) => ({
   // trainingMethod: 'unselected',
   // setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
 
-  repertoireMethod: 'edit',
+  repertoireMethod: 'unselected',
   setRepertoireMethod: (repertoireMethod) => set({ repertoireMethod }),
 
   showTrainingSettings: false,

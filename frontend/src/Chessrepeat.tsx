@@ -659,9 +659,9 @@ Returns a Tree.Path string
     importToRepertoire(manyAlternates(), 'black', 'alternates');
     // addToRepertoire(alternates(), 'black', 'Alternates');
     // importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
-    setRepertoireMethod('learn');
-    handleLearn();
-    succeed();
+    // setRepertoireMethod('learn');
+    // handleLearn();
+    // succeed();
     // succeed();
     // handleLearn();
     // succeed();
