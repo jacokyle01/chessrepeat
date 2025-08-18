@@ -1,8 +1,7 @@
 import React from 'react';
-import { whiteKingI } from '../svg/white_king';
+//TODO king SVG
 import { blackKingI } from '../svg/black_king';
 import { useTrainerStore } from '../state/state';
-import { F } from 'vite/dist/node/types.d-aGj9QkWt';
 import { Lightbulb, LucideRepeat2, Repeat2 } from 'lucide-react';
 
 export interface FeedbackProps {
@@ -12,7 +11,7 @@ export interface FeedbackProps {
   //TODO calculate this dynamically??
 }
 const isWhite = true;
-const Recall = ({ handleFail }) => {
+const Recall = () => {
   //TODO change
   let isWhite = true;
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
@@ -28,23 +27,6 @@ const Recall = ({ handleFail }) => {
           <h1 className="font-bold text-2xl text-gray-800">Your move</h1>
           <h2 className="text-lg text-gray-600">{`What does ${isWhite ? 'White' : 'Black'} play here?`}</h2>
         </div>
-      </div>
-      <div id="recall-options" className="flex">
-        <span
-          id="recall-fail"
-          className="bg-white text-blue-700 font-semibold text-lg uppercase flex-1 text-center py-3 cursor-pointer transition hover:bg-blue-200"
-          onClick={handleFail}
-        >
-          Give up
-        </span>
-        <span
-          id="recall-hint"
-          className="bg-white text-blue-700 font-semibold text-lg uppercase flex-1 text-center py-3 cursor-pointer transition hover:bg-blue-200"
-          // TODO hint
-          // onClick={}
-        >
-          Show hint
-        </span>
       </div>
     </div>
   );
@@ -76,7 +58,7 @@ const Empty = () => (
   </div>
 );
 
-const Fail = () => {
+const Fail = ({ handleRecall, fail }) => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
   // const san = useTrainerStore((s) => s.trainingNodeList.at(-1)?.san);
 
@@ -92,7 +74,7 @@ const Fail = () => {
 
   return (
     <div id="recall" className="border-t-2">
-      <div className="bg-white py-10 shadow-md flex flex-col items-center">
+      <div className="bg-white py-10 shadow-md flex flex-col items-center gap-2">
         <div className="flex flex-row justify-center items-center w-full space-x-5">
           <div className="text-red-500 text-7xl font-bold">✗</div>
           <div id="failure">
@@ -102,7 +84,7 @@ const Fail = () => {
         </div>
         <button
           id="continue-btn"
-          className="bg-orange-400 text-white font-bold py-2 px-6 mt-6 rounded hover:bg-orange-500 active:transform active:translate-y-px active:border-b-2 border-orange-700"
+          className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-400"
           onClick={onContinue}
         >
           Continue Training
@@ -119,7 +101,7 @@ const Alternate = () => {
     <div id="recall" className="border-t-2">
       <div className="bg-white py-10 shadow-md flex flex-col items-center">
         <div className="flex flex-row justify-center items-center w-full space-x-5">
-          <LucideRepeat2 size={48} color={"gold"}/>
+          <LucideRepeat2 size={48} color={'gold'} />
           <div id="failure">
             <h2 className="font-bold text-2xl text-amber-400">{`${lastGuess} is an alternate move`}</h2>
             <p className="text-lg text-gray-600">Try playing a different move</p>
@@ -130,18 +112,18 @@ const Alternate = () => {
   );
 };
 
-export const Feedback: React.FC<FeedbackProps> = ({ handleFail }) => {
+export const Feedback: React.FC<FeedbackProps> = ({ handleRecall, fail }) => {
   const lastFeedback = useTrainerStore((s) => s.lastFeedback);
 
   switch (lastFeedback) {
     case 'recall':
-      return <Recall handleFail={handleFail} />;
+      return <Recall />;
     case 'learn':
       return <Learn />;
     case 'empty':
       return <Empty />;
     case 'fail':
-      return <Fail />;
+      return <Fail handleRecall={handleRecall} fail={fail} />;
     case 'alternate':
       return <Alternate />;
     default:

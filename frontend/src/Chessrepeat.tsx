@@ -1,7 +1,7 @@
 //TODO better solution for syncing chessground state w/ react store state
 
 import React, { useState } from 'react';
-import { Chessground} from './components/Chessground';
+import { Chessground } from './components/Chessground';
 import Controls, { ControlsProps } from './components/Controls';
 import {
   build as makeTree,
@@ -44,7 +44,7 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { MantineProvider } from '@mantine/core';
 import { Debug } from './components/Debug';
-import { formatTime } from './util/time'
+import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
@@ -88,10 +88,6 @@ export const ChessOpeningTrainer = () => {
     repertoireIndex,
     setRepertoireIndex,
 
-    // trainingNodeList,
-    // setTrainingNodeList,
-    // pathIndex,
-    // setPathIndex,
     showingHint,
     setShowingHint,
     lastFeedback,
@@ -401,7 +397,7 @@ Returns a Tree.Path string
     return timeToAdd;
   };
 
-  //TODO! never used? 
+  //TODO! never used?
   const fail = () => {
     setShowSuccessfulGuess(false);
     let node = useTrainerStore.getState().trainableContext.targetMove;
@@ -554,7 +550,6 @@ Returns a Tree.Path string
     setLastFeedback('alternate');
   };
 
-
   const importToRepertoire = (pgn: string, color: Color, name: string) => {
     let repertoire = useTrainerStore.getState().repertoire;
     // TODO why is PGN undefined?
@@ -632,7 +627,6 @@ Returns a Tree.Path string
     });
   };
 
-
   const jump = (path: Tree.Path): void => {
     const repertoire = useTrainerStore.getState().repertoire;
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
@@ -684,7 +678,6 @@ Returns a Tree.Path string
     // markAllSeen();
   }, []);
 
-
   const controlsProps: ControlsProps = {
     repertoireMethod,
     handleLearn,
@@ -697,8 +690,9 @@ Returns a Tree.Path string
   //   setShowingAddToRepertoireMenu,
   //   repertoireIndex,
   // };
-  const feedbackProps: FeedbackProps = {
-    handleFail,
+  const feedbackProps = {
+    handleRecall,
+    fail,
   };
 
   // TODO should be in different component?
