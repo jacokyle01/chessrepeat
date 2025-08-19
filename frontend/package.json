@@ -32,6 +32,8 @@
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.511.0",
     "prettier": "^3.2.5",
+    "primeflex": "^4.0.0",
+    "primeicons": "^7.0.0",
     "primereact": "^10.9.7",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",

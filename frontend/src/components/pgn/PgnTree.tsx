@@ -1,4 +1,5 @@
 // TODO: comments:
+// TODO use primereact icons instead?
 import { useTrainerStore } from '../../state/state';
 import {
   type ChildNode,
@@ -12,9 +13,13 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
 import { makeUci, Position } from 'chessops';
 
-import { build as makeTree, path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
+import { ContextMenu } from 'primereact/contextmenu';
+import { useAppContextMenu } from './ContextMenuProvider';
 
-import React from 'react';
+import { build as makeTree, path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
+import { ContextMenuProvider } from './ContextMenuProvider';
+
+import React, { useRef } from 'react';
 import { foolsMate, nimzo } from '../../debug/pgns';
 import { PlusIcon } from 'lucide-react';
 export interface Opts {
@@ -35,6 +40,19 @@ export interface Ctx {
 // export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
 //   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
 
+const contextMenuItems = [
+  {
+    label: 'Add Comment',
+    icon: 'pi pi-comment',
+    command: () => console.log('Add comment'),
+  },
+  {
+    label: 'Delete From Here',
+    icon: 'pi pi-trash',
+    command: () => console.log('Delete from here'),
+  },
+];
+
 //TODO maybe dont style this as if it was a real move?
 function EmptyMove() {
   return (
@@ -53,22 +71,33 @@ function IndexNode(ply: number) {
 }
 
 function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
-  const path = opts.parentPath + node.id;
-  // const path = opts.parentPath + node.id; // TODO paths
-  // const classes = nodeClasses(ctx, node);
+  const { showMenu, contextSelectedPath } = useAppContextMenu();
 
+  const path = opts.parentPath + node.id;
   const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'bg-blue-400/50' : '';
-  const classes = '';
+
+  const isContextSelected = path === contextSelectedPath;
+  const activeClass = path === selectedPath ? "bg-blue-400/50" : "";
+
+  const items = [
+    { label: "Delete move", command: () => console.log("delete", path) },
+    { label: "Promote", command: () => console.log("promote", path) },
+  ];
+
   return (
     <div
       data-path={path}
-      className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold text-gray-600 ${activeClass}`}
+      className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
+        leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold text-gray-600
+        hover:bg-blue-400 select-none cursor-pointer
+        ${activeClass} ${isContextSelected ? "bg-orange-400" : ""}`}
+      onContextMenu={(e) => showMenu(e, items, path)}
     >
       {node.san}
     </div>
   );
 }
+
 
 function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   const path = opts.parentPath + node.id;
@@ -87,7 +116,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
   return (
     <span
       data-path={path}
-      className={`move variation text-[15.8px] px-[7.9px] pr-[4.74px] overflow-hidden ${activeClass}`}
+      className={`move variation text-[15.8px] px-[7.9px] pr-[4.74px] overflow-hidden hover:bg-blue-400 select-none cursor-pointer ${activeClass}`}
     >
       {content}
     </span>
@@ -411,16 +440,18 @@ export default function NewPgnTree({ jump }) {
   const blackStarts = (root.ply & 1) === 1;
 
   return (
-    <div className="h-[400px] bg-white">
-      <div
-        onMouseDown={handleMouseDown}
-        className="tview2 tview2-column overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
-      >
-        {blackStarts && root.ply}
-        {blackStarts && <EmptyMove />}
-        <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
+    <ContextMenuProvider>
+      <div className="h-[400px] bg-white">
+        <div
+          onMouseDown={handleMouseDown}
+          className="tview2 tview2-column overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
+        >
+          {blackStarts && root.ply}
+          {blackStarts && <EmptyMove />}
+          <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
+        </div>
       </div>
-    </div>
+    </ContextMenuProvider>
   );
 }
 
