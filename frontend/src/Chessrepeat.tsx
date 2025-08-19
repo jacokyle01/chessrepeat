@@ -38,7 +38,7 @@ import Schedule from './components/Schedule';
 import AddToReperotireModal from './components/modals/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
 import PgnControls from './components/pgn/PgnControls';
-import NewPgnTree from './components/tree/NewPgnTree';
+import NewPgnTree from './components/pgn/PgnTree';
 import { FenError, makeFen, parseFen } from 'chessops/fen';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
@@ -125,6 +125,18 @@ export const ChessOpeningTrainer = () => {
   } = useTrainerStore();
 
   const [sounds, setSounds] = useState(SOUNDS);
+  //TODO dont use useEffect here?
+  const ran = useRef(false);
+
+  // prevent from running twice in dev
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+
+    importToRepertoire(opera(), 'white', 'Opera Game');
+    importToRepertoire(pgn3(), 'white', 'Queens Gambit');
+  }, []);
+
   //TODO put in util
   const currentTime = (): number => {
     return Math.round(Date.now() / 1000);
@@ -397,7 +409,6 @@ Returns a Tree.Path string
     return timeToAdd;
   };
 
-  //TODO! never used?
   const fail = () => {
     setShowSuccessfulGuess(false);
     let node = useTrainerStore.getState().trainableContext.targetMove;
@@ -676,7 +687,7 @@ Returns a Tree.Path string
   */
 
   const chessgroundMove = (san: string) => {
-    console.log("chessground move")
+    console.log('chessground move');
     const fen = selectedNode.fen;
     if (!selectedNode.children.map((_) => _.san).includes(san)) {
       const [pos, error] = positionFromFen(fen);
@@ -699,10 +710,10 @@ Returns a Tree.Path string
       selectedNode.children.push(newNode);
     }
 
-    const movingTo = selectedNode.children.find(x => x.san == san);
+    const movingTo = selectedNode.children.find((x) => x.san == san);
 
     const newPath = selectedPath + movingTo.id;
-    
+
     /*
     Update state
     */
@@ -710,7 +721,7 @@ Returns a Tree.Path string
     setSelectedNode(movingTo);
     setSelectedPath(newPath);
 
-    //TODO update due counts, use builtin tree operations 
+    //TODO update due counts, use builtin tree operations
 
     /*
       find SAN in children
@@ -747,31 +758,6 @@ Returns a Tree.Path string
     //   });
     // };
   };
-
-  //TODO dont use useEffect here?
-  useEffect(() => {
-    // importToRepertoire(nimzo(), 'black', 'Nimzo-Indian');
-    importToRepertoire(opera(), 'white', 'alternates');
-    // addToRepertoire(alternates(), 'black', 'Alternates');
-    // importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
-    // setRepertoireMethod('learn');
-    // handleLearn();
-    // succeed();
-    // succeed();
-    // handleLearn();
-    // succeed();
-    // handleLearn();
-    // succeed();
-    // handleLearn();
-    // succeed();
-    // handleLearn();
-    // succeed();
-    // handleRecall();
-    // handleRecall();
-    // handleLearn();
-    // handleLearn();
-    // markAllSeen();
-  }, []);
 
   const controlsProps: ControlsProps = {
     repertoireMethod,
