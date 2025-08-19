@@ -22,9 +22,9 @@ import {
 import { RepertoireChapter, RepertoireEntry } from './types/types';
 import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
-import { Color, Position } from 'chessops';
+import { Chess, Color, Move, Position, PositionError } from 'chessops';
 import { annotateMoves, countDueContext } from './spaced-repetition/util';
-import { alternates, catalan, foolsMate, manyAlternates, nimzo, pgn3, transpose } from './debug/pgns';
+import { alternates, catalan, foolsMate, manyAlternates, nimzo, opera, pgn3, transpose } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
@@ -39,13 +39,14 @@ import AddToReperotireModal from './components/modals/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
 import PgnControls from './components/pgn/PgnControls';
 import NewPgnTree from './components/tree/NewPgnTree';
-import { makeFen } from 'chessops/fen';
+import { FenError, makeFen, parseFen } from 'chessops/fen';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { MantineProvider } from '@mantine/core';
 import { Debug } from './components/Debug';
 import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
+import { Api } from 'chessground/api';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -112,7 +113,7 @@ export const ChessOpeningTrainer = () => {
     setSelectedNode,
 
     selectedNode,
-
+    selectedPath,
     // trainingPath,
     // setTrainingPath,
 
@@ -179,7 +180,6 @@ export const ChessOpeningTrainer = () => {
       fen: makeFen(pos.toSetup()),
       // uci: makeUci(move),
 
-      //TODO flatten <TrainingData>
       disabled: node.data.training.disabled,
       seen: node.data.training.seen,
       group: node.data.training.group,
@@ -653,10 +653,105 @@ Returns a Tree.Path string
     repertoire[index].name = name;
   };
 
+  // const jump = (path: Tree.Path): void => {
+  //   const repertoire = useTrainerStore.getState().repertoire;
+  //   const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+  //   const tree = repertoire[repertoireIndex].tree;
+
+  //   const currentPath = useTrainerStore.getState().selectedPath;
+  //   //TODO
+  //   // const pathChanged = path !== this.path,
+  //   // isForwardStep = pathChanged && path.length === this.path.length + 2;
+  //   setSelectedPath(path);
+
+  //   // TODO why are we storing this logic here ?
+  //   const nodeList = tree.getNodeList(path);
+  //   const node = treeOps.last(nodeList);
+  //   setSelectedNode(node);
+  // };
+
+  /*
+  After we make a move in editing
+  */
+
+  const chessgroundMove = (san: string) => {
+    console.log("chessground move")
+    const fen = selectedNode.fen;
+    if (!selectedNode.children.map((_) => _.san).includes(san)) {
+      const [pos, error] = positionFromFen(fen);
+      const move = parseSan(pos, san);
+
+      const newNode: Tree.Node = {
+        id: scalachessCharPair(move),
+        ply: selectedNode.ply + 1,
+        san: makeSanAndPlay(pos, move),
+        fen: makeFen(pos.toSetup()),
+        disabled: !selectedNode.disabled,
+        seen: false,
+        group: -1,
+        dueAt: -1,
+        children: [],
+      };
+
+      // update chapter-wide metadata if necessary
+      if (!newNode.disabled) repertoire[repertoireIndex].nodeCount++;
+      selectedNode.children.push(newNode);
+    }
+
+    const movingTo = selectedNode.children.find(x => x.san == san);
+
+    const newPath = selectedPath + movingTo.id;
+    
+    /*
+    Update state
+    */
+
+    setSelectedNode(movingTo);
+    setSelectedPath(newPath);
+
+    //TODO update due counts, use builtin tree operations 
+
+    /*
+      find SAN in children
+      if its not there, add it
+      set currentNode, currentPath, etc... 
+
+      other stuff shuld automatically work out??? 
+
+    */
+
+    /* Make the move
+
+      if newPath
+        add node
+      else 
+        adjust position 
+        assume all other data can be derived from position change 
+
+
+
+
+
+
+
+    */
+    // return (orig, dest) => {
+    //   chess.move({from: orig, to: dest});
+    //   cg.set({
+    //     turnColor: toColor(chess),
+    //     movable: {
+    //       color: toColor(chess),
+    //       dests: toDests(chess)
+    //     }
+    //   });
+    // };
+  };
+
   //TODO dont use useEffect here?
   useEffect(() => {
     // importToRepertoire(nimzo(), 'black', 'Nimzo-Indian');
-    importToRepertoire(manyAlternates(), 'black', 'alternates');
+    importToRepertoire(opera(), 'white', 'alternates');
     // addToRepertoire(alternates(), 'black', 'Alternates');
     // importToRepertoire(nimzo(), 'black', 'nimzo dimzoblack');
     // setRepertoireMethod('learn');
@@ -704,6 +799,24 @@ Returns a Tree.Path string
   //TODO hints
   //TODO fail
 
+  function positionFromFen(fen: string): [Chess, null] | [null, FenError | PositionError] {
+    const [setup, error] = parseFen(fen).unwrap(
+      (v) => [v, null],
+      (e) => [null, e],
+    );
+    if (error) {
+      return [null, error];
+    }
+
+    return Chess.fromSetup(setup).unwrap(
+      (v) => [v, null],
+      (e) => [null, e],
+    );
+  }
+
+  const [chessPosition, error] = positionFromFen(selectedNode?.fen || initial);
+  const turn = chessPosition?.turn || 'white';
+  console.log('Chess pos', chessPosition, 'turn', turn);
   /*
   The current move we're training
   */
@@ -811,14 +924,14 @@ Returns a Tree.Path string
               <Chessground
                 orientation={orientation}
                 fen={selectedNode?.fen || initial}
-                turnColor={chapter?.trainAs || 'white'}
+                turnColor={turn}
                 movable={{
                   free: false,
-                  color: chapter?.trainAs || 'white',
+                  color: turn,
                   dests: calculateDests(),
                   events: {
                     after: (from: Key, to: Key, metadata: MoveMetadata) => {
-                      // set box
+                      const san = chessgroundToSan(selectedNode.fen, from, to);
                       if (!isEditing) {
                         console.log('after');
                         // this.syncTime();
@@ -834,7 +947,6 @@ Returns a Tree.Path string
                               handleLearn();
                               break;
                             case 'recall':
-                              const san = chessgroundToSan(selectedNode.fen, from, to);
                               //TODO be more permissive depending on config
                               switch (makeGuess(san)) {
                                 case 'success':
@@ -853,6 +965,9 @@ Returns a Tree.Path string
                               break;
                           }
                         }
+                      } else {
+                        // optionally add move
+                        chessgroundMove(san);
                       }
                     },
                   },
