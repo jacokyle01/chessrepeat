@@ -55,6 +55,7 @@ import { Debug } from './components/Debug';
 import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
 import { Api } from 'chessground/api';
+import { Analysis } from './components/Analysis';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -141,9 +142,9 @@ export const ChessOpeningTrainer = () => {
     if (ran.current) return;
     ran.current = true;
 
-    // importToRepertoire(opera(), 'white', 'Opera Game');
-    // importToRepertoire(pgn3(), 'white', 'Queens Gambit');
-    importToRepertoire(commentTest(), 'white', 'Test');
+    importToRepertoire(opera(), 'white', 'Opera Game');
+    importToRepertoire(pgn3(), 'white', 'Queens Gambit');
+    // importToRepertoire(commentTest(), 'white', 'Test');
   }, []);
 
   //TODO put in util
@@ -267,7 +268,6 @@ Returns a Tree.Path string
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
     let repertoire = useTrainerStore.getState().repertoire;
 
-    // console.log(repertoireIndex, trainingMethod);
     if (repertoireIndex == -1 || method == 'edit') return null; // no chapter selected
     //initialization
     // TODO refactor to ops or tree file?
@@ -373,8 +373,6 @@ Returns a Tree.Path string
     const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
     const trainingNodeList: Tree.Node[] = [...chapter.tree.getNodeList(pathToTrain), targetNode];
-    console.log('succeed');
-
     let repertoireMethod = useTrainerStore.getState().repertoireMethod;
     let node = trainingNodeList?.at(-1);
     if (!node) return;
@@ -408,12 +406,8 @@ Returns a Tree.Path string
         timeToAdd = srsConfig!.buckets![0];
         node.group = 0;
         chapter.bucketEntries[0]++; //globally, mark node as seen
-        // console.log('node in question', node);
-        // console.log('repertoire should change', useTrainerStore.getState().repertoire);
         break;
     }
-
-    // console.log('&&&&&&&& bucket entries', chapter.bucketEntries);
 
     node.dueAt = currentTime() + timeToAdd;
     return timeToAdd;
@@ -477,7 +471,6 @@ Returns a Tree.Path string
   const handleFail = (attempt?: string) => {
     setShowSuccessfulGuess(false);
     // TODO better solution than this below?
-    // console.log(attempt);
     setLastGuess(attempt ?? null);
     setLastFeedback('fail');
 
@@ -491,26 +484,20 @@ Returns a Tree.Path string
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
 
     if (repertoire.length == 0) return;
-    // console.log('repertoire', repertoire);
-
     const chapter = repertoire[repertoireIndex];
-    // console.log('chapter', chapter);
     // TODO add reset functions for different context (repertoire, method) OR add conditionals to check those
     setShowSuccessfulGuess(false);
     resetTrainingContext();
     updateDueCounts();
     //TODO
-    // repertoire[repertoireIndex].lastDueCount = dueTimes[0];
     setLastFeedback('learn');
 
     setRepertoireMethod('learn');
-    console.log('handlelearn --> ', useTrainerStore.getState().repertoireMethod);
     // mututes path
 
     const maybeCtx: TrainableContext | null = nextTrainablePath();
     if (!maybeCtx) {
       setLastFeedback('empty');
-      // console.log('no next');
     } else {
       setTrainableContext(maybeCtx);
       const targetPath = maybeCtx.startingPath;
@@ -543,18 +530,15 @@ Returns a Tree.Path string
     // });
 
     const maybeCtx = nextTrainablePath();
-    console.log('maybe ctx', maybeCtx);
 
     if (!maybeCtx) {
       setLastFeedback('empty');
-      console.log('no next in recall');
     } else {
       setTrainableContext(maybeCtx);
       //TODO factor out common logic in learn & recall
       const targetPath = maybeCtx.startingPath;
       setSelectedPath(targetPath);
       const nodeList = chapter.tree.getNodeList(targetPath);
-      console.log('nodelist - recall', nodeList);
       setSelectedNode(nodeList.at(-1));
     }
 
@@ -584,7 +568,6 @@ Returns a Tree.Path string
 
       const { moves: moves, nodeCount: nodeCount } = annotateMoves(subrep.moves, color);
 
-      console.log('did comments parse', moves);
 
       // game<trainingData> --> Tree.Node
       // empower chapters w/ tree operations
@@ -603,6 +586,7 @@ Returns a Tree.Path string
           dueAt: -1,
           group: 0,
           seen: false,
+          comment: ''
         },
       ];
       let tree = moves;
@@ -618,11 +602,8 @@ Returns a Tree.Path string
         tree = mainline;
         index += 1;
       }
-      // console.log('treeparts', treeParts);
-      // console.log('sidelines', sidelines);
       const newTree = makeTree(treeReconstruct(treeParts, sidelines));
       // return newTree;
-      // console.log('new tree', newTree);
 
       if (i > 0) name += ` (${i + 1})`;
 
@@ -702,7 +683,6 @@ Returns a Tree.Path string
   */
 
   const chessgroundMove = (san: string) => {
-    console.log('chessground move');
     const fen = selectedNode.fen;
     if (!selectedNode.children.map((_) => _.san).includes(san)) {
       const [pos, error] = positionFromFen(fen);
@@ -813,8 +793,6 @@ Returns a Tree.Path string
   const chapter = repertoire[repertoireIndex];
   const isEditing = repertoireMethod == 'edit';
 
-  console.log('atlast?', atLast());
-  console.log('selected node', selectedNode);
   //TODO hints
   //TODO fail
 
@@ -835,7 +813,6 @@ Returns a Tree.Path string
 
   const [chessPosition, error] = positionFromFen(selectedNode?.fen || initial);
   const turn = chessPosition?.turn || 'white';
-  console.log('Chess pos', chessPosition, 'turn', turn);
   /*
   The current move we're training
   */
@@ -848,11 +825,9 @@ Returns a Tree.Path string
   const createShapes = (): DrawShape[] => {
     if (!atLast()) return [];
     const result = [];
-    console.log('method', repertoireMethod);
     if (!isEditing) {
       const uci = targetDest();
       if (repertoireMethod === 'learn' && atLast()) {
-        console.log(`orig: ${uci[0]}, dest: ${uci[1]}`);
         result.push({ orig: uci[0], dest: uci[1], brush: 'green' });
       } else if (showingHint) {
         result.push({ orig: uci[0], brush: 'yellow' });
@@ -913,10 +888,6 @@ Returns a Tree.Path string
           <span>chess</span>
           <span className="text-stone-600">repeat</span>
         </div>
-        {/* h('div#body.flex.justify-center.gap-5.items-start.w-full.px-10', [ */}
-        {/* {showingAddToRepertoireMenu && (
-          <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
-        )} */}
         {showingAddToRepertoireMenu && (
           <>
             {/* Overlay */}
@@ -951,16 +922,13 @@ Returns a Tree.Path string
                     after: (from: Key, to: Key, metadata: MoveMetadata) => {
                       const san = chessgroundToSan(selectedNode.fen, from, to);
                       if (!isEditing) {
-                        console.log('after');
                         // this.syncTime();
                         metadata.captured
                           ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
                           : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
-                        console.log('atlast?', atLast());
                         if (atLast()) {
                           switch (repertoireMethod) {
                             case 'learn':
-                              console.log('learn + atlast');
                               succeed();
                               handleLearn();
                               break;
@@ -998,6 +966,7 @@ Returns a Tree.Path string
           </div>
           <div className="flex flex-col flex-1 h-full">
             <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
+              <Analysis></Analysis>
               <PgnTree></PgnTree>
               {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
             </div>

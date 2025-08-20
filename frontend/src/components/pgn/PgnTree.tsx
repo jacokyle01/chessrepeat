@@ -385,32 +385,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
 
   0
 : 
-{id: '', ply: 1, san: 'd4', fen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1', disabled: false, …}
-1
-: 
-{id: '', ply: 2, san: 'd5', fen: 'rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2', disabled: true, …}
-2
-: 
-{id: '', ply: 3, san: 'c4', 
-
 */
-  console.log('ROOT NODE', node);
-  // console.log(!node.forceVariation);
-  //TODO, match by ID instead
-  // console.log('%%%%%%%%%%%%%%');
-  // console.log('%%%%%%%%%%%%%%');
-  // console.log('%%%%%%%%%%%%%%');
-  // console.log('PARENT', node.san);
-  // console.log(
-  //   'CHILDREN',
-  //   node.children.map((x) => x.san),
-  // );
-  // console.log('PLY', ply);
-  // console.log('path', path);
-  // console.log(
-  //   'PATH',
-  //   path.map((x) => x.san),
-  // );
   const cs = node.children.filter((x, i) => {
     // console.log('x.san', x.san, 'vs', path[ply + 1].san);
     return (
@@ -418,9 +393,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
       (ply < path.length - 1 && x.san == path[ply + 1].san && (ctx.showComputer || !x.comp))
     );
   });
-  // console.log('FOUND', cs);
   const main = cs[0];
-  console.log('MAIN NODE', main);
   if (!main) return null;
 
   if (opts.isMainline) {
@@ -436,7 +409,6 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
     // console.log("node.comment", node)
     if (!cs[1] && !main.comment && !main.forceVariation) {
       // console.log("node", node)
-      console.log('Reached here', node);
       return (
         <>
           {isWhite && IndexNode(Math.floor(main.ply / 2) + 1)}
@@ -529,61 +501,6 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   }
   // TODO - fix infinite render loop, figure out if we need renderInlined
   // TODO - we just need a way to ensure that the whole PGN is viewable
-  // return <RenderInlined ctx={ctx} nodes={cs} opts={opts} />;
-
-  // after isWhite
-  //  commentTags = renderMainlineCommentsOf(ctx, main, conceal, true, opts.parentPath + main.id).filter(
-  //       nonEmpty,
-  //     );
-  //   if (!cs[1] && isEmpty(commentTags) && !main.forceVariation)
-  //     return [
-  //       isWhite && main.ply,
-  //       ...renderMoveAndChildrenOf(ctx, main, {
-  //         parentPath: opts.parentPath,
-  //         isMainline: true,
-  //         depth: opts.depth,
-  //         conceal,
-  //       }),
-  //     ];
-  //   const mainChildren =
-  //     !main.forceVariation &&
-  //     renderChildrenOf(ctx, main, {
-  //       parentPath: opts.parentPath + main.id,
-  //       isMainline: true,
-  //       depth: opts.depth,
-  //       conceal,
-  //     });
-
-  //   const passOpts = {
-  //     parentPath: opts.parentPath,
-  //     isMainline: !main.forceVariation,
-  //     depth: opts.depth,
-  //     conceal,
-  //   };
-
-  //   return [
-  //     isWhite && main.ply,
-  //     !main.forceVariation && renderMoveOf(ctx, main, passOpts),
-  //     isWhite && !main.forceVariation && emptyMove(conceal),
-  //     h(
-  //       'interrupt',
-  //       commentTags.concat(
-  //         renderLines(ctx, node, main.forceVariation ? cs : cs.slice(1), {
-  //           parentPath: opts.parentPath,
-  //           isMainline: passOpts.isMainline,
-  //           depth: opts.depth,
-  //           conceal,
-  //           noConceal: !conceal,
-  //         }),
-  //       ),
-  //     ),
-  //     isWhite && mainChildren && moveView.renderIndex(main.ply, false),
-  //     isWhite && mainChildren && emptyMove(conceal),
-  //     ...(mainChildren || []),
-  //   ];
-  // }
-  // if (!cs[1]) return renderMoveAndChildrenOf(ctx, main, opts);
-  // return renderInlined(ctx, cs, opts) || [renderLines(ctx, node, cs, opts)];
 }
 
 //TODO function should be part of state
@@ -609,11 +526,6 @@ export default function PgnTree() {
     }
   };
 
-  // const game = parsePgn(nimzo());
-  // const tree = convertToTree(game[0]);
-  // console.log('tree', tree);
-
-  // const root = tree.root;
 
   const repertoire = useTrainerStore.getState().repertoire;
   const repertoireIndex = useTrainerStore.getState().repertoireIndex;
@@ -638,6 +550,7 @@ export default function PgnTree() {
   //   <RenderMainlineCommentsOf ctx={ctx} node={root} withColor={false} path={''}></RenderMainlineCommentsOf>
   // );
 
+  //TODO should be false 
   const blackStarts = (root.ply & 1) === 1;
 
   return (
@@ -666,39 +579,4 @@ export default function PgnTree() {
     </ContextMenuProvider>
   );
 }
-
-// el.addEventListener('mousedown', (e: MouseEvent) => {
-//   if (defined(e.button) && e.button !== 0) return; // only touch or left click
-//   const path = eventPath(e);
-//   if (path) ctrl.userJump(path);
-//   ctrl.redraw();
-// });
-
-// jump(path: Tree.Path): void {
-//   const pathChanged = path !== this.path,
-//     isForwardStep = pathChanged && path.length === this.path.length + 2;
-//   this.setPath(path);
-//   if (pathChanged) {
-//     if (this.study) this.study.setPath(path, this.node);
-//     if (isForwardStep) site.sound.move(this.node);
-//     this.threatMode(false);
-//     this.ceval?.stop();
-//     this.startCeval();
-//     site.sound.saySan(this.node.san, true);
-//   }
-//   this.justPlayed = this.justDropped = this.justCaptured = undefined;
-//   this.explorer.setNode();
-//   this.updateHref();
-//   this.autoScroll();
-//   this.promotion.cancel();
-//   if (pathChanged) {
-//     if (this.retro) this.retro.onJump();
-//     if (this.practice) this.practice.onJump();
-//     if (this.study) this.study.onJump();
-//   }
-//   pubsub.emit('ply', this.node.ply, this.tree.lastMainlineNode(this.path).ply === this.node.ply);
-//   this.showGround();
-//   this.pluginUpdate(this.node.fen);
-// }
-
 //TODO what is a comment tag?
