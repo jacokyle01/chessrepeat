@@ -24,7 +24,17 @@ import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
 import { Chess, Color, Move, Position, PositionError } from 'chessops';
 import { annotateMoves, countDueContext } from './spaced-repetition/util';
-import { alternates, catalan, foolsMate, manyAlternates, nimzo, opera, pgn3, transpose } from './debug/pgns';
+import {
+  alternates,
+  catalan,
+  commentTest,
+  foolsMate,
+  manyAlternates,
+  nimzo,
+  opera,
+  pgn3,
+  transpose,
+} from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
@@ -131,8 +141,9 @@ export const ChessOpeningTrainer = () => {
     if (ran.current) return;
     ran.current = true;
 
-    importToRepertoire(opera(), 'white', 'Opera Game');
-    importToRepertoire(pgn3(), 'white', 'Queens Gambit');
+    // importToRepertoire(opera(), 'white', 'Opera Game');
+    // importToRepertoire(pgn3(), 'white', 'Queens Gambit');
+    importToRepertoire(commentTest(), 'white', 'Test');
   }, []);
 
   //TODO put in util
@@ -196,6 +207,7 @@ export const ChessOpeningTrainer = () => {
       dueAt: node.data.training.dueAt,
 
       children: withChildren ? node.children.map((child) => readNode(child, pos.clone(), ply + 1)) : [],
+      comment: node.data.comments?.join('|') || null,
       // check: pos.isCheck() ? makeSquare(pos.toSetup().board.kingOf(pos.turn)!) : undefined,
     };
   };
@@ -571,6 +583,9 @@ Returns a Tree.Path string
       // };
 
       const { moves: moves, nodeCount: nodeCount } = annotateMoves(subrep.moves, color);
+
+      console.log('did comments parse', moves);
+
       // game<trainingData> --> Tree.Node
       // empower chapters w/ tree operations
 
@@ -591,6 +606,7 @@ Returns a Tree.Path string
         },
       ];
       let tree = moves;
+
       const pos = start;
       const sidelines: Tree.Node[][] = [[]];
       let index = 0;
@@ -636,7 +652,7 @@ Returns a Tree.Path string
     });
   };
 
-  // TODO put this in global state 
+  // TODO put this in global state
   const jump = (path: Tree.Path): void => {
     const repertoire = useTrainerStore.getState().repertoire;
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
@@ -758,9 +774,8 @@ Returns a Tree.Path string
     // };
   };
 
-
-  // //TODO - delete  
-  // //TODO dont prop drill this? 
+  // //TODO - delete
+  // //TODO dont prop drill this?
   // //TODO dont pass in jump
   // const deleteNode = (path: Tree.Path, jump) => {
   //   const tree = repertoire[repertoireIndex].tree;

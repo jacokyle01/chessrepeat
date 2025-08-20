@@ -8,7 +8,7 @@ declare namespace Tree {
     ply: number;
     // uci?: Uci;
     fen: string;
-    comments?: Comment[];
+    comment: string | null;
     dests?: string;
     drops?: string | null;
     // check?: Key;

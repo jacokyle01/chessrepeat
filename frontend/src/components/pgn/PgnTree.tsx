@@ -36,6 +36,111 @@ export interface Ctx {
   currentPath: Tree.Path | undefined;
 }
 
+const isEmpty = (a: any | undefined): boolean => !a || a.length === 0;
+
+// COMMENTS
+
+function truncateComment(text: string, len: number, ctx: Ctx) {
+  return ctx.truncateComments && text.length > len ? text.slice(0, len - 10) + ' [...]' : text;
+}
+
+function commentAuthorText(by?: string) {
+  if (!by) return '';
+  if (by === 'lichess') return 'lichess';
+  return by;
+}
+
+function enrichText(text: string): string {
+  // Replace with actual formatting logic (links, markdown, etc.)
+  return text;
+}
+
+// -------------------------
+// Components
+// -------------------------
+
+function TruncatedComment({ path, ctx, children }: { path: string; ctx: Ctx; children: React.ReactNode }) {
+  const handleClick = () => {
+    // ctx.ctrl.userJumpIfCan(path);
+    // ctx.ctrl.study?.vm.toolTab('comments');
+    // ctx.ctrl.redraw();
+    // document.querySelector('.analyse__underboard')?.scrollIntoView();
+  };
+
+  return (
+    <div className="comment truncated" onClick={handleClick}>
+      {children}
+    </div>
+  );
+}
+
+function RenderComment({
+  comment,
+  ctx,
+  path,
+  maxLength,
+}: {
+  comment: string;
+  ctx: Ctx;
+  path: string;
+  maxLength: number;
+}) {
+  // const by = others.length > 1 ? <span className="by">{commentAuthorText(comment.by)}</span> : null;
+
+  const truncated = truncateComment(comment, maxLength, ctx);
+  //TODO sometime maybe?
+  // const enriched = (
+  //   <span
+  //     dangerouslySetInnerHTML={{
+  //       __html: (by ? by.props.children : '') + enrichText(truncated),
+  //     }}
+  //   />
+  // );
+
+  if (truncated.length < comment.length) {
+    return (
+      <TruncatedComment path={path} ctx={ctx}>
+        {comment}
+      </TruncatedComment>
+    );
+  }
+
+  return <span className="comment text-gray-500">{comment}</span>;
+}
+
+export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: Tree.Node; path: string }) {
+  // if (!ctx.ctrl.showComments || !node.comments?.length) return null;
+  // TODO context to disable comments
+  // if (isEmpty(node.comment) return null;
+  if (!node.comment) return null;
+
+  return <RenderComment comment={node.comment} ctx={ctx} path={path} maxLength={300} />;
+}
+
+//TODO conceal?
+export function RenderMainlineCommentsOf({
+  ctx,
+  node,
+  // conceal,
+  withColor,
+  path,
+}: {
+  ctx: Ctx;
+  node: Tree.Node;
+  // conceal?: Conceal;
+  withColor: boolean;
+  path: string;
+}) {
+  // if (!ctx.ctrl.showComments || !node.comments?.length) return null;
+  if (!node.comment) return null;
+
+  const colorClass = withColor ? (node.ply % 2 === 0 ? ' black' : ' white') : '';
+
+  return <RenderComment comment={node.comment} ctx={ctx} path={path} maxLength={400} />;
+}
+
+// END COMMENTS
+
 //TODO
 // export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
 //   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
@@ -138,9 +243,9 @@ type RenderMainlineMoveOfProps = {
   opts: Opts;
 };
 
-function RenderMoveOf({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   return opts.isMainline ? (
-    <RenderMainlineMove ctx={ctx} node={node} opts={opts}/>
+    <RenderMainlineMove ctx={ctx} node={node} opts={opts} />
   ) : (
     <RenderVariationMove ctx={ctx} node={node} opts={opts} />
   );
@@ -162,7 +267,7 @@ function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Op
   );
 }
 
-function RenderMoveAndChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   const path = opts.parentPath + node.id;
   if (opts.truncate === 0)
     return (
@@ -173,7 +278,10 @@ function RenderMoveAndChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; 
 
   return (
     <>
-      <RenderMoveOf ctx={ctx} node={node} opts={opts}/>
+      <RenderMoveOf ctx={ctx} node={node} opts={opts} />
+
+      {/* {RenderInlineCommentsOf(ctx, node, path)} */}
+      <RenderInlineCommentsOf ctx={ctx} node={node} path={path}></RenderInlineCommentsOf>
       {opts.inline && <RenderInline ctx={ctx} node={opts.inline} opts={opts} />}
       <RenderChildren
         ctx={ctx}
@@ -252,7 +360,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
   );
 }
 
-function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   let repertoire = useTrainerStore.getState().repertoire;
   let repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
@@ -286,7 +394,8 @@ function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: O
 {id: '', ply: 3, san: 'c4', 
 
 */
-
+  console.log('ROOT NODE', node);
+  // console.log(!node.forceVariation);
   //TODO, match by ID instead
   // console.log('%%%%%%%%%%%%%%');
   // console.log('%%%%%%%%%%%%%%');
@@ -311,13 +420,23 @@ function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: O
   });
   // console.log('FOUND', cs);
   const main = cs[0];
+  console.log('MAIN NODE', main);
   if (!main) return null;
 
   if (opts.isMainline) {
     const isWhite = main.ply % 2 === 1;
 
+    // const commentTags = RenderMainlineCommentsOf(ctx, main, conceal, true, opts.parentPath + main.id).filter(
+    //   nonEmpty,
+    // );
+
+    // if (!cs[1] && isEmpty(commentTags) && !main.forceVariation) {
+
     //TODO why is this different than lichess ?  math.floor(..) line
-    if (!cs[1] && !main.forceVariation) {
+    // console.log("node.comment", node)
+    if (!cs[1] && !main.comment && !main.forceVariation) {
+      // console.log("node", node)
+      console.log('Reached here', node);
       return (
         <>
           {isWhite && IndexNode(Math.floor(main.ply / 2) + 1)}
@@ -334,7 +453,7 @@ function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: O
       );
     }
 
-    const mainChildren = !main.forceVariation && (
+    const mainChildren = (
       <RenderChildren
         ctx={ctx}
         node={main}
@@ -346,6 +465,14 @@ function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: O
       />
     );
 
+    /*
+  const cs = node.children.filter(x => ctx.showComputer || !x.comp),
+    main = cs[0];
+  if (!main) return;
+    */
+    const mainHasChildren = main.children[0]
+    // Not entering here
+    console.log('Hello??????');
     return (
       <>
         {isWhite && IndexNode(Math.floor(main.ply / 2) + 1)}
@@ -360,8 +487,13 @@ function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: O
             }}
           />
         )}
+
         {isWhite && !main.forceVariation && <EmptyMove />}
         <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border">
+          {/* {commentTags} */}
+          {/* ctx, main, conceal, true, opts.parentPath + main.id */}
+          <RenderMainlineCommentsOf ctx={ctx} node={main} withColor={true} path={opts.parentPath + main.id} />
+          {/* ^^^^ COMPONENT */}
           <RenderLines
             ctx={ctx}
             parentNode={node}
@@ -374,15 +506,15 @@ function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: O
             }}
           />
         </div>
-        {isWhite && mainChildren && IndexNode(Math.floor(main.ply / 2) + 1)}
-        {isWhite && mainChildren && <EmptyMove />}
+        {isWhite && mainHasChildren && IndexNode(Math.floor(main.ply / 2) + 1)}
+        {isWhite && mainHasChildren && <EmptyMove />}
         {mainChildren}
       </>
     );
   }
 
   if (!cs[1]) {
-    return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts}/>;
+    return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts} />;
   }
 
   const nodes = cs;
@@ -398,6 +530,60 @@ function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: O
   // TODO - fix infinite render loop, figure out if we need renderInlined
   // TODO - we just need a way to ensure that the whole PGN is viewable
   // return <RenderInlined ctx={ctx} nodes={cs} opts={opts} />;
+
+  // after isWhite
+  //  commentTags = renderMainlineCommentsOf(ctx, main, conceal, true, opts.parentPath + main.id).filter(
+  //       nonEmpty,
+  //     );
+  //   if (!cs[1] && isEmpty(commentTags) && !main.forceVariation)
+  //     return [
+  //       isWhite && main.ply,
+  //       ...renderMoveAndChildrenOf(ctx, main, {
+  //         parentPath: opts.parentPath,
+  //         isMainline: true,
+  //         depth: opts.depth,
+  //         conceal,
+  //       }),
+  //     ];
+  //   const mainChildren =
+  //     !main.forceVariation &&
+  //     renderChildrenOf(ctx, main, {
+  //       parentPath: opts.parentPath + main.id,
+  //       isMainline: true,
+  //       depth: opts.depth,
+  //       conceal,
+  //     });
+
+  //   const passOpts = {
+  //     parentPath: opts.parentPath,
+  //     isMainline: !main.forceVariation,
+  //     depth: opts.depth,
+  //     conceal,
+  //   };
+
+  //   return [
+  //     isWhite && main.ply,
+  //     !main.forceVariation && renderMoveOf(ctx, main, passOpts),
+  //     isWhite && !main.forceVariation && emptyMove(conceal),
+  //     h(
+  //       'interrupt',
+  //       commentTags.concat(
+  //         renderLines(ctx, node, main.forceVariation ? cs : cs.slice(1), {
+  //           parentPath: opts.parentPath,
+  //           isMainline: passOpts.isMainline,
+  //           depth: opts.depth,
+  //           conceal,
+  //           noConceal: !conceal,
+  //         }),
+  //       ),
+  //     ),
+  //     isWhite && mainChildren && moveView.renderIndex(main.ply, false),
+  //     isWhite && mainChildren && emptyMove(conceal),
+  //     ...(mainChildren || []),
+  //   ];
+  // }
+  // if (!cs[1]) return renderMoveAndChildrenOf(ctx, main, opts);
+  // return renderInlined(ctx, cs, opts) || [renderLines(ctx, node, cs, opts)];
 }
 
 //TODO function should be part of state
@@ -433,7 +619,7 @@ export default function PgnTree() {
   const repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
   if (!chapter) return;
-  const root = chapter.tree.root;
+  let root = chapter.tree.root;
   // console.log('root path');
   // TODO conditionally use path or root, depending on context
 
@@ -448,6 +634,10 @@ export default function PgnTree() {
     truncateComments: false,
   };
 
+  // const commentTags = (
+  //   <RenderMainlineCommentsOf ctx={ctx} node={root} withColor={false} path={''}></RenderMainlineCommentsOf>
+  // );
+
   const blackStarts = (root.ply & 1) === 1;
 
   return (
@@ -457,13 +647,20 @@ export default function PgnTree() {
           onMouseDown={handleMouseDown}
           className="tview2 tview2-column overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
         >
-          {blackStarts && root.ply}
-          {blackStarts && <EmptyMove />}
-          <RenderChildren
-            ctx={ctx}
-            node={root}
-            opts={{ parentPath: '', isMainline: true, depth: 0 }}
-          />
+          {/* {    !isEmpty(commentTags) && h('interrupt', commentTags)} */}
+          {root.comment && (
+            <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border">
+              <RenderMainlineCommentsOf
+                ctx={ctx}
+                node={root}
+                withColor={false}
+                path={''}
+              ></RenderMainlineCommentsOf>
+            </div>
+          )}
+          {/* {blackStarts && root.ply}
+          {blackStarts && <EmptyMove />} */}
+          <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
         </div>
       </div>
     </ContextMenuProvider>
@@ -503,3 +700,5 @@ export default function PgnTree() {
 //   this.showGround();
 //   this.pluginUpdate(this.node.fen);
 // }
+
+//TODO what is a comment tag?

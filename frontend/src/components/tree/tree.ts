@@ -164,7 +164,7 @@ export function build(root: Tree.Node): TreeWrapper {
   const setCommentAt = (comment: Tree.Comment, path: Tree.Path) =>
     !comment.text
       ? deleteCommentAt(comment.id, path)
-      : updateAt(path, function (node) {
+      : updateAt(path, function (node) {Comment
           node.comments = node.comments || [];
           const existing = node.comments.find(function (c) {
             return c.id === comment.id;
