@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTrainerStore } from "../state/state";
+import { uciLineToSan } from "../util";
 
 export function useStockfish() {
   const engineRef = useRef<Worker | null>(null);
@@ -39,9 +40,11 @@ export function useStockfish() {
 
     const handler = (msg: string) => {
       if (msg.includes("multipv")) {
+        console.log("msg", msg)
         const parts = msg.split(" pv ");
         if (parts.length < 2) return;
         const pv = parts[1];
+        console.log("pv", pv);
         const multipvMatch = msg.match(/multipv (\d+)/);
         const scoreMatch = msg.match(/score (cp|mate) (-?\d+)/);
 
@@ -50,7 +53,11 @@ export function useStockfish() {
           const type = scoreMatch[1];
           const score =
             type === "cp" ? Number(scoreMatch[2]) : `mate ${scoreMatch[2]}`;
-          newLines[multipv - 1] = { line: pv, score };
+          /*
+            convert UCI string to SAN string 
+          */
+          const sanLine = uciLineToSan(fen, pv).join(" ");
+          newLines[multipv - 1] = { line: sanLine, score };
         }
       }
       if (msg.startsWith("bestmove")) {
