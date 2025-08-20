@@ -5,6 +5,13 @@ import { RepertoireMethod, TrainableContext } from '../spaced-repetition/types';
 import { Config as SrsConfig, defaults } from '../spaced-repetition/config';
 import { Config as CbConfig } from 'chessground/config';
 
+import {
+  build as makeTree,
+  path as treePath,
+  ops as treeOps,
+  type TreeWrapper,
+} from '../components/tree/tree'
+
 interface TrainerState {
   // UI
   // repertoireMode: RepertoireMode;
@@ -13,7 +20,7 @@ interface TrainerState {
   // trainingMethod: Method;
   // setTrainingMethod: (m: Method) => void;
 
-  repertoireMethod: 'edit' | 'recall' | 'learn' | 'unselected'
+  repertoireMethod: 'edit' | 'recall' | 'learn' | 'unselected';
   setRepertoireMethod: (m: RepertoireMethod) => void;
 
   showTrainingSettings: boolean;
@@ -32,14 +39,12 @@ interface TrainerState {
   repertoireIndex: number;
   setRepertoireIndex: (i: number) => void;
 
-  // // Training //TODO do we need both? 
+  // // Training //TODO do we need both?
   // trainingNodeList: Tree.Node[];
   // setTrainingNodeList: (p: Tree.Node[]) => void;
 
   // trainingPath: Tree.Path;
   // setTrainingPath: (p: Tree.Path) => void;
-
-
 
   /*
   Context relevant to describe a trainable position- 
@@ -47,8 +52,6 @@ interface TrainerState {
   */
   trainableContext: TrainableContext | undefined;
   setTrainableContext: (t: TrainableContext) => void;
-
-
 
   // Path to currently selected node
   selectedPath: Tree.Path;
@@ -88,9 +91,13 @@ interface TrainerState {
 
   cbConfig: CbConfig;
   setCbConfig: (cfg: CbConfig) => void;
+
+  // functions
+
+  jump: (path: Tree.Path) => void;
 }
 
-export const useTrainerStore = create<TrainerState>((set) => ({
+export const useTrainerStore = create<TrainerState>((set, get) => ({
   // UI
   // repertoireMode: 'train',
   // setRepertoireMode: (repertoireMode) => set({ repertoireMode }),
@@ -125,7 +132,7 @@ export const useTrainerStore = create<TrainerState>((set) => ({
   // setTrainingPath: (path) => set({trainingPath: path}),
 
   trainableContext: undefined,
-  setTrainableContext: (t) => set({trainableContext: t}),
+  setTrainableContext: (t) => set({ trainableContext: t }),
 
   selectedPath: '',
   setSelectedPath: (path) => set({ selectedPath: path }),
@@ -163,4 +170,18 @@ export const useTrainerStore = create<TrainerState>((set) => ({
 
   cbConfig: {},
   setCbConfig: (cfg) => set({ cbConfig: cfg }),
+
+  // functions
+  jump: (path) => {
+    const { repertoire, repertoireIndex } = get();
+    const tree = repertoire[repertoireIndex].tree;
+
+    const nodeList = tree.getNodeList(path);
+    const node = treeOps.last(nodeList);
+
+    set({
+      selectedPath: path,
+      selectedNode: node,
+    });
+  },
 }));

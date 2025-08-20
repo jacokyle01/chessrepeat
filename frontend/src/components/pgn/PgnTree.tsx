@@ -70,8 +70,11 @@ function IndexNode(ply: number) {
   );
 }
 
-function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMainlineMove({ ctx, node, opts, deleteNode}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+  console.log("delete node F", deleteNode);
   const { showMenu, contextSelectedPath } = useAppContextMenu();
+  const jump = useTrainerStore((s) => s.jump);
+
 
   const path = opts.parentPath + node.id;
   const selectedPath = useTrainerStore.getState().selectedPath;
@@ -80,7 +83,10 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; op
   const activeClass = path === selectedPath ? "bg-blue-400/50" : "";
 
   const items = [
-    { label: "Delete move", command: () => console.log("delete", path) },
+    { label: "Delete from here", command: () => {
+      console.log("delete", path);
+      deleteNode(path, jump);
+    }},
     { label: "Promote", command: () => console.log("promote", path) },
   ];
 
@@ -129,9 +135,9 @@ type RenderMainlineMoveOfProps = {
   opts: Opts;
 };
 
-function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMoveOf({ ctx, node, opts, deleteNode}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   return opts.isMainline ? (
-    <RenderMainlineMove ctx={ctx} node={node} opts={opts} />
+    <RenderMainlineMove ctx={ctx} node={node} opts={opts} deleteNode={deleteNode} />
   ) : (
     <RenderVariationMove ctx={ctx} node={node} opts={opts} />
   );
@@ -148,12 +154,13 @@ function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Op
           withIndex: true,
           isMainline: false,
         }}
+        deleteNode={deleteNode}
       />
     </div>
   );
 }
 
-function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMoveAndChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   const path = opts.parentPath + node.id;
   if (opts.truncate === 0)
     return (
@@ -164,7 +171,7 @@ function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node;
 
   return (
     <>
-      <RenderMoveOf ctx={ctx} node={node} opts={opts} />
+      <RenderMoveOf ctx={ctx} node={node} opts={opts} deleteNode={deleteNode} />
       {opts.inline && <RenderInline ctx={ctx} node={opts.inline} opts={opts} />}
       <RenderChildren
         ctx={ctx}
@@ -175,22 +182,23 @@ function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node;
           depth: opts.depth,
           truncate: opts.truncate ? opts.truncate - 1 : undefined,
         }}
+        deleteNode={deleteNode}
       />
     </>
   );
 }
 
-function RenderInlined({ ctx, nodes, opts }: { ctx: Ctx; nodes: Tree.Node[]; opts: Opts }) {
-  if (!nodes[1] || nodes[2]) return null;
-  if (treeOps.hasBranching(nodes[1], 6)) return null;
-  return (
-    <RenderMoveAndChildren
-      ctx={ctx}
-      node={nodes[0]}
-      opts={{ parentPath: opts.parentPath, isMainline: false, depth: opts.depth, inline: nodes[1] }}
-    />
-  );
-}
+// function RenderInlined({ ctx, nodes, opts }: { ctx: Ctx; nodes: Tree.Node[]; opts: Opts }) {
+//   if (!nodes[1] || nodes[2]) return null;
+//   if (treeOps.hasBranching(nodes[1], 6)) return null;
+//   return (
+//     <RenderMoveAndChildren
+//       ctx={ctx}
+//       node={nodes[0]}
+//       opts={{ parentPath: opts.parentPath, isMainline: false, depth: opts.depth, inline: nodes[1] }}
+//     />
+//   );
+// }
 
 export function RenderLines({ ctx, parentNode, nodes, opts }) {
   const collapsed =
@@ -243,7 +251,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
   );
 }
 
-function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   let repertoire = useTrainerStore.getState().repertoire;
   let repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
@@ -320,6 +328,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
               isMainline: true,
               depth: opts.depth,
             }}
+            deleteNode={deleteNode}
           />
         </>
       );
@@ -334,6 +343,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
           isMainline: true,
           depth: opts.depth,
         }}
+        deleteNode={deleteNode}
       />
     );
 
@@ -349,6 +359,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
               isMainline: true,
               depth: opts.depth,
             }}
+            deleteNode={deleteNode}
           />
         )}
         {isWhite && !main.forceVariation && <EmptyMove />}
@@ -373,7 +384,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   }
 
   if (!cs[1]) {
-    return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts} />;
+    return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts} deleteNode={deleteNode} />;
   }
 
   const nodes = cs;
@@ -392,7 +403,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
 }
 
 //TODO function should be part of state
-export default function NewPgnTree({ jump }) {
+export default function PgnTree({ jump, deleteNode }) {
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     // Only handle left click or touch
     if (e.button !== 0) return;
@@ -448,7 +459,7 @@ export default function NewPgnTree({ jump }) {
         >
           {blackStarts && root.ply}
           {blackStarts && <EmptyMove />}
-          <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
+          <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} deleteNode={deleteNode} />
         </div>
       </div>
     </ContextMenuProvider>

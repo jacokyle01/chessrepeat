@@ -32,13 +32,11 @@ import { DrawShape } from 'chessground/draw';
 import { Key, MoveMetadata } from 'chessground/types';
 import { useTrainerStore } from './state/state';
 import { Feedback, FeedbackProps } from './components/Feedback';
-import { PgnTree, PgnTreeProps } from './components/pgn/PgnTree';
-import InsightChart from './components/InsightChart';
 import Schedule from './components/Schedule';
 import AddToReperotireModal from './components/modals/AddToRepertoireModal';
 import RepertoireActions from './components/repertoire/RepertoireActions';
 import PgnControls from './components/pgn/PgnControls';
-import NewPgnTree from './components/pgn/PgnTree';
+import PgnTree from './components/pgn/PgnTree';
 import { FenError, makeFen, parseFen } from 'chessops/fen';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
@@ -638,6 +636,7 @@ Returns a Tree.Path string
     });
   };
 
+  // TODO put this in global state 
   const jump = (path: Tree.Path): void => {
     const repertoire = useTrainerStore.getState().repertoire;
     const repertoireIndex = useTrainerStore.getState().repertoireIndex;
@@ -757,6 +756,25 @@ Returns a Tree.Path string
     //     }
     //   });
     // };
+  };
+
+
+  //TODO - delete  
+  //TODO dont prop drill this? 
+  //TODO dont pass in jump
+  const deleteNode = (path: Tree.Path, jump) => {
+    const tree = repertoire[repertoireIndex].tree;
+    const node = tree.nodeAtPath(path);
+    if (!node) return;
+    //TODO count nodes to determine what we need to remove
+    // const count = treeOps.countChildrenAndComments(node);
+    tree.deleteNodeAt(path);
+    if (treePath.contains(selectedPath, path)) jump(treePath.init(path));
+    // else jump(this.path);
+    else jump(path);
+
+    // if (this.study) this.study.deleteNode(path);
+    // this.redraw();
   };
 
   const controlsProps: ControlsProps = {
@@ -900,7 +918,6 @@ Returns a Tree.Path string
         <div className="flex justify-between items-start w-full px-10 gap-5">
           <div className="flex flex-col flex-1">
             <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
-            {/* <InsightChart /> */}
             <RepertoireActions></RepertoireActions>
             <Schedule />
           </div>
@@ -966,7 +983,7 @@ Returns a Tree.Path string
           </div>
           <div className="flex flex-col flex-1 h-full">
             <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
-              <NewPgnTree jump={jump}></NewPgnTree>
+              <PgnTree jump={jump} deleteNode={deleteNode}></PgnTree>
               {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
             </div>
             <PgnControls jump={jump}></PgnControls>
