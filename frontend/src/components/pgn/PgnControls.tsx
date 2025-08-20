@@ -5,7 +5,7 @@ import { useTrainerStore } from '../../state/state';
 
 import { ops, path as treePath } from '../tree/tree';
 
-const PgnControls = ({ jump }) => {
+const PgnControls = () => {
   const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
   const setSelectedNode = useTrainerStore((state) => state.setSelectedNode);
 
@@ -19,6 +19,9 @@ const PgnControls = ({ jump }) => {
 
   const repertoireMethod = useTrainerStore().repertoireMethod;
   const chapter = repertoire[repertoireIndex];
+
+  const jump = useTrainerStore((s) => s.jump);
+
   // export function next(ctrl: AnalyseCtrl): void {
   //   if (ctrl.retro?.preventGoingToNextMove()) return;
   //   if (ctrl.fork.proceed()) return;
@@ -49,11 +52,7 @@ const PgnControls = ({ jump }) => {
     <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto">
       <button onClick={first}>{<ChevronFirst size={36} />}</button>
       <button onClick={prev}>{<ChevronLeft size={36} />}</button>
-      <button
-        onClick={next}
-      >
-        {<ChevronRight size={36} />}
-      </button>
+      <button onClick={next}>{<ChevronRight size={36} />}</button>
       <button onClick={last}>{<ChevronLast size={36} />}</button>
     </div>
   );

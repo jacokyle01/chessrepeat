@@ -70,24 +70,28 @@ function IndexNode(ply: number) {
   );
 }
 
-function RenderMainlineMove({ ctx, node, opts, deleteNode}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
-  console.log("delete node F", deleteNode);
+function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+  const deleteNode = useTrainerStore((s) => s.deleteNode);
+
+  // console.log("delete node F", deleteNode);
   const { showMenu, contextSelectedPath } = useAppContextMenu();
   const jump = useTrainerStore((s) => s.jump);
-
 
   const path = opts.parentPath + node.id;
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? "bg-blue-400/50" : "";
+  const activeClass = path === selectedPath ? 'bg-blue-400/50' : '';
 
   const items = [
-    { label: "Delete from here", command: () => {
-      console.log("delete", path);
-      deleteNode(path, jump);
-    }},
-    { label: "Promote", command: () => console.log("promote", path) },
+    {
+      label: 'Delete from here',
+      command: () => {
+        console.log('delete', path);
+        deleteNode(path);
+      },
+    },
+    { label: 'Promote', command: () => console.log('promote', path) },
   ];
 
   return (
@@ -96,14 +100,13 @@ function RenderMainlineMove({ ctx, node, opts, deleteNode}: { ctx: Ctx; node: Tr
       className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
         leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold text-gray-600
         hover:bg-blue-400 select-none cursor-pointer
-        ${activeClass} ${isContextSelected ? "bg-orange-400" : ""}`}
+        ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''}`}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
       {node.san}
     </div>
   );
 }
-
 
 function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   const path = opts.parentPath + node.id;
@@ -135,9 +138,9 @@ type RenderMainlineMoveOfProps = {
   opts: Opts;
 };
 
-function RenderMoveOf({ ctx, node, opts, deleteNode}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMoveOf({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   return opts.isMainline ? (
-    <RenderMainlineMove ctx={ctx} node={node} opts={opts} deleteNode={deleteNode} />
+    <RenderMainlineMove ctx={ctx} node={node} opts={opts}/>
   ) : (
     <RenderVariationMove ctx={ctx} node={node} opts={opts} />
   );
@@ -154,13 +157,12 @@ function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Op
           withIndex: true,
           isMainline: false,
         }}
-        deleteNode={deleteNode}
       />
     </div>
   );
 }
 
-function RenderMoveAndChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMoveAndChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   const path = opts.parentPath + node.id;
   if (opts.truncate === 0)
     return (
@@ -171,7 +173,7 @@ function RenderMoveAndChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node
 
   return (
     <>
-      <RenderMoveOf ctx={ctx} node={node} opts={opts} deleteNode={deleteNode} />
+      <RenderMoveOf ctx={ctx} node={node} opts={opts}/>
       {opts.inline && <RenderInline ctx={ctx} node={opts.inline} opts={opts} />}
       <RenderChildren
         ctx={ctx}
@@ -182,7 +184,6 @@ function RenderMoveAndChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node
           depth: opts.depth,
           truncate: opts.truncate ? opts.truncate - 1 : undefined,
         }}
-        deleteNode={deleteNode}
       />
     </>
   );
@@ -251,7 +252,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
   );
 }
 
-function RenderChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderChildren({ ctx, node, opts}: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
   let repertoire = useTrainerStore.getState().repertoire;
   let repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
@@ -328,7 +329,6 @@ function RenderChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.
               isMainline: true,
               depth: opts.depth,
             }}
-            deleteNode={deleteNode}
           />
         </>
       );
@@ -343,7 +343,6 @@ function RenderChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.
           isMainline: true,
           depth: opts.depth,
         }}
-        deleteNode={deleteNode}
       />
     );
 
@@ -359,7 +358,6 @@ function RenderChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.
               isMainline: true,
               depth: opts.depth,
             }}
-            deleteNode={deleteNode}
           />
         )}
         {isWhite && !main.forceVariation && <EmptyMove />}
@@ -384,7 +382,7 @@ function RenderChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.
   }
 
   if (!cs[1]) {
-    return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts} deleteNode={deleteNode} />;
+    return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts}/>;
   }
 
   const nodes = cs;
@@ -403,7 +401,9 @@ function RenderChildren({ ctx, node, opts, deleteNode }: { ctx: Ctx; node: Tree.
 }
 
 //TODO function should be part of state
-export default function PgnTree({ jump, deleteNode }) {
+export default function PgnTree() {
+  const jump = useTrainerStore((s) => s.jump);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     // Only handle left click or touch
     if (e.button !== 0) return;
@@ -459,7 +459,11 @@ export default function PgnTree({ jump, deleteNode }) {
         >
           {blackStarts && root.ply}
           {blackStarts && <EmptyMove />}
-          <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} deleteNode={deleteNode} />
+          <RenderChildren
+            ctx={ctx}
+            node={root}
+            opts={{ parentPath: '', isMainline: true, depth: 0 }}
+          />
         </div>
       </div>
     </ContextMenuProvider>

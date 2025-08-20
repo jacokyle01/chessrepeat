@@ -10,7 +10,7 @@ import {
   path as treePath,
   ops as treeOps,
   type TreeWrapper,
-} from '../components/tree/tree'
+} from '../components/tree/tree';
 
 interface TrainerState {
   // UI
@@ -95,6 +95,7 @@ interface TrainerState {
   // functions
 
   jump: (path: Tree.Path) => void;
+  deleteNode: (path: Tree.Path) => void;
 }
 
 export const useTrainerStore = create<TrainerState>((set, get) => ({
@@ -183,5 +184,26 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
       selectedPath: path,
       selectedNode: node,
     });
+  },
+
+  deleteNode: (path) => {
+    const { repertoire, repertoireIndex, selectedPath, jump } = get();
+    const tree = repertoire[repertoireIndex].tree;
+    const node = tree.nodeAtPath(path);
+
+    if (!node) return;
+
+    // TODO: count nodes to determine deeper removals if needed
+    // const count = treeOps.countChildrenAndComments(node);
+
+    tree.deleteNodeAt(path);
+
+    if (treePath.contains(selectedPath, path)) {
+      jump(treePath.init(path));
+    } else {
+      jump(path);
+    }
+
+    // TODO: study.deleteNode(path), redraw, etc. if you have those in your state
   },
 }));
