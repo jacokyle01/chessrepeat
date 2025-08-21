@@ -13,11 +13,14 @@ const Repertoire: React.FC = ({deleteChapter, renameChapter}) => {
   const repertoire = useTrainerStore().repertoire;
   const numWhiteEntries = useTrainerStore().numWhiteEntries;
   const repertoireIndex = useTrainerStore().repertoireIndex;
-
+  console.log("rep", repertoire)
   // console.log("repertoire", repertoire);
-  const whiteEntries: RepertoireChapter[] = repertoire.slice(0, numWhiteEntries);
-  const blackEntries: RepertoireChapter[] = repertoire.slice(numWhiteEntries);
+  const whiteEntries: RepertoireChapter[] = repertoire.slice(0, numWhiteEntries+1);
+  const blackEntries: RepertoireChapter[] = repertoire.slice(numWhiteEntries+1);
 
+  console.log("num whitieis", numWhiteEntries);
+  console.log("whities", whiteEntries);
+  console.log("blackies", blackEntries);
   // div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-md.border.border-gray-200.mt-4.pb-5
   // class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
 
@@ -42,7 +45,7 @@ const Repertoire: React.FC = ({deleteChapter, renameChapter}) => {
           <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600">Black</span>
           <RepertoireSection
             repertoire={blackEntries}
-            startsAt={numWhiteEntries}
+            startsAt={numWhiteEntries+1}
             repertoireIndex={repertoireIndex}
             deleteChapter={deleteChapter}
             renameChapter={renameChapter}

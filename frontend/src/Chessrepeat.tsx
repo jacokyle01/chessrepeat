@@ -568,7 +568,6 @@ Returns a Tree.Path string
 
       const { moves: moves, nodeCount: nodeCount } = annotateMoves(subrep.moves, color);
 
-
       // game<trainingData> --> Tree.Node
       // empower chapters w/ tree operations
 
@@ -586,7 +585,7 @@ Returns a Tree.Path string
           dueAt: -1,
           group: 0,
           seen: false,
-          comment: ''
+          comment: '',
         },
       ];
       let tree = moves;
@@ -620,7 +619,30 @@ Returns a Tree.Path string
       };
 
       // TODO handle correct placement
-      setRepertoire([...repertoire, chapter]);
+      console.log('------------');
+      console.log(repertoire, name, color);
+      // console.log([
+      //   ...repertoire.slice(0, numWhiteEntries - 1),
+      //   chapter,
+      //   ...repertoire.slice(numWhiteEntries),
+      // ]);
+      switch (color) {
+        case 'white':
+          setRepertoire([
+            ...repertoire.slice(0, numWhiteEntries + 1),
+            chapter,
+            ...repertoire.slice(numWhiteEntries + 1),
+          ]);
+          setNumWhiteEntries(numWhiteEntries + 1);
+          break;
+
+        case 'black':
+          setRepertoire([...repertoire, chapter]);
+          break;
+      }
+      console.log(repertoire);
+      // setRepertoire([...repertoire, chapter]);
+      // if (chapter.trainAs == 'white') setNumWhiteEntries(numWhiteEntries + 1);
 
       /*
       Set orientation to match repertoire orientation if this is the only entry
@@ -652,8 +674,10 @@ Returns a Tree.Path string
     setSelectedNode(node);
   };
 
+  //TODO ... wrong index
   const deleteChapter = (index) => {
     setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
+    if (repertoire[repertoireIndex].trainAs == 'white') setNumWhiteEntries(numWhiteEntries - 1);
   };
 
   const renameChapter = (index, name) => {

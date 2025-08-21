@@ -17,7 +17,7 @@ const AddToReperotireModal: React.FC = ({ importToRepertoire }) => {
 
     const name = nameRef.current?.value || '';
     const pgn = pgnRef.current?.value || '';
-    const color = colorRef.current?.checked ? 'black' : 'white';
+    const color = colorRef.current?.checked ? 'white' : 'black';
     importToRepertoire(pgn, color, name);
     setShowModal(false);
   };
