@@ -990,7 +990,7 @@ Returns a Tree.Path string
           </div>
           <div className="flex flex-col flex-1 h-full">
             <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
-              <Analysis></Analysis>
+              {repertoireMethod == 'edit' && <Analysis></Analysis>}
               <PgnTree></PgnTree>
               {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
             </div>

@@ -96,6 +96,8 @@ interface TrainerState {
 
   jump: (path: Tree.Path) => void;
   deleteNode: (path: Tree.Path) => void;
+
+  clearChapterContext: () => void;
 }
 
 export const useTrainerStore = create<TrainerState>((set, get) => ({
@@ -205,5 +207,12 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
     }
 
     // TODO: study.deleteNode(path), redraw, etc. if you have those in your state
+  },
+
+  clearChapterContext: () => {
+    const { repertoire, repertoireIndex, setRepertoireMethod, setSelectedPath, setLastFeedback } = get();
+    setRepertoireMethod('unselected');
+    setSelectedPath('');
+    setLastFeedback('empty');
   },
 }));

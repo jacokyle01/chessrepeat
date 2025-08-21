@@ -24,7 +24,7 @@ const Recall = () => {
           <Repeat2 className="w-14 h-14" />
         </div>
         <div>
-          <h1 className="font-bold text-2xl text-gray-800">Your move</h1>
+          <h1 className="font-bold text-2xl text-gray-800">Play the move</h1>
           <h2 className="text-lg text-gray-600">{`What does ${isWhite ? 'White' : 'Black'} play here?`}</h2>
         </div>
       </div>
@@ -42,7 +42,7 @@ const Learn = () => {
         <Lightbulb className="w-20 h-20" />
       </div>
       <div>
-        <h1 className="font-bold text-2xl text-gray-800">Your move</h1>
+        <h1 className="font-bold text-2xl text-gray-800">Play the move</h1>
         <h2 className="text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</h2>
       </div>
     </div>

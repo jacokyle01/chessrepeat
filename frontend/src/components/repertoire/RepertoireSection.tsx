@@ -30,8 +30,9 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
 
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const setOrientation = useStore(useTrainerStore, (s) => s.setOrientation);
+  const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
 
-  //TODO BUG: renaming/deleting the wrong chapter? 
+  //TODO BUG: renaming/deleting the wrong chapter?
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [newName, setNewName] = useState(''); // holds input value
@@ -50,6 +51,7 @@ export const RepertoireSection: React.FC<RepertoireSectionProps> = ({
           setRepertoireIndex(fullIndex);
           const chapter = repertoire[repertoireIndex];
           setOrientation(chapter.trainAs);
+          clearChapterContext();
         };
 
         // const handleSettingsClick = (e: React.MouseEvent) => {
