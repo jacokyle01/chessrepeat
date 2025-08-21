@@ -1,5 +1,6 @@
-import { createContext, useRef, useState, useContext } from "react";
-import { ContextMenu } from "primereact/contextmenu";
+import { createContext, useRef, useState, useContext } from 'react';
+import { ContextMenu } from 'primereact/contextmenu';
+import { useTrainerStore } from '../../state/state';
 
 type MenuItem = {
   label: string;
@@ -15,11 +16,13 @@ type ContextMenuContextType = {
 const ContextMenuContext = createContext<ContextMenuContextType | null>(null);
 
 export function ContextMenuProvider({ children }: { children: React.ReactNode }) {
+  const method = useTrainerStore().repertoireMethod;
   const cm = useRef<ContextMenu>(null);
   const [model, setModel] = useState<MenuItem[]>([]);
   const [contextSelectedPath, setContextSelectedPath] = useState<string | null>(null);
 
   function showMenu(e: React.MouseEvent, items: MenuItem[], path: string) {
+    if (method != 'edit') return;
     e.preventDefault();
     setModel(items);
     setContextSelectedPath(path);
@@ -37,8 +40,8 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
         ref={cm}
         onHide={hideMenu}
         pt={{
-          root: { className: "bg-white text-black shadow-lg rounded-md" },
-          menuitem: { className: "hover:bg-gray-100 cursor-pointer" },
+          root: { className: 'bg-white text-black shadow-lg rounded-md' },
+          menuitem: { className: 'hover:bg-gray-100 cursor-pointer' },
         }}
       />
       {children}
@@ -48,6 +51,6 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
 
 export function useAppContextMenu() {
   const ctx = useContext(ContextMenuContext);
-  if (!ctx) throw new Error("useAppContextMenu must be used inside ContextMenuProvider");
+  if (!ctx) throw new Error('useAppContextMenu must be used inside ContextMenuProvider');
   return ctx;
 }
