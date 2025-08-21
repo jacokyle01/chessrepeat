@@ -1,5 +1,8 @@
 // TODO: comments:
 // TODO use primereact icons instead?
+//TODO fix off-by-one bug with ply (compare w/ lichess)
+//TODO adjust scrollheight automatically when clicking a move 
+//TODO fix formatting. use retroLine? 
 import { useTrainerStore } from '../../state/state';
 import {
   type ChildNode,
@@ -21,7 +24,7 @@ import { ContextMenuProvider } from './ContextMenuProvider';
 
 import React, { useRef } from 'react';
 import { foolsMate, nimzo } from '../../debug/pgns';
-import { PlusIcon } from 'lucide-react';
+import { ChevronRight, PlusIcon } from 'lucide-react';
 export interface Opts {
   parentPath: Tree.Path;
   isMainline: boolean;
@@ -317,18 +320,57 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
   if (collapsed) {
     return (
       <div className={`lines single ${collapsed ? 'collapsed' : ''}`}>
-        <div className="expand">
-          <div className="branch" />
-          {/* <a
+        {/* assume uncollapsed */}
+        {nodes.map((n) => {
+          return (
+            <div className="flex">
+              <ChevronRight color='gray'/>
+              <div className="line">
+                <div className="branch">
+                  <RenderMoveAndChildren
+                    ctx={ctx}
+                    node={n}
+                    opts={{
+                      ...opts,
+                      withIndex: true,
+                      isMainline: false,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* <div className="expand"> */}
+        {/* <div className="branch" /> */}
+        {/* <a
             data-icon={licon.PlusButton}
             title={i18n.site.expandVariations}
             onClick={() => ctx.ctrl.setCollapsed(opts.parentPath, false)}
           /> */}
-          <PlusIcon></PlusIcon>
-        </div>
+        {/* <PlusIcon></PlusIcon> */}
+        {/* </div> */}
       </div>
     );
   }
+
+  // : nodes.map(n => {
+  //   return (
+  //     retroLine(ctx, n) ||
+  //     h('line', [
+  //       h('branch'),
+  //       ...renderMoveAndChildrenOf(ctx, n, {
+  //         parentPath: opts.parentPath,
+  //         isMainline: false,
+  //         depth: opts.depth + 1,
+  //         withIndex: true,
+  //         noConceal: opts.noConceal,
+  //         truncate: n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined,
+  //       }),
+  //     ])
+  //   );
+  // }),
 
   return (
     <div className={`lines ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
@@ -442,7 +484,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
     main = cs[0];
   if (!main) return;
     */
-    const mainHasChildren = main.children[0]
+    const mainHasChildren = main.children[0];
     // Not entering here
     console.log('Hello??????');
     return (
@@ -526,7 +568,6 @@ export default function PgnTree() {
     }
   };
 
-
   const repertoire = useTrainerStore.getState().repertoire;
   const repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
@@ -550,7 +591,7 @@ export default function PgnTree() {
   //   <RenderMainlineCommentsOf ctx={ctx} node={root} withColor={false} path={''}></RenderMainlineCommentsOf>
   // );
 
-  //TODO should be false 
+  //TODO should be false
   const blackStarts = (root.ply & 1) === 1;
 
   return (
