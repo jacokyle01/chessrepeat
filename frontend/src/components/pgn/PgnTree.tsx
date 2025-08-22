@@ -20,7 +20,7 @@ import { ContextMenu } from 'primereact/contextmenu';
 import { useAppContextMenu } from './ContextMenuProvider';
 
 // import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
-import { path as treePath } from '../tree/ops';
+import { hasBranching, path as treePath } from '../tree/ops';
 
 import { ContextMenuProvider } from './ContextMenuProvider';
 
@@ -536,7 +536,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   }
 
   const nodes = cs;
-  let shouldRenderLines = !nodes[1] || nodes[2] || treeOps.hasBranching(nodes[1], 6);
+  let shouldRenderLines = !nodes[1] || nodes[2] || hasBranching(nodes[1], 6);
   // console.log('in render children');
   if (shouldRenderLines) {
     return (

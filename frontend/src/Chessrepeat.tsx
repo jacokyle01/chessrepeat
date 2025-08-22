@@ -134,14 +134,14 @@ export const ChessOpeningTrainer = () => {
   const ran = useRef(false);
 
   // prevent from running twice in dev
-  useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
+  // useEffect(() => {
+  //   if (ran.current) return;
+  //   ran.current = true;
 
-    importToRepertoire(opera(), 'white', 'Opera Game');
-    importToRepertoire(pgn3(), 'white', 'Queens Gambit');
-    // importToRepertoire(commentTest(), 'white', 'Test');
-  }, []);
+  //   importToRepertoire(opera(), 'white', 'Opera Game');
+  //   importToRepertoire(pgn3(), 'white', 'Queens Gambit');
+  //   // importToRepertoire(commentTest(), 'white', 'Test');
+  // }, []);
 
   //TODO put in util
   const currentTime = (): number => {

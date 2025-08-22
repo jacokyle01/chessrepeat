@@ -1,4 +1,5 @@
 // state/trainerStore.ts
+//TODO prefix treepath functions with treePath.___ 
 import { create } from 'zustand';
 import { persist, StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
@@ -9,7 +10,9 @@ import { Config as SrsConfig, defaults } from '../spaced-repetition/config';
 import { Config as CbConfig } from 'chessground/config';
 
 // import { path as treePath} from '../components/tree/tree';
-import { deleteNodeAt, getNodeList, nodeAtPath } from '../components/tree/ops';
+import { deleteNodeAt, getNodeList, last, nodeAtPath } from '../components/tree/ops';
+//TODO make sure we are using this convention to import 
+import { path as treePath} from '../components/tree/ops';
 
 interface TrainerState {
   repertoireMethod: RepertoireMethod;
@@ -154,7 +157,7 @@ export const useTrainerStore = create<TrainerState>()(
         const root = repertoire[repertoireIndex].tree;
         if (!root) return;
         const nodeList = getNodeList(root, path);
-        const node = treeOps.last(nodeList);
+        const node = nodeList.at(-1);
         set({ selectedPath: path, selectedNode: node });
       },
 
