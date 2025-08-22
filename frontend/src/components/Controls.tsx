@@ -29,6 +29,11 @@ const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: Contro
   const lastGuess = useTrainerStore.getState().lastGuess;
   const showLastMoveCorrect = useTrainerStore.getState().showSuccessfulGuess;
 
+  const repertoire = useTrainerStore().repertoire;
+  const repertoireIndex = useTrainerStore().repertoireIndex;
+  const name = repertoire[repertoireIndex]?.name || '';
+
+
   //TODO difference between handleLearn and setting mode to learn?
   return (
     <div className="flex flex-row justify-start items-start">
@@ -52,7 +57,11 @@ const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: Contro
             repertoireMethod == 'learn'
               ? 'bg-blue-400 translate-y-px transform border-b'
               : 'bg-blue-500 border-b-4'
-          }`}
+          }
+          ${
+            repertoireMethod == 'unselected' && name == 'Example Repertoire' && 'shadow-lg shadow-blue-500/70'
+          }  
+          `}
         >
           <GraduationCap size={22}/>
           <span className="">Learn</span>

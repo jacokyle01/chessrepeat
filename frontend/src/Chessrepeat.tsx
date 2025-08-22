@@ -23,6 +23,7 @@ import {
   alternates,
   catalan,
   commentTest,
+  example,
   foolsMate,
   manyAlternates,
   nimzo,
@@ -135,9 +136,7 @@ export const ChessOpeningTrainer = () => {
     if (ran.current) return;
     ran.current = true;
 
-    importToRepertoire(opera(), 'white', 'Opera Game');
-    importToRepertoire(pgn3(), 'white', 'Queens Gambit');
-    // importToRepertoire(commentTest(), 'white', 'Test');
+    importToRepertoire(example(), 'white', 'Example Repertoire');
   }, []);
 
   //TODO put in util
