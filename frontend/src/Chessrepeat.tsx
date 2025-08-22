@@ -989,7 +989,7 @@ Returns a Tree.Path string
           </div>
         </div>
       </div>
-      <Debug atLast={atLast} />
+      {/* <Debug atLast={atLast} /> */}
       {/*TODO handle with animation, allow multiple feedback at the same time */}
       {box && repertoireMethod == 'recall' && (
         <div
