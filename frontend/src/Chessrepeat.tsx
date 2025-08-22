@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Chessground } from './components/Chessground';
 import Controls, { ControlsProps } from './components/Controls';
-import { path as treePath} from './components/tree/ops';
+import { path as treePath } from './components/tree/ops';
 
 import { useEffect, useRef } from 'react';
 import { Config as CbConfig } from './components/Chessground';
@@ -50,7 +50,6 @@ import { Debug } from './components/Debug';
 import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
 import { Api } from 'chessground/api';
-import { Analysis } from './components/Analysis';
 import { getNodeList } from './components/tree/ops';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
@@ -132,14 +131,14 @@ export const ChessOpeningTrainer = () => {
   const ran = useRef(false);
 
   // prevent from running twice in dev
-  // useEffect(() => {
-  //   if (ran.current) return;
-  //   ran.current = true;
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
 
-  //   importToRepertoire(opera(), 'white', 'Opera Game');
-  //   importToRepertoire(pgn3(), 'white', 'Queens Gambit');
-  //   // importToRepertoire(commentTest(), 'white', 'Test');
-  // }, []);
+    importToRepertoire(opera(), 'white', 'Opera Game');
+    importToRepertoire(pgn3(), 'white', 'Queens Gambit');
+    // importToRepertoire(commentTest(), 'white', 'Test');
+  }, []);
 
   //TODO put in util
   const currentTime = (): number => {
@@ -315,7 +314,7 @@ Returns a Tree.Path string
 
       //push child nodes
       //TODO guarantee non-full
-      if (entry.layer < srsConfig!.getNext!.max!) {
+      if (entry.layer < srsConfig!.getNext!.max! * 2) {
         // TODO ?
         for (const child of pos.children) {
           const DequeEntry: DequeEntry = {
@@ -853,9 +852,10 @@ Returns a Tree.Path string
   const [box, setBox] = useState<{ x: number; y: number; time: string } | null>(null);
 
   const showBoxAtSquare = (square: string, time: number) => {
+    const chapter = repertoire[repertoireIndex]
     if (!containerRef.current) return;
     const bounds = containerRef.current.getBoundingClientRect();
-    const coords = squareToCoords(square, bounds, orientation);
+    const coords = squareToCoords(square, bounds, chapter.trainAs);
 
     // store coordinates relative to container
     const formattedTime = formatTime(time);
@@ -895,7 +895,7 @@ Returns a Tree.Path string
             <div id="board-wrap" className="bg-white p-1" ref={containerRef}>
               {/* TODO fix || initial */}
               <Chessground
-                orientation={chapter.trainAs || 'white'}
+                orientation={chapter?.trainAs || 'white'}
                 fen={selectedNode?.fen || initial}
                 turnColor={turn}
                 movable={{
@@ -950,7 +950,6 @@ Returns a Tree.Path string
           </div>
           <div className="flex flex-col flex-1 h-full">
             <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
-              {repertoireMethod == 'edit' && <Analysis></Analysis>}
               <PgnTree></PgnTree>
               {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
             </div>
