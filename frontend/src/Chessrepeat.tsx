@@ -205,7 +205,6 @@ export const ChessOpeningTrainer = () => {
       // check: pos.isCheck() ? makeSquare(pos.toSetup().board.kingOf(pos.turn)!) : undefined,
     };
   };
-
   // TODO provide a more detailed breakdown, like when each one is due.
   // TODO combine this with nextTrainablePath() so we don't need to walk the tree twice
 
@@ -852,7 +851,7 @@ Returns a Tree.Path string
   const [box, setBox] = useState<{ x: number; y: number; time: string } | null>(null);
 
   const showBoxAtSquare = (square: string, time: number) => {
-    const chapter = repertoire[repertoireIndex]
+    const chapter = repertoire[repertoireIndex];
     if (!containerRef.current) return;
     const bounds = containerRef.current.getBoundingClientRect();
     const coords = squareToCoords(square, bounds, chapter.trainAs);
@@ -867,10 +866,44 @@ Returns a Tree.Path string
   return (
     <MantineProvider>
       <div id="root" className="w-full h-full bg-gray-200">
-        <div id="header" className="flex items-end justify-left text-3xl mb-3">
-          <img src="logo.png" alt="Logo" className="h-12 w-12" />
-          <span>chess</span>
-          <span className="text-stone-600">repeat</span>
+        <div id="header" className="flex items-center justify-start text-3xl mb-3 gap-10">
+          {/* Logo + Title */}
+          <div className="flex items-end">
+            <img src="logo.png" alt="Logo" className="h-12 w-12 mr-2" />
+            <span>chess</span>
+            <span className="text-stone-600">repeat</span>
+          </div>
+
+          {/* Links */}
+          <div className="flex gap-6 text-base font-light text-gray-500 font-mono mt-auto">
+            <a
+              href="https://discord.gg/xhjra9W6Bh"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-black capitalize font-mono"
+              title="Join our Discord"
+            >
+              JOIN DISCORD
+            </a>
+            <span>•</span>
+            <a
+              href="https://github.com/jacokyle01/chessrepeat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-black"
+              title="View on GitHub"
+            >
+              VIEW GITHUB
+            </a>
+            <span>•</span>
+            <a
+              href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
+              className="hover:text-black"
+              title="Report a Bug via Email"
+            >
+              REPORT BUG
+            </a>
+          </div>
         </div>
         {showingAddToRepertoireMenu && (
           <>
