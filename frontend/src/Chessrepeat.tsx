@@ -107,8 +107,6 @@ export const ChessOpeningTrainer = () => {
     dueTimes,
     setDueTimes,
 
-    orientation,
-    setOrientation,
     srsConfig,
     setSrsConfig,
     cbConfig,
@@ -344,17 +342,6 @@ Returns a Tree.Path string
     const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
 
     return selectedPath == trainingPath;
-  };
-
-  const flipBoard = () => {
-    const newOrientation = orientation === 'white' ? 'black' : 'white';
-    setOrientation(newOrientation);
-    useTrainerStore.setState((state) => ({
-      cbConfig: {
-        ...state.cbConfig,
-        orientation: newOrientation,
-      },
-    }));
   };
 
   /*
@@ -642,35 +629,9 @@ Returns a Tree.Path string
       console.log(repertoire);
       // setRepertoire([...repertoire, chapter]);
       // if (chapter.trainAs == 'white') setNumWhiteEntries(numWhiteEntries + 1);
-
-      /*
-      Set orientation to match repertoire orientation if this is the only entry
-      */
-      if (repertoire.length == 1) {
-        setOrientation(chapter.trainAs);
-      }
       //TODO
       // postChapter(entry, color, name);
     });
-  };
-
-  // TODO put this in global state
-  const jump = (path: Tree.Path): void => {
-    const repertoire = useTrainerStore.getState().repertoire;
-    const repertoireIndex = useTrainerStore.getState().repertoireIndex;
-
-    const tree = repertoire[repertoireIndex].tree;
-
-    const currentPath = useTrainerStore.getState().selectedPath;
-    //TODO
-    // const pathChanged = path !== this.path,
-    // isForwardStep = pathChanged && path.length === this.path.length + 2;
-    setSelectedPath(path);
-
-    // TODO why are we storing this logic here ?
-    const nodeList = getNodeList(tree, path);
-    const node = treeOps.last(nodeList);
-    setSelectedNode(node);
   };
 
   //TODO ... wrong index
@@ -934,7 +895,7 @@ Returns a Tree.Path string
             <div id="board-wrap" className="bg-white p-1" ref={containerRef}>
               {/* TODO fix || initial */}
               <Chessground
-                orientation={orientation}
+                orientation={chapter.trainAs || 'white'}
                 fen={selectedNode?.fen || initial}
                 turnColor={turn}
                 movable={{

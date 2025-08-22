@@ -63,9 +63,6 @@ interface TrainerState {
   dueTimes: number[];
   setDueTimes: (t: number[]) => void;
 
-  orientation: 'white' | 'black';
-  setOrientation: (o: 'white' | 'black') => void;
-
   srsConfig: SrsConfig;
   setSrsConfig: (cfg: SrsConfig) => void;
 
@@ -142,9 +139,6 @@ export const useTrainerStore = create<TrainerState>()(
 
       dueTimes: [],
       setDueTimes: (t) => set({ dueTimes: t }),
-
-      orientation: 'white',
-      setOrientation: (o) => set({ orientation: o }),
 
       srsConfig: defaults(),
       setSrsConfig: (cfg) => set({ srsConfig: cfg }),
