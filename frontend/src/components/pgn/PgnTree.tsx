@@ -1,8 +1,8 @@
 // TODO: comments:
 // TODO use primereact icons instead?
 //TODO fix off-by-one bug with ply (compare w/ lichess)
-//TODO adjust scrollheight automatically when clicking a move 
-//TODO fix formatting. use retroLine? 
+//TODO adjust scrollheight automatically when clicking a move
+//TODO fix formatting. use retroLine?
 import { useTrainerStore } from '../../state/state';
 import {
   type ChildNode,
@@ -19,12 +19,15 @@ import { makeUci, Position } from 'chessops';
 import { ContextMenu } from 'primereact/contextmenu';
 import { useAppContextMenu } from './ContextMenuProvider';
 
-import { build as makeTree, path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
+// import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
+import { path as treePath } from '../tree/ops';
+
 import { ContextMenuProvider } from './ContextMenuProvider';
 
 import React, { useRef } from 'react';
 import { foolsMate, nimzo } from '../../debug/pgns';
 import { ChevronRight, PlusIcon } from 'lucide-react';
+import { getNodeList } from '../tree/ops';
 export interface Opts {
   parentPath: Tree.Path;
   isMainline: boolean;
@@ -324,7 +327,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
         {nodes.map((n) => {
           return (
             <div className="flex">
-              <ChevronRight color='gray'/>
+              <ChevronRight color="gray" />
               <div className="line">
                 <div className="branch">
                   <RenderMoveAndChildren
@@ -406,9 +409,10 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   let repertoire = useTrainerStore.getState().repertoire;
   let repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
+  const tree = chapter.tree;
 
   const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
-  const path: Tree.Node[] = chapter.tree.getNodeList(pathToTrain);
+  const path: Tree.Node[] = getNodeList(tree, pathToTrain);
 
   const method = useTrainerStore.getState().repertoireMethod;
 
@@ -572,7 +576,7 @@ export default function PgnTree() {
   const repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
   if (!chapter) return;
-  let root = chapter.tree.root;
+  let root = chapter.tree;
   // console.log('root path');
   // TODO conditionally use path or root, depending on context
 

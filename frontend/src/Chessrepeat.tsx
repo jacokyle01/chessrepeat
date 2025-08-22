@@ -3,12 +3,7 @@
 import React, { useState } from 'react';
 import { Chessground } from './components/Chessground';
 import Controls, { ControlsProps } from './components/Controls';
-import {
-  build as makeTree,
-  path as treePath,
-  ops as treeOps,
-  type TreeWrapper,
-} from './components/tree/tree';
+import { path as treePath} from './components/tree/ops';
 
 import { useEffect, useRef } from 'react';
 import { Config as CbConfig } from './components/Chessground';
@@ -56,6 +51,7 @@ import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
 import { Api } from 'chessground/api';
 import { Analysis } from './components/Analysis';
+import { getNodeList } from './components/tree/ops';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -226,7 +222,7 @@ export const ChessOpeningTrainer = () => {
     if (repertoire.length == 0) return;
     const chapter = repertoire[repertoireIndex];
     //TODO Node<unknown>
-    const root = chapter.tree.root;
+    const root = chapter.tree;
     const ctx = countDueContext(0);
     const dueCounts = new Array(1 + srsConfig.buckets!.length).fill(0);
 
@@ -280,9 +276,8 @@ Returns a Tree.Path string
 
     const deque: DequeEntry[] = [];
 
-    let tree = repertoire[repertoireIndex].tree;
+    let root = repertoire[repertoireIndex].tree;
     //initialize deque
-    const root = tree.root;
     console.log('root', root);
     for (const child of root.children) {
       deque.push({
@@ -372,7 +367,8 @@ Returns a Tree.Path string
     const chapter = repertoire[repertoireIndex];
     const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
-    const trainingNodeList: Tree.Node[] = [...chapter.tree.getNodeList(pathToTrain), targetNode];
+    const root = chapter.tree;
+    const trainingNodeList: Tree.Node[] = [...getNodeList(root, pathToTrain), targetNode];
     let repertoireMethod = useTrainerStore.getState().repertoireMethod;
     let node = trainingNodeList?.at(-1);
     if (!node) return;
@@ -457,10 +453,11 @@ Returns a Tree.Path string
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
     const chapter = repertoire[repertoireIndex];
+    const root = chapter.tree;
 
     const pathToTrain = useTrainerStore.getState().trainableContext.startingPath;
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
-    const trainingNodeList: Tree.Node[] = chapter.tree.getNodeList(pathToTrain);
+    const trainingNodeList: Tree.Node[] = getNodeList(root, pathToTrain);
 
     if (repertoireIndex == -1 || !trainingNodeList || repertoireMethod == 'learn') return;
     let possibleMoves = trainingNodeList.at(-1).children.map((_) => _.san);
@@ -485,6 +482,7 @@ Returns a Tree.Path string
 
     if (repertoire.length == 0) return;
     const chapter = repertoire[repertoireIndex];
+    const root = chapter.tree;
     // TODO add reset functions for different context (repertoire, method) OR add conditionals to check those
     setShowSuccessfulGuess(false);
     resetTrainingContext();
@@ -502,7 +500,7 @@ Returns a Tree.Path string
       setTrainableContext(maybeCtx);
       const targetPath = maybeCtx.startingPath;
       setSelectedPath(targetPath);
-      const nodeList = chapter.tree.getNodeList(targetPath);
+      const nodeList = getNodeList(root, targetPath);
       setSelectedNode(nodeList.at(-1));
     }
     //TODO
@@ -514,6 +512,7 @@ Returns a Tree.Path string
 
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+    const root = repertoire[repertoireIndex].tree;
 
     // let trainingNodeList = useTrainerStore.getState().trainingNodeList;
 
@@ -538,7 +537,7 @@ Returns a Tree.Path string
       //TODO factor out common logic in learn & recall
       const targetPath = maybeCtx.startingPath;
       setSelectedPath(targetPath);
-      const nodeList = chapter.tree.getNodeList(targetPath);
+      const nodeList = getNodeList(root, targetPath);
       setSelectedNode(nodeList.at(-1));
     }
 
@@ -601,7 +600,7 @@ Returns a Tree.Path string
         tree = mainline;
         index += 1;
       }
-      const newTree = makeTree(treeReconstruct(treeParts, sidelines));
+      const newTree = treeReconstruct(treeParts, sidelines);
       // return newTree;
 
       if (i > 0) name += ` (${i + 1})`;
@@ -669,7 +668,7 @@ Returns a Tree.Path string
     setSelectedPath(path);
 
     // TODO why are we storing this logic here ?
-    const nodeList = tree.getNodeList(path);
+    const nodeList = getNodeList(tree, path);
     const node = treeOps.last(nodeList);
     setSelectedNode(node);
   };

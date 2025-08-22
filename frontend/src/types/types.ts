@@ -1,6 +1,5 @@
 import { Chart } from 'chart.js';
 import { Color, Chapter, TrainingData } from '../spaced-repetition/types';
-import { TreeWrapper } from '../components/tree/tree';
 
 //TODO better organizatoin of types
 export type RepertoireMode = 'train' | 'edit';
@@ -46,7 +45,7 @@ export interface LichessStudy {
 }
 
 export interface RepertoireChapter {
-  tree: TreeWrapper;
+  tree: Tree.Node;
   name: string;
   lastDueCount: number;
   trainAs: Color;

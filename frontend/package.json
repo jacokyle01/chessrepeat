@@ -28,6 +28,7 @@
     "chartjs-plugin-datalabels": "^2.2.0",
     "chessground": "^9",
     "chessops": "^0.14.1",
+    "idb-keyval": "^6.2.2",
     "jotai": "^2.12.5",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.511.0",

@@ -2,9 +2,8 @@
 
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-
-import { ops, path as treePath } from '../tree/tree';
-
+import { mainlineNodeList } from '../tree/ops';
+import { path as treePath } from '../tree/ops';
 const PgnControls = () => {
   const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
   const setSelectedNode = useTrainerStore((state) => state.setSelectedNode);
@@ -40,7 +39,7 @@ const PgnControls = () => {
   const last = (): void => {
     if (repertoireMethod != 'edit') jump(trainingPath);
     else {
-      const mainline = ops.mainlineNodeList(chapter.tree.root);
+      const mainline = mainlineNodeList(chapter.tree);
       jump(treePath.fromNodeList(mainline));
     }
   };
