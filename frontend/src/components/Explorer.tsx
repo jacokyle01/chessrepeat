@@ -15,7 +15,7 @@ const Explorer: React.FC = () => {
 
       try {
         setLoading(true);
-        setData(null);
+        //setData(null);
 
         const res = await fetch(
           `https://explorer.lichess.ovh/masters?variant=standard&fen=${encodeURIComponent(
@@ -51,7 +51,7 @@ const Explorer: React.FC = () => {
   );
 
   return (
-    <div className="opening-explorer">
+    <div className={`opening-explorer ${loading && 'opacity-75'}`}>
       <div className="explorer-header bg-blue-600/75 p-1 rounded-md">
         <div id="explorer-header" className="flex flex-row items-center justify-left gap-2">
           <div id="explorer-icon-wrap" className="text-white rounded">
