@@ -111,7 +111,7 @@ function RenderComment({
     );
   }
 
-  return <span className="comment text-gray-500">{comment}</span>;
+  return <span className="inline-block comment text-gray-500 mx-2">{comment}</span>;
 }
 
 export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: Tree.Node; path: string }) {
@@ -507,7 +507,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
         )}
 
         {isWhite && !main.forceVariation && <EmptyMove />}
-        <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border">
+        <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
           {/* {commentTags} */}
           {/* ctx, main, conceal, true, opts.parentPath + main.id */}
           <RenderMainlineCommentsOf ctx={ctx} node={main} withColor={true} path={opts.parentPath + main.id} />
@@ -605,9 +605,8 @@ export default function PgnTree() {
           onMouseDown={handleMouseDown}
           className="tview2 tview2-column overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
         >
-          {/* {    !isEmpty(commentTags) && h('interrupt', commentTags)} */}
           {root.comment && (
-            <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border">
+            <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
               <RenderMainlineCommentsOf
                 ctx={ctx}
                 node={root}
