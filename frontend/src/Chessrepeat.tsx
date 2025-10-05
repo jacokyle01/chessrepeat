@@ -137,6 +137,10 @@ export const ChessOpeningTrainer = () => {
     ran.current = true;
 
     importToRepertoire(example(), 'white', 'Example Repertoire');
+    importToRepertoire(example(), 'white', 'Example Repertoire');
+    importToRepertoire(example(), 'white', 'Example Repertoire');
+    importToRepertoire(example(), 'white', 'Example Repertoire');
+    importToRepertoire(example(), 'white', 'Example Repertoire');
   }, []);
 
   //TODO put in util
