@@ -337,8 +337,6 @@ Returns a Tree.Path string
   */
   const atLast = (): boolean => {
     if (!trainableContext) return false;
-    // return useTrainerStore.getState().pathIndex === useTrainerStore.getState().trainingNodeList.length - 2;
-    //
     const selectedPath = useTrainerStore.getState().selectedPath;
     const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
 

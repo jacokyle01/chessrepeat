@@ -42,9 +42,6 @@ interface TrainerState {
   selectedNode: any;
   setSelectedNode: (n: any) => void;
 
-  pathIndex: number;
-  setPathIndex: (i: number) => void;
-
   showingHint: boolean;
   setShowingHint: (v: boolean) => void;
 
@@ -118,9 +115,6 @@ export const useTrainerStore = create<TrainerState>()(
 
       selectedNode: null,
       setSelectedNode: (node) => set({ selectedNode: node }),
-
-      pathIndex: -1,
-      setPathIndex: (i) => set({ pathIndex: i }),
 
       showingHint: false,
       setShowingHint: (v) => set({ showingHint: v }),
