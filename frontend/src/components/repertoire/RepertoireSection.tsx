@@ -2,10 +2,8 @@
 
 import React, { useState } from 'react';
 import { RepertoireChapter, RepertoireEntry } from '../../types/types';
-import { smallGear } from '../../svg/smallGear';
 import RepertoireDropdown from './RepertoireDropdown';
 import { FileX, LucideFileEdit, Settings } from 'lucide-react';
-import { useAtom } from 'jotai';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
 import { Modal } from '../modals/Modal';

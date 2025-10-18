@@ -26,7 +26,7 @@ import { ContextMenuProvider } from './ContextMenuProvider';
 
 import React, { useRef } from 'react';
 import { foolsMate, nimzo } from '../../debug/pgns';
-import { ChevronRight, PlusIcon } from 'lucide-react';
+import { ChevronRight, PlusIcon, Trash } from 'lucide-react';
 import { getNodeList } from '../tree/ops';
 export interface Opts {
   parentPath: Tree.Path;
@@ -91,6 +91,13 @@ function RenderComment({
   path: string;
   maxLength: number;
 }) {
+  const repertoire = useTrainerStore.getState().repertoire;
+  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+  const setCommentAt = useTrainerStore((s) => s.setCommentAt);
+  const chapter = repertoire[repertoireIndex];
+  if (!chapter) return;
+  let root = chapter.tree;
+
   // const by = others.length > 1 ? <span className="by">{commentAuthorText(comment.by)}</span> : null;
 
   const truncated = truncateComment(comment, maxLength, ctx);
@@ -106,12 +113,22 @@ function RenderComment({
   if (truncated.length < comment.length) {
     return (
       <TruncatedComment path={path} ctx={ctx}>
-        {comment}
+        {comment + 'SDFSDF'}
+        <Trash />
       </TruncatedComment>
     );
   }
 
-  return <span className="inline-block comment text-gray-500 mx-2">{comment}</span>;
+  console.log('path', path);
+  return (
+    <span className="inline-block comment text-gray-500 mx-2">
+      {comment}
+      <Trash
+        className="inline-block w-5 h-5 align-text-bottom ml-5 text-black"
+        onClick={() => setCommentAt(root, '', path)}
+      />
+    </span>
+  );
 }
 
 export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: Tree.Node; path: string }) {
@@ -150,19 +167,6 @@ export function RenderMainlineCommentsOf({
 //TODO
 // export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
 //   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
-
-const contextMenuItems = [
-  {
-    label: 'Add Comment',
-    icon: 'pi pi-comment',
-    command: () => console.log('Add comment'),
-  },
-  {
-    label: 'Delete From Here',
-    icon: 'pi pi-trash',
-    command: () => console.log('Delete from here'),
-  },
-];
 
 //TODO maybe dont style this as if it was a real move?
 function EmptyMove() {
@@ -203,6 +207,20 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; op
       },
     },
     { label: 'Promote', command: () => console.log('promote', path) },
+    {
+      label: 'Add Comment',
+      command: () => {
+        const comment = prompt('Enter a comment:');
+        if (comment !== null) {
+          const { repertoire, repertoireIndex } = useTrainerStore.getState();
+          const chapter = repertoire[repertoireIndex];
+          if (!chapter) return;
+          const root = chapter.tree;
+
+          useTrainerStore.getState().setCommentAt(root, comment, path);
+        }
+      },
+    },
   ];
 
   return (

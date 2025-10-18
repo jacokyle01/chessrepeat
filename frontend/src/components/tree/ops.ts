@@ -2,8 +2,7 @@
 import * as treePath from './path';
 // import { defined } from 'common';
 
-export { treePath as path};
-
+export { treePath as path };
 
 export function withMainlineChild<T>(node: Tree.Node, f: (node: Tree.Node) => T): T | undefined {
   const next = node.children[0];
@@ -123,7 +122,8 @@ function nodeAtPathFrom(node: Tree.Node, path: Tree.Path): Tree.Node {
   return child ? nodeAtPathFrom(child, treePath.tail(path)) : node;
 }
 
-const nodeAtPathOrNull = (root: Tree.Node, path: Tree.Path): Tree.Node | undefined => nodeAtPathOrNullFrom(root, path);
+const nodeAtPathOrNull = (root: Tree.Node, path: Tree.Path): Tree.Node | undefined =>
+  nodeAtPathOrNullFrom(root, path);
 
 function nodeAtPathOrNullFrom(node: Tree.Node, path: Tree.Path): Tree.Node | undefined {
   if (path === '') return node;
@@ -159,7 +159,8 @@ function pathIsMainlineFrom(node: Tree.Node, path: Tree.Path): boolean {
 
 const pathExists = (root: Tree.Node, path: Tree.Path): boolean => !!nodeAtPathOrNull(root, path);
 
-const pathIsForcedVariation = (root: Tree.Node, path: Tree.Path): boolean => !!getNodeList(root, path).find((n) => n.forceVariation);
+const pathIsForcedVariation = (root: Tree.Node, path: Tree.Path): boolean =>
+  !!getNodeList(root, path).find((n) => n.forceVariation);
 
 function lastMainlineNodeFrom(node: Tree.Node, path: Tree.Path): Tree.Node {
   if (path === '') return node;
@@ -177,7 +178,12 @@ export const getNodeList = (root: Tree.Node, path: Tree.Path): Tree.Node[] =>
     return childById(node, id);
   });
 
-function updateAt(root: Tree.Node, path: Tree.Path, update: (node: Tree.Node) => void): Tree.Node | undefined {
+export function updateAt(
+  root: Tree.Node,
+  path: Tree.Path,
+  update: (node: Tree.Node) => void,
+): Tree.Node | undefined {
+  console.log('path', path);
   const node = nodeAtPathOrNull(root, path);
   if (node) {
     update(node);
@@ -237,27 +243,22 @@ function promoteAt(root: Tree.Node, path: Tree.Path, toMainline: boolean): void 
     }
   }
 }
+// TODO: just make delete a local function? i.e., handle everything in setCommentAt?
+export const setCommentAt = (root: Tree.Node, comment: string, path: Tree.Path) =>
+  !comment.length
+    ? deleteCommentAt(root, path)
+    : updateAt(root, path, function (node) {
+        // node.comments = node.comments || [];
+        // const existing = node.comments.find(function (c) {
+        //   return c.id === comment.id;
+        // });
+        // if (existing) existing.text = comment.text;
+        // else node.comments.push(comment);
+      });
 
-//TODO
-// const setCommentAt = (comment: Tree.Comment, path: Tree.Path) =>
-//   !comment.text
-//     ? deleteCommentAt(comment.id, path)
-//     : updateAt(path, function (node) {
-//         Comment;
-//         node.comments = node.comments || [];
-//         const existing = node.comments.find(function (c) {
-//           return c.id === comment.id;
-//         });
-//         if (existing) existing.text = comment.text;
-//         else node.comments.push(comment);
-//       });
-
-// const deleteCommentAt = (id: string, path: Tree.Path) =>
-//   updateAt(path, function (node) {
-//     const comments = (node.comments || []).filter(function (c) {
-//       return c.id !== id;
-//     });
-//     node.comments = comments.length ? comments : undefined;
-//   });
+const deleteCommentAt = (root: Tree.Node, path: Tree.Path) =>
+  updateAt(root, path, function (node) {
+    node.comment = null;
+  });
 
 const parentNode = (root: Tree.Node, path: Tree.Path): Tree.Node => nodeAtPath(root, treePath.init(path));

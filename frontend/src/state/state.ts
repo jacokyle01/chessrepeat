@@ -10,7 +10,7 @@ import { Config as SrsConfig, defaults } from '../spaced-repetition/config';
 import { Config as CbConfig } from 'chessground/config';
 
 // import { path as treePath} from '../components/tree/tree';
-import { deleteNodeAt, getNodeList, last, nodeAtPath } from '../components/tree/ops';
+import { deleteNodeAt, getNodeList, last, nodeAtPath, updateAt } from '../components/tree/ops';
 //TODO make sure we are using this convention to import
 import { path as treePath } from '../components/tree/ops';
 
@@ -69,6 +69,8 @@ interface TrainerState {
   jump: (path: string) => void;
   deleteNode: (path: string) => void;
   clearChapterContext: () => void;
+
+  setCommentAt: (root: Tree.Node, comment: string, path: Tree.Path) => void;
 }
 
 // --- IndexedDB storage for zustand ---
@@ -162,6 +164,7 @@ export const useTrainerStore = create<TrainerState>()(
           jump(treePath.init(path));
         } else {
           jump(path);
+          set({ repertoire });
         }
       },
 
@@ -173,11 +176,20 @@ export const useTrainerStore = create<TrainerState>()(
           cbConfig: {
             lastMove: null,
             drawable: {
-              shapes: []
-            }
+              shapes: [],
+            },
           },
           selectedNode: null,
         });
+      },
+
+      setCommentAt: (root: Tree.Node, comment: string, path: Tree.Path) => {
+        const { repertoire } = get();
+        updateAt(root, path, function (node) {
+          node.comment = comment;
+        }),
+          // TODO this is a hack to forcefully trigger a state update
+          set({ repertoire });
       },
     }),
     {
