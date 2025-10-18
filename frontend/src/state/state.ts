@@ -24,11 +24,12 @@ interface TrainerState {
   showingAddToRepertoireMenu: boolean;
   setShowingAddToRepertoireMenu: (val: boolean) => void;
 
+  /*
+  for a repertoire of x+y entries, 
+  first x are white and next y are black 
+  */
   repertoire: RepertoireChapter[];
   setRepertoire: (r: RepertoireChapter[]) => void;
-
-  numWhiteEntries: number;
-  setNumWhiteEntries: (n: number) => void;
 
   repertoireIndex: number;
   setRepertoireIndex: (i: number) => void;
@@ -102,9 +103,6 @@ export const useTrainerStore = create<TrainerState>()(
 
       repertoire: [],
       setRepertoire: (repertoire) => set({ repertoire }),
-
-      numWhiteEntries: 0,
-      setNumWhiteEntries: (n) => set({ numWhiteEntries: n }),
 
       repertoireIndex: 0,
       setRepertoireIndex: (i) => set({ repertoireIndex: i }),
@@ -198,7 +196,6 @@ export const useTrainerStore = create<TrainerState>()(
       partialize: (state) => ({
         // only persist long-term data
         repertoire: state.repertoire,
-        numWhiteEntries: state.numWhiteEntries,
         repertoireIndex: state.repertoireIndex,
         srsConfig: state.srsConfig,
       }),

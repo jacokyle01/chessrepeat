@@ -26,7 +26,6 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
 
   if (!chapter) return null;
 
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') onRename(chapterIndex, chapterName);
   };
@@ -80,15 +79,6 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
         >
           <TrashIcon />
           <span> Delete Chapter </span>
-        </button>
-
-        <button
-          onClick={() => onSetAllSeen(chapterIndex)}
-          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 
-          text-white font-semibold rounded-lg transition flex gap-5 items-center justify-center"
-        >
-          <GlassesIcon />
-          <span>Set All as Seen</span>
         </button>
       </div>
     </dialog>

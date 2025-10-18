@@ -89,8 +89,6 @@ export const ChessOpeningTrainer = () => {
 
     repertoire,
     setRepertoire,
-    numWhiteEntries,
-    setNumWhiteEntries,
     repertoireIndex,
     setRepertoireIndex,
 
@@ -606,19 +604,9 @@ Returns a Tree.Path string
       // TODO handle correct placement
       console.log('------------');
       console.log(repertoire, name, color);
-      // console.log([
-      //   ...repertoire.slice(0, numWhiteEntries - 1),
-      //   chapter,
-      //   ...repertoire.slice(numWhiteEntries),
-      // ]);
       switch (color) {
         case 'white':
-          setRepertoire([
-            ...repertoire.slice(0, numWhiteEntries + 1),
-            chapter,
-            ...repertoire.slice(numWhiteEntries + 1),
-          ]);
-          setNumWhiteEntries(numWhiteEntries + 1);
+          setRepertoire([chapter, ...repertoire]);
           break;
 
         case 'black':
@@ -626,8 +614,6 @@ Returns a Tree.Path string
           break;
       }
       console.log(repertoire);
-      // setRepertoire([...repertoire, chapter]);
-      // if (chapter.trainAs == 'white') setNumWhiteEntries(numWhiteEntries + 1);
       //TODO
       // postChapter(entry, color, name);
     });
@@ -636,7 +622,6 @@ Returns a Tree.Path string
   //TODO ... wrong index
   const deleteChapter = (index) => {
     setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
-    if (repertoire[repertoireIndex].trainAs == 'white') setNumWhiteEntries(numWhiteEntries - 1);
   };
 
   const renameChapter = (index, name) => {
@@ -761,12 +746,7 @@ Returns a Tree.Path string
     handleRecall,
     setShowTrainingSettings,
   };
-  // const repertoireProps: RepertoireProps = {
-  //   repertoire,
-  //   numWhiteEntries,
-  //   setShowingAddToRepertoireMenu,
-  //   repertoireIndex,
-  // };
+
   const feedbackProps = {
     handleRecall,
     fail,

@@ -1,26 +1,148 @@
 //TODO repertoire and repertoire section in same file
 
-import React, { Dispatch, SetStateAction } from 'react';
-import PrepCtrl from '../../ctrl';
-import { RepertoireChapter, RepertoireEntry } from '../../types/types';
-import { downloadI } from '../../svg/download';
-import RepertoireSection from './RepertoireSection';
-import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
+import { FileCog } from 'lucide-react';
+import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
+import { Modal } from '../modals/Modal';
+import EditChapterModal from '../modals/EditChapterModal';
+import React, { Dispatch, SetStateAction, useState } from 'react';
+import { RepertoireChapter, RepertoireEntry } from '../../types/types';
+import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
 // import { progress } from './progress'; // Uncomment if needed
 
-const Repertoire: React.FC = ({deleteChapter, renameChapter}) => {
-  const repertoire = useTrainerStore().repertoire;
-  const numWhiteEntries = useTrainerStore().numWhiteEntries;
-  const repertoireIndex = useTrainerStore().repertoireIndex;
-  console.log("rep", repertoire)
-  // console.log("repertoire", repertoire);
-  const whiteEntries: RepertoireChapter[] = repertoire.slice(0, numWhiteEntries+1);
-  const blackEntries: RepertoireChapter[] = repertoire.slice(numWhiteEntries+1);
+interface RepertoireSectionProps {
+  repertoire: RepertoireChapter[];
+  startsAt: number;
+  repertoireIndex: number;
+  deleteChapter: (index: number) => void;
+  renameChapter: (index: number, name: string) => void;
+}
 
-  console.log("num whitieis", numWhiteEntries);
-  console.log("whities", whiteEntries);
-  console.log("blackies", blackEntries);
+export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
+  const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
+  const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
+  const repertoireIndex = useTrainerStore().repertoireIndex;
+
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const meta = entry;
+  const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
+  const name = entry.name;
+
+  const handleChangeChapter = () => {
+    setRepertoireIndex(index);
+    clearChapterContext();
+  };
+
+  return (
+    <React.Fragment key={index}>
+      {editOpen && (
+        <EditChapterModal
+          chapterIndex={index}
+          onClose={() => setEditOpen(false)}
+          onRename={renameChapter}
+          onDelete={deleteChapter}
+          onSetAllSeen={() => console.log('set all seen')}
+        />
+      )}
+
+      <div
+        id="chapter-wrap"
+        onClick={handleChangeChapter}
+        className={repertoireIndex === index ? 'bg-cyan-50' : ''}
+      >
+        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
+          <span className="font-bold pr-3 text-blue-600">{index + 1}</span>
+          <h3 className="text-lg font-light flex-1 gap-2 flex items-end">
+            <span className="text-md">{name}</span>
+            <span className="text-xs italic font-mono mb-1">{meta.nodeCount}</span>
+          </h3>
+
+          {unseenCount > 0 && (
+            <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-full px-2 font-black mr-2">
+              Learn {unseenCount}
+            </button>
+          )}
+
+          {entry.lastDueCount > 0 && (
+            <button className="font-roboto text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black mr-2">
+              Recall {entry.lastDueCount}
+            </button>
+          )}
+
+          {/* Open edit modal */}
+          <div
+            id="edit-chapter"
+            className="ml-auto mr-2 text-gray-600 cursor-pointer"
+            onClick={() => setEditOpen(true)}
+          >
+            <FileCog />
+          </div>
+        </div>
+
+        {/* Rename Modal */}
+        <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="Rename Chapter">
+          <input
+            type="text"
+            placeholder="New chapter name"
+            className="w-full border rounded-md p-2 mb-4"
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            onClick={() => {
+              renameChapter(index, newName);
+              setRenameOpen(false);
+            }}
+          >
+            Save
+          </button>
+        </Modal>
+
+        {/* Delete Modal */}
+        <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete Chapter">
+          <p className="mb-4 text-gray-700">
+            Are you sure you want to delete this chapter? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-4 py-2 rounded-md border hover:bg-gray-100"
+              onClick={() => setDeleteOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              onClick={() => {
+                deleteChapter(index);
+                setDeleteOpen(false);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      </div>
+    </React.Fragment>
+  );
+};
+
+const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
+  const whiteEntries: RepertoireChapter[] = [];
+  const blackEntries: RepertoireChapter[] = [];
+
+  const repertoire = useTrainerStore().repertoire;
+  console.log('rep', repertoire);
+
+  repertoire.forEach((entry) => {
+    if (entry.trainAs == 'white') whiteEntries.push(entry);
+    else blackEntries.push(entry);
+  });
+
+  console.log('white entries', whiteEntries);
+  console.log('black entries', blackEntries);
   // div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-md.border.border-gray-200.mt-4.pb-5
   // class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
 
@@ -35,33 +157,32 @@ const Repertoire: React.FC = ({deleteChapter, renameChapter}) => {
         </div>
         <div id="repertoire-wrap">
           <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600 space-x-1">White</span>
-          <RepertoireSection
-            repertoire={whiteEntries}
-            startsAt={0}
-            repertoireIndex={repertoireIndex}
-            deleteChapter={deleteChapter}
-            renameChapter={renameChapter}
-          />
+          <div id="chapter-tree-wrap" className="flex-row rounded-md">
+            {whiteEntries.map((entry, index) => (
+              <Chapter
+                key={index}
+                entry={entry}
+                index={index}
+                deleteChapter={deleteChapter}
+                renameChapter={renameChapter}
+              />
+            ))}
+          </div>
           <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600">Black</span>
-          <RepertoireSection
-            repertoire={blackEntries}
-            startsAt={numWhiteEntries+1}
-            repertoireIndex={repertoireIndex}
-            deleteChapter={deleteChapter}
-            renameChapter={renameChapter}
-          />
+          <div id="chapter-tree-wrap" className="flex-row rounded-md">
+            {blackEntries.map((entry, index) => (
+              // ensure our index matches this entry's index in the actual repertoire array
+              <Chapter
+                key={index}
+                entry={entry}
+                index={index + whiteEntries.length}
+                deleteChapter={deleteChapter}
+                renameChapter={renameChapter}
+              />
+            ))}
+          </div>
         </div>
       </div>
-
-      {/* <div className="flex flex-col bg-white bg-clip-border text-gray-700 shadow-md rounded-md border border-gray-200 mt-4 pb-5">
-        <span className="text-xl font-bold py-2 pl-2 border-b-2 mb-2 border-gray-300">
-          Memory Schedule
-        </span>
-        <span className="font-semibold text-gray-600 px-1">Due at</span>
-        <div id="chart-wrap" className="px-1">
-          {chart(ctrl)}
-        </div>
-      </div> */}
     </div>
   );
 };
