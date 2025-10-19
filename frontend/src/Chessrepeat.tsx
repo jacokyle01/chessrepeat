@@ -18,6 +18,7 @@ import { RepertoireChapter, RepertoireEntry } from './types/types';
 import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
 import { Chess, Color, Move, Position, PositionError } from 'chessops';
+import { chessgroundMove } from 'chessops/compat';
 import { annotateMoves, countDueContext } from './spaced-repetition/util';
 import {
   alternates,
@@ -45,7 +46,7 @@ import PgnControls from './components/pgn/PgnControls';
 import PgnTree from './components/pgn/PgnTree';
 import { FenError, makeFen, parseFen } from 'chessops/fen';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
-import { scalachessCharPair } from 'chessops/compat';
+import { chessgroundDests, scalachessCharPair } from 'chessops/compat';
 import { MantineProvider } from '@mantine/core';
 import { Debug } from './components/Debug';
 import { formatTime } from './util/time';
@@ -59,14 +60,6 @@ import { getNodeList } from './components/tree/ops';
 // import "chessground/assets/chessground.brown.css";
 // import "chessground/assets/chessground.cburnett.css";
 
-// Demo game moves in long algebraic form
-const MOVES = (
-  'e2e4 e7e5 g1f3 d7d6 d2d4 c8g4 d4e5 g4f3 d1f3 d6e5 ' +
-  'f1c4 g8f6 f3b3 d8e7 b1c3 c7c6 c1g5 b7b5 c3b5 c6b5 ' +
-  'c4b5 b8d7 e1c1 a8d8 d1d7 d8d7 h1d1 e7e6 b5d7 f6d7 ' +
-  'b3b8 d7b8 d1d8'
-).split(' ');
-
 const SRS_CONFIG = {
   buckets: [1, 1, 1],
   getNext: {
@@ -75,7 +68,7 @@ const SRS_CONFIG = {
   },
 };
 
-const CONFIG = defaults();
+// const CONFIG = defaults();
 const SOUNDS = {
   move: new Audio('/sound/public_sound_standard_Move.mp3'),
   capture: new Audio('/sound/public_sound_standard_Capture.mp3'),
@@ -619,7 +612,7 @@ Returns a Tree.Path string
     });
   };
 
-  //TODO ... wrong index
+  //TODO move to state.ts
   const deleteChapter = (index) => {
     setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
   };
@@ -650,7 +643,7 @@ Returns a Tree.Path string
   After we make a move in editing
   */
 
-  const chessgroundMove = (san: string) => {
+  const playMove = (san: string) => {
     const fen = selectedNode.fen;
     if (!selectedNode.children.map((_) => _.san).includes(san)) {
       const [pos, error] = positionFromFen(fen);
@@ -843,6 +836,38 @@ Returns a Tree.Path string
     setTimeout(() => setBox(null), 1000);
   };
 
+  console.log('selectedNode (before we make a move', selectedNode);
+
+  //TODO refactor common logic here 
+  const prevMoveIfExists = () => {
+    let repertoire = useTrainerStore.getState().repertoire;
+    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+    const chapter = repertoire[repertoireIndex];
+    if (!chapter) return undefined;
+    const root = chapter.tree;
+    const nodeList = getNodeList(root, selectedPath);
+    const lastNode = nodeList.at(-1);
+    const lastlastNode = nodeList.at(-2);
+    if (!lastNode || !lastlastNode) return undefined;
+    console.log('lastNode', lastNode, 'before that', lastlastNode);
+
+    const fen = lastlastNode.fen;
+    const setup = parseFen(fen);
+    if (!setup.isOk) throw new Error('Invalid FEN: ' + fen);
+
+    let pos = Chess.fromSetup(setup.value).unwrap();
+    console.log("pos", pos);
+    const move = parseSan(pos, lastNode.san);
+    console.log("move", move);
+    // return [move.from, move.to];
+    return chessgroundMove(move);
+  };
+
+  const prevMove = prevMoveIfExists();
+  const lastMove = selectedNode ? prevMove : undefined;
+
+  console.log('lastMove (should be like [a1, a2]', lastMove);
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
@@ -912,6 +937,7 @@ Returns a Tree.Path string
                 orientation={chapter?.trainAs || 'white'}
                 fen={selectedNode?.fen || initial}
                 turnColor={turn}
+                lastMove={lastMove}
                 movable={{
                   free: false,
                   color: turn,
@@ -951,7 +977,7 @@ Returns a Tree.Path string
                         }
                       } else {
                         // optionally add move
-                        chessgroundMove(san);
+                        playMove(san);
                       }
                     },
                   },

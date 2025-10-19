@@ -22,6 +22,7 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const repertoireIndex = useTrainerStore().repertoireIndex;
+  const cbConfig = useTrainerStore().cbConfig;
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -32,8 +33,10 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
   const name = entry.name;
 
   const handleChangeChapter = () => {
+    console.log("handle change chapter");
     setRepertoireIndex(index);
     clearChapterContext();
+    console.log("cbc", cbConfig);
   };
 
   return (

@@ -40,7 +40,7 @@ interface TrainerState {
   selectedPath: string;
   setSelectedPath: (p: string) => void;
 
-  selectedNode: any;
+  selectedNode: Tree.Node;
   setSelectedNode: (n: any) => void;
 
   showingHint: boolean;
@@ -172,7 +172,7 @@ export const useTrainerStore = create<TrainerState>()(
           selectedPath: '',
           lastFeedback: 'empty',
           cbConfig: {
-            lastMove: null,
+            lastMove: undefined,
             drawable: {
               shapes: [],
             },
