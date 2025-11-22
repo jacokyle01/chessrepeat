@@ -50,6 +50,10 @@ export function uciLineToSan(fen: string, uciLine: string): string[] {
   return sanMoves;
 }
 
+  export const currentTime = (): number => {
+    return Math.round(Date.now() / 1000);
+  };
+
 // // Example usage:
 // const fen = "r1bqkbnr/pppppppp/n7/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 2 2";
 // const pv = "e2e4 e7e5 g1f3";

@@ -34,7 +34,7 @@ import {
 } from './debug/pgns';
 import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
-import { calcTarget, chessgroundToSan, fenToDests, toDestMap } from './util';
+import { calcTarget, chessgroundToSan, currentTime, fenToDests, toDestMap } from './util';
 import { DrawShape } from 'chessground/draw';
 import { Key, MoveMetadata } from 'chessground/types';
 import { useTrainerStore } from './state/state';
@@ -134,11 +134,6 @@ export const ChessOpeningTrainer = () => {
     importToRepertoire(example(), 'white', 'Example Repertoire');
     importToRepertoire(example(), 'white', 'Example Repertoire');
   }, []);
-
-  //TODO put in util
-  const currentTime = (): number => {
-    return Math.round(Date.now() / 1000);
-  };
 
   //TODO move somewhere else?
   interface Opts {

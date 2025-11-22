@@ -5,6 +5,9 @@ import { makeFen } from 'chessops/fen';
 import { makePgn, Node, PgnNodeData, startingPosition, transform } from 'chessops/pgn';
 import { RepertoireEntry } from '../types/types';
 import PrepCtrl from '../ctrl';
+import { useTrainerStore } from '../state/state';
+import { currentTime } from '../util';
+import { updateRecursive } from '../components/tree/ops';
 
 export const trainingContext = (color: Color): TrainingContext => {
   return {
@@ -203,3 +206,4 @@ export const pathContext: PathContext = {
     return clonedCtx;
   },
 };
+

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { CircleXIcon, GlassesIcon, PencilIcon, TrashIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
+import { updateRecursive } from '../tree/ops';
+import { currentTime } from '../../util';
+import { PgnNodeData } from 'chessops/pgn';
 
 interface EditChapterModalProps {
   chapterIndex: number;
@@ -29,6 +32,23 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') onRename(chapterIndex, chapterName);
   };
+
+
+// TODO factor out spaced repetition actions (succeed, fail, learn) into separate logic file, possibly this one
+const markAllAsSeen = () => {
+  // TODO this function should be factored out
+  let srsConfig = useTrainerStore.getState().srsConfig;
+  const learnNode = (node: Tree.Node) => {
+    if (node.disabled) return;
+    console.log('learning some node');
+    const timeToAdd = srsConfig!.buckets![0];
+
+    chapter.bucketEntries[0]++;
+    node.seen = true;
+    node.dueAt = currentTime() + timeToAdd;
+  };
+  updateRecursive(chapter.tree, '', node => learnNode(node));
+};
 
   return (
     <dialog
@@ -79,6 +99,14 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
         >
           <TrashIcon />
           <span> Delete Chapter </span>
+        </button>
+        <button
+          onClick={() => markAllAsSeen()}
+          className="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 
+          text-white font-semibold rounded-lg transition flex items-center justify-center"
+        >
+          <GlassesIcon />
+          <span> Mark all as seen</span>
         </button>
       </div>
     </dialog>

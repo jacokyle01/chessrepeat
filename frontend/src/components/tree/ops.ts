@@ -192,7 +192,9 @@ export function updateAt(
   return;
 }
 
-function updateRecursive(root: Tree.Node, path: Tree.Path, update: (node: Tree.Node) => void): void {
+
+//TODO leverage these lower-level functions
+export function updateRecursive(root: Tree.Node, path: Tree.Path, update: (node: Tree.Node) => void): void {
   const node = nodeAtPathOrNull(root, path);
   if (node) {
     updateAll(node, update);
