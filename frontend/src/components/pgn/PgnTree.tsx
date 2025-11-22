@@ -123,10 +123,10 @@ function RenderComment({
   return (
     <span className="inline-block comment text-gray-500 mx-2">
       {comment}
-      <Trash
+      {/* <Trash
         className="inline-block w-5 h-5 align-text-bottom ml-5 text-black"
         onClick={() => setCommentAt(root, '', path)}
-      />
+      /> */}
     </span>
   );
 }

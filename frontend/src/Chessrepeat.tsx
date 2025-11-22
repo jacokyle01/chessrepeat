@@ -53,6 +53,7 @@ import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
 import { Api } from 'chessground/api';
 import { getNodeList } from './components/tree/ops';
+import { CommentBox } from './components/CommentBox';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -987,6 +988,7 @@ Returns a Tree.Path string
             </div>
 
             <Controls {...controlsProps} />
+            <CommentBox></CommentBox>
           </div>
           <div className="flex flex-col flex-1 h-full">
             <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">

@@ -248,6 +248,7 @@ export const setCommentAt = (root: Tree.Node, comment: string, path: Tree.Path) 
   !comment.length
     ? deleteCommentAt(root, path)
     : updateAt(root, path, function (node) {
+      node.comment = comment;
         // node.comments = node.comments || [];
         // const existing = node.comments.find(function (c) {
         //   return c.id === comment.id;
