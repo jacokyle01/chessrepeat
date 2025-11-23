@@ -54,6 +54,7 @@ import Explorer from './components/Explorer';
 import { Api } from 'chessground/api';
 import { getNodeList } from './components/tree/ops';
 import { CommentBox } from './components/CommentBox';
+import { CopyFen } from './components/CopyFen';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -984,6 +985,7 @@ Returns a Tree.Path string
 
             <Controls {...controlsProps} />
             <CommentBox></CommentBox>
+            <CopyFen></CopyFen>
           </div>
           <div className="flex flex-col flex-1 h-full">
             <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
