@@ -122,14 +122,14 @@ export const ChessOpeningTrainer = () => {
 
   const [sounds, setSounds] = useState(SOUNDS);
   //TODO dont use useEffect here?
-  const ran = useRef(false);
+  // const ran = useRef(false);
 
   // prevent from running twice in dev
   // useEffect(() => {
   //   if (ran.current) return;
   //   ran.current = true;
 
-  //   importToRepertoire(example(), 'white', 'Example Repertoire');
+  //   // importToRepertoire(alternates(), 'white', 'Alternates');
   //   // importToRepertoire(example(), 'white', 'Example Repertoire');
   //   // importToRepertoire(example(), 'white', 'Example Repertoire');
   //   // importToRepertoire(example(), 'white', 'Example Repertoire');

@@ -238,6 +238,36 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; op
 }
 
 function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+  const { showMenu, contextSelectedPath } = useAppContextMenu();
+
+  const deleteNode = useTrainerStore((s) => s.deleteNode);
+
+
+  //TODO factor this out into separate function
+  const items = [
+    {
+      label: 'Delete from here',
+      command: () => {
+        console.log('delete', path);
+        deleteNode(path);
+      },
+    },
+    { label: 'Promote', command: () => console.log('promote', path) },
+    {
+      label: 'Add Comment',
+      command: () => {
+        const comment = prompt('Enter a comment:');
+        if (comment !== null) {
+          const { repertoire, repertoireIndex } = useTrainerStore.getState();
+          const chapter = repertoire[repertoireIndex];
+          if (!chapter) return;
+          const root = chapter.tree;
+
+          useTrainerStore.getState().setCommentAt(root, comment, path);
+        }
+      },
+    },
+  ];
   const path = opts.parentPath + node.id;
   const withIndex = opts.withIndex || node.ply % 2 === 1;
   const content = (
@@ -255,6 +285,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
     <span
       data-path={path}
       className={`move variation text-[15.8px] px-[7.9px] pr-[4.74px] overflow-hidden hover:bg-blue-400 select-none cursor-pointer ${activeClass}`}
+      onContextMenu={(e) => showMenu(e, items, path)}
     >
       {content}
     </span>
