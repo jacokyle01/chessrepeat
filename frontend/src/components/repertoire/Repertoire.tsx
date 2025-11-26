@@ -137,7 +137,7 @@ const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
   const blackEntries: RepertoireChapter[] = [];
 
   const repertoire = useTrainerStore().repertoire;
-  console.log('rep', repertoire);
+  // console.log('rep', repertoire);
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);

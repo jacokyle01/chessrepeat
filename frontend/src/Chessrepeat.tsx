@@ -265,7 +265,7 @@ Returns a Tree.Path string
 
     let root = repertoire[repertoireIndex].tree;
     //initialize deque
-    console.log('root', root);
+    // console.log('root', root);
     for (const child of root.children) {
       deque.push({
         nodeList: [child],
@@ -593,7 +593,7 @@ Returns a Tree.Path string
 
       // TODO handle correct placement
       console.log('------------');
-      console.log(repertoire, name, color);
+      // console.log(repertoire, name, color);
       switch (color) {
         case 'white':
           setRepertoire([chapter, ...repertoire]);
