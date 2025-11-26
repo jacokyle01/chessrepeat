@@ -144,8 +144,8 @@ const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
     else blackEntries.push(entry);
   });
 
-  console.log('white entries', whiteEntries);
-  console.log('black entries', blackEntries);
+  // console.log('white entries', whiteEntries);
+  // console.log('black entries', blackEntries);
   // div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-md.border.border-gray-200.mt-4.pb-5
   // class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
 
