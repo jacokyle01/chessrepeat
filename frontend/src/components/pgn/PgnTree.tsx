@@ -50,12 +50,6 @@ function truncateComment(text: string, len: number, ctx: Ctx) {
   return ctx.truncateComments && text.length > len ? text.slice(0, len - 10) + ' [...]' : text;
 }
 
-function commentAuthorText(by?: string) {
-  if (!by) return '';
-  if (by === 'lichess') return 'lichess';
-  return by;
-}
-
 function enrichText(text: string): string {
   // Replace with actual formatting logic (links, markdown, etc.)
   return text;
@@ -121,7 +115,7 @@ function RenderComment({
 
   console.log('path', path);
   return (
-    <span className="inline-block comment text-gray-500 mx-2">
+    <span className="comment text-gray-500 mx-2">
       {comment}
       {/* <Trash
         className="inline-block w-5 h-5 align-text-bottom ml-5 text-black"
