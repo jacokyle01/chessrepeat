@@ -165,8 +165,8 @@ export function RenderMainlineCommentsOf({
 // END COMMENTS
 
 //TODO
-// export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
-//   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
+export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
+  plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
 
 //TODO maybe dont style this as if it was a real move?
 function EmptyMove() {
@@ -177,9 +177,15 @@ function EmptyMove() {
   );
 }
 
+export const plyToTurn = (ply: number): number => Math.floor((ply - 1) / 2) + 1;
+
+export const renderIndex = (ply: number, withDots?: boolean): string =>
+  plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
+
 function IndexNode(ply: number) {
   return (
     <div className="index self-stretch flex items-center self-start basis-[13%] justify-center border-r bg-[#f9f9f9] text-[#999]">
+      {/* {renderIndex(ply, true)} */}
       {ply}
     </div>
   );
@@ -272,7 +278,9 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
   const withIndex = opts.withIndex || node.ply % 2 === 1;
   const content = (
     <>
-      {withIndex && `${Math.floor(node.ply / 2) + 1}. `}
+    {/* // TODO here */}
+      {/* {withIndex && `${Math.floor(node.ply / 2) + 1}. `} */}
+      {withIndex && renderIndex(node.ply, true)}
       {node.san}
     </>
   );

@@ -125,7 +125,7 @@ export const ChessOpeningTrainer = () => {
   // const ran = useRef(false);
 
   // prevent from running twice in dev
-  // useEffect(() => {
+  // (() => {
   //   if (ran.current) return;
   //   ran.current = true;
 
