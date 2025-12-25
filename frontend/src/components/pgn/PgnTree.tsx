@@ -367,8 +367,9 @@ function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node;
 // }
 
 export function RenderLines({ ctx, parentNode, nodes, opts }) {
-  const collapsed =
-    parentNode.collapsed === undefined ? opts.depth >= 2 && opts.depth % 2 === 0 : parentNode.collapsed;
+  let collapsed = false;
+  // const collapsed =
+  //   parentNode.collapsed === undefined ? opts.depth >= 2 && opts.depth % 2 === 0 : parentNode.collapsed;
   // console.log('render lines w/ parent'
   // , parentNode.san);
   if (collapsed) {
@@ -589,13 +590,8 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   const nodes = cs;
   let shouldRenderLines = !nodes[1] || nodes[2] || hasBranching(nodes[1], 6);
   // console.log('in render children');
-  if (shouldRenderLines) {
-    return (
-      <>
-        <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />
-      </>
-    );
-  }
+  return <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />;
+
   // TODO - fix infinite render loop, figure out if we need renderInlined
   // TODO - we just need a way to ensure that the whole PGN is viewable
 }
