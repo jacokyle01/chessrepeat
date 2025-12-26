@@ -238,3 +238,27 @@ cg-board piece.fading {
 .selected {
   border: 1px solid black;
 }
+
+
+.line {
+  display: block;
+  padding-inline-start: 7px;
+  position: relative;
+}
+
+.line > .branch {
+  border-inline-start: 2px solid gray;
+  margin-inline-start: -9px;
+  position: absolute;
+  width: 8px;
+  height: 100%;
+}
+
+.line > .branch::before {
+  margin-top: 0.8em;
+  content: ' ';
+  border-top: 2px solid gray;
+  position: absolute;
+  width: 7px;
+  height: 6px;
+}

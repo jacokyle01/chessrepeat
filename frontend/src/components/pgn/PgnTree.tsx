@@ -242,7 +242,6 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
 
   const deleteNode = useTrainerStore((s) => s.deleteNode);
 
-
   //TODO factor this out into separate function
   const items = [
     {
@@ -272,7 +271,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
   const withIndex = opts.withIndex || node.ply % 2 === 1;
   const content = (
     <>
-    {/* // TODO here */}
+      {/* // TODO here */}
       {/* {withIndex && `${Math.floor(node.ply / 2) + 1}. `} */}
       {withIndex && renderIndex(node.ply, true)}
       {node.san}
@@ -380,18 +379,17 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
           return (
             <div className="flex">
               <ChevronRight color="gray" />
-              <div className="line">
-                <div className="branch">
-                  <RenderMoveAndChildren
-                    ctx={ctx}
-                    node={n}
-                    opts={{
-                      ...opts,
-                      withIndex: true,
-                      isMainline: false,
-                    }}
-                  />
-                </div>
+              <div className="line block relative ps-[7px]">
+                <div className="branch" />
+                <RenderMoveAndChildren
+                  ctx={ctx}
+                  node={n}
+                  opts={{
+                    ...opts,
+                    withIndex: true,
+                    isMainline: false,
+                  }}
+                />
               </div>
             </div>
           );
