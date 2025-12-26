@@ -113,9 +113,9 @@ function RenderComment({
     );
   }
 
-  console.log('path', path);
+  // console.log('path', path);
   return (
-    <span className="comment text-gray-500 mx-2">
+    <span className="comment inline-block text-gray-500 mx-2">
       {comment}
       {/* <Trash
         className="inline-block w-5 h-5 align-text-bottom ml-5 text-black"
@@ -285,7 +285,10 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
   return (
     <span
       data-path={path}
-      className={`move variation text-[15.8px] px-[7.9px] pr-[4.74px] overflow-hidden hover:bg-blue-400 select-none cursor-pointer ${activeClass}`}
+className={`move variation inline-block max-w-full align-top
+  whitespace-normal break-words
+  px-[7.9px] pr-[4.74px]
+  hover:bg-blue-400 select-none cursor-pointer ${activeClass}`}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
       {content}
@@ -353,18 +356,6 @@ function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node;
   );
 }
 
-// function RenderInlined({ ctx, nodes, opts }: { ctx: Ctx; nodes: Tree.Node[]; opts: Opts }) {
-//   if (!nodes[1] || nodes[2]) return null;
-//   if (treeOps.hasBranching(nodes[1], 6)) return null;
-//   return (
-//     <RenderMoveAndChildren
-//       ctx={ctx}
-//       node={nodes[0]}
-//       opts={{ parentPath: opts.parentPath, isMainline: false, depth: opts.depth, inline: nodes[1] }}
-//     />
-//   );
-// }
-
 export function RenderLines({ ctx, parentNode, nodes, opts }) {
   let collapsed = false;
   // const collapsed =
@@ -373,13 +364,13 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
   // , parentNode.san);
   if (collapsed) {
     return (
-      <div className={`lines single ${collapsed ? 'collapsed' : ''}`}>
+  <div className={`lines basis-full w-full ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
         {/* assume uncollapsed */}
         {nodes.map((n) => {
           return (
             <div className="flex">
               <ChevronRight color="gray" />
-              <div className="line block relative ps-[7px]">
+<div className="line block relative ps-[7px] w-full min-w-0" key={n.id}>
                 <div className="branch" />
                 <RenderMoveAndChildren
                   ctx={ctx}
@@ -394,36 +385,9 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
             </div>
           );
         })}
-
-        {/* <div className="expand"> */}
-        {/* <div className="branch" /> */}
-        {/* <a
-            data-icon={licon.PlusButton}
-            title={i18n.site.expandVariations}
-            onClick={() => ctx.ctrl.setCollapsed(opts.parentPath, false)}
-          /> */}
-        {/* <PlusIcon></PlusIcon> */}
-        {/* </div> */}
       </div>
     );
   }
-
-  // : nodes.map(n => {
-  //   return (
-  //     retroLine(ctx, n) ||
-  //     h('line', [
-  //       h('branch'),
-  //       ...renderMoveAndChildrenOf(ctx, n, {
-  //         parentPath: opts.parentPath,
-  //         isMainline: false,
-  //         depth: opts.depth + 1,
-  //         withIndex: true,
-  //         noConceal: opts.noConceal,
-  //         truncate: n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined,
-  //       }),
-  //     ])
-  //   );
-  // }),
 
   return (
     <div className={`lines ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
@@ -495,12 +459,6 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   if (opts.isMainline) {
     const isWhite = main.ply % 2 === 1;
 
-    // const commentTags = RenderMainlineCommentsOf(ctx, main, conceal, true, opts.parentPath + main.id).filter(
-    //   nonEmpty,
-    // );
-
-    // if (!cs[1] && isEmpty(commentTags) && !main.forceVariation) {
-
     //TODO why is this different than lichess ?  math.floor(..) line
     // console.log("node.comment", node)
     if (!cs[1] && !main.comment && !main.forceVariation) {
@@ -532,12 +490,6 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
         }}
       />
     );
-
-    /*
-  const cs = node.children.filter(x => ctx.showComputer || !x.comp),
-    main = cs[0];
-  if (!main) return;
-    */
     const mainHasChildren = main.children[0];
     // Not entering here
     console.log('Hello??????');
@@ -636,10 +588,6 @@ export default function PgnTree() {
     truncateComments: false,
   };
 
-  // const commentTags = (
-  //   <RenderMainlineCommentsOf ctx={ctx} node={root} withColor={false} path={''}></RenderMainlineCommentsOf>
-  // );
-
   //TODO should be false
   const blackStarts = (root.ply & 1) === 1;
 
@@ -649,6 +597,7 @@ export default function PgnTree() {
         <div
           onMouseDown={handleMouseDown}
           className="tview2 tview2-column overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
+
         >
           {root.comment && (
             <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">

@@ -922,12 +922,12 @@ Returns a Tree.Path string
         )}
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
         <div className="flex justify-between items-start w-full px-10 gap-5">
-          <div className="flex flex-col flex-1">
+          <div className="repertoire-wrap flex flex-col flex-1 w-1/3">
             <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
             <RepertoireActions></RepertoireActions>
             <Schedule />
           </div>
-          <div className="flex flex-col items-between flex-1">
+          <div className="game-wrap flex flex-col items-between flex-1">
             <div id="board-wrap" className="bg-white p-1" ref={containerRef}>
               {/* TODO fix || initial */}
               <Chessground
@@ -987,7 +987,7 @@ Returns a Tree.Path string
             <CommentBox></CommentBox>
             <CopyFen></CopyFen>
           </div>
-          <div className="flex flex-col flex-1 h-full">
+          <div className="tree-wrap flex flex-col flex-1 h-full w-1/3">
             <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
               <PgnTree></PgnTree>
               {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
