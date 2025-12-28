@@ -121,6 +121,52 @@ export const ChessOpeningTrainer = () => {
   } = useTrainerStore();
 
   const [sounds, setSounds] = useState(SOUNDS);
+  const [activeMoveId, setActiveMoveId] = useState();
+
+  const movesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = movesContainerRef.current;
+    console.log("container", container);
+    console.log("should be the pgn tree container (and have overflow set to scroll")
+    if (!container) return;
+
+    const scrollActiveIntoView = () => {
+      const activeEl = container.querySelector('.active') as HTMLElement | null;
+      if (!activeEl) return;
+
+      activeEl.scrollIntoView({
+        // behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    };
+
+    // // Initial sync (in case active already exists)
+    // scrollActiveIntoView();
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (
+          m.type === 'attributes' &&
+          m.attributeName === 'class'
+        ) {
+          scrollActiveIntoView();
+          break;
+        }
+      }
+    });
+
+    observer.observe(container, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+
   //TODO dont use useEffect here?
   // const ran = useRef(false);
 
@@ -521,6 +567,29 @@ Returns a Tree.Path string
   };
 
   /*
+const autoScroll = throttle(150, (ctrl: PuzzleCtrl, el: HTMLElement) => {
+  const cont = el.parentNode as HTMLElement;
+  const target = el.querySelector('.active') as HTMLElement | null;
+  if (!target) {
+    cont.scrollTop = ctrl.path === treePath.root ? 0 : 99999;
+    return;
+  }
+  const targetOffset = target.getBoundingClientRect().y - el.getBoundingClientRect().y;
+  cont.scrollTop = targetOffset - cont.offsetHeight / 2 + target.offsetHeight;
+});
+*/
+
+  const handleEdit = () => {
+    setRepertoireMethod('edit');
+    console.log('edit');
+
+    // // find active element
+    // const target = el.querySelector('.active') as HTMLElement | null;
+    // console.log("target", target);
+    // // scroll to it
+  };
+
+  /*
     Only shows alternate box, which tells user
     that a different move is needed 
   */
@@ -734,6 +803,7 @@ Returns a Tree.Path string
     repertoireMethod,
     handleLearn,
     handleRecall,
+    handleEdit,
     setShowTrainingSettings,
   };
 
@@ -835,7 +905,7 @@ Returns a Tree.Path string
 
   console.log('selectedNode (before we make a move', selectedNode);
 
-  //TODO refactor common logic here 
+  //TODO refactor common logic here
   const prevMoveIfExists = () => {
     let repertoire = useTrainerStore.getState().repertoire;
     let repertoireIndex = useTrainerStore.getState().repertoireIndex;
@@ -854,9 +924,9 @@ Returns a Tree.Path string
     if (!setup.isOk) throw new Error('Invalid FEN: ' + fen);
 
     let pos = Chess.fromSetup(setup.value).unwrap();
-    console.log("pos", pos);
+    console.log('pos', pos);
     const move = parseSan(pos, lastNode.san);
-    console.log("move", move);
+    console.log('move', move);
     // return [move.from, move.to];
     return chessgroundMove(move);
   };
@@ -988,8 +1058,12 @@ Returns a Tree.Path string
             <CopyFen></CopyFen>
           </div>
           <div className="tree-wrap flex flex-col flex-1 h-full w-1/3">
-            <div className="pgn-context rounded-xl border border-gray-300 overflow-hidden">
-              <PgnTree></PgnTree>
+            {/* TODO should be in PGNTree? */}
+            <div
+              className="pgn-context rounded-xl border border-gray-300 overflow-hidden"
+              ref={movesContainerRef}
+            >
+              <PgnTree setActiveMoveId={setActiveMoveId}></PgnTree>
               {repertoireMethod == 'edit' ? <Explorer /> : <Feedback {...feedbackProps} />}
             </div>
             <PgnControls></PgnControls>

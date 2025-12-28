@@ -196,7 +196,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; op
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? 'bg-blue-400/50' : '';
+  const activeClass = path === selectedPath ? 'bg-blue-400/50 active' : '';
 
   const items = [
     {
@@ -280,7 +280,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
   // const classes = nodeClasses(ctx, node, path);
 
   const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'bg-blue-400/50 rounded-md' : '';
+  const activeClass = path == selectedPath ? 'bg-blue-400/50 rounded-md active' : '';
 
   return (
     <span
@@ -547,7 +547,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
 }
 
 //TODO function should be part of state
-export default function PgnTree() {
+export default function PgnTree({setActiveMoveId}) {
   const jump = useTrainerStore((s) => s.jump);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -559,10 +559,16 @@ export default function PgnTree() {
     while (el && el !== e.currentTarget) {
       const path = el.getAttribute('data-path');
       if (path) {
+
+        console.log("el", el);
+        setActiveMoveId(el.id);
         // ctrl.userJump(path); // your navigation logic
         // ctrl.redraw();
         // console.log('PATH', path);
         jump(path);
+
+
+
         break;
       }
       el = el.parentElement!;

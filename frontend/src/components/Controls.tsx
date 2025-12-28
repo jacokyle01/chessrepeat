@@ -20,9 +20,10 @@ import { repertoire } from '../view/repertoire';
 export interface ControlsProps {
   handleLearn: () => void;
   handleRecall: () => void;
+  handleEdit: () => void;
 }
 
-const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: ControlsProps) => {
+const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall, handleEdit }: ControlsProps) => {
   const setRepertoireMethod = useTrainerStore((s) => s.setRepertoireMethod);
   const repertoireMethod = useTrainerStore.getState().repertoireMethod;
 
@@ -40,7 +41,7 @@ const Controls: React.FC<ControlsProps> = ({ handleLearn, handleRecall }: Contro
       {/* train/edit controls */}
       <div className="flex gap-1 bg-white flex items-end p-1" id="training-controls">
         <button
-          onClick={() => setRepertoireMethod('edit')}
+          onClick={handleEdit}
           className={`gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-gray-700 hover:border-gray-500 hover:bg-gray-300 active:transform active:translate-y-px active:border-b ${
             repertoireMethod == 'edit'
               ? 'bg-gray-400 translate-y-px transform border-b'
