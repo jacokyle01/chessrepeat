@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { closeI } from '../../svg/close'; // adjust import path if needed
 import { CircleXIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 
-const AddToReperotireModal: React.FC = ({ importToRepertoire }) => {
+const AddToReperotireModal: React.FC = ({ importIntoRepertoire }) => {
   const setShowModal = useTrainerStore((s) => s.setShowingAddToRepertoireMenu);
+  const srsConfig = useTrainerStore((s) => s.srsConfig);
   const [selectedColor, setSelectedColor] = useState(undefined);
   const nameRef = useRef<HTMLInputElement>(null);
   const pgnRef = useRef<HTMLTextAreaElement>(null);
@@ -18,7 +18,7 @@ const AddToReperotireModal: React.FC = ({ importToRepertoire }) => {
     const name = nameRef.current?.value || '';
     const pgn = pgnRef.current?.value || '';
     const color = colorRef.current?.checked ? 'white' : 'black';
-    importToRepertoire(pgn, color, name);
+    importIntoRepertoire(pgn, color, name, srsConfig);
     setShowModal(false);
   };
 

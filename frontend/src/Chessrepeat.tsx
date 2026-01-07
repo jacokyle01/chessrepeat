@@ -16,7 +16,7 @@ import {
 } from './spaced-repetition/types';
 import { RepertoireChapter, RepertoireEntry } from './types/types';
 import Repertoire from './components/repertoire/Repertoire';
-import { ChildNode, defaultHeaders, Game, parsePgn, PgnNodeData, startingPosition, walk } from 'chessops/pgn';
+import { ChildNode, defaultHeaders, Game, makePgn, parsePgn, PgnNodeData, startingPosition, transform, walk } from 'chessops/pgn';
 import { Chess, Color, Move, Position, PositionError } from 'chessops';
 import { chessgroundMove } from 'chessops/compat';
 import { annotateMoves, countDueContext } from './spaced-repetition/util';
@@ -32,7 +32,7 @@ import {
   pgn3,
   transpose,
 } from './debug/pgns';
-import { configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
+import { Config, configure, defaults, Config as SrsConfig } from './spaced-repetition/config';
 import { initial } from 'chessground/fen';
 import { calcTarget, chessgroundToSan, currentTime, fenToDests, toDestMap } from './util';
 import { DrawShape } from 'chessground/draw';
@@ -55,6 +55,7 @@ import { Api } from 'chessground/api';
 import { getNodeList } from './components/tree/ops';
 import { CommentBox } from './components/CommentBox';
 import { CopyFen } from './components/CopyFen';
+import { parseIntoChapter } from './io/util';
 // import Chessground, { Api, Config, Key } from "@react-chess/chessground";
 
 // these styles must be imported somewhere
@@ -217,31 +218,18 @@ export const ChessOpeningTrainer = () => {
     return root;
   }
 
-  const readNode = (
-    node: ChildNode<TrainingData>,
-    pos: Position,
-    ply: number,
-    withChildren = true,
-  ): Tree.Node => {
-    const move = parseSan(pos, node.data.san);
-    if (!move) throw new Error(`Can't play ${node.data.san} at move ${Math.ceil(ply / 2)}, ply ${ply}`);
-    return {
-      id: scalachessCharPair(move),
-      ply,
-      san: makeSanAndPlay(pos, move),
-      fen: makeFen(pos.toSetup()),
-      // uci: makeUci(move),
 
-      disabled: node.data.training.disabled,
-      seen: node.data.training.seen,
-      group: node.data.training.group,
-      dueAt: node.data.training.dueAt,
 
-      children: withChildren ? node.children.map((child) => readNode(child, pos.clone(), ply + 1)) : [],
-      comment: node.data.comments?.join('|') || null,
-      // check: pos.isCheck() ? makeSquare(pos.toSetup().board.kingOf(pos.turn)!) : undefined,
-    };
-  };
+
+
+
+
+
+
+
+
+
+
   // TODO provide a more detailed breakdown, like when each one is due.
   // TODO combine this with nextTrainablePath() so we don't need to walk the tree twice
 
@@ -597,73 +585,27 @@ const autoScroll = throttle(150, (ctrl: PuzzleCtrl, el: HTMLElement) => {
     setLastFeedback('alternate');
   };
 
-  const importToRepertoire = (pgn: string, color: Color, name: string) => {
-    let repertoire = useTrainerStore.getState().repertoire;
-    // TODO why is PGN undefined?
-    const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
-    subreps.forEach((subrep, i) => {
-      //augment chapter with a) color to train as, and b) training data
-      // const annotatedSubrep: Chapter<TrainingData> = {
-      //   ...subrep,
-      //   ...generateChapter(subrep.moves, color, srsConfig.buckets!),
-      // };
 
-      const { moves: moves, nodeCount: nodeCount } = annotateMoves(subrep.moves, color);
+  /*
+    Import PGN into repertoire 
+    -> PGN can consist of one or more chapters 
+    -> PGN can be "annotated", which means it has training metadata attached that must be parsed
+  */
+  const importIntoRepertoire = (rawPgn: string, asColor: Color, name: string, config: Config) => {
+    const games: Game<PgnNodeData>[] = parsePgn(rawPgn);
+    // only parse first game into a chapter
+    // TODO possibly handle parsing into multiple chapters from one pgn
+    const chapter = parseIntoChapter(games[0], name, asColor, config)
+    addToRepertoire(chapter, asColor);
+  }
 
-      // game<trainingData> --> Tree.Node
-      // empower chapters w/ tree operations
+  const importAnnotatedIntoRepertoire = () => {
 
-      const start = startingPosition(defaultHeaders()).unwrap();
-      const fen = makeFen(start.toSetup());
-      const initialPly = (start.toSetup().fullmoves - 1) * 2 + (start.turn === 'white' ? 0 : 1);
-      const treeParts: Tree.Node[] = [
-        {
-          id: '',
-          ply: initialPly,
-          fen,
-          children: [],
-          //TODO ???? make this optional?
-          disabled: false,
-          dueAt: -1,
-          group: 0,
-          seen: false,
-          comment: '',
-        },
-      ];
-      let tree = moves;
+  }
 
-      const pos = start;
-      const sidelines: Tree.Node[][] = [[]];
-      let index = 0;
-      while (tree.children.length) {
-        const [mainline, ...variations] = tree.children;
-        const ply = initialPly + index + 1;
-        sidelines.push(variations.map((variation) => readNode(variation, pos.clone(), ply)));
-        treeParts.push(readNode(mainline, pos, ply, false));
-        tree = mainline;
-        index += 1;
-      }
-      const newTree = treeReconstruct(treeParts, sidelines);
-      // return newTree;
-
-      if (i > 0) name += ` (${i + 1})`;
-
-      //
-
-      //TODO refactor (and possibly combine) annotateMoves and the above logic ^ creating a Tree
-      const chapter: RepertoireChapter = {
-        tree: newTree,
-        name: name,
-        bucketEntries: srsConfig.buckets.map(() => 0),
-        nodeCount: nodeCount,
-        lastDueCount: 0,
-        trainAs: color,
-      };
-
+  const addToRepertoire = (chapter: RepertoireChapter, trainAs: Color) => {
       // TODO handle correct placement
-      console.log('------------');
-      // console.log(repertoire, name, color);
-      switch (color) {
+      switch (trainAs) {
         case 'white':
           setRepertoire([chapter, ...repertoire]);
           break;
@@ -672,11 +614,93 @@ const autoScroll = throttle(150, (ctrl: PuzzleCtrl, el: HTMLElement) => {
           setRepertoire([...repertoire, chapter]);
           break;
       }
-      console.log(repertoire);
-      //TODO
-      // postChapter(entry, color, name);
-    });
-  };
+  }
+
+
+
+
+
+
+  // const importToRepertoire = (pgn: string, color: Color, name: string) => {
+  //   let repertoire = useTrainerStore.getState().repertoire;
+  //   // TODO why is PGN undefined?
+  //   const subreps: Game<PgnNodeData>[] = parsePgn(pgn);
+  //   subreps.forEach((subrep, i) => {
+  //     //augment chapter with a) color to train as, and b) training data
+  //     // const annotatedSubrep: Chapter<TrainingData> = {
+  //     //   ...subrep,
+  //     //   ...generateChapter(subrep.moves, color, srsConfig.buckets!),
+  //     // };
+
+  //     const { moves: moves, nodeCount: nodeCount } = annotateMoves(subrep.moves, color);
+
+  //     // game<trainingData> --> Tree.Node
+  //     // empower chapters w/ tree operations
+
+  //     const start = startingPosition(defaultHeaders()).unwrap();
+  //     const fen = makeFen(start.toSetup());
+  //     const initialPly = (start.toSetup().fullmoves - 1) * 2 + (start.turn === 'white' ? 0 : 1);
+  //     const treeParts: Tree.Node[] = [
+  //       {
+  //         id: '',
+  //         ply: initialPly,
+  //         fen,
+  //         children: [],
+  //         //TODO ???? make this optional?
+  //         disabled: false,
+  //         dueAt: -1,
+  //         group: 0,
+  //         seen: false,
+  //         comment: '',
+  //       },
+  //     ];
+  //     let tree = moves;
+
+  //     const pos = start;
+  //     const sidelines: Tree.Node[][] = [[]];
+  //     let index = 0;
+  //     while (tree.children.length) {
+  //       const [mainline, ...variations] = tree.children;
+  //       const ply = initialPly + index + 1;
+  //       sidelines.push(variations.map((variation) => readNode(variation, pos.clone(), ply)));
+  //       treeParts.push(readNode(mainline, pos, ply, false));
+  //       tree = mainline;
+  //       index += 1;
+  //     }
+  //     const newTree = treeReconstruct(treeParts, sidelines);
+  //     // return newTree;
+
+  //     if (i > 0) name += ` (${i + 1})`;
+
+  //     //
+
+  //     //TODO refactor (and possibly combine) annotateMoves and the above logic ^ creating a Tree
+  //     const chapter: RepertoireChapter = {
+  //       tree: newTree,
+  //       name: name,
+  //       bucketEntries: srsConfig.buckets.map(() => 0),
+  //       nodeCount: nodeCount,
+  //       lastDueCount: 0,
+  //       trainAs: color,
+  //     };
+
+  //     // TODO handle correct placement
+  //     console.log('------------');
+  //     // console.log(repertoire, name, color);
+  //     switch (color) {
+  //       case 'white':
+  //         setRepertoire([chapter, ...repertoire]);
+  //         break;
+
+  //       case 'black':
+  //         setRepertoire([...repertoire, chapter]);
+  //         break;
+  //     }
+  //     console.log(repertoire);
+  //     //TODO
+  //     // postChapter(entry, color, name);
+  //   });
+  // };
 
   //TODO move to state.ts
   const deleteChapter = (index) => {
@@ -780,6 +804,92 @@ const autoScroll = throttle(150, (ctrl: PuzzleCtrl, el: HTMLElement) => {
     //   });
     // };
   };
+
+
+
+/*
+  Annotate a each SAN of a RepertoireEntry by adding a preceding comment with
+  training state. Necessary for exporting a repertoire as a PGN 
+  without losing training information
+*/
+
+const exportRepertoireEntry = (entry: RepertoireEntry) => {
+  //TODO need deep copy
+  let headers = new Map<string, string>();
+
+  // add training control headers
+  headers.set('RepertoireFileName', entry.name);
+  headers.set('LastDueCount', `${entry.lastDueCount}`);
+  headers.set('TrainAs', entry.subrep.meta.trainAs);
+  headers.set('bucketEntries', entry.subrep.meta.bucketEntries.toString());
+  headers.set('nodeCount', `${entry.subrep.meta.nodeCount}`);
+  headers.set('Event', 'ChessrepeatRepertoireFile');
+
+  const pos = startingPosition(entry.subrep.headers).unwrap();
+  // annotate moves with training metadata
+  const annotatedMoves = transform(entry.subrep.moves, pos, (pos, node) => {
+    const newNode = { ...node, comments: node.comments ? [...node.comments] : [] };
+
+    let trainingHeader = `${node.training.id},${node.training.disabled},${node.training.seen},${node.training.group},${node.training.dueAt}`;
+
+    newNode.comments.push(trainingHeader);
+
+    return newNode;
+  });
+
+  let subrep: Subrepertoire<TrainingData> = {
+    meta: {
+      trainAs: entry.subrep.meta.trainAs,
+      nodeCount: entry.subrep.meta.nodeCount,
+      bucketEntries: entry.subrep.meta.bucketEntries,
+    },
+    headers,
+    moves: annotatedMoves,
+  };
+
+  const pgn = makePgn(subrep) + '\n';
+  return pgn;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // //TODO - delete
   // //TODO dont prop drill this?
@@ -987,7 +1097,7 @@ const autoScroll = throttle(150, (ctrl: PuzzleCtrl, el: HTMLElement) => {
             ></div>
 
             {/* Modal */}
-            <AddToReperotireModal importToRepertoire={importToRepertoire}></AddToReperotireModal>
+            <AddToReperotireModal importIntoRepertoire={importIntoRepertoire}></AddToReperotireModal>
           </>
         )}
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
