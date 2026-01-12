@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { CircleXIcon, DownloadIcon, FileTextIcon, InfoIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-import { exportChapter } from '../../training/util';
+import { exportChapter } from '../../util/training';
 
 interface ExportChapterModalProps {
   chapterIndex: number;
@@ -24,52 +24,8 @@ const ExportChapterModal: React.FC<ExportChapterModalProps> = ({ chapterIndex, o
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // const safeChapterName = useMemo(() => {
-  //   const name = (chapter?.name ?? "chapter").trim() || "chapter";
-  //   return name.replace(/[\/\\?%*:|"<>]/g, "-");
-  // }, [chapter?.name]);
-
-  // if (!chapter) return null;
-
-  // const downloadTextFile = (filename: string, text: string) => {
-  //   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  //   const url = URL.createObjectURL(blob);
-
-  //   const a = document.createElement("a");
-  //   a.href = url;
-  //   a.download = filename;
-  //   document.body.appendChild(a);
-  //   a.click();
-  //   a.remove();
-
-  //   URL.revokeObjectURL(url);
-  // };
-
   const handleExport = async () => {
-    // exportChapterAsPgn
     exportChapter(chapter, format == 'chessrepeat');
-
-    // setError(null);
-    // setIsExporting(true);
-
-    // try {
-    //   if (format === "pgn") {
-    //     if (!exportChapterAsPgn) throw new Error("PGN export is not implemented.");
-    //     const pgn = await exportChapterAsPgn(chapterIndex);
-    //     downloadTextFile(`${safeChapterName}.pgn`, String(pgn ?? ""));
-    //   } else {
-    //     if (!exportChapterAsChessrepeat)
-    //       throw new Error("Chessrepeat export is not implemented.");
-    //     const cr = await exportChapterAsChessrepeat(chapterIndex);
-    //     downloadTextFile(`${safeChapterName}.chessrepeat`, String(cr ?? ""));
-    //   }
-
-    //   onClose();
-    // } catch (err: any) {
-    //   setError(err?.message ?? "Failed to export chapter.");
-    // } finally {
-    //   setIsExporting(false);
-    // }
   };
 
   return (

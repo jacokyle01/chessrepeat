@@ -1,11 +1,9 @@
 import { Chart } from 'chart.js';
 import { Color } from '../training/types';
-import { Game } from 'chessops/pgn';
 
 //TODO better organizatoin of types
 export type RepertoireMode = 'train' | 'edit';
 
-export type Redraw = () => void;
 export interface NewChapter {
   pgn: string;
   trainAs: Color;

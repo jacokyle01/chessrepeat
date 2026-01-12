@@ -6,10 +6,7 @@
 
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-import { fromNodeList, init, root } from '../../tree/path';
-import { atLast } from '../../training/util';
-import { TrainableNode } from '../../training/types';
-import { getNodeList } from '../../tree/ops';
+import { fromNodeList, init } from '../../util/path';
 const PgnControls = () => {
   const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
   const setSelectedNode = useTrainerStore((state) => state.setSelectedNode);
@@ -26,15 +23,6 @@ const PgnControls = () => {
   const chapter = repertoire[repertoireIndex];
 
   const jump = useTrainerStore((s) => s.jump);
-
-  // export function next(ctrl: AnalyseCtrl): void {
-  //   if (ctrl.retro?.preventGoingToNextMove()) return;
-  //   if (ctrl.fork.proceed()) return;
-  //   const child = ctrl.node.children[0];
-  //   if (child) ctrl.userJumpIfCan(ctrl.path + child.id);
-  // }
-
-  // export const prev = (ctrl: AnalyseCtrl): void => ctrl.userJumpIfCan(treePath.init(ctrl.path));
 
   const next = (): void => {
     if (trainingMethod == 'edit') {

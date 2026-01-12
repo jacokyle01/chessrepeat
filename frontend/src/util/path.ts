@@ -1,6 +1,7 @@
 //TODO named exports.. 
 
-import { TrainableNode } from "../training/types";
+import { TrainableNode } from "../types/training";
+
 
 export const root: string = '';
 

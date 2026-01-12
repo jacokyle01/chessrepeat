@@ -5,31 +5,30 @@ import { persist, StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { produce } from 'immer';
 
-import {
-  TrainingMethod,
-  TrainableContext,
-  TrainingOutcome,
-  Chapter,
-  TrainingData,
-  TrainingConfig,
-  Color,
-  TrainableNode,
-} from '../training/types';
 import { Config as CbConfig } from 'chessground/config';
-
-// import { path as treePath} from '../components/tree/tree';
-//TODO make sure we are using this convention to import
+import {
+  Chapter,
+  Color,
+  TrainableContext,
+  TrainableNode,
+  TrainingConfig,
+  TrainingData,
+  TrainingMethod,
+  TrainingOutcome,
+} from '../types/training';
 import { ChildNode } from 'chessops/pgn';
-import { computeDueCounts, computeNextTrainableNode, computeSucceedUpdate } from '../training/ops';
-import { colorFromPly, currentTime, positionFromFen } from '../util';
-import { defaults } from '../training/config';
-import { deleteNodeAt, getNodeList, nodeAtPath, updateRecursive } from '../tree/ops';
-import { chapterFromPgn, rootFromPgn } from '../io/util';
+import { defaults } from '../util/config';
+import { deleteNodeAt, getNodeList, nodeAtPath, updateRecursive } from '../util/tree';
+import { contains, init } from '../util/path';
+import { computeDueCounts, computeNextTrainableNode, merge } from '../util/training';
+import { colorFromPly, currentTime, positionFromFen } from '../util/chess';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
-import { merge } from '../training/util';
-import { contains, init } from '../tree/path';
+import { rootFromPgn } from '../util/io';
+
+// import { path as treePath} from '../components/tree/tree';
+//TODO make sure we are using this convention to import
 
 interface TrainerState {
   /* UI Flags */
@@ -331,80 +330,6 @@ export const useTrainerStore = create<TrainerState>()(
 
         targetNode.data.training.dueAt = currentTime() + timeToAdd;
         return timeToAdd;
-        // const nowSec = currentTime();
-        // let timeToAdd: number | null = null;
-
-        // set(
-        //   produce((state) => {
-        //     const idx = state.repertoireIndex;
-        //     if (idx < 0) return;
-
-        //     const method = state.trainingMethod;
-        //     if (method === 'edit') return;
-
-        //     const chapter = state.repertoire[idx];
-        //     if (!chapter) return;
-
-        //     // const path = state.trainableContext.targetPath;
-        //     const node = state.trainableContext.targetMove;
-        //     if (!node) return;
-
-        //     const t = node.data.training;
-        //     const buckets = state.trainingConfig.buckets;
-        //     const promotion = state.trainingConfig.promotion;
-
-        //     if (method === 'recall') {
-        //       // only promote recall if it was already seen (optional safety)
-        //       if (!t.seen || t.disabled) return;
-
-        //       const from = t.group;
-
-        //       // decrement old bucket count (guard against negatives)
-        //       if (from >= 0 && from < chapter.bucketEntries.length) {
-        //         chapter.bucketEntries[from] = Math.max(0, chapter.bucketEntries[from] - 1);
-        //       }
-
-        //       let to = from;
-        //       if (promotion === 'most') to = buckets.length - 1;
-        //       else to = Math.min(from + 1, buckets.length - 1);
-
-        //       // increment new bucket count
-        //       if (to >= 0 && to < chapter.bucketEntries.length) {
-        //         chapter.bucketEntries[to] = (chapter.bucketEntries[to] ?? 0) + 1;
-        //       }
-
-        //       timeToAdd = buckets[to] ?? 0;
-
-        //       t.group = to;
-        //       t.dueAt = nowSec + timeToAdd;
-        //     } else {
-        //       // learn
-        //       if (t.disabled) return;
-
-        //       // mark seen + place in first bucket
-        //       console.log('training array', t);
-        //       t.seen = true;
-        //       console.log('training array', t);
-
-        //       t.group = 0;
-
-        //       timeToAdd = buckets[0] ?? 0;
-        //       t.dueAt = nowSec + timeToAdd;
-
-        //       // if it was previously unseen, count it into bucket 0
-        //       chapter.bucketEntries[0] = (chapter.bucketEntries[0] ?? 0) + 1;
-        //     }
-
-        //     // store-owned UI flags (recommended)
-        //     state.lastResult = 'succeed';
-        //     state.showSuccessfulGuess = method === 'recall';
-
-        //     chapter.dirty = true;
-        //     chapter.lastDueCount = chapter.bucketEntries[0] ?? 0; // if you track this
-        //   }),
-        // );
-
-        // return timeToAdd;
       },
 
       fail: () => {
@@ -560,41 +485,6 @@ export const useTrainerStore = create<TrainerState>()(
         set({ selectedNode: movingTo, selectedPath: newPath });
 
         //TODO update due counts, use builtin tree operations
-
-        /*
-            find SAN in children
-            if its not there, add it
-            set currentNode, currentPath, etc... 
-      
-            other stuff shuld automatically work out??? 
-      
-          */
-
-        /* Make the move
-      
-            if newPath
-              add node
-            else 
-              adjust position 
-              assume all other data can be derived from position change 
-      
-      
-      
-      
-      
-      
-      
-          */
-        // return (orig, dest) => {
-        //   chess.move({from: orig, to: dest});
-        //   cg.set({
-        //     turnColor: toColor(chess),
-        //     movable: {
-        //       color: toColor(chess),
-        //       dests: toDests(chess)
-        //     }
-        //   });
-        // };
       },
 
       addNewChapter: (chapter: Chapter) => {

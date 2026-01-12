@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { CircleXIcon, UploadIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-import { chapterFromPgn, importAnnotatedPgn, importRawPgn } from '../../io/util';
+import { chapterFromPgn, importAnnotatedPgn } from '../../util/io';
 
 type ImportTab = 'pgn' | 'chessrepeat';
 

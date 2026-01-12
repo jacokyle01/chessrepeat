@@ -4,19 +4,6 @@
 //TODO adjust scrollheight automatically when clicking a move
 //TODO fix formatting. use retroLine?
 import { useTrainerStore } from '../../state/state';
-import {
-  type ChildNode,
-  defaultHeaders,
-  Game,
-  parsePgn,
-  type PgnNodeData,
-  startingPosition,
-} from 'chessops/pgn';
-import { makeSanAndPlay, parseSan } from 'chessops/san';
-import { makeFen } from 'chessops/fen';
-import { makeUci, Position } from 'chessops';
-
-import { ContextMenu } from 'primereact/contextmenu';
 import { useAppContextMenu } from './ContextMenuProvider';
 
 // import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
@@ -24,10 +11,9 @@ import { useAppContextMenu } from './ContextMenuProvider';
 import { ContextMenuProvider } from './ContextMenuProvider';
 
 import React, { useRef } from 'react';
-import { foolsMate, nimzo } from '../../debug/pgns';
-import { ChevronRight, PlusIcon, Trash } from 'lucide-react';
-import { TrainableNode } from '../../training/types';
-import { getNodeList, nodeAtPath } from '../../tree/ops';
+import { TrainableNode } from '../../types/training';
+import { ChevronRight, Trash } from 'lucide-react';
+import { getNodeList, nodeAtPath } from '../../util/tree';
 export interface Opts {
   parentPath: string;
   isMainline: boolean;
@@ -257,7 +243,6 @@ function IndexNode(ply: number) {
 }
 
 function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  const deleteNode = useTrainerStore((s) => s.deleteNode);
   // console.log("delete node F", deleteNode);
   const { showMenu, contextSelectedPath } = useAppContextMenu();
   const jump = useTrainerStore((s) => s.jump);
@@ -327,9 +312,6 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   const { showMenu, contextSelectedPath } = useAppContextMenu();
 
   const path = opts.parentPath + node.data.id;
-  const deleteNode = useTrainerStore((s) => s.deleteNode);
-
-  const isContextSelected = path === contextSelectedPath;
 
   const { repertoire, repertoireIndex } = useTrainerStore.getState();
   const chapter = repertoire[repertoireIndex];
@@ -337,31 +319,6 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
   const items = contextMenuItems(path, nodeFromPath.data.san);
-
-  // const items = [
-  //   {
-  //     label: 'Delete from here',
-  //     command: () => {
-  //       console.log('delete', path);
-  //       deleteNode(path);
-  //     },
-  //   },
-  //   { label: 'Promote', command: () => console.log('promote', path) },
-  //   {
-  //     label: 'Add Comment',
-  //     command: () => {
-  //       const comment = prompt('Enter a comment:');
-  //       if (comment !== null) {
-  //         const { repertoire, repertoireIndex } = useTrainerStore.getState();
-  //         const chapter = repertoire[repertoireIndex];
-  //         if (!chapter) return;
-  //         const root = chapter.root;
-
-  //         useTrainerStore.getState().setCommentAt(comment, path);
-  //       }
-  //     },
-  //   },
-  // ];
   const withIndex = opts.withIndex || node.data.ply % 2 === 1;
   const content = (
     <>
@@ -609,7 +566,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
         <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
           {/* {commentTags} */}
           {/* ctx, main, conceal, true, opts.parentPath + main.id */}
-          <RenderMainlineCommentsOf ctx={ctx} node={main} withColor={true} path={opts.parentPath + main.id} />
+          <RenderMainlineCommentsOf ctx={ctx} node={main} withColor={true} path={opts.parentPath + main.data.id} />
           {/* ^^^^ COMPONENT */}
           <RenderLines
             ctx={ctx}
