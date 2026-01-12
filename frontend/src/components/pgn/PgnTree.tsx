@@ -580,6 +580,7 @@ export default function PgnTree({setActiveMoveId}) {
   const chapter = repertoire[repertoireIndex];
   if (!chapter) return;
   let root = chapter.tree;
+  if (!root) return;
   // console.log('root path');
   // TODO conditionally use path or root, depending on context
 
@@ -593,9 +594,7 @@ export default function PgnTree({setActiveMoveId}) {
     currentPath: '',
     truncateComments: false,
   };
-
   //TODO should be false
-  const blackStarts = (root.ply & 1) === 1;
 
   return (
     <ContextMenuProvider>
