@@ -134,9 +134,6 @@ export const useTrainerStore = create<TrainerState>()(
       showingImportIntoChapterModal: false,
       setShowingImportIntoChapterModal: (val) => set({ showingAddToRepertoireMenu: val }),
 
-      // showingImportIntoChapterModal: false,
-      // setShowingImportIntoChapterModal: (val) => set({ showingAddToRepertoireMenu: val }),
-
       repertoire: [],
       setRepertoire: (repertoire) => set({ repertoire }),
 
@@ -296,6 +293,7 @@ export const useTrainerStore = create<TrainerState>()(
         const startingPath = trainableContext.startingPath;
 
         const chapter = repertoire[repertoireIndex];
+        if (!chapter) return;
         const root = chapter.root;
 
         // let node = TrainableNodeList?.at(-1);
@@ -305,7 +303,7 @@ export const useTrainerStore = create<TrainerState>()(
         switch (trainingMethod) {
           case 'recall':
             // not a number at runtime?
-            let groupIndex = parseInt(targetNode.data.training.group + "");
+            let groupIndex = parseInt(targetNode.data.training.group + '');
             chapter.bucketEntries[groupIndex]--;
             switch (trainingConfig!.promotion) {
               case 'most':
@@ -601,6 +599,7 @@ export const useTrainerStore = create<TrainerState>()(
 
       addNewChapter: (chapter: Chapter) => {
         const { repertoire, trainingConfig } = get();
+        console.log('BUG | adding this chapter', chapter);
 
         // const chapter = chapterFromPgn(rawPgn, asColor, name, trainingConfig);
         let newRepertoire;
