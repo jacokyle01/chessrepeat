@@ -20,29 +20,100 @@ import { ContextMenu } from 'primereact/contextmenu';
 import { useAppContextMenu } from './ContextMenuProvider';
 
 // import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
-import { hasBranching, path as treePath } from '../tree/ops';
 
 import { ContextMenuProvider } from './ContextMenuProvider';
 
 import React, { useRef } from 'react';
 import { foolsMate, nimzo } from '../../debug/pgns';
 import { ChevronRight, PlusIcon, Trash } from 'lucide-react';
-import { getNodeList } from '../tree/ops';
+import { TrainableNode } from '../../training/types';
+import { getNodeList, nodeAtPath } from '../../tree/ops';
 export interface Opts {
-  parentPath: Tree.Path;
+  parentPath: string;
   isMainline: boolean;
   depth: number;
-  inline?: Tree.Node;
+  inline?: TrainableNode;
   withIndex?: boolean;
   truncate?: number;
 }
 
 export interface Ctx {
   truncateComments: boolean;
-  currentPath: Tree.Path | undefined;
+  currentPath: string | undefined;
 }
 
 const isEmpty = (a: any | undefined): boolean => !a || a.length === 0;
+
+//TODO right clicking these should provide more training info
+//TODO disable line option
+//TODO mark line as seen option
+const contextMenuItems = (path: string, san: string) => {
+  const deleteLine = useTrainerStore((s) => s.deleteLine);
+  const disableLine = useTrainerStore((s) => s.disableLine);
+  const enableLine = useTrainerStore((s) => s.enableLine);
+
+  return [
+    // Header
+    {
+      label: san,
+      disabled: true,
+      template: (item: any) => (
+        <div className="px-3 py-2 font-semibold text-gray-800 select-none">{item.label}</div>
+      ),
+    },
+
+    { separator: true },
+
+    {
+      label: 'Delete from here',
+      icon: 'pi pi-trash',
+      command: () => deleteLine(path),
+    },
+
+    // ✅ Combined Enable / Disable row
+    {
+      template: () => (
+        <div
+          className="flex items-center justify-between gap-2 px-3 py-2
+                rounded-md transition hover:bg-gray-50"
+        >
+          <span className="text-sm text-gray-700">Line state</span>
+
+          <div className="flex gap-1">
+            <button
+              className="rounded-md px-2 py-1 text-xs font-medium
+                         bg-gray-100 text-gray-700 hover:bg-gray-200"
+              onClick={() => disableLine(path)}
+            >
+              Disable
+            </button>
+
+            <button
+              className="rounded-md px-2 py-1 text-xs font-medium
+                         bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => enableLine(path)}
+            >
+              Enable
+            </button>
+          </div>
+        </div>
+      ),
+    },
+
+    { separator: true },
+
+    {
+      label: 'Add Comment',
+      icon: 'pi pi-comment',
+      command: () => {
+        const comment = prompt('Enter a comment:');
+        if (comment != null) {
+          useTrainerStore.getState().setCommentAt(comment, path);
+        }
+      },
+    },
+  ];
+};
 
 // COMMENTS
 
@@ -90,7 +161,7 @@ function RenderComment({
   const setCommentAt = useTrainerStore((s) => s.setCommentAt);
   const chapter = repertoire[repertoireIndex];
   if (!chapter) return;
-  let root = chapter.tree;
+  // let root = chapter.root;
 
   // const by = others.length > 1 ? <span className="by">{commentAuthorText(comment.by)}</span> : null;
 
@@ -125,13 +196,13 @@ function RenderComment({
   );
 }
 
-export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: Tree.Node; path: string }) {
+export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: TrainableNode; path: string }) {
   // if (!ctx.ctrl.showComments || !node.comments?.length) return null;
   // TODO context to disable comments
   // if (isEmpty(node.comment) return null;
-  if (!node.comment) return null;
+  if (!node.data.comment) return null;
 
-  return <RenderComment comment={node.comment} ctx={ctx} path={path} maxLength={300} />;
+  return <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={300} />;
 }
 
 //TODO conceal?
@@ -143,23 +214,23 @@ export function RenderMainlineCommentsOf({
   path,
 }: {
   ctx: Ctx;
-  node: Tree.Node;
+  node: TrainableNode;
   // conceal?: Conceal;
   withColor: boolean;
   path: string;
 }) {
   // if (!ctx.ctrl.showComments || !node.comments?.length) return null;
-  if (!node.comment) return null;
+  if (!node.data.comment) return null;
 
-  const colorClass = withColor ? (node.ply % 2 === 0 ? ' black' : ' white') : '';
+  const colorClass = withColor ? (node.data.ply % 2 === 0 ? ' black' : ' white') : '';
 
-  return <RenderComment comment={node.comment} ctx={ctx} path={path} maxLength={400} />;
+  return <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={400} />;
 }
 
 // END COMMENTS
 
 //TODO
-export const renderIndexText = (ply: Ply, withDots?: boolean): string =>
+export const renderIndexText = (ply: number, withDots?: boolean): string =>
   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
 
 //TODO maybe dont style this as if it was a real move?
@@ -185,96 +256,119 @@ function IndexNode(ply: number) {
   );
 }
 
-function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   const deleteNode = useTrainerStore((s) => s.deleteNode);
-
   // console.log("delete node F", deleteNode);
   const { showMenu, contextSelectedPath } = useAppContextMenu();
   const jump = useTrainerStore((s) => s.jump);
 
-  const path = opts.parentPath + node.id;
+  const path = opts.parentPath + node.data.id;
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
   const activeClass = path === selectedPath ? 'bg-blue-400/50 active' : '';
 
-  const items = [
-    {
-      label: 'Delete from here',
-      command: () => {
-        console.log('delete', path);
-        deleteNode(path);
-      },
-    },
-    { label: 'Promote', command: () => console.log('promote', path) },
-    {
-      label: 'Add Comment',
-      command: () => {
-        const comment = prompt('Enter a comment:');
-        if (comment !== null) {
-          const { repertoire, repertoireIndex } = useTrainerStore.getState();
-          const chapter = repertoire[repertoireIndex];
-          if (!chapter) return;
-          const root = chapter.tree;
+  const { repertoire, repertoireIndex } = useTrainerStore.getState();
+  const chapter = repertoire[repertoireIndex];
+  if (!chapter) return;
 
-          useTrainerStore.getState().setCommentAt(root, comment, path);
-        }
-      },
-    },
-  ];
+  const nodeFromPath = nodeAtPath(chapter.root, path);
+
+  // const items = [
+  //   {
+  //     label: nodeFromPath.data.san,
+  //     disabled: true,
+  //     className: 'px-3 py-2 font-semibold text-gray-800 cursor-default',
+  //     template: (item: any) => (
+  //       <div className="px-3 py-2 font-semibold text-gray-800 select-none">{item.label}</div>
+  //     ),
+  //   },
+  //   { separator: true },
+
+  //   {
+  //     label: 'Delete from here',
+  //     command: () => {
+  //       console.log('delete', path);
+  //       deleteNode(path);
+  //     },
+  //   },
+  //   { label: 'Promote', command: () => console.log('promote', path) },
+  //   {
+  //     label: 'Add Comment',
+  //     command: () => {
+  //       const comment = prompt('Enter a comment:');
+  //       if (comment !== null) {
+  //         const { repertoire, repertoireIndex } = useTrainerStore.getState();
+  //         const chapter = repertoire[repertoireIndex];
+  //         if (!chapter) return;
+  //         useTrainerStore.getState().setCommentAt(comment, path);
+  //       }
+  //     },
+  //   },
+  // ];
+  const items = contextMenuItems(path, nodeFromPath.data.san);
 
   return (
     <div
       data-path={path}
       className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
-        leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold text-gray-600
+        leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold
         hover:bg-blue-400 select-none cursor-pointer
-        ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''}`}
+        ${!node.data.training.disabled ? ' text-gray-600' : 'text-gray-400'} 
+        ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''} `}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
-      {node.san}
+      {node.data.san}
     </div>
   );
 }
 
-function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   const { showMenu, contextSelectedPath } = useAppContextMenu();
 
+  const path = opts.parentPath + node.data.id;
   const deleteNode = useTrainerStore((s) => s.deleteNode);
 
-  //TODO factor this out into separate function
-  const items = [
-    {
-      label: 'Delete from here',
-      command: () => {
-        console.log('delete', path);
-        deleteNode(path);
-      },
-    },
-    { label: 'Promote', command: () => console.log('promote', path) },
-    {
-      label: 'Add Comment',
-      command: () => {
-        const comment = prompt('Enter a comment:');
-        if (comment !== null) {
-          const { repertoire, repertoireIndex } = useTrainerStore.getState();
-          const chapter = repertoire[repertoireIndex];
-          if (!chapter) return;
-          const root = chapter.tree;
+  const isContextSelected = path === contextSelectedPath;
 
-          useTrainerStore.getState().setCommentAt(root, comment, path);
-        }
-      },
-    },
-  ];
-  const path = opts.parentPath + node.id;
-  const withIndex = opts.withIndex || node.ply % 2 === 1;
+  const { repertoire, repertoireIndex } = useTrainerStore.getState();
+  const chapter = repertoire[repertoireIndex];
+  if (!chapter) return;
+
+  const nodeFromPath = nodeAtPath(chapter.root, path);
+  const items = contextMenuItems(path, nodeFromPath.data.san);
+
+  // const items = [
+  //   {
+  //     label: 'Delete from here',
+  //     command: () => {
+  //       console.log('delete', path);
+  //       deleteNode(path);
+  //     },
+  //   },
+  //   { label: 'Promote', command: () => console.log('promote', path) },
+  //   {
+  //     label: 'Add Comment',
+  //     command: () => {
+  //       const comment = prompt('Enter a comment:');
+  //       if (comment !== null) {
+  //         const { repertoire, repertoireIndex } = useTrainerStore.getState();
+  //         const chapter = repertoire[repertoireIndex];
+  //         if (!chapter) return;
+  //         const root = chapter.root;
+
+  //         useTrainerStore.getState().setCommentAt(comment, path);
+  //       }
+  //     },
+  //   },
+  // ];
+  const withIndex = opts.withIndex || node.data.ply % 2 === 1;
   const content = (
     <>
       {/* // TODO here */}
       {/* {withIndex && `${Math.floor(node.ply / 2) + 1}. `} */}
-      {withIndex && renderIndex(node.ply, true)}
-      {node.san}
+      {withIndex && renderIndex(node.data.ply, true)}
+      {node.data.san}
     </>
   );
   // const classes = nodeClasses(ctx, node, path);
@@ -285,10 +379,12 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; o
   return (
     <span
       data-path={path}
-className={`move variation inline-block max-w-full align-top
+      className={`move variation inline-block max-w-full align-top
   whitespace-normal break-words
   px-[7.9px] pr-[4.74px]
-  hover:bg-blue-400 select-none cursor-pointer ${activeClass}`}
+  hover:bg-blue-400 select-none cursor-pointer ${activeClass}
+          ${!node.data.training.disabled ? ' text-gray-600' : 'text-gray-400'} 
+  `}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
       {content}
@@ -298,11 +394,11 @@ className={`move variation inline-block max-w-full align-top
 
 type RenderMainlineMoveOfProps = {
   ctx: Ctx;
-  node: Tree.Node;
+  node: TrainableNode;
   opts: Opts;
 };
 
-function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   return opts.isMainline ? (
     <RenderMainlineMove ctx={ctx} node={node} opts={opts} />
   ) : (
@@ -310,7 +406,7 @@ function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Op
   );
 }
 
-function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   return (
     <div className="inline italic">
       <RenderMoveAndChildren
@@ -326,8 +422,8 @@ function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Op
   );
 }
 
-function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
-  const path = opts.parentPath + node.id;
+function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
+  const path = opts.parentPath + node.data.id;
   if (opts.truncate === 0)
     return (
       <div>
@@ -364,13 +460,13 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
   // , parentNode.san);
   if (collapsed) {
     return (
-  <div className={`lines basis-full w-full ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
+      <div className={`lines basis-full w-full ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
         {/* assume uncollapsed */}
         {nodes.map((n) => {
           return (
             <div className="flex">
               <ChevronRight color="gray" />
-<div className="line block relative ps-[7px] w-full min-w-0" key={n.id}>
+              <div className="line block relative ps-[7px] w-full min-w-0" key={n.id}>
                 <div className="branch" />
                 <RenderMoveAndChildren
                   ctx={ctx}
@@ -395,7 +491,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
         // const retro = retroLine(ctx, n);
         // if (retro) return retro;
 
-        const truncate = n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined;
+        // const truncate = n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined;
 
         return (
           <div className="line block relative ps-[7px]" key={n.id}>
@@ -419,26 +515,26 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
   );
 }
 
-function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: Opts }) {
+function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   let repertoire = useTrainerStore.getState().repertoire;
   let repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
-  const tree = chapter.tree;
+  const root = chapter.root;
 
   const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
-  const path: Tree.Node[] = getNodeList(tree, pathToTrain);
+  const path: TrainableNode[] = getNodeList(root, pathToTrain);
 
-  const method = useTrainerStore.getState().repertoireMethod;
+  const method = useTrainerStore.getState().trainingMethod;
 
   // console.log('node', node);
-  const ply = node.ply;
+  const ply = node.data.ply;
   // console.log('PATH', path);
   // console.log(ply, 'ply', path, 'path');
 
   /*
   e.x. d4 --> c4 
 
-  trainingNodeList = d4,c4
+  TrainableNodeList = d4,c4
 
   d4, ply=1
   c4, ply=3 
@@ -450,22 +546,23 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
     // console.log('x.san', x.san, 'vs', path[ply + 1].san);
     return (
       method == 'edit' ||
-      (ply < path.length - 1 && x.san == path[ply + 1].san && (ctx.showComputer || !x.comp))
+      (ply < path.length - 1 && x.data.san == path[ply + 1].data.san && (ctx.showComputer || !x.comp))
     );
   });
   const main = cs[0];
   if (!main) return null;
 
   if (opts.isMainline) {
-    const isWhite = main.ply % 2 === 1;
+    const isWhite = main.data.ply % 2 === 1;
 
     //TODO why is this different than lichess ?  math.floor(..) line
     // console.log("node.comment", node)
-    if (!cs[1] && !main.comment && !main.forceVariation) {
+    //TODO force variation?
+    if (!cs[1] && !main.data.comment && true) {
       // console.log("node", node)
       return (
         <>
-          {isWhite && IndexNode(Math.floor(main.ply / 2) + 1)}
+          {isWhite && IndexNode(Math.floor(main.data.ply / 2) + 1)}
           <RenderMoveAndChildren
             ctx={ctx}
             node={main}
@@ -484,7 +581,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
         ctx={ctx}
         node={main}
         opts={{
-          parentPath: opts.parentPath + main.id,
+          parentPath: opts.parentPath + main.data.id,
           isMainline: true,
           depth: opts.depth,
         }}
@@ -495,7 +592,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
     console.log('Hello??????');
     return (
       <>
-        {isWhite && IndexNode(Math.floor(main.ply / 2) + 1)}
+        {isWhite && IndexNode(Math.floor(main.data.ply / 2) + 1)}
         {!main.forceVariation && (
           <RenderMoveOf
             ctx={ctx}
@@ -508,7 +605,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
           />
         )}
 
-        {isWhite && !main.forceVariation && <EmptyMove />}
+        {isWhite && false && <EmptyMove />}
         <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
           {/* {commentTags} */}
           {/* ctx, main, conceal, true, opts.parentPath + main.id */}
@@ -517,7 +614,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
           <RenderLines
             ctx={ctx}
             parentNode={node}
-            nodes={main.forceVariation ? cs : cs.slice(1)}
+            nodes={cs.slice(1)}
             opts={{
               parentPath: opts.parentPath,
               isMainline: !main.forceVariation,
@@ -526,7 +623,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
             }}
           />
         </div>
-        {isWhite && mainHasChildren && IndexNode(Math.floor(main.ply / 2) + 1)}
+        {isWhite && mainHasChildren && IndexNode(Math.floor(main.data.ply / 2) + 1)}
         {isWhite && mainHasChildren && <EmptyMove />}
         {mainChildren}
       </>
@@ -538,7 +635,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
   }
 
   const nodes = cs;
-  let shouldRenderLines = !nodes[1] || nodes[2] || hasBranching(nodes[1], 6);
+  let shouldRenderLines = !nodes[1] || nodes[2] || false;
   // console.log('in render children');
   return <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />;
 
@@ -547,7 +644,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: Tree.Node; opts: 
 }
 
 //TODO function should be part of state
-export default function PgnTree({setActiveMoveId}) {
+export default function PgnTree({ setActiveMoveId }) {
   const jump = useTrainerStore((s) => s.jump);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -559,15 +656,12 @@ export default function PgnTree({setActiveMoveId}) {
     while (el && el !== e.currentTarget) {
       const path = el.getAttribute('data-path');
       if (path) {
-
-        console.log("el", el);
+        console.log('el', el);
         setActiveMoveId(el.id);
         // ctrl.userJump(path); // your navigation logic
         // ctrl.redraw();
         // console.log('PATH', path);
         jump(path);
-
-
 
         break;
       }
@@ -579,7 +673,8 @@ export default function PgnTree({setActiveMoveId}) {
   const repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const chapter = repertoire[repertoireIndex];
   if (!chapter) return;
-  let root = chapter.tree;
+  let root = chapter.root;
+  if (!root) return;
   // console.log('root path');
   // TODO conditionally use path or root, depending on context
 
@@ -595,17 +690,16 @@ export default function PgnTree({setActiveMoveId}) {
   };
 
   //TODO should be false
-  const blackStarts = (root.ply & 1) === 1;
-
+  // const blackStarts = (root.data.ply & 1) === 1;
+  console.log('root should be correctly formed', root);
   return (
     <ContextMenuProvider>
       <div className="h-[400px] bg-white">
         <div
           onMouseDown={handleMouseDown}
           className="tview2 tview2-column overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
-
         >
-          {root.comment && (
+          {root.data.comment && (
             <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
               <RenderMainlineCommentsOf
                 ctx={ctx}

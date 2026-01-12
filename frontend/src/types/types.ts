@@ -1,5 +1,6 @@
 import { Chart } from 'chart.js';
-import { Color, Chapter, TrainingData } from '../spaced-repetition/types';
+import { Color } from '../training/types';
+import { Game } from 'chessops/pgn';
 
 //TODO better organizatoin of types
 export type RepertoireMode = 'train' | 'edit';
@@ -31,11 +32,11 @@ export interface PgnViewContext {
   index: number | 'last';
 }
 
-export interface RepertoireEntry {
-  name: string;
-  subrep: Chapter<TrainingData>;
-  lastDueCount: number;
-}
+// export interface RepertoireEntry {
+//   name: string;
+//   subrep: Chapter<TrainingData>;
+//   lastDueCount: number;
+// }
 
 export interface LichessStudy {
   id: number;
@@ -44,11 +45,11 @@ export interface LichessStudy {
   updatedAt: number;
 }
 
-export interface RepertoireChapter {
-  tree: Tree.Node;
-  name: string;
-  lastDueCount: number;
-  trainAs: Color;
-  nodeCount: number;
-  bucketEntries: number[];
-}
+// export interface Chapter extends Game<TrainingData> {
+
+//   name: string;
+//   lastDueCount: number;
+//   trainAs: Color;
+//   nodeCount: number;
+//   bucketEntries: number[];
+// }

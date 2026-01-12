@@ -1,14 +1,6 @@
-export interface Config {
-  getNext?: {
-    by?: 'depth' | 'breadth'; // exploration strategy to find next position
-    max?: number; //dont look at positions after this many moves
-  };
-  buckets?: number[]; //the "spaces" for spaced repetition. see "leitner system"
-  promotion?: 'most' | 'next';
-  demotion?: 'most' | 'next';
-}
+import { TrainingConfig } from './types';
 
-export function configure(curr: Config, config: Config): void {
+export function configure(curr: TrainingConfig, config: TrainingConfig): void {
   deepMerge(curr, config);
 }
 
@@ -32,14 +24,14 @@ function isPlainObject(o: unknown): boolean {
   return proto === Object.prototype || proto === null;
 }
 
-export function defaults(): Config {
+export function defaults(): TrainingConfig {
   return {
     getNext: {
       by: 'breadth',
       max: Infinity,
     },
-    buckets: [30, 86400, 259200, 604800, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
-    // buckets: [2, 5, 10, 15, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
+    // buckets: [30, 86400, 259200, 604800, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
+    buckets: [2, 5, 10, 15, 1814400, 5443200, 16329600, 31536000], //30 seconds, 24 hours, 3 days, 7 days, 3 weeks, 9 weeks, 27 weeks, 1 year
 
     promotion: 'next',
     demotion: 'next',

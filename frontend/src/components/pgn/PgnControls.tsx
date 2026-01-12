@@ -1,9 +1,15 @@
 //TODO more robust implementation of moving - store logic in state.ts file
+//TODO refactor:
+// use number indexes into tree,
+// put logic into state
+// see en-crossaint
 
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-import { mainlineNodeList } from '../tree/ops';
-import { path as treePath } from '../tree/ops';
+import { fromNodeList, init, root } from '../../tree/path';
+import { atLast } from '../../training/util';
+import { TrainableNode } from '../../training/types';
+import { getNodeList } from '../../tree/ops';
 const PgnControls = () => {
   const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
   const setSelectedNode = useTrainerStore((state) => state.setSelectedNode);
@@ -16,7 +22,7 @@ const PgnControls = () => {
   const repertoire = useTrainerStore().repertoire;
   const repertoireIndex = useTrainerStore().repertoireIndex;
 
-  const repertoireMethod = useTrainerStore().repertoireMethod;
+  const trainingMethod = useTrainerStore().trainingMethod;
   const chapter = repertoire[repertoireIndex];
 
   const jump = useTrainerStore((s) => s.jump);
@@ -31,21 +37,36 @@ const PgnControls = () => {
   // export const prev = (ctrl: AnalyseCtrl): void => ctrl.userJumpIfCan(treePath.init(ctrl.path));
 
   const next = (): void => {
-    const child = selectedNode.children[0];
-    if (child) jump(selectedPath + child.id);
+    if (trainingMethod == 'edit') {
+      const child = selectedNode.children[0];
+      if (child) jump(selectedPath + child.data.id);
+    }
+    // learn or recall
+    else {
+    }
+    const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
+    // dynamically generate training path from string path
+    const currentPath = selectedPath;
+
+    console.log('currentPath', currentPath);
+    console.log('pathToTrain', pathToTrain);
+
+    const nextId = pathToTrain.slice(currentPath.length, currentPath.length + 2);
+
+    if (currentPath.length < pathToTrain.length) jump(selectedPath + nextId);
   };
 
   //TODO we can also generate the mainline as part of initialization
   const last = (): void => {
-    if (repertoireMethod != 'edit') jump(trainingPath);
+    if (trainingMethod != 'edit') jump(trainingPath);
     else {
-      const mainline = mainlineNodeList(chapter.tree);
-      jump(treePath.fromNodeList(mainline));
+      const mainline = mainlineNodeList(chapter.root);
+      jump(fromNodeList(mainline));
     }
   };
 
-  const first = (): void => jump(treePath.root);
-  const prev = (): void => jump(treePath.init(selectedPath));
+  const first = (): void => jump(root);
+  const prev = (): void => jump(init(selectedPath));
 
   return (
     <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto">

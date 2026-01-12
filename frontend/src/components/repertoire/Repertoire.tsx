@@ -1,6 +1,6 @@
 //TODO repertoire and repertoire section in same file
 
-import { FileCog } from 'lucide-react';
+import { FileCog, FileDown } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
 import { Modal } from '../modals/Modal';
@@ -8,6 +8,8 @@ import EditChapterModal from '../modals/EditChapterModal';
 import React, { Dispatch, SetStateAction, useState } from 'react';
 import { RepertoireChapter, RepertoireEntry } from '../../types/types';
 import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
+import { exportChapter } from '../../training/util';
+import ExportChapterModal from '../modals/ExportChapterModal';
 // import { progress } from './progress'; // Uncomment if needed
 
 interface RepertoireSectionProps {
@@ -27,28 +29,65 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const meta = entry;
   const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
   const name = entry.name;
 
+  //TODO dont change if already on this chapter..
   const handleChangeChapter = () => {
-    console.log("handle change chapter");
+    console.log('handle change chapter');
     setRepertoireIndex(index);
     clearChapterContext();
-    console.log("cbc", cbConfig);
+    console.log('cbc', cbConfig);
   };
 
   return (
     <React.Fragment key={index}>
       {editOpen && (
-        <EditChapterModal
-          chapterIndex={index}
-          onClose={() => setEditOpen(false)}
-          onRename={renameChapter}
-          onDelete={deleteChapter}
-          onSetAllSeen={() => console.log('set all seen')}
-        />
+        <div
+          className="
+      fixed inset-0 z-40
+      bg-black/50 backdrop-blur-sm
+      flex items-center justify-center
+    "
+          onClick={() => setEditOpen(false)} // close on backdrop click
+        >
+          <div
+            className="z-50"
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking modal
+          >
+            <EditChapterModal
+              chapterIndex={index}
+              onClose={() => setEditOpen(false)}
+              onRename={renameChapter}
+              onDelete={deleteChapter}
+              onSetAllSeen={() => console.log('set all seen')}
+            />
+          </div>
+        </div>
+      )}
+
+      {exportOpen && (
+        <div
+          className="
+      fixed inset-0 z-40
+      bg-black/50 backdrop-blur-sm
+      flex items-center justify-center
+    "
+          onClick={() => setExportOpen(false)} // close on backdrop click
+        >
+          <div
+            className="z-50"
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking modal
+          >
+            <ExportChapterModal
+              chapterIndex={index}
+              onClose={() => setExportOpen(false)}
+            />
+          </div>
+        </div>
       )}
 
       <div
@@ -82,6 +121,13 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
             onClick={() => setEditOpen(true)}
           >
             <FileCog />
+          </div>
+          <div
+            id="download-chapter"
+            className="ml-auto mr-2 text-gray-600 cursor-pointer"
+            onClick={() => setExportOpen(true)}
+          >
+            <FileDown />
           </div>
         </div>
 

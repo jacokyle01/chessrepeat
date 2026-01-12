@@ -2,14 +2,17 @@ import React from 'react';
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, ChartData, ChartOptions } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { formatTime } from '../util/time'
+import { formatTime } from '../util/time';
 import { useTrainerStore } from '../state/state';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, ChartDataLabels);
 
 const InsightChart: React.FC = () => {
-  // const labels = ['now', ...ctrl.srsConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)];
-  const labels = ['now', ...useTrainerStore.getState().srsConfig.buckets.map((x) => `≤ ${formatTime(x)}`)];
+  // const labels = ['now', ...ctrl.trainingConfig!.buckets!.map((x) => `≤ ${formatTime(x)}`)];
+  const labels = [
+    'now',
+    ...useTrainerStore.getState().trainingConfig.buckets.map((x) => `≤ ${formatTime(x)}`),
+  ];
   // const barData = ctrl.dueTimes;
   const barData = useTrainerStore.getState().dueTimes;
 
