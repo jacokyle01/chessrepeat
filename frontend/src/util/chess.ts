@@ -1,8 +1,12 @@
+//TODO should be a in a chess directory?
+// how to organize functions?
+
 import { Dests, Key } from 'chessground/types';
-import { Chess, parseUci } from 'chessops';
-import { chessgroundDests, chessgroundMove } from 'chessops/compat';
-import { parseFen, makeFen } from 'chessops/fen';
-import { makeSan, parseSan } from 'chessops/san';
+import { Chess, parseUci, Position, PositionError } from 'chessops';
+import { chessgroundDests, chessgroundMove, scalachessCharPair } from 'chessops/compat';
+import { parseFen, makeFen, FenError } from 'chessops/fen';
+import { makeSan, makeSanAndPlay, parseSan } from 'chessops/san';
+import { Color } from '../types/training';
 
 // leverages chessops library and its compatability module to transform a fen string into a legal move dictionary
 export const fenToDests = (fen: string): Dests => {
@@ -50,12 +54,25 @@ export function uciLineToSan(fen: string, uciLine: string): string[] {
   return sanMoves;
 }
 
-  export const currentTime = (): number => {
-    return Math.round(Date.now() / 1000);
-  };
+export function positionFromFen(fen: string): [Chess, null] | [null, FenError | PositionError] {
+  const [setup, error] = parseFen(fen).unwrap(
+    (v) => [v, null],
+    (e) => [null, e],
+  );
+  if (error) {
+    return [null, error];
+  }
 
-// // Example usage:
-// const fen = "r1bqkbnr/pppppppp/n7/8/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 2 2";
-// const pv = "e2e4 e7e5 g1f3";
+  return Chess.fromSetup(setup).unwrap(
+    (v) => [v, null],
+    (e) => [null, e],
+  );
+}
 
-// console.log(uciLineToSan(fen, pv)); // ["e4", "e5", "Nf3"]
+export const currentTime = (): number => {
+  return Math.round(Date.now() / 1000);
+};
+
+export const colorFromPly = (ply: number): Color => {
+  return ply % 2 == 1 ? 'white' : 'black';
+};

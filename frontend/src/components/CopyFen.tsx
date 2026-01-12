@@ -8,7 +8,7 @@ export const CopyFen = () => {
 
   if (!selectedNode) return null;
 
-  const fen = selectedNode.fen;
+  const fen = selectedNode.data.fen;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fen);

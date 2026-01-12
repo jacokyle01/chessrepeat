@@ -37,10 +37,10 @@ const Explorer: React.FC = () => {
   );
 
   useEffect(() => {
-    if (selectedNode?.fen) {
-      fetchOpeningData(selectedNode.fen);
+    if (selectedNode?.data.fen) {
+      fetchOpeningData(selectedNode.data.fen);
     }
-  }, [selectedNode?.fen, fetchOpeningData]);
+  }, [selectedNode?.data.fen, fetchOpeningData]);
 
   console.log("data", data);
   if (!data || data.moves.length == 0) return <div>{loading ? 'Loading...' : 'No data'}</div>;

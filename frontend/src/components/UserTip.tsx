@@ -1,21 +1,15 @@
 import React from 'react';
 //TODO king SVG
-import { blackKingI } from '../svg/black_king';
 import { useTrainerStore } from '../state/state';
 import { Lightbulb, LucideRepeat2, Repeat2 } from 'lucide-react';
 
-export interface FeedbackProps {
-  // repertoire: RepertoireEntry[];
-  handleFail: () => void;
-
-  //TODO calculate this dynamically??
-}
 const isWhite = true;
 const Recall = () => {
   //TODO change
   let isWhite = true;
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-  const toggleShowingHint = useTrainerStore.getState().showingHint;
+  // const toggleShowingHint = useTrainerStore.getState().showingHint;
+  // const fail = useTrainerStore((s) => s.fail);
 
   return (
     <div className="bg-white justify-center border border-gray-300 gap-5">
@@ -34,7 +28,7 @@ const Recall = () => {
 
 const Learn = () => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-  const san = useTrainerStore.getState().trainableContext.targetMove.san;
+  const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
 
   return (
     <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-5">
@@ -58,18 +52,22 @@ const Empty = () => (
   </div>
 );
 
-const Fail = ({ handleRecall, fail }) => {
+const Fail = () => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-  // const san = useTrainerStore((s) => s.trainingNodeList.at(-1)?.san);
+  // const san = useTrainerStore((s) => s.TrainableNodeList.at(-1)?.san);
+  const fail = useTrainerStore((s) => s.fail);
+  const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
 
-  const san = useTrainerStore.getState().trainableContext.targetMove.san;
+  const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
   const lastGuess = useTrainerStore.getState().lastGuess;
   // const fail = useTrainerStore(s => s.fail);
   // const handleRecall = useTrainerStore(s => s.handleRecall);
 
   const onContinue = () => {
+    // don't automatically fail;
+    // leaves room for an option to not mark as failure
     fail();
-    handleRecall();
+    setNextTrainable();
   };
 
   return (
@@ -112,10 +110,10 @@ const Alternate = () => {
   );
 };
 
-export const Feedback: React.FC<FeedbackProps> = ({ handleRecall, fail }) => {
-  const lastFeedback = useTrainerStore((s) => s.lastFeedback);
+export const UserTip = () => {
+  const userTip = useTrainerStore((s) => s.userTip);
 
-  switch (lastFeedback) {
+  switch (userTip) {
     case 'recall':
       return <Recall />;
     case 'learn':
@@ -123,7 +121,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ handleRecall, fail }) => {
     case 'empty':
       return <Empty />;
     case 'fail':
-      return <Fail handleRecall={handleRecall} fail={fail} />;
+      return <Fail />;
     case 'alternate':
       return <Alternate />;
     default:
