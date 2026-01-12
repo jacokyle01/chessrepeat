@@ -85,7 +85,6 @@ interface TrainerState {
 
   makeMove: (san: string) => void;
 
-  deleteNode: (path: string) => void;
   clearChapterContext: () => void;
   //TODO annotate these correctly
   setCommentAt: (comment: string, path: string) => void;
@@ -221,13 +220,8 @@ export const useTrainerStore = create<TrainerState>()(
           set({ selectedPath: '', selectedNode: null, trainableContext: null });
         } else {
           const targetPath = maybeTrainingContext.startingPath;
-          console.log('NL test');
-          console.log('NL params, targetPath', targetPath);
           const nodeList = getNodeList(root, targetPath);
-          console.log('NL', nodeList);
-          // setSelectedNode(nodeList.at(-1));
           const targetNode = nodeList.at(-1);
-          console.log('targetNode', targetNode);
           // TODO why are we storing trainable context separately
           set({ selectedPath: targetPath, selectedNode: targetNode, trainableContext: maybeTrainingContext });
           // also give feedback
@@ -310,10 +304,8 @@ export const useTrainerStore = create<TrainerState>()(
         let timeToAdd = 0;
         switch (trainingMethod) {
           case 'recall':
-            // setLastResult('succeed');
-            // setShowSuccessfulGuess(true);
-
-            let groupIndex = targetNode.data.training.group;
+            // not a number at runtime?
+            let groupIndex = parseInt(targetNode.data.training.group + "");
             chapter.bucketEntries[groupIndex]--;
             switch (trainingConfig!.promotion) {
               case 'most':
@@ -340,7 +332,6 @@ export const useTrainerStore = create<TrainerState>()(
         }
 
         targetNode.data.training.dueAt = currentTime() + timeToAdd;
-        console.log('targetNode', targetNode);
         return timeToAdd;
         // const nowSec = currentTime();
         // let timeToAdd: number | null = null;
