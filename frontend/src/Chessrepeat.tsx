@@ -868,7 +868,7 @@ const autoScroll = throttle(150, (ctrl: PuzzleCtrl, el: HTMLElement) => {
                                   const secsUntilDue = succeed();
                                   showBoxAtSquare(to, secsUntilDue);
                                   // handleRecall();
-                                  succeed();
+                                  // succeed();
                                   setNextTrainablePosition();
                                   break;
                                 case 'alternate':
