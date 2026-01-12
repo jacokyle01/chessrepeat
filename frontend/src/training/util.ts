@@ -177,7 +177,7 @@ export const exportChapter = (chapter: Chapter, shouldAnnotate: boolean) => {
   headers.set('ChessrepeatChapterName', chapter.name);
   if (shouldAnnotate) {
     headers.set('trainAs', chapter.trainAs);
-    headers.set('bucketEntries', chapter.bucketEntries.join(''));
+    headers.set('bucketEntries', chapter.bucketEntries.join(','));
   }
   //TODO optional aditional metadata
 
