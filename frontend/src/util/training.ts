@@ -102,10 +102,8 @@ export const annotateMoves = (
         const rawComment = data.comments[0];
         const [comment, trainingFields] = rawComment.split('␟');
         const trainingArray = trainingFields.split(',');
-        console.log('parsed fields', trainingArray);
         //TODO remove comments (or data.comments) field correctly
         const { comments: _ignored, ...rest } = data;
-        console.log('BUGGG | group in annotateMoves', trainingArray[2]);
         return {
           ...data,
           id: scalachessCharPair(move),
@@ -141,8 +139,6 @@ export const pgnFromRepertoire = (repertoire: Chapter[]) => {
   training context remembered.
 */
 export const pgnFromChapter = (chapter: Chapter, shouldAnnotate: boolean) => {
-  console.log('shouldAnnotate', shouldAnnotate);
-  console.log(chapter);
   const headers = new Map<string, string>();
   headers.set('ChessrepeatChapterName', chapter.name);
   if (shouldAnnotate) {
@@ -164,8 +160,6 @@ export const pgnFromChapter = (chapter: Chapter, shouldAnnotate: boolean) => {
     // append metadata to comment
     //TODO add this to type so it parses correctly...
     newNode.comments = [node.comment + '␟' + trailer.join(',')];
-    console.log('comments', newNode.comments);
-    console.log(newNode.comment);
     return newNode;
 
     /* Conditionally append training metadata to current node's comment */

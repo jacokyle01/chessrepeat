@@ -78,7 +78,7 @@ const AddToRepertoireModal: React.FC = () => {
     try {
       // await importChessrepeatIntoRepertoire(trimmed);
       const chapters = importAnnotatedPgn(chessrepeatText);
-      console.log("IMPORTED CHAPTERS", chapters);
+      // console.log("IMPORTED CHAPTERS", chapters);
       chapters.forEach((chapter) => {
         addNewChapter(chapter);
       });

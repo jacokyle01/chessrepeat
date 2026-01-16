@@ -36,9 +36,6 @@ const PgnControls = () => {
     // dynamically generate training path from string path
     const currentPath = selectedPath;
 
-    console.log('currentPath', currentPath);
-    console.log('pathToTrain', pathToTrain);
-
     const nextId = pathToTrain.slice(currentPath.length, currentPath.length + 2);
 
     if (currentPath.length < pathToTrain.length) jump(selectedPath + nextId);

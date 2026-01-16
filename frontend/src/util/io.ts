@@ -77,7 +77,6 @@ export const rootFromPgn = (
     },
     children: moves.children,
   };
-  console.log('trainingRoot', root);
   return { root, nodeCount };
 };
 
@@ -86,11 +85,9 @@ export const rootFromPgn = (
 */
 
 export const importAnnotatedPgn = (annotatedPgn: string) => {
-  console.log('ADDING TO REPERTOIRE');
   // TODO why is PGN undefined?
   const chapters: Chapter[] = [];
   const parts: Game<PgnNodeData>[] = parsePgn(annotatedPgn);
-  console.log('PARTS', parts);
   parts.forEach((part) => {
 
     const { moves, nodeCount: nodeCount } = annotateMoves(part.moves, true);
@@ -113,7 +110,6 @@ export const importAnnotatedPgn = (annotatedPgn: string) => {
       },
       children: moves.children,
     };
-    console.log('trainingRoot', root);
 
     const bucketEntries = part.headers
       .get('bucketEntries')!

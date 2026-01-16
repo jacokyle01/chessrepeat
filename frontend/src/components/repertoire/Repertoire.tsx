@@ -37,10 +37,8 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
 
   //TODO dont change if already on this chapter..
   const handleChangeChapter = () => {
-    console.log('handle change chapter');
     setRepertoireIndex(index);
     clearChapterContext();
-    console.log('cbc', cbConfig);
   };
 
   return (
@@ -180,17 +178,11 @@ const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
   const blackEntries: RepertoireChapter[] = [];
 
   const repertoire = useTrainerStore().repertoire;
-  // console.log('rep', repertoire);
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);
     else blackEntries.push(entry);
   });
-
-  // console.log('white entries', whiteEntries);
-  // console.log('black entries', blackEntries);
-  // div.flex.flex-col.bg-white.bg-clip-border.text-gray-700.shadow-md.rounded-md.border.border-gray-200.mt-4.pb-5
-  // class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
 
   return (
     <div id="repertoire" className="flex flex-col flex-1 min-h-0 rounded-xl border border-gray-300 bg-white">

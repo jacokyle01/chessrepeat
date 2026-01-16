@@ -200,7 +200,6 @@ export const useTrainerStore = create<TrainerState>()(
         const { trainingMethod: method, repertoireIndex, repertoire, trainingConfig } = get();
         if (repertoireIndex === -1 || method === 'edit') return null;
         const chapter = repertoire[repertoireIndex];
-        console.log('repertoire in setNext...', repertoire);
         if (!chapter) return;
         const root = chapter.root;
 
@@ -209,7 +208,6 @@ export const useTrainerStore = create<TrainerState>()(
           method,
           trainingConfig!.getNext!,
         );
-        console.log('computed context', maybeTrainingContext);
         if (!maybeTrainingContext) {
           set({ userTip: 'empty' });
           //TODO dont use trainableContext, just use selectedPath and selectedNode
@@ -226,6 +224,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       updateDueCounts: () => {
+        return;
         const { repertoire, repertoireIndex, trainingConfig } = get();
         if (repertoireIndex < 0) return;
 
@@ -489,7 +488,6 @@ export const useTrainerStore = create<TrainerState>()(
 
       addNewChapter: (chapter: Chapter) => {
         const { repertoire, trainingConfig } = get();
-        console.log('BUG | adding this chapter', chapter);
 
         // const chapter = chapterFromPgn(rawPgn, asColor, name, trainingConfig);
         let newRepertoire;

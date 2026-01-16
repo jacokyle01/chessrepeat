@@ -42,7 +42,6 @@ const Explorer: React.FC = () => {
     }
   }, [selectedNode?.data.fen, fetchOpeningData]);
 
-  console.log("data", data);
   if (!data || data.moves.length == 0) return <div>{loading ? 'Loading...' : 'No data'}</div>;
 
   const totalGames = data.moves.reduce(

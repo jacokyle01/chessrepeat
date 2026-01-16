@@ -193,7 +193,6 @@ export const Chessrepeat = () => {
     setTimeout(() => setBox(null), 1000);
   };
 
-  console.log('selectedNode (before we make a move', selectedNode);
 
   //TODO refactor common logic here
   const prevMoveIfExists = () => {
@@ -207,16 +206,16 @@ export const Chessrepeat = () => {
     const lastNode = nodeList.at(-1);
     const lastlastNode = nodeList.at(-2);
     if (!lastNode || !lastlastNode) return undefined;
-    console.log('lastNode', lastNode, 'before that', lastlastNode);
+    // console.log('lastNode', lastNode, 'before that', lastlastNode);
 
     const fen = lastlastNode.data.fen;
     const setup = parseFen(fen);
     if (!setup.isOk) throw new Error('Invalid FEN: ' + fen);
 
     let pos = Chess.fromSetup(setup.value).unwrap();
-    console.log('pos', pos);
+    // console.log('pos', pos);
     const move = parseSan(pos, lastNode.data.san);
-    console.log('move', move);
+    // console.log('move', move);
     // return [move.from, move.to];
     return chessgroundMove(move);
   };
@@ -233,7 +232,6 @@ export const Chessrepeat = () => {
   const prevMove = prevMoveIfExists();
   const lastMove = selectedNode ? prevMove : undefined;
 
-  console.log('lastMove (should be like [a1, a2]', lastMove);
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
@@ -337,9 +335,7 @@ export const Chessrepeat = () => {
                           updateDueCounts();
                           switch (trainingMethod) {
                             case 'learn':
-                              console.log('learn callback');
                               succeed();
-                              console.log('does trainable have fen?', selectedNode);
                               setNextTrainablePosition();
                               //TODO just call setNextTrainable..
                               break;
