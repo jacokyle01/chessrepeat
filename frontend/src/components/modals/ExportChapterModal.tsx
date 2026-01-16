@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { CircleXIcon, DownloadIcon, FileTextIcon, InfoIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-import { exportChapter } from '../../util/training';
+import { exportChapter, pgnFromChapter } from '../../util/training';
+import { downloadTextFile } from '../../util/io';
 
 interface ExportChapterModalProps {
   chapterIndex: number;
@@ -25,7 +26,10 @@ const ExportChapterModal: React.FC<ExportChapterModalProps> = ({ chapterIndex, o
   const [error, setError] = useState<string | null>(null);
 
   const handleExport = async () => {
-    exportChapter(chapter, format == 'chessrepeat');
+    const pgn = pgnFromChapter(chapter, format == 'chessrepeat');
+    const chapterName = chapter.name;
+    const fileName = format == 'chessrepeat' ? `${chapterName}.chessrepeat` : `${chapterName}.pgn`;
+    downloadTextFile(pgn, fileName, 'application/x-chess-pgn');
   };
 
   return (
