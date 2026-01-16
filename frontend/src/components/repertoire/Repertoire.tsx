@@ -82,10 +82,7 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
             className="z-50"
             onClick={(e) => e.stopPropagation()} // prevent closing when clicking modal
           >
-            <ExportChapterModal
-              chapterIndex={index}
-              onClose={() => setExportOpen(false)}
-            />
+            <ExportChapterModal chapterIndex={index} onClose={() => setExportOpen(false)} />
           </div>
         </div>
       )}
@@ -196,40 +193,43 @@ const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
   // class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
 
   return (
-    <div id="repertoire" className="flex flex-col rounded-xl border border-gray-300 bg-white pb-2">
-      <div className="flex flex-col rounded-md pb-2 h-2/5 overflow-y-auto">
-        <div id="repertoire-header" className="flex flex-row items-center justify-left p-3 gap-2">
-          <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
-            <BookOpenIcon></BookOpenIcon>
-          </div>
-          <span className="text-gray-800 font-semibold text-xl">My Repertoire</span>
+    <div id="repertoire" className="flex flex-col flex-1 min-h-0 rounded-xl border border-gray-300 bg-white">
+      {/* fixed header */}
+      <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
+        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
+          <BookOpenIcon />
         </div>
-        <div id="repertoire-wrap">
-          <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600 space-x-1">White</span>
-          <div id="chapter-tree-wrap" className="flex-row rounded-md">
-            {whiteEntries.map((entry, index) => (
-              <Chapter
-                key={index}
-                entry={entry}
-                index={index}
-                deleteChapter={deleteChapter}
-                renameChapter={renameChapter}
-              />
-            ))}
-          </div>
-          <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600">Black</span>
-          <div id="chapter-tree-wrap" className="flex-row rounded-md">
-            {blackEntries.map((entry, index) => (
-              // ensure our index matches this entry's index in the actual repertoire array
-              <Chapter
-                key={index}
-                entry={entry}
-                index={index + whiteEntries.length}
-                deleteChapter={deleteChapter}
-                renameChapter={renameChapter}
-              />
-            ))}
-          </div>
+        <span className="text-gray-800 font-semibold text-xl">My Repertoire</span>
+      </div>
+
+      {/* ONLY THIS SCROLLS */}
+      <div id="repertoire-wrap" className="flex-1 min-h-0 overflow-y-auto pb-2">
+        <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600 space-x-1">White</span>
+
+        <div className="flex-row rounded-md">
+          {whiteEntries.map((entry, index) => (
+            <Chapter
+              key={index}
+              entry={entry}
+              index={index}
+              deleteChapter={deleteChapter}
+              renameChapter={renameChapter}
+            />
+          ))}
+        </div>
+
+        <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600">Black</span>
+
+        <div className="flex-row rounded-md">
+          {blackEntries.map((entry, index) => (
+            <Chapter
+              key={index}
+              entry={entry}
+              index={index + whiteEntries.length}
+              deleteChapter={deleteChapter}
+              renameChapter={renameChapter}
+            />
+          ))}
         </div>
       </div>
     </div>

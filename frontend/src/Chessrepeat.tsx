@@ -71,8 +71,6 @@ export const Chessrepeat = () => {
 
   useEffect(() => {
     const container = movesContainerRef.current;
-    console.log('container', container);
-    console.log('should be the pgn tree container (and have overflow set to scroll');
     if (!container) return;
 
     const scrollActiveIntoView = () => {
@@ -239,7 +237,7 @@ export const Chessrepeat = () => {
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
-      <div id="root" className="w-full h-full bg-gray-200">
+      <div id="root" className="w-full h-dvh min-h-0 flex flex-col bg-gray-200">
         <div id="header" className="flex items-center justify-start text-3xl mb-3 gap-10">
           {/* Logo + Title */}
           <div className="flex items-end">
@@ -307,8 +305,8 @@ export const Chessrepeat = () => {
 
         {/* <SettingsModal></SettingsModal> */}
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
-        <div className="flex justify-between items-start w-full px-10 gap-5">
-          <div className="repertoire-wrap flex flex-col flex-1 w-1/3">
+        <div className="flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 min-h-0 overflow-hidden">
+          <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden">
             <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
             <RepertoireActions></RepertoireActions>
             <Schedule />
