@@ -524,7 +524,7 @@ export const useTrainerStore = create<TrainerState>()(
         // nothing more?
 
         set({ repertoire });
-      },
+      }
     }),
     {
       name: 'trainer-store', // IndexedDB key

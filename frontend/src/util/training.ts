@@ -1,7 +1,17 @@
 import { defaultPosition } from 'chessops/variant';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
-import { Chapter, Color, CountDueContext, PathContext, TrainableContext, TrainableNode, TrainingContext, TrainingData, TrainingMethod } from '../types/training';
+import {
+  Chapter,
+  Color,
+  CountDueContext,
+  PathContext,
+  TrainableContext,
+  TrainableNode,
+  TrainingContext,
+  TrainingData,
+  TrainingMethod,
+} from '../types/training';
 import { currentTime } from './chess';
 import { childById, forEachNode } from './tree';
 import { downloadTextFile } from './io';
@@ -93,9 +103,9 @@ export const annotateMoves = (
         const [comment, trainingFields] = rawComment.split('␟');
         const trainingArray = trainingFields.split(',');
         console.log('parsed fields', trainingArray);
-        //TODO remove comments (or data.comments) field correctly 
+        //TODO remove comments (or data.comments) field correctly
         const { comments: _ignored, ...rest } = data;
-        console.log("BUGGG | group in annotateMoves", trainingArray[2]);
+        console.log('BUGGG | group in annotateMoves', trainingArray[2]);
         return {
           ...data,
           id: scalachessCharPair(move),
@@ -117,13 +127,20 @@ export const annotateMoves = (
   };
 };
 
+// always annotated
+export const pgnFromRepertoire = (repertoire: Chapter[]) => {
+  const pgns = repertoire.map((chapter) => pgnFromChapter(chapter, true));
+  let out = pgns.join('\n');
+  return out;
+};
+
 /*
   Export chapter as PGN,
   conditionally with training metadata,
   added as part of the PGN's comment - this can be later imported back into the repertoire with
   training context remembered.
 */
-export const exportChapter = (chapter: Chapter, shouldAnnotate: boolean) => {
+export const pgnFromChapter = (chapter: Chapter, shouldAnnotate: boolean) => {
   console.log('shouldAnnotate', shouldAnnotate);
   console.log(chapter);
   const headers = new Map<string, string>();
@@ -162,6 +179,7 @@ export const exportChapter = (chapter: Chapter, shouldAnnotate: boolean) => {
   console.log('game export', game);
   // TODO game isn't parsing correctly?
   const pgn = makePgn(game);
+  return pgn;
   console.log('exported PGN, pgn');
 
   //TODO
@@ -212,7 +230,6 @@ export function computeNextTrainableNode(
   method: TrainingMethod,
   getNext: any,
 ): TrainableContext | null {
-
   //initialization
   // TODO refactor to ops or tree file?
   interface DequeEntry {
@@ -224,7 +241,7 @@ export function computeNextTrainableNode(
 
   const deque: DequeEntry[] = [];
 
-  //TODO just push root directly? would that work? 
+  //TODO just push root directly? would that work?
   root.children.forEach((child) => {
     deque.push({
       nodeList: [child],
