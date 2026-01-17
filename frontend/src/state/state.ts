@@ -1,11 +1,10 @@
 // state/trainerStore.ts
-//TODO prefix treepath functions with treePath.___
 import { create } from 'zustand';
-import { persist, StateStorage } from 'zustand/middleware';
-import { get, set, del } from 'idb-keyval';
 import { produce } from 'immer';
 
-import { Config as CbConfig } from 'chessground/config';
+import type { Config as CbConfig } from 'chessground/config';
+import type { ChildNode } from 'chessops/pgn';
+
 import {
   Chapter,
   Color,
@@ -16,7 +15,7 @@ import {
   TrainingMethod,
   TrainingOutcome,
 } from '../types/training';
-import { ChildNode } from 'chessops/pgn';
+
 import { defaults } from '../util/config';
 import { deleteNodeAt, getNodeList, nodeAtPath, updateRecursive } from '../util/tree';
 import { contains, init } from '../util/path';
@@ -26,12 +25,23 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
 import { rootFromPgn } from '../util/io';
-
-// import { path as treePath} from '../components/tree/tree';
-//TODO make sure we are using this convention to import
+import {
+  deleteFullChapter,
+  getChapterMetaFromIDB,
+  loadChapterRuntime,
+  movesDB,
+  persistFullChapter,
+  setChapterMetaInIDB,
+} from './idb';
+import { PersistedChapterMeta } from '../types/state';
+//TODO
+/*
+deleteChapterById
+renameChapterById
+*/
 
 interface TrainerState {
-  /* UI Flags */
+  // UI flags
   trainingMethod: TrainingMethod;
   setTrainingMethod: (m: TrainingMethod) => void;
 
@@ -44,19 +54,19 @@ interface TrainerState {
   showingImportIntoChapterModal: boolean;
   setShowingImportIntoChapterModal: (val: boolean) => void;
 
-  repertoire: Chapter[];
-  setRepertoire: (r: Chapter[]) => void;
+  // NEW: only one loaded chapter at a time
+  activeChapterId: string | null;
+  activeChapter: Chapter | null;
+  setActiveChapterById: (chapterId: string) => Promise<void>;
 
-  repertoireIndex: number;
-  setRepertoireIndex: (i: number) => void;
-
+  // selection context
   trainableContext: TrainableContext | undefined;
   setTrainableContext: (t: TrainableContext) => void;
 
   selectedPath: string;
   setSelectedPath: (p: string) => void;
 
-  selectedNode: ChildNode<TrainingData>;
+  selectedNode: ChildNode<TrainingData> | null;
   setSelectedNode: (n: any) => void;
 
   showingHint: boolean;
@@ -80,12 +90,11 @@ interface TrainerState {
   cbConfig: CbConfig;
   setCbConfig: (cfg: CbConfig) => void;
 
+  // actions
   jump: (path: string) => void;
-
   makeMove: (san: string) => void;
 
   clearChapterContext: () => void;
-  //TODO annotate these correctly
   setCommentAt: (comment: string, path: string) => void;
   updateDueCounts: () => void;
   setNextTrainablePosition: () => void;
@@ -98,441 +107,601 @@ interface TrainerState {
   disableLine: (path: string) => void;
   deleteLine: (path: string) => void;
   enableLine: (path: string) => void;
-  addNewChapter: (chapter: Chapter) => void;
 
-  importIntoChapter: (targetChapter: number, newPgn: string) => void;
+  addNewChapter: (chapter: Chapter) => Promise<void>;
+  addChapters: (chapters: Chapter[]) => Promise<void>;
+
+  importIntoChapter: (targetChapterId: string, newPgn: string) => Promise<void>;
+
+  // meta (chapter data except root)
+  chapterMeta: PersistedChapterMeta[];
+  getChapterMeta: () => Promise<PersistedChapterMeta[]>;
+  setChapterMeta: (next: PersistedChapterMeta[]) => Promise<void>;
+  // ✅ one-time hydration
+  hydrateChapterMeta: () => Promise<void>;
 }
 
-// --- IndexedDB storage for zustand ---
-const indexedDBStorage: StateStorage = {
-  getItem: async (name) => {
-    const value = await get(name);
-    return value ?? null; // already a string
+export const useTrainerStore = create<TrainerState>()((set, get) => ({
+  // ---------- state ----------
+  trainingMethod: 'unselected',
+  showingTrainingSettings: false,
+  showingAddToRepertoireMenu: false,
+  showingImportIntoChapterModal: false,
+
+  chapterMeta: [],
+  activeChapterId: null,
+  activeChapter: null,
+
+  trainableContext: undefined,
+  selectedPath: '',
+  selectedNode: null,
+
+  showingHint: false,
+  userTip: 'init',
+  lastGuess: '',
+  showSuccessfulGuess: false,
+
+  dueTimes: [],
+  trainingConfig: defaults(),
+  cbConfig: {},
+
+  // ---------- setters ----------
+  setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
+  setShowingTrainingSettings: (val) => set({ showingTrainingSettings: val }),
+  setShowingAddToRepertoireMenu: (val) => set({ showingAddToRepertoireMenu: val }),
+  setShowingImportIntoChapterModal: (val) => set({ showingImportIntoChapterModal: val }),
+
+  // ✅ "get" = load from IDB and also set in-memory state
+getChapterMeta: async () => {
+  const meta = await getChapterMetaFromIDB();
+  set({ chapterMeta: meta });
+  return meta;
+},
+
+
+  // ✅ "set" = write to IDB, then set in-memory state
+  setChapterMeta: async (next) => {
+    await setChapterMetaInIDB(next);
+    set({ chapterMeta: next });
   },
-  setItem: async (name, value) => {
-    await set(name, value); // keep as string
+
+  hydrateChapterMeta: async () => {
+    const metas = await getChapterMetaFromIDB();
+    set({ chapterMeta: metas });
   },
-  removeItem: async (name) => {
-    await del(name);
-  },
-};
 
-// --- create store with persist ---
-export const useTrainerStore = create<TrainerState>()(
-  persist(
-    (set, get) => ({
-      trainingMethod: 'unselected',
-      setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
+  setTrainableContext: (t) => set({ trainableContext: t }),
+  setSelectedPath: (path) => set({ selectedPath: path }),
+  setSelectedNode: (node) => set({ selectedNode: node }),
+  setShowingHint: (v) => set({ showingHint: v }),
+  setUserTip: (f) => set({ userTip: f }),
+  setLastGuess: (g) => set({ lastGuess: g }),
+  setShowSuccessfulGuess: (val) => set({ showSuccessfulGuess: val }),
+  setDueTimes: (t) => set({ dueTimes: t }),
+  setTrainingConfig: (cfg) => set({ trainingConfig: cfg }),
+  setCbConfig: (cfg) => set({ cbConfig: cfg }),
 
-      showingTrainingSettings: false,
-      setShowingTrainingSettings: (val) => set({ showingTrainingSettings: val }),
+  // ---------- persistence orchestration ----------
+  //TODO do we have to "refresh"? just store meta like we are storing other things e.x. lastGuess
+  // refreshChapterMeta: async () => {
+  //   const all = await movesDB.getAllChapterMeta();
+  //   // stable ordering: whites first then blacks, or whatever you want
+  //   const next = all.slice().sort((a, b) => a.trainAs.localeCompare(b.trainAs));
+  //   set({ chapterMeta: next });
+  // },
 
-      showingAddToRepertoireMenu: false,
-      setShowingAddToRepertoireMenu: (val) => set({ showingAddToRepertoireMenu: val }),
-
-      showingImportIntoChapterModal: false,
-      setShowingImportIntoChapterModal: (val) => set({ showingAddToRepertoireMenu: val }),
-
-      repertoire: [],
-      setRepertoire: (repertoire) => set({ repertoire }),
-
-      repertoireIndex: 0,
-      setRepertoireIndex: (i) => set({ repertoireIndex: i }),
-
-      trainableContext: undefined,
-      setTrainableContext: (t) => set({ trainableContext: t }),
-
+  setActiveChapterById: async (chapterId: string) => {
+    const ch = await loadChapterRuntime(chapterId);
+    set({
+      activeChapterId: chapterId,
+      activeChapter: ch,
       selectedPath: '',
-      setSelectedPath: (path) => set({ selectedPath: path }),
-
-      selectedNode: null,
-      setSelectedNode: (node) => set({ selectedNode: node }),
-
-      showingHint: false,
-      setShowingHint: (v) => set({ showingHint: v }),
-
+      selectedNode: ch?.root ?? null,
+      trainableContext: undefined,
       userTip: 'init',
-      setUserTip: (f) => set({ userTip: f }),
+    });
+  },
 
-      lastGuess: '',
-      setLastGuess: (g) => set({ lastGuess: g }),
+  // ---------- core actions (updated to activeChapter) ----------
+  jump: (path) => {
+    const { activeChapter } = get();
+    const root = activeChapter?.root;
+    if (!root) return;
 
-      showSuccessfulGuess: false,
-      setShowSuccessfulGuess: (val) => set({ showSuccessfulGuess: val }),
+    const nodeList = getNodeList(root, path);
+    const node = nodeList.at(-1) ?? null;
+    set({ selectedPath: path, selectedNode: node });
+  },
 
-      dueTimes: [],
-      setDueTimes: (t) => set({ dueTimes: t }),
+  deleteLine: (path) => {
+    const { activeChapter, selectedPath, jump } = get();
+    if (!activeChapter?.root) return;
 
-      trainingConfig: defaults(),
-      setTrainingConfig: (cfg) => set({ trainingConfig: cfg }),
+    const root = activeChapter.root;
+    const node = nodeAtPath(root, path);
+    if (!node) return;
 
-      cbConfig: {},
-      setCbConfig: (cfg) => set({ cbConfig: cfg }),
+    // mutate runtime
+    deleteNodeAt(root, path);
 
-      jump: (path) => {
-        const { repertoire, repertoireIndex } = get();
-        const root = repertoire[repertoireIndex].root;
-        if (!root) return;
-        const nodeList = getNodeList(root, path);
-        const node = nodeList.at(-1);
-        set({ selectedPath: path, selectedNode: node });
-      },
+    // update UI selection
+    if (contains(selectedPath, path)) jump(init(path));
+    else jump(path);
 
-      deleteLine: (path) => {
-        const { repertoire, repertoireIndex, selectedPath, jump } = get();
-        const root = repertoire[repertoireIndex]?.root;
-        if (!root) return;
-        const node = nodeAtPath(root, path);
-        if (!node) return;
+    // ⚠️ persistence for delete is more involved (must delete all subtree nodes + remove edge)
+    // For now, simplest correct approach: persist whole chapter after structural deletes.
+    // Optimize later with subtree deletes if needed.
+    persistFullChapter(activeChapter);
 
-        deleteNodeAt(root, path);
+    set({ activeChapter: { ...activeChapter } });
+  },
 
-        if (contains(selectedPath, path)) {
-          jump(init(path));
-        } else {
-          jump(path);
-          set({ repertoire });
-        }
-      },
+  setNextTrainablePosition: () => {
+    const { trainingMethod: method, activeChapter, trainingConfig } = get();
+    if (!activeChapter?.root) return null;
+    if (method === 'edit') return null;
 
-      // state...
-      setNextTrainablePosition: () => {
-        const { trainingMethod: method, repertoireIndex, repertoire, trainingConfig } = get();
-        if (repertoireIndex === -1 || method === 'edit') return null;
-        const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
-        const root = chapter.root;
+    const root = activeChapter.root;
+    const maybeTrainingContext = computeNextTrainableNode(root, method, trainingConfig.getNext!);
 
-        const maybeTrainingContext = computeNextTrainableNode(
-          repertoire[repertoireIndex].root,
-          method,
-          trainingConfig!.getNext!,
-        );
-        if (!maybeTrainingContext) {
-          set({ userTip: 'empty' });
-          //TODO dont use trainableContext, just use selectedPath and selectedNode
-          set({ selectedPath: '', selectedNode: null, trainableContext: null });
-        } else {
-          const targetPath = maybeTrainingContext.startingPath;
-          const nodeList = getNodeList(root, targetPath);
-          const targetNode = nodeList.at(-1);
-          // TODO why are we storing trainable context separately
-          set({ selectedPath: targetPath, selectedNode: targetNode, trainableContext: maybeTrainingContext });
-          // also give feedback
-          set({ userTip: method });
-        }
-      },
+    if (!maybeTrainingContext) {
+      set({ userTip: 'empty', selectedPath: '', selectedNode: null, trainableContext: null as any });
+      return null;
+    }
 
-      updateDueCounts: () => {
-        return;
-        const { repertoire, repertoireIndex, trainingConfig } = get();
-        if (repertoireIndex < 0) return;
+    const targetPath = maybeTrainingContext.startingPath;
+    const nodeList = getNodeList(root, targetPath);
+    const targetNode = nodeList.at(-1) ?? null;
 
-        const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
+    set({
+      userTip: method,
+      selectedPath: targetPath,
+      selectedNode: targetNode,
+      trainableContext: maybeTrainingContext,
+    });
 
-        const counts = computeDueCounts(chapter.root, trainingConfig.buckets);
+    return maybeTrainingContext;
+  },
 
-        // ✅ do all state writes inside set()
-        set((state) => {
-          // shallow copy chapter list if you want immutable updates
-          //TODO use immer?
-          const nextRepertoire = state.repertoire.slice();
-          const nextChapter = { ...nextRepertoire[repertoireIndex] };
+  updateDueCounts: () => {
+    const { activeChapter, trainingConfig } = get();
+    if (!activeChapter?.root) return;
 
-          nextChapter.lastDueCount = counts[0];
-          nextRepertoire[repertoireIndex] = nextChapter;
+    const counts = computeDueCounts(activeChapter.root, trainingConfig.buckets);
 
-          return {
-            dueTimes: counts,
-            repertoire: nextRepertoire,
-          };
-        });
-      },
+    // update runtime chapter meta
+    const nextChapter = { ...activeChapter, lastDueCount: counts[0] };
 
-      clearChapterContext: () => {
-        set({
-          trainingMethod: 'unselected',
-          selectedPath: '',
-          userTip: 'empty',
-          cbConfig: {
-            lastMove: undefined,
-            drawable: {
-              shapes: [],
-            },
-          },
-          selectedNode: null,
-        });
-      },
+    set({ dueTimes: counts, activeChapter: nextChapter });
 
-      //TODO do we need immer state actions?
-      setCommentAt: (comment: string, path: string) => {
-        set(
-          produce((state) => {
-            const chapter = state.repertoire[state.repertoireIndex];
-            if (!chapter) return;
+    // persist only chapter meta (bucketEntries/nodeCount/etc) if you store them there
+    // (dueTimes itself can be derived, so don’t store it)
+    movesDB.setChapterMeta({
+      id: nextChapter.id,
+      name: nextChapter.name,
+      trainAs: nextChapter.trainAs,
+      rootId: nextChapter.root.data.id,
+      nodeCount: nextChapter.nodeCount,
+      bucketEntries: nextChapter.bucketEntries,
+      updatedAt: Date.now(),
+    });
+  },
 
-            const node = nodeAtPath(chapter.root, path);
-            if (!node) return;
+  clearChapterContext: () => {
+    set({
+      trainingMethod: 'unselected',
+      selectedPath: '',
+      userTip: 'empty',
+      cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
+      selectedNode: null,
+      trainableContext: undefined,
+    });
+  },
 
-            node.data.comment = comment;
-            // chapter.dirty = true; // optional
-          }),
-        );
-      },
+  setCommentAt: (comment: string, path: string) => {
+    const { activeChapter } = get();
+    if (!activeChapter?.root) return;
 
-      // TODO refactor some of this into a utility function?
-      succeed: (): number | null => {
-        //TODO use immer produce?
-        //TODO improve from basics
-        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
+    const node = nodeAtPath(activeChapter.root, path);
+    if (!node) return;
 
-        const targetNode = trainableContext.targetMove;
-        const startingPath = trainableContext.startingPath;
+    node.data.comment = comment;
 
-        const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
-        const root = chapter.root;
+    set({ activeChapter: { ...activeChapter } });
 
-        // let node = TrainableNodeList?.at(-1);
-        if (!targetNode) return;
+    // ✅ persist ONLY this node
+    movesDB.patchNode(activeChapter.id, node.data.id, { comment });
+  },
 
-        let timeToAdd = 0;
-        switch (trainingMethod) {
-          case 'recall':
-            // not a number at runtime?
-            let groupIndex = parseInt(targetNode.data.training.group + '');
-            chapter.bucketEntries[groupIndex]--;
-            switch (trainingConfig!.promotion) {
-              case 'most':
-                groupIndex = trainingConfig!.buckets!.length - 1;
-                break;
-              case 'next':
-                groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
-                break;
-            }
-            chapter.bucketEntries[groupIndex]++;
-            timeToAdd = trainingConfig!.buckets![groupIndex];
+  succeed: (): number | null => {
+    const { activeChapter, trainableContext, trainingMethod, trainingConfig } = get();
+    if (!activeChapter || !trainableContext?.targetMove) return null;
 
-            targetNode.data.training.group = groupIndex;
-            break;
-          case 'learn':
-            // };
-            // TODO use node.training instead?
-            targetNode.data.training.seen = true;
-            // node.dueAt = currentTime() + trainingConfig!.buckets![0];
-            timeToAdd = trainingConfig!.buckets![0];
-            targetNode.data.training.group = 0;
-            chapter.bucketEntries[0]++; //globally, mark node as seen
-            break;
-        }
+    const chapter = activeChapter;
+    const targetNode = trainableContext.targetMove;
 
-        targetNode.data.training.dueAt = currentTime() + timeToAdd;
-        return timeToAdd;
-      },
+    let timeToAdd = 0;
 
-      fail: () => {
-        // setShowSuccessfulGuess(false);
-        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
-        const node = trainableContext.targetMove;
-
-        //TODO need more recent version?
-        const chapter = repertoire[repertoireIndex];
-        if (!node) return;
-        let groupIndex = node.data.training.group;
+    switch (trainingMethod) {
+      case 'recall': {
+        let groupIndex = Number(targetNode.data.training.group);
         chapter.bucketEntries[groupIndex]--;
-        if (trainingMethod === 'recall') {
-          switch (trainingConfig!.demotion) {
-            case 'most':
-              groupIndex = 0;
-              break;
-            case 'next':
-              groupIndex = Math.max(groupIndex - 1, 0);
-              break;
-          }
-          chapter.bucketEntries[groupIndex]++;
-          const interval = trainingConfig!.buckets![groupIndex];
 
-          node.data.training.group = groupIndex;
-          node.data.training.dueAt = currentTime() + interval;
-        }
-      },
-
-      //TODO
-      guess: (san: string): TrainingOutcome => {
-        const { repertoire, repertoireIndex, selectedPath, lastGuess, trainableContext, trainingMethod } =
-          get();
-        const chapter = repertoire[repertoireIndex];
-        const root = chapter.root;
-        //TODO what about multiple roots?
-
-        const target = trainableContext.targetMove;
-        const pathToTrain = trainableContext.startingPath;
-        const TrainableNodeList: ChildNode<TrainingData>[] = getNodeList(root, pathToTrain);
-
-        if (repertoireIndex == -1 || !TrainableNodeList || trainingMethod == 'learn') return;
-        let possibleMoves = TrainableNodeList.at(-1).children.map((_) => _.data.san);
-        set({ lastGuess: san });
-        return possibleMoves.includes(san) ? (target.data.san === san ? 'success' : 'alternate') : 'failure';
-      },
-
-      markAllAsSeen: () => {
-        const nowSec = currentTime();
-
-        set(
-          produce((state) => {
-            const idx = state.repertoireIndex;
-            if (idx < 0) return;
-
-            const chapter = state.repertoire[idx];
-            if (!chapter) return;
-
-            const buckets = state.trainingConfig.buckets;
-            const timeToAdd = buckets?.[0] ?? 0;
-
-            // if you keep your old string "" path meaning "root", you can just use []
-            // const startPath: string[] = []; // whole tree
-
-            updateRecursive(chapter.tree, '', (node) => {
-              const t = node.data.training;
-
-              // choose semantics:
-              // - "markAllAsSeen" might mean "mark unseen nodes as seen"
-              // - ignore disabled nodes
-              if (t.disabled) return;
-
-              // If you only want to affect unseen nodes (prevents double counting):
-              if (t.seen) return;
-
-              // update bucket entries: node goes into group 0
-              chapter.bucketEntries[0] = (chapter.bucketEntries[0] ?? 0) + 1;
-
-              t.seen = true;
-              t.group = 0;
-              t.dueAt = nowSec + timeToAdd;
-            });
-
-            // chapter.dirty = true;
-            // state.lastResult = null;
-            state.showSuccessfulGuess = false;
-          }),
-        );
-      },
-
-      //TODO hover over this option in context menu should highlight which nodes are being disabled
-      disableLine: (path: string) => {
-        const { repertoire, repertoireIndex, updateDueCounts } = get();
-        const root = repertoire[repertoireIndex].root;
-        updateRecursive(root, path, (node) => {
-          node.data.training.disabled = true;
-        });
-        updateDueCounts();
-      },
-
-      enableLine: (path: string) => {
-        const { repertoire, repertoireIndex, updateDueCounts } = get();
-        const chapter = repertoire[repertoireIndex];
-        const trainAs = chapter.trainAs;
-        updateRecursive(chapter.root, path, (node) => {
-          const color: Color = colorFromPly(node.data.ply);
-          if (trainAs == color) {
-            node.data.training.disabled = false;
-          }
-        });
-        updateDueCounts();
-      },
-
-      //TODO put in state
-      makeMove: (san: string) => {
-        const { selectedNode, repertoire, repertoireIndex, selectedPath } = get();
-
-        const fen = selectedNode.data.fen;
-        if (!selectedNode.children.map((_) => _.data.san).includes(san)) {
-          const [pos, error] = positionFromFen(fen);
-          const move = parseSan(pos, san);
-
-          const newNode: TrainableNode = {
-            data: {
-              training: {
-                disabled: !selectedNode.data.training.disabled,
-                seen: false, //TODO just use group and dueAt?
-                group: -1,
-                dueAt: -1,
-              },
-              ply: selectedNode.data.ply + 1,
-              id: scalachessCharPair(move),
-              san: makeSanAndPlay(pos, move),
-              fen: makeFen(pos.toSetup()),
-              comment: '',
-            },
-            children: [],
-          };
-
-          // update chapter-wide metadata if necessary
-          if (!newNode.data.training.disabled) repertoire[repertoireIndex].nodeCount++;
-          selectedNode.children.push(newNode);
-        }
-
-        const movingTo = selectedNode.children.find((x) => x.data.san == san);
-
-        const newPath = selectedPath + movingTo.data.id;
-
-        /*
-          Update state
-          */
-
-        set({ selectedNode: movingTo, selectedPath: newPath });
-
-        //TODO update due counts, use builtin tree operations
-      },
-
-      addNewChapter: (chapter: Chapter) => {
-        const { repertoire, trainingConfig } = get();
-
-        // const chapter = chapterFromPgn(rawPgn, asColor, name, trainingConfig);
-        let newRepertoire;
-
-        // TODO handle correct placement
-        switch (chapter.trainAs) {
-          case 'white':
-            newRepertoire = [chapter, ...repertoire];
+        switch (trainingConfig.promotion) {
+          case 'most':
+            groupIndex = trainingConfig.buckets.length - 1;
             break;
-
-          case 'black':
-            newRepertoire = [...repertoire, chapter];
+          case 'next':
+            groupIndex = Math.min(groupIndex + 1, trainingConfig.buckets.length - 1);
             break;
         }
 
-        set({ repertoire: newRepertoire });
-      },
-
-      // TODO immer set?
-      importIntoChapter: (targetChapter: number, newPgn: string) => {
-        const { repertoire } = get();
-        const chapter = repertoire[targetChapter];
-        let parsedPgn: TrainableNode;
-
-        const { root: importRoot, nodeCount } = rootFromPgn(newPgn, chapter.trainAs);
-
-        const currentRoot = chapter.root;
-        // should change currentRoot in place
-        merge(currentRoot, importRoot);
-
-        // TODO edit chapter metadata
-        // nothing more?
-
-        set({ repertoire });
+        chapter.bucketEntries[groupIndex]++;
+        timeToAdd = trainingConfig.buckets[groupIndex];
+        targetNode.data.training.group = groupIndex;
+        break;
       }
-    }),
-    {
-      name: 'trainer-store', // IndexedDB key
-      storage: indexedDBStorage,
-      partialize: (state) => ({
-        // only persist long-term data
-        repertoire: state.repertoire,
-        repertoireIndex: state.repertoireIndex,
-        trainingConfig: state.trainingConfig,
-      }),
-    },
-  ),
-);
+
+      case 'learn': {
+        targetNode.data.training.seen = true;
+        targetNode.data.training.group = 0;
+        chapter.bucketEntries[0]++;
+        timeToAdd = trainingConfig.buckets[0];
+        break;
+      }
+
+      default:
+        return null;
+    }
+
+    targetNode.data.training.dueAt = currentTime() + timeToAdd;
+
+    set({ activeChapter: { ...chapter } });
+
+    // ✅ persist ONLY changed node + chapter meta
+    movesDB.patchNode(chapter.id, targetNode.data.id, { training: { ...targetNode.data.training } });
+    movesDB.setChapterMeta({
+      id: chapter.id,
+      name: chapter.name,
+      trainAs: chapter.trainAs,
+      rootId: chapter.root.data.id,
+      nodeCount: chapter.nodeCount,
+      bucketEntries: chapter.bucketEntries,
+      updatedAt: Date.now(),
+    });
+
+    return timeToAdd;
+  },
+
+  fail: () => {
+    const { activeChapter, trainableContext, trainingMethod, trainingConfig } = get();
+    if (!activeChapter || !trainableContext?.targetMove) return;
+
+    const chapter = activeChapter;
+    const node = trainableContext.targetMove;
+
+    let groupIndex = node.data.training.group;
+    chapter.bucketEntries[groupIndex]--;
+
+    if (trainingMethod === 'recall') {
+      switch (trainingConfig.demotion) {
+        case 'most':
+          groupIndex = 0;
+          break;
+        case 'next':
+          groupIndex = Math.max(groupIndex - 1, 0);
+          break;
+      }
+      chapter.bucketEntries[groupIndex]++;
+
+      const interval = trainingConfig.buckets[groupIndex];
+      node.data.training.group = groupIndex;
+      node.data.training.dueAt = currentTime() + interval;
+
+      set({ activeChapter: { ...chapter } });
+
+      // ✅ persist only node + chapter meta
+      movesDB.patchNode(chapter.id, node.data.id, { training: { ...node.data.training } });
+      movesDB.setChapterMeta({
+        id: chapter.id,
+        name: chapter.name,
+        trainAs: chapter.trainAs,
+        rootId: chapter.root.data.id,
+        nodeCount: chapter.nodeCount,
+        bucketEntries: chapter.bucketEntries,
+        updatedAt: Date.now(),
+      });
+    }
+  },
+
+  guess: (san: string): TrainingOutcome => {
+    const { activeChapter, trainableContext, trainingMethod } = get();
+    if (!activeChapter?.root || trainingMethod === 'learn') return 'failure';
+    if (!trainableContext?.startingPath || !trainableContext?.targetMove) return 'failure';
+
+    const root = activeChapter.root;
+    const nodeList = getNodeList(root, trainableContext.startingPath);
+    const current = nodeList.at(-1);
+    if (!current) return 'failure';
+
+    const possible = current.children.map((c) => c.data.san);
+    set({ lastGuess: san });
+
+    if (!possible.includes(san)) return 'failure';
+    return trainableContext.targetMove.data.san === san ? 'success' : 'alternate';
+  },
+
+  markAllAsSeen: () => {
+    const { activeChapter, trainingConfig } = get();
+    if (!activeChapter?.root) return;
+
+    const nowSec = currentTime();
+    const timeToAdd = trainingConfig.buckets?.[0] ?? 0;
+    const chapter = activeChapter;
+
+    // This touches MANY nodes -> persist as a batch of node patches.
+    // simplest correct approach: walk nodes and patch each node’s training (queued).
+    updateRecursive(chapter.root, '', (node) => {
+      const t = node.data.training;
+      if (t.disabled) return;
+      if (t.seen) return;
+
+      chapter.bucketEntries[0] = (chapter.bucketEntries[0] ?? 0) + 1;
+      t.seen = true;
+      t.group = 0;
+      t.dueAt = nowSec + timeToAdd;
+
+      movesDB.patchNode(chapter.id, node.data.id, { training: { ...t } });
+    });
+
+    set({ activeChapter: { ...chapter }, showSuccessfulGuess: false });
+
+    movesDB.setChapterMeta({
+      id: chapter.id,
+      name: chapter.name,
+      trainAs: chapter.trainAs,
+      rootId: chapter.root.data.id,
+      nodeCount: chapter.nodeCount,
+      bucketEntries: chapter.bucketEntries,
+      updatedAt: Date.now(),
+    });
+  },
+
+  disableLine: (path: string) => {
+    const { activeChapter, updateDueCounts } = get();
+    if (!activeChapter?.root) return;
+
+    const chapter = activeChapter;
+    updateRecursive(chapter.root, path, (node) => {
+      node.data.training.disabled = true;
+      movesDB.patchNode(chapter.id, node.data.id, { training: { ...node.data.training } });
+    });
+
+    set({ activeChapter: { ...chapter } });
+    updateDueCounts();
+  },
+
+  enableLine: (path: string) => {
+    const { activeChapter, updateDueCounts } = get();
+    if (!activeChapter?.root) return;
+
+    const chapter = activeChapter;
+    const trainAs = chapter.trainAs;
+
+    updateRecursive(chapter.root, path, (node) => {
+      const color: Color = colorFromPly(node.data.ply);
+      if (trainAs === color) {
+        node.data.training.disabled = false;
+        movesDB.patchNode(chapter.id, node.data.id, { training: { ...node.data.training } });
+      }
+    });
+
+    set({ activeChapter: { ...chapter } });
+    updateDueCounts();
+  },
+
+  makeMove: (san: string) => {
+    const { activeChapter, selectedNode, selectedPath } = get();
+    if (!activeChapter?.root || !selectedNode) return;
+
+    const chapter = activeChapter;
+    const parent = selectedNode;
+
+    const fen = parent.data.fen;
+
+    // if child exists, just move there
+    const existing = parent.children.find((c) => c.data.san === san);
+    if (existing) {
+      set({ selectedNode: existing, selectedPath: selectedPath + existing.data.id });
+      return;
+    }
+
+    const [pos] = positionFromFen(fen);
+    const move = parseSan(pos, san);
+
+    const newNode: TrainableNode = {
+      data: {
+        training: {
+          disabled: !parent.data.training.disabled,
+          seen: false,
+          group: -1,
+          dueAt: -1,
+        },
+        ply: parent.data.ply + 1,
+        id: scalachessCharPair(move),
+        san: makeSanAndPlay(pos, move),
+        fen: makeFen(pos.toSetup()),
+        comment: '',
+      },
+      children: [],
+    };
+
+    if (!newNode.data.training.disabled) chapter.nodeCount++;
+    parent.children.push(newNode);
+
+    const newPath = selectedPath + newNode.data.id;
+
+    set({ activeChapter: { ...chapter }, selectedNode: newNode as any, selectedPath: newPath });
+
+    // ✅ persist new node + parent edge + meta
+    movesDB.setNode(chapter.id, {
+      id: newNode.data.id,
+      parentId: parent.data.id,
+      ply: newNode.data.ply,
+      san: newNode.data.san,
+      // fen: newNode.data.fen, // optional
+      comment: newNode.data.comment ?? null,
+      training: { ...newNode.data.training },
+      childrenIds: [],
+    });
+    movesDB.addChildEdge(chapter.id, parent.data.id, newNode.data.id);
+
+    // append-only nodeIds index
+    movesDB.getNodeIds(chapter.id).then((ids) => {
+      if (!ids.includes(newNode.data.id)) movesDB.setNodeIds(chapter.id, [...ids, newNode.data.id]);
+    });
+
+    movesDB.setChapterMeta({
+      id: chapter.id,
+      name: chapter.name,
+      trainAs: chapter.trainAs,
+      rootId: chapter.root.data.id,
+      nodeCount: chapter.nodeCount,
+      bucketEntries: chapter.bucketEntries,
+      updatedAt: Date.now(),
+    });
+  },
+addNewChapter: async (chapter: Chapter) => {
+  await persistFullChapter(chapter);
+
+  const meta: PersistedChapterMeta = {
+    id: chapter.id,
+    name: chapter.name,
+    trainAs: chapter.trainAs,
+    rootId: chapter.root.data.id,
+    nodeCount: chapter.nodeCount,
+    bucketEntries: [...chapter.bucketEntries],
+    updatedAt: Date.now(),
+    lastDueCount: 0,
+  };
+
+  const existing = get().chapterMeta;
+
+  // de-dupe
+  const without = existing.filter((m) => m.id !== meta.id);
+
+  const next = meta.trainAs === 'white' ? [meta, ...without] : [...without, meta];
+
+  await get().setChapterMeta(next);
+},
+
+
+  //TODO
+  addChapters: async (chapters: Chapter[]) => {
+    if (!chapters.length) return;
+
+    // 1) Persist full chapters (nodes etc)
+    for (const ch of chapters) {
+      await persistFullChapter(ch);
+    }
+
+    // 2) Build metas for these chapters
+    const newMetas: PersistedChapterMeta[] = chapters.map((ch) => ({
+      id: ch.id,
+      name: ch.name,
+      trainAs: ch.trainAs,
+      rootId: ch.root.data.id,
+      nodeCount: ch.nodeCount,
+      bucketEntries: [...ch.bucketEntries],
+      updatedAt: Date.now(),
+      lastDueCount: ch.lastDueCount ?? 0,
+    }));
+
+    // 3) Write per-chapter meta records
+    for (const meta of newMetas) {
+      await movesDB.setChapterMeta(meta);
+    }
+
+    // 4) Update the meta index list + Zustand state in one go
+    //    - dedupe by id (new wins)
+    //    - keep stable ordering: whites first, then blacks
+    const prev = get().chapterMeta;
+
+    const byId = new Map<string, PersistedChapterMeta>();
+    for (const m of prev) byId.set(m.id, m);
+    for (const m of newMetas) byId.set(m.id, m); // overwrite/insert
+
+    const merged = Array.from(byId.values());
+
+    // optional: stable sort (white first, then black, then name)
+    merged.sort((a, b) => {
+      if (a.trainAs !== b.trainAs) return a.trainAs === 'white' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    // ✅ update UI immediately
+    set({ chapterMeta: merged });
+
+    // ✅ persist index list
+    await movesDB.setAllChapterMeta(merged);
+
+    // 5) Optionally activate first newly added chapter
+    await get().setActiveChapterById(chapters[0].id);
+  },
+
+  importIntoChapter: async (targetChapterId: string, newPgn: string) => {
+    // load runtime chapter if not active
+    let { activeChapter } = get();
+    if (!activeChapter || activeChapter.id !== targetChapterId) {
+      await get().setActiveChapterById(targetChapterId);
+      activeChapter = get().activeChapter;
+    }
+    if (!activeChapter) return;
+
+    const chapter = activeChapter;
+    const { root: importRoot } = rootFromPgn(newPgn, chapter.trainAs);
+
+    // mutate runtime tree
+    merge(chapter.root, importRoot);
+
+    set({ activeChapter: { ...chapter } });
+
+    // structural change -> simplest correct: persist full chapter
+    await persistFullChapter(chapter);
+    // await get().refreshChapterMeta();
+  },
+
+  deleteChapterById: async (chapterId: string) => {
+    const { chapterMeta, activeChapterId } = get();
+
+    // 1️⃣ Remove from meta list
+    const nextMeta = chapterMeta.filter((m) => m.id !== chapterId);
+
+    // 2️⃣ Persist meta list
+    await setChapterMetaInIDB(nextMeta);
+
+    // 3️⃣ Update Zustand
+    set({ chapterMeta: nextMeta });
+
+    // 4️⃣ If this chapter was active, clear or switch
+    if (activeChapterId === chapterId) {
+      if (nextMeta.length > 0) {
+        // optional: auto-open next chapter
+        await get().setActiveChapterById(nextMeta[0].id);
+      } else {
+        // nothing left
+        set({
+          activeChapterId: null,
+          activeChapter: null,
+          selectedPath: '',
+          selectedNode: null,
+          trainableContext: undefined,
+          userTip: 'init',
+        });
+      }
+    }
+
+    // 5️⃣ Delete full chapter data (nodes, edges, etc.)
+    await deleteFullChapter(chapterId);
+  },
+}));

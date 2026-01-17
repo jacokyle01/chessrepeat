@@ -101,6 +101,7 @@ export interface Chapter {
   nodeCount: number;
   bucketEntries: number[];
   root: TrainableNode;
+  id: string;
 }
 //TODO different data structure for a chapter thats currently selected?
 

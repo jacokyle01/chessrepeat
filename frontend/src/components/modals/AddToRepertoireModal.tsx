@@ -11,6 +11,7 @@ const AddToRepertoireModal: React.FC = () => {
 
   // ✅ Adjust to your real store action name/signature
   // expected: importChessrepeatIntoRepertoire(fileText: string): Promise<void> | void
+  const addChapters = useTrainerStore((s) => s.addChapters);
   const addNewChapter = useTrainerStore((s) => s.addNewChapter);
 
   const [tab, setTab] = useState<ImportTab>('pgn');
@@ -78,10 +79,13 @@ const AddToRepertoireModal: React.FC = () => {
     try {
       // await importChessrepeatIntoRepertoire(trimmed);
       const chapters = importAnnotatedPgn(chessrepeatText);
+      //TODO state action addChapters?
+      for (const ch of chapters) {
+        await useTrainerStore.getState().addNewChapter(ch);
+      }
+
       // console.log("IMPORTED CHAPTERS", chapters);
-      chapters.forEach((chapter) => {
-        addNewChapter(chapter);
-      });
+      // addChapters(chapters);
       // reset + close
       setChessrepeatText('');
       if (chessrepeatFileRef.current) chessrepeatFileRef.current.value = '';

@@ -16,11 +16,9 @@ const PgnControls = () => {
 
   const trainingPath = useTrainerStore().trainableContext?.startingPath || '';
 
-  const repertoire = useTrainerStore().repertoire;
-  const repertoireIndex = useTrainerStore().repertoireIndex;
+  const chapter = useTrainerStore.getState().activeChapter;
 
   const trainingMethod = useTrainerStore().trainingMethod;
-  const chapter = repertoire[repertoireIndex];
 
   const jump = useTrainerStore((s) => s.jump);
 

@@ -142,10 +142,8 @@ function RenderComment({
   path: string;
   maxLength: number;
 }) {
-  const repertoire = useTrainerStore.getState().repertoire;
-  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
   const setCommentAt = useTrainerStore((s) => s.setCommentAt);
-  const chapter = repertoire[repertoireIndex];
+  const chapter = useTrainerStore.getState().activeChapter;
   if (!chapter) return;
   // let root = chapter.root;
 
@@ -253,44 +251,10 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   const isContextSelected = path === contextSelectedPath;
   const activeClass = path === selectedPath ? 'bg-blue-400/50 active' : '';
 
-  const { repertoire, repertoireIndex } = useTrainerStore.getState();
-  const chapter = repertoire[repertoireIndex];
+  const chapter = useTrainerStore.getState().activeChapter
   if (!chapter) return;
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
-
-  // const items = [
-  //   {
-  //     label: nodeFromPath.data.san,
-  //     disabled: true,
-  //     className: 'px-3 py-2 font-semibold text-gray-800 cursor-default',
-  //     template: (item: any) => (
-  //       <div className="px-3 py-2 font-semibold text-gray-800 select-none">{item.label}</div>
-  //     ),
-  //   },
-  //   { separator: true },
-
-  //   {
-  //     label: 'Delete from here',
-  //     command: () => {
-  //       console.log('delete', path);
-  //       deleteNode(path);
-  //     },
-  //   },
-  //   { label: 'Promote', command: () => console.log('promote', path) },
-  //   {
-  //     label: 'Add Comment',
-  //     command: () => {
-  //       const comment = prompt('Enter a comment:');
-  //       if (comment !== null) {
-  //         const { repertoire, repertoireIndex } = useTrainerStore.getState();
-  //         const chapter = repertoire[repertoireIndex];
-  //         if (!chapter) return;
-  //         useTrainerStore.getState().setCommentAt(comment, path);
-  //       }
-  //     },
-  //   },
-  // ];
   const items = contextMenuItems(path, nodeFromPath.data.san);
 
   return (
@@ -313,8 +277,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
 
   const path = opts.parentPath + node.data.id;
 
-  const { repertoire, repertoireIndex } = useTrainerStore.getState();
-  const chapter = repertoire[repertoireIndex];
+  const chapter = useTrainerStore.getState().activeChapter
   if (!chapter) return;
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
@@ -473,9 +436,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
 }
 
 function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  let repertoire = useTrainerStore.getState().repertoire;
-  let repertoireIndex = useTrainerStore.getState().repertoireIndex;
-  const chapter = repertoire[repertoireIndex];
+  const chapter = useTrainerStore.getState().activeChapter
   const root = chapter.root;
 
   const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
@@ -549,7 +510,12 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
         <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
           {/* {commentTags} */}
           {/* ctx, main, conceal, true, opts.parentPath + main.id */}
-          <RenderMainlineCommentsOf ctx={ctx} node={main} withColor={true} path={opts.parentPath + main.data.id} />
+          <RenderMainlineCommentsOf
+            ctx={ctx}
+            node={main}
+            withColor={true}
+            path={opts.parentPath + main.data.id}
+          />
           {/* ^^^^ COMPONENT */}
           <RenderLines
             ctx={ctx}
@@ -609,9 +575,7 @@ export default function PgnTree({ setActiveMoveId }) {
     }
   };
 
-  const repertoire = useTrainerStore.getState().repertoire;
-  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
-  const chapter = repertoire[repertoireIndex];
+  const chapter = useTrainerStore.getState().activeChapter;
   if (!chapter) return;
   let root = chapter.root;
   if (!root) return;
