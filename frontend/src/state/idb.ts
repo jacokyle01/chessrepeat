@@ -52,7 +52,6 @@ function createWriteQueue(delayMs = 400) {
   };
 }
 
-
 const wq = createWriteQueue(800);
 
 export const movesDB = {
@@ -105,20 +104,19 @@ export const movesDB = {
   },
 
   async deleteChapter(chapterId: string) {
-  // remove nodes
-  const ids = await movesDB.getNodeIds(chapterId);
-  await Promise.all(ids.map((nid) => idbDel(KEYS.node(chapterId, nid))));
-  await idbDel(KEYS.nodeIds(chapterId));
+    // remove nodes
+    const ids = await movesDB.getNodeIds(chapterId);
+    await Promise.all(ids.map((nid) => idbDel(KEYS.node(chapterId, nid))));
+    await idbDel(KEYS.nodeIds(chapterId));
 
-  // remove per-chapter meta
-  await idbDel(KEYS.chapterMeta(chapterId));
+    // remove per-chapter meta
+    await idbDel(KEYS.chapterMeta(chapterId));
 
-  // remove from meta index
-  const all = await movesDB.getAllChapterMeta();
-  const next = all.filter((m) => m.id !== chapterId);
-  await wq.putNow(KEYS.metaIndex, next);
-},
-
+    // remove from meta index
+    const all = await movesDB.getAllChapterMeta();
+    const next = all.filter((m) => m.id !== chapterId);
+    await wq.putNow(KEYS.metaIndex, next);
+  },
 };
 
 import type { Chapter, TrainableNode, TrainingData } from '../types/training';
@@ -128,6 +126,7 @@ import { PersistedChapterMeta, PersistedMoveNode } from '../types/state';
 // We need to convert indexedDB node record into a tree
 // TODO how do we get the root?
 function persistedToRuntimeNode(p: PersistedMoveNode): ChildNode<TrainingData> {
+  // console.log("persisted node", p);
   return {
     data: {
       id: p.id,
@@ -161,6 +160,7 @@ export async function loadChapterRuntime(chapterId: string): Promise<Chapter | n
   const root = byId.get(meta.rootId);
   if (!root) return null;
 
+  console.log('root', root);
   return {
     id: meta.id,
     name: meta.name,
@@ -171,7 +171,6 @@ export async function loadChapterRuntime(chapterId: string): Promise<Chapter | n
     lastDueCount: 0,
   } as any;
 }
-
 
 export async function getChapterMetaFromIDB(): Promise<PersistedChapterMeta[]> {
   return (await idbGet(KEYS.metaIndex)) ?? [];
@@ -189,9 +188,7 @@ export async function persistFullChapter(ch: Chapter) {
   const nodeIds: string[] = [];
 
   // DFS stack
-  const stack: Array<{ node: TrainableNode; parentId: string | null }> = [
-    { node: ch.root, parentId: null },
-  ];
+  const stack: Array<{ node: TrainableNode; parentId: string | null }> = [{ node: ch.root, parentId: null }];
 
   while (stack.length) {
     const { node, parentId } = stack.pop()!;
@@ -202,7 +199,8 @@ export async function persistFullChapter(ch: Chapter) {
       parentId,
       ply: node.data.ply,
       san: node.data.san,
-      // fen optional
+      // TODO fen optional?
+      fen: node.data.fen, 
       training: { ...node.data.training },
       comment: node.data.comment ?? null,
       childrenIds: node.children.map((c) => c.data.id),
@@ -237,8 +235,6 @@ export async function persistFullChapter(ch: Chapter) {
 
   await wq.putNow(KEYS.metaIndex, next);
 }
-
-
 
 // newState/persistChapter.ts
 export async function deleteFullChapter(chapterId: string) {

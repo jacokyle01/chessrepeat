@@ -326,6 +326,7 @@ export const Chessrepeat = () => {
                   dests: calculateDests(),
                   events: {
                     after: (from: Key, to: Key, metadata: MoveMetadata) => {
+                      console.log("selected node", selectedNode);
                       const san = chessgroundToSan(selectedNode.data.fen, from, to);
                       if (!isEditing) {
                         // this.syncTime();
