@@ -114,8 +114,9 @@ const ChapterRow: React.FC<ChapterRowProps> = ({ meta, indexLabel }) => {
           <button
             type="button"
             className="ml-auto mr-2 text-gray-600"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
+              await setActiveChapterById(meta.id);
               setEditOpen(true);
             }}
             aria-label="Edit chapter"
@@ -126,8 +127,9 @@ const ChapterRow: React.FC<ChapterRowProps> = ({ meta, indexLabel }) => {
           <button
             type="button"
             className="mr-2 text-gray-600"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
+              await setActiveChapterById(meta.id);
               setExportOpen(true);
             }}
             aria-label="Export chapter"
