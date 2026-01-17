@@ -152,12 +152,11 @@ export const useTrainerStore = create<TrainerState>()((set, get) => ({
   setShowingImportIntoChapterModal: (val) => set({ showingImportIntoChapterModal: val }),
 
   // ✅ "get" = load from IDB and also set in-memory state
-getChapterMeta: async () => {
-  const meta = await getChapterMetaFromIDB();
-  set({ chapterMeta: meta });
-  return meta;
-},
-
+  getChapterMeta: async () => {
+    const meta = await getChapterMetaFromIDB();
+    set({ chapterMeta: meta });
+    return meta;
+  },
 
   // ✅ "set" = write to IDB, then set in-memory state
   setChapterMeta: async (next) => {
@@ -415,13 +414,15 @@ getChapterMeta: async () => {
   },
 
   guess: (san: string): TrainingOutcome => {
-    const { activeChapter, trainableContext, trainingMethod } = get();
-    if (!activeChapter?.root || trainingMethod === 'learn') return 'failure';
-    if (!trainableContext?.startingPath || !trainableContext?.targetMove) return 'failure';
+    const { activeChapter, trainableContext } = get();
+    if (!activeChapter?.root) return 'failure';
+    if (trainableContext.startingPath == null || !trainableContext.targetMove) return 'failure';
 
     const root = activeChapter.root;
+    console.log('ACTIVE C ROOT', root);
     const nodeList = getNodeList(root, trainableContext.startingPath);
     const current = nodeList.at(-1);
+    console.log('current', current);
     if (!current) return 'failure';
 
     const possible = current.children.map((c) => c.data.san);
@@ -571,30 +572,29 @@ getChapterMeta: async () => {
       updatedAt: Date.now(),
     });
   },
-addNewChapter: async (chapter: Chapter) => {
-  await persistFullChapter(chapter);
+  addNewChapter: async (chapter: Chapter) => {
+    await persistFullChapter(chapter);
 
-  const meta: PersistedChapterMeta = {
-    id: chapter.id,
-    name: chapter.name,
-    trainAs: chapter.trainAs,
-    rootId: chapter.root.data.id,
-    nodeCount: chapter.nodeCount,
-    bucketEntries: [...chapter.bucketEntries],
-    updatedAt: Date.now(),
-    lastDueCount: 0,
-  };
+    const meta: PersistedChapterMeta = {
+      id: chapter.id,
+      name: chapter.name,
+      trainAs: chapter.trainAs,
+      rootId: chapter.root.data.id,
+      nodeCount: chapter.nodeCount,
+      bucketEntries: [...chapter.bucketEntries],
+      updatedAt: Date.now(),
+      lastDueCount: 0,
+    };
 
-  const existing = get().chapterMeta;
+    const existing = get().chapterMeta;
 
-  // de-dupe
-  const without = existing.filter((m) => m.id !== meta.id);
+    // de-dupe
+    const without = existing.filter((m) => m.id !== meta.id);
 
-  const next = meta.trainAs === 'white' ? [meta, ...without] : [...without, meta];
+    const next = meta.trainAs === 'white' ? [meta, ...without] : [...without, meta];
 
-  await get().setChapterMeta(next);
-},
-
+    await get().setChapterMeta(next);
+  },
 
   //TODO
   addChapters: async (chapters: Chapter[]) => {
