@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { CircleXIcon, GlassesIcon, PencilIcon, TrashIcon, UploadIcon } from 'lucide-react';
-import { useTrainerStore } from '../../state/state';
+import React, { useRef, useState } from "react";
+import { CircleXIcon, GlassesIcon, PencilIcon, TrashIcon, UploadIcon } from "lucide-react";
+import { useTrainerStore } from "../../state/state";
 
 interface EditChapterModalProps {
   chapterIndex: number;
@@ -17,28 +17,28 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
   onRename,
   onSetAllSeen,
 }) => {
-  // const repertoire = useTrainerStore((s) => s.repertoire);
+  const repertoire = useTrainerStore((s) => s.repertoire);
 
   // ✅ state action you asked to use
   const importIntoChapter = useTrainerStore((s) => s.importIntoChapter);
 
-  const chapter = useTrainerStore((s) => s.activeChapter);
+  const chapter = repertoire[chapterIndex];
   const [isEditingName, setIsEditingName] = useState(false);
-  const [chapterName, setChapterName] = useState(chapter?.name || '');
+  const [chapterName, setChapterName] = useState(chapter?.name || "");
 
   // New: PGN input state
-  const [pgnText, setPgnText] = useState('');
+  const [pgnText, setPgnText] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!chapter) return null;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       onRename(chapterIndex, chapterName.trim());
       setIsEditingName(false);
     }
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       setChapterName(chapter.name);
       setIsEditingName(false);
     }
@@ -47,7 +47,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
   const handleImport = async () => {
     const trimmed = pgnText.trim();
     if (!trimmed) {
-      setImportError('Paste a PGN first.');
+      setImportError("Paste a PGN first.");
       return;
     }
 
@@ -55,12 +55,12 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
     try {
       // assuming your store action takes (chapterIndex, pgnString)
       // if your signature is different, adjust here.
-      // await importIntoChapter(chapterIndex, trimmed);
+      await importIntoChapter(chapterIndex, trimmed);
 
-      setPgnText('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setPgnText("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
-      setImportError(err?.message ?? 'Failed to import PGN.');
+      setImportError(err?.message ?? "Failed to import PGN.");
     }
   };
 
@@ -70,7 +70,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
 
     const reader = new FileReader();
     reader.onload = () => {
-      const text = String(reader.result ?? '');
+      const text = String(reader.result ?? "");
       setPgnText(text);
       setImportError(null);
     };
@@ -80,7 +80,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
   return (
     <dialog
       open
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-60
+      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20
                  border-none bg-white rounded-lg shadow-lg w-full max-w-md"
     >
       {/* Close Button */}
@@ -177,8 +177,8 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
               className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 font-semibold transition
                 ${
                   pgnText.trim()
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
                 }`}
             >
               <UploadIcon className="w-4 h-4" />
@@ -186,7 +186,9 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
             </button>
           </div>
 
-          {importError ? <div className="mt-2 text-sm text-red-600">{importError}</div> : null}
+          {importError ? (
+            <div className="mt-2 text-sm text-red-600">{importError}</div>
+          ) : null}
         </div>
       </div>
     </dialog>
