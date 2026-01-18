@@ -62,12 +62,18 @@ export const Chessrepeat = () => {
     succeed,
     guess,
     makeMove,
+    hydrateRepertoireFromIDB,
   } = useTrainerStore();
 
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log('test');
+    hydrateRepertoireFromIDB();
+  }, []);
 
   useEffect(() => {
     const container = movesContainerRef.current;
@@ -192,7 +198,6 @@ export const Chessrepeat = () => {
     setBox({ x: coords.x, y: coords.y, time: formattedTime });
     setTimeout(() => setBox(null), 1000);
   };
-
 
   //TODO refactor common logic here
   const prevMoveIfExists = () => {

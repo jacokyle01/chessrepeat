@@ -1,13 +1,7 @@
-import {
-  Game,
-  Node,
-  parsePgn,
-  PgnNodeData,
-} from 'chessops/pgn';
+import { Game, Node, parsePgn, PgnNodeData } from 'chessops/pgn';
 import { Chapter, Color, TrainableNode, TrainingConfig } from '../types/training';
 import { annotateMoves } from './training';
 import { INITIAL_BOARD_FEN } from 'chessops/fen';
-
 
 export function downloadTextFile(content: string, filename: string, mimeType = 'text/plain') {
   const blob = new Blob([content], { type: mimeType });
@@ -38,6 +32,7 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string, con
   const { root, nodeCount } = rootFromPgn(rawPgn, asColor);
 
   const chapter: Chapter = {
+    id: crypto.randomUUID(),
     root: root,
     name: name,
     bucketEntries: config.buckets.map(() => 0),
@@ -89,7 +84,6 @@ export const importAnnotatedPgn = (annotatedPgn: string) => {
   const chapters: Chapter[] = [];
   const parts: Game<PgnNodeData>[] = parsePgn(annotatedPgn);
   parts.forEach((part) => {
-
     const { moves, nodeCount: nodeCount } = annotateMoves(part.moves, true);
     // put initial position first
     //TODO do something about mainline, etc..
@@ -120,6 +114,7 @@ export const importAnnotatedPgn = (annotatedPgn: string) => {
     const asColor = part.headers.get('trainAs') as Color;
 
     const chapter: Chapter = {
+      id: crypto.randomUUID(),
       root: root,
       name: chapterName,
       bucketEntries: bucketEntries,
