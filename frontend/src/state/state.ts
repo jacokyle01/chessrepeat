@@ -1,3 +1,4 @@
+
 // state/trainerStore.ts
 // Minimal change: split persisted repertoire into per-chapter blobs in IndexedDB.
 // - Keep `repertoire: Chapter[]` in Zustand (in-memory).

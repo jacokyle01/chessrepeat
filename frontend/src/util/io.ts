@@ -84,6 +84,8 @@ export const importAnnotatedPgn = (annotatedPgn: string) => {
   const chapters: Chapter[] = [];
   const parts: Game<PgnNodeData>[] = parsePgn(annotatedPgn);
   parts.forEach((part) => {
+    console.log("part", part);
+
     const { moves, nodeCount: nodeCount } = annotateMoves(part.moves, true);
     // put initial position first
     //TODO do something about mainline, etc..
