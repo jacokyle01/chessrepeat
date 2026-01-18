@@ -62,13 +62,13 @@ export const Chessrepeat = () => {
     succeed,
     guess,
     makeMove,
-    hydrateRepertoireFromIDB
+    hydrateRepertoireFromIDB,
   } = useTrainerStore();
 
   useEffect(() => {
-    console.log("test")
-    hydrateRepertoireFromIDB()
-  }, [])
+    console.log('test');
+    hydrateRepertoireFromIDB();
+  }, []);
 
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
@@ -89,8 +89,6 @@ export const Chessrepeat = () => {
         inline: 'nearest',
       });
     };
-
-
 
     // // Initial sync (in case active already exists)
     // scrollActiveIntoView();
@@ -201,7 +199,6 @@ export const Chessrepeat = () => {
     setTimeout(() => setBox(null), 1000);
   };
 
-
   //TODO refactor common logic here
   const prevMoveIfExists = () => {
     let repertoire = useTrainerStore.getState().repertoire;
@@ -311,13 +308,13 @@ export const Chessrepeat = () => {
 
         {/* <SettingsModal></SettingsModal> */}
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
-        <div className="flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 min-h-0 overflow-hidden">
-          <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden">
+        <div className="flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 overflow-hidden">
+          <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden flex-1">
             <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
             <RepertoireActions></RepertoireActions>
             <Schedule />
           </div>
-          <div className="game-wrap flex flex-col items-between flex-1">
+          <div className="game-wrap flex flex-col items-between flex-1 h-dvh">
             <div id="board-wrap" className="bg-white p-1" ref={containerRef}>
               {/* TODO fix || initial */}
               <Chessground
@@ -382,7 +379,8 @@ export const Chessrepeat = () => {
             </div>
 
             <Controls />
-            <CommentBox></CommentBox>
+            <CommentBox />
+            {/* TODO  where is copy FEN?*/}
             <CopyFen></CopyFen>
           </div>
           <div className="tree-wrap flex flex-col flex-1 h-full w-1/3">
