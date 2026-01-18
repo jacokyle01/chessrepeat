@@ -30,8 +30,9 @@ const Controls = () => {
 
   const lastGuess = useTrainerStore.getState().lastGuess;
 
-  const chapter = useTrainerStore().activeChapter;
-  const name = chapter?.name || '';
+  const repertoire = useTrainerStore().repertoire;
+  const repertoireIndex = useTrainerStore().repertoireIndex;
+  const name = repertoire[repertoireIndex]?.name || '';
 
   //TODO difference between handleLearn and setting mode to learn?
   return (
@@ -52,15 +53,9 @@ const Controls = () => {
 
         <button
           onClick={() => {
-            let startMs = performance.now();
             setTrainingMethod('learn');
             setNextTrainable();
             updateDueCounts();
-            let endMs = performance.now();
-            let totalMs = endMs - startMs;
-            if (totalMs > 0) {
-              console.log(`[perf] setNextTrainablePosition total=${totalMs.toFixed(2)}ms `);
-            }
           }}
           className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
             trainingMethod == 'learn'
