@@ -13,7 +13,7 @@ const RepertoireActions: React.FC = () => {
     }
 
   return (
-    <div id="repertoire-actions" className="my-2 flex flex-wrap justify-center gap-2">
+    <div id="repertoire-actions" className="my-2 flex flex-wrap justify-center gap-2 shrink-0">
       <button
         onClick={() => setShowingAddToRepertoireMenu(true)}
         className="flex items-center justify-center bg-blue-500 text-white font-semibold rounded-md py-2 px-2 min-w-[180px] gap-2 transition duration-200 ease-in-out hover:bg-blue-600 active:scale-95 shadow-md hover:shadow-lg"

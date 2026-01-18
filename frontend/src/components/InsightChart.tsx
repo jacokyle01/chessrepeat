@@ -37,6 +37,8 @@ const InsightChart: React.FC = () => {
   };
 
   const options: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
     indexAxis: 'y',
     animation: false,
     plugins: {
@@ -54,8 +56,14 @@ const InsightChart: React.FC = () => {
         grid: { display: false },
       },
       y: {
-        ticks: { display: true },
         grid: { display: true },
+        ticks: {
+          autoSkip: false, // 👈 show every label
+          maxRotation: 0,
+          minRotation: 0,
+          // optional: make them smaller so they fit
+          font: { size: 10 },
+        },
       },
     },
   };

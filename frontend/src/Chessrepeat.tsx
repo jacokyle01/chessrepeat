@@ -62,7 +62,13 @@ export const Chessrepeat = () => {
     succeed,
     guess,
     makeMove,
+    hydrateRepertoireFromIDB,
   } = useTrainerStore();
+
+  useEffect(() => {
+    console.log('test');
+    hydrateRepertoireFromIDB();
+  }, []);
 
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
@@ -71,8 +77,6 @@ export const Chessrepeat = () => {
 
   useEffect(() => {
     const container = movesContainerRef.current;
-    console.log('container', container);
-    console.log('should be the pgn tree container (and have overflow set to scroll');
     if (!container) return;
 
     const scrollActiveIntoView = () => {
@@ -195,8 +199,6 @@ export const Chessrepeat = () => {
     setTimeout(() => setBox(null), 1000);
   };
 
-  console.log('selectedNode (before we make a move', selectedNode);
-
   //TODO refactor common logic here
   const prevMoveIfExists = () => {
     let repertoire = useTrainerStore.getState().repertoire;
@@ -209,16 +211,16 @@ export const Chessrepeat = () => {
     const lastNode = nodeList.at(-1);
     const lastlastNode = nodeList.at(-2);
     if (!lastNode || !lastlastNode) return undefined;
-    console.log('lastNode', lastNode, 'before that', lastlastNode);
+    // console.log('lastNode', lastNode, 'before that', lastlastNode);
 
     const fen = lastlastNode.data.fen;
     const setup = parseFen(fen);
     if (!setup.isOk) throw new Error('Invalid FEN: ' + fen);
 
     let pos = Chess.fromSetup(setup.value).unwrap();
-    console.log('pos', pos);
+    // console.log('pos', pos);
     const move = parseSan(pos, lastNode.data.san);
-    console.log('move', move);
+    // console.log('move', move);
     // return [move.from, move.to];
     return chessgroundMove(move);
   };
@@ -235,11 +237,10 @@ export const Chessrepeat = () => {
   const prevMove = prevMoveIfExists();
   const lastMove = selectedNode ? prevMove : undefined;
 
-  console.log('lastMove (should be like [a1, a2]', lastMove);
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
-      <div id="root" className="w-full h-full bg-gray-200">
+      <div id="root" className="w-full h-dvh min-h-0 flex flex-col bg-gray-200">
         <div id="header" className="flex items-center justify-start text-3xl mb-3 gap-10">
           {/* Logo + Title */}
           <div className="flex items-end">
@@ -307,13 +308,13 @@ export const Chessrepeat = () => {
 
         {/* <SettingsModal></SettingsModal> */}
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
-        <div className="flex justify-between items-start w-full px-10 gap-5">
-          <div className="repertoire-wrap flex flex-col flex-1 w-1/3">
+        <div className="flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 overflow-hidden">
+          <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden flex-1">
             <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
             <RepertoireActions></RepertoireActions>
             <Schedule />
           </div>
-          <div className="game-wrap flex flex-col items-between flex-1">
+          <div className="game-wrap flex flex-col items-between flex-1 h-dvh">
             <div id="board-wrap" className="bg-white p-1" ref={containerRef}>
               {/* TODO fix || initial */}
               <Chessground
@@ -339,9 +340,7 @@ export const Chessrepeat = () => {
                           updateDueCounts();
                           switch (trainingMethod) {
                             case 'learn':
-                              console.log('learn callback');
                               succeed();
-                              console.log('does trainable have fen?', selectedNode);
                               setNextTrainablePosition();
                               //TODO just call setNextTrainable..
                               break;
@@ -380,7 +379,8 @@ export const Chessrepeat = () => {
             </div>
 
             <Controls />
-            <CommentBox></CommentBox>
+            <CommentBox />
+            {/* TODO  where is copy FEN?*/}
             <CopyFen></CopyFen>
           </div>
           <div className="tree-wrap flex flex-col flex-1 h-full w-1/3">

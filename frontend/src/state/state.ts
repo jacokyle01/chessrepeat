@@ -1,5 +1,10 @@
 // state/trainerStore.ts
-//TODO prefix treepath functions with treePath.___
+// Minimal change: split persisted repertoire into per-chapter blobs in IndexedDB.
+// - Keep `repertoire: Chapter[]` in Zustand (in-memory).
+// - STOP persisting `repertoire` via zustand/persist (that was causing big rewrites).
+// - Persist each chapter separately under `trainer:chapter:${cid}`.
+// - Persist only a tiny chapter index + small settings in zustand/persist.
+
 import { create } from 'zustand';
 import { persist, StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
@@ -27,9 +32,6 @@ import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
 import { rootFromPgn } from '../util/io';
 
-// import { path as treePath} from '../components/tree/tree';
-//TODO make sure we are using this convention to import
-
 interface TrainerState {
   /* UI Flags */
   trainingMethod: TrainingMethod;
@@ -45,7 +47,7 @@ interface TrainerState {
   setShowingImportIntoChapterModal: (val: boolean) => void;
 
   repertoire: Chapter[];
-  setRepertoire: (r: Chapter[]) => void;
+  setRepertoire: (r: Chapter[]) => Promise<void>; // now async (writes per chapter)
 
   repertoireIndex: number;
   setRepertoireIndex: (i: number) => void;
@@ -80,13 +82,14 @@ interface TrainerState {
   cbConfig: CbConfig;
   setCbConfig: (cfg: CbConfig) => void;
 
-  jump: (path: string) => void;
+  // NEW: hydrate chapters from IDB after persist rehydrates small state
+  hydrateRepertoireFromIDB: () => Promise<void>;
 
-  makeMove: (san: string) => void;
+  jump: (path: string) => void;
+  makeMove: (san: string) => Promise<void>;
 
   clearChapterContext: () => void;
-  //TODO annotate these correctly
-  setCommentAt: (comment: string, path: string) => void;
+  setCommentAt: (comment: string, path: string) => Promise<void>;
   updateDueCounts: () => void;
   setNextTrainablePosition: () => void;
   succeed: () => number | null;
@@ -94,30 +97,90 @@ interface TrainerState {
   guess: (san: string) => TrainingOutcome;
 
   // higher-level ops
-  markAllAsSeen: () => void;
-  disableLine: (path: string) => void;
-  deleteLine: (path: string) => void;
-  enableLine: (path: string) => void;
-  addNewChapter: (chapter: Chapter) => void;
+  markAllAsSeen: () => Promise<void>;
+  disableLine: (path: string) => Promise<void>;
+  deleteLine: (path: string) => Promise<void>;
+  enableLine: (path: string) => Promise<void>;
+  addNewChapter: (chapter: Chapter) => Promise<void>;
+  importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
 
-  importIntoChapter: (targetChapter: number, newPgn: string) => void;
+  renameChapter: (index: number, name: string) => void;
+  deleteChapterAt: (index: number) => void;
 }
 
-// --- IndexedDB storage for zustand ---
+/**
+ * ---------- IndexedDB keys ----------
+ * We store each chapter separately so we never write the whole repertoire blob.
+ *
+ * - trainer:chapters         -> string[] (chapter ids)
+ * - trainer:chapter:<cid>    -> Chapter (full chapter blob)
+ */
+const KEYS = {
+  chapterIds: 'trainer:chapters' as const,
+  chapter: (cid: string) => `trainer:chapter:${cid}`,
+};
+
+async function writeChapterIds(ids: string[]) {
+  await set(KEYS.chapterIds, ids);
+}
+async function readChapterIds(): Promise<string[]> {
+  return (await get(KEYS.chapterIds)) ?? [];
+}
+async function writeChapter(cid: string, chapter: Chapter) {
+  await set(KEYS.chapter(cid), chapter);
+}
+async function readChapter(cid: string): Promise<Chapter | null> {
+  return (await get(KEYS.chapter(cid))) ?? null;
+}
+async function deleteChapter(cid: string) {
+  await del(KEYS.chapter(cid));
+}
+
+// // ---- helpers (you already have these) ----
+// async function rewriteChapterIdsFromRepertoire(repertoire: Chapter[]) {
+//   const ids = repertoire.map((c) => c.id);
+//   await writeChapterIds(ids);
+// }
+
+// --- IndexedDB storage for zustand/persist (keep small) ---
 const indexedDBStorage: StateStorage = {
   getItem: async (name) => {
     const value = await get(name);
-    return value ?? null; // already a string
+    return value ?? null;
   },
   setItem: async (name, value) => {
-    await set(name, value); // keep as string
+    await set(name, value);
   },
   removeItem: async (name) => {
     await del(name);
   },
 };
 
-// --- create store with persist ---
+// Helper: persist one chapter by index (in-memory -> IDB) and ensure id list is updated
+async function persistChapterByIndex(state: { repertoire: Chapter[] }, idx: number) {
+  const ch = state.repertoire[idx];
+  if (!ch) return;
+
+  const cid = ch.id;
+  await writeChapter(cid, ch);
+
+  const ids = await readChapterIds();
+  if (!ids.includes(cid)) {
+    await writeChapterIds([...ids, cid]);
+  }
+}
+
+// Helper: persist all chapters (used by setRepertoire)
+async function persistAllChapters(repertoire: Chapter[]) {
+  const ids: string[] = [];
+  for (const ch of repertoire) {
+    const cid = ch.id;
+    ids.push(cid);
+    await writeChapter(cid, ch);
+  }
+  await writeChapterIds(ids);
+}
+
 export const useTrainerStore = create<TrainerState>()(
   persist(
     (set, get) => ({
@@ -133,8 +196,15 @@ export const useTrainerStore = create<TrainerState>()(
       showingImportIntoChapterModal: false,
       setShowingImportIntoChapterModal: (val) => set({ showingAddToRepertoireMenu: val }),
 
+      // in-memory only; loaded via hydrateRepertoireFromIDB
       repertoire: [],
-      setRepertoire: (repertoire) => set({ repertoire }),
+      setRepertoire: async (repertoire) => {
+        // update memory first
+        set({ repertoire });
+
+        // persist per-chapter (NOT via zustand persist)
+        await persistAllChapters(repertoire);
+      },
 
       repertoireIndex: 0,
       setRepertoireIndex: (i) => set({ repertoireIndex: i }),
@@ -169,59 +239,128 @@ export const useTrainerStore = create<TrainerState>()(
       cbConfig: {},
       setCbConfig: (cfg) => set({ cbConfig: cfg }),
 
-      jump: (path) => {
-        const { repertoire, repertoireIndex } = get();
-        const root = repertoire[repertoireIndex].root;
-        if (!root) return;
-        const nodeList = getNodeList(root, path);
-        const node = nodeList.at(-1);
-        set({ selectedPath: path, selectedNode: node });
+      // ---- inside create(...) actions ----
+      renameChapter: async (chapterIndex: number, newName: string) => {
+        const { repertoire } = get();
+        const chapter = repertoire[chapterIndex];
+        if (!chapter) return;
+
+        const cid = chapter.id;
+
+        // update in-memory (touch only that chapter)
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[chapterIndex] = { ...next[chapterIndex], name: newName };
+          return { repertoire: next };
+        });
+
+        // persist only this chapter
+        await writeChapter(cid, { ...chapter, name: newName });
       },
 
-      deleteLine: (path) => {
-        const { repertoire, repertoireIndex, selectedPath, jump } = get();
+      deleteChapterAt: async (chapterIndex: number) => {
+        const { repertoire, repertoireIndex } = get();
+        const chapter = repertoire[chapterIndex];
+        if (!chapter) return;
+
+        const cid = chapter.id;
+
+        const nextRepertoire = repertoire.slice();
+        nextRepertoire.splice(chapterIndex, 1);
+
+        let nextIndex = repertoireIndex;
+        if (nextRepertoire.length === 0) nextIndex = 0;
+        else if (chapterIndex < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
+        else if (chapterIndex === repertoireIndex)
+          nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+
+        set({
+          repertoire: nextRepertoire,
+          repertoireIndex: nextIndex,
+          selectedPath: '',
+          selectedNode: null,
+          trainableContext: null as any,
+          userTip: 'empty',
+        });
+
+        await deleteChapter(cid);
+
+        const ids = nextRepertoire.map((c) => c.id);
+        await writeChapterIds(ids);
+      },
+
+      // try to load from IDB on refresh
+      hydrateRepertoireFromIDB: async () => {
+        const { repertoire } = get();
+        if (repertoire.length > 0) return;
+        const ids = await readChapterIds();
+        console.log('ids', ids);
+        if (!ids.length) return;
+
+        const chapters: Chapter[] = [];
+        for (const cid of ids) {
+          const ch = await readChapter(cid);
+          if (ch) chapters.push(ch);
+        }
+
+        // hydrate in-memory
+        set({ repertoire: chapters });
+      },
+
+      jump: (path) => {
+        const { repertoire, repertoireIndex } = get();
         const root = repertoire[repertoireIndex]?.root;
         if (!root) return;
+        const nodeList = getNodeList(root, path);
+        set({ selectedPath: path, selectedNode: nodeList.at(-1) });
+      },
+
+      deleteLine: async (path) => {
+        const { repertoire, repertoireIndex, selectedPath, jump } = get();
+        const chapter = repertoire[repertoireIndex];
+        const root = chapter?.root;
+        if (!root) return;
+
         const node = nodeAtPath(root, path);
         if (!node) return;
 
         deleteNodeAt(root, path);
 
-        if (contains(selectedPath, path)) {
-          jump(init(path));
-        } else {
-          jump(path);
-          set({ repertoire });
-        }
+        // IMPORTANT: do NOT set({ repertoire }) anymore.
+        // Instead, touch just this chapter in-memory to re-render,
+        // and persist only this chapter to IDB.
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[repertoireIndex] = { ...next[repertoireIndex] }; // shallow touch
+          return { repertoire: next };
+        });
+
+        await persistChapterByIndex(get(), repertoireIndex);
+
+        if (contains(selectedPath, path)) jump(init(path));
+        else jump(path);
       },
 
-      // state...
       setNextTrainablePosition: () => {
         const { trainingMethod: method, repertoireIndex, repertoire, trainingConfig } = get();
         if (repertoireIndex === -1 || method === 'edit') return null;
         const chapter = repertoire[repertoireIndex];
-        console.log('repertoire in setNext...', repertoire);
         if (!chapter) return;
         const root = chapter.root;
 
-        const maybeTrainingContext = computeNextTrainableNode(
-          repertoire[repertoireIndex].root,
-          method,
-          trainingConfig!.getNext!,
-        );
-        console.log('computed context', maybeTrainingContext);
+        const maybeTrainingContext = computeNextTrainableNode(chapter.root, method, trainingConfig!.getNext!);
+
         if (!maybeTrainingContext) {
-          set({ userTip: 'empty' });
-          //TODO dont use trainableContext, just use selectedPath and selectedNode
-          set({ selectedPath: '', selectedNode: null, trainableContext: null });
+          set({ userTip: 'empty', selectedPath: '', selectedNode: null, trainableContext: null });
         } else {
           const targetPath = maybeTrainingContext.startingPath;
           const nodeList = getNodeList(root, targetPath);
-          const targetNode = nodeList.at(-1);
-          // TODO why are we storing trainable context separately
-          set({ selectedPath: targetPath, selectedNode: targetNode, trainableContext: maybeTrainingContext });
-          // also give feedback
-          set({ userTip: method });
+          set({
+            selectedPath: targetPath,
+            selectedNode: nodeList.at(-1),
+            trainableContext: maybeTrainingContext,
+            userTip: method,
+          });
         }
       },
 
@@ -229,19 +368,20 @@ export const useTrainerStore = create<TrainerState>()(
         const { repertoire, repertoireIndex, trainingConfig } = get();
         if (repertoireIndex < 0) return;
 
-        const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
+        const activeChapter = repertoire[repertoireIndex];
+        if (!activeChapter) return;
 
-        const counts = computeDueCounts(chapter.root, trainingConfig.buckets);
+        const counts = computeDueCounts(activeChapter.root, trainingConfig.buckets);
 
-        // ✅ do all state writes inside set()
         set((state) => {
-          // shallow copy chapter list if you want immutable updates
-          //TODO use immer?
           const nextRepertoire = state.repertoire.slice();
+
+          // shallow clone only the active chapter so React/Zustand notices
           const nextChapter = { ...nextRepertoire[repertoireIndex] };
 
+          // update derived metadata
           nextChapter.lastDueCount = counts[0];
+
           nextRepertoire[repertoireIndex] = nextChapter;
 
           return {
@@ -256,18 +396,12 @@ export const useTrainerStore = create<TrainerState>()(
           trainingMethod: 'unselected',
           selectedPath: '',
           userTip: 'empty',
-          cbConfig: {
-            lastMove: undefined,
-            drawable: {
-              shapes: [],
-            },
-          },
+          cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
           selectedNode: null,
         });
       },
 
-      //TODO do we need immer state actions?
-      setCommentAt: (comment: string, path: string) => {
+      setCommentAt: async (comment: string, path: string) => {
         set(
           produce((state) => {
             const chapter = state.repertoire[state.repertoireIndex];
@@ -277,31 +411,22 @@ export const useTrainerStore = create<TrainerState>()(
             if (!node) return;
 
             node.data.comment = comment;
-            // chapter.dirty = true; // optional
           }),
         );
+
+        // persist only the current chapter
+        await persistChapterByIndex(get(), get().repertoireIndex);
       },
 
-      // TODO refactor some of this into a utility function?
       succeed: (): number | null => {
-        //TODO use immer produce?
-        //TODO improve from basics
         const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
-
-        const targetNode = trainableContext.targetMove;
-        const startingPath = trainableContext.startingPath;
-
+        const targetNode = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
-        const root = chapter.root;
-
-        // let node = TrainableNodeList?.at(-1);
-        if (!targetNode) return;
+        if (!chapter || !targetNode) return null;
 
         let timeToAdd = 0;
         switch (trainingMethod) {
-          case 'recall':
-            // not a number at runtime?
+          case 'recall': {
             let groupIndex = parseInt(targetNode.data.training.group + '');
             chapter.bucketEntries[groupIndex]--;
             switch (trainingConfig!.promotion) {
@@ -314,34 +439,33 @@ export const useTrainerStore = create<TrainerState>()(
             }
             chapter.bucketEntries[groupIndex]++;
             timeToAdd = trainingConfig!.buckets![groupIndex];
-
             targetNode.data.training.group = groupIndex;
             break;
-          case 'learn':
-            // };
-            // TODO use node.training instead?
+          }
+          case 'learn': {
             targetNode.data.training.seen = true;
-            // node.dueAt = currentTime() + trainingConfig!.buckets![0];
             timeToAdd = trainingConfig!.buckets![0];
             targetNode.data.training.group = 0;
-            chapter.bucketEntries[0]++; //globally, mark node as seen
+            chapter.bucketEntries[0]++;
             break;
+          }
         }
 
         targetNode.data.training.dueAt = currentTime() + timeToAdd;
+        // persist only the current chapter
+        persistChapterByIndex(get(), get().repertoireIndex);
         return timeToAdd;
       },
 
       fail: () => {
-        // setShowSuccessfulGuess(false);
         const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
-        const node = trainableContext.targetMove;
-
-        //TODO need more recent version?
+        const node = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
-        if (!node) return;
+        if (!chapter || !node) return;
+
         let groupIndex = node.data.training.group;
         chapter.bucketEntries[groupIndex]--;
+
         if (trainingMethod === 'recall') {
           switch (trainingConfig!.demotion) {
             case 'most':
@@ -353,31 +477,34 @@ export const useTrainerStore = create<TrainerState>()(
           }
           chapter.bucketEntries[groupIndex]++;
           const interval = trainingConfig!.buckets![groupIndex];
-
           node.data.training.group = groupIndex;
           node.data.training.dueAt = currentTime() + interval;
+          // persist only the current chapter
+          persistChapterByIndex(get(), get().repertoireIndex);
         }
       },
 
-      //TODO
       guess: (san: string): TrainingOutcome => {
-        const { repertoire, repertoireIndex, selectedPath, lastGuess, trainableContext, trainingMethod } =
-          get();
+        console.log('guess', san);
+        const { repertoire, repertoireIndex, selectedPath, trainableContext, trainingMethod } = get();
         const chapter = repertoire[repertoireIndex];
+        if (!chapter) return;
+
         const root = chapter.root;
-        //TODO what about multiple roots?
+        const pathToTrain = trainableContext?.startingPath;
+        if (pathToTrain == null) return;
+
+        const trainableNodeList: ChildNode<TrainingData>[] = getNodeList(root, pathToTrain);
+        if (repertoireIndex === -1 || !trainableNodeList || trainingMethod === 'learn') return;
+
+        const possibleMoves = trainableNodeList.at(-1)!.children.map((_) => _.data.san);
+        set({ lastGuess: san });
 
         const target = trainableContext.targetMove;
-        const pathToTrain = trainableContext.startingPath;
-        const TrainableNodeList: ChildNode<TrainingData>[] = getNodeList(root, pathToTrain);
-
-        if (repertoireIndex == -1 || !TrainableNodeList || trainingMethod == 'learn') return;
-        let possibleMoves = TrainableNodeList.at(-1).children.map((_) => _.data.san);
-        set({ lastGuess: san });
         return possibleMoves.includes(san) ? (target.data.san === san ? 'success' : 'alternate') : 'failure';
       },
 
-      markAllAsSeen: () => {
+      markAllAsSeen: async () => {
         const nowSec = currentTime();
 
         set(
@@ -391,21 +518,11 @@ export const useTrainerStore = create<TrainerState>()(
             const buckets = state.trainingConfig.buckets;
             const timeToAdd = buckets?.[0] ?? 0;
 
-            // if you keep your old string "" path meaning "root", you can just use []
-            // const startPath: string[] = []; // whole tree
-
             updateRecursive(chapter.tree, '', (node) => {
               const t = node.data.training;
-
-              // choose semantics:
-              // - "markAllAsSeen" might mean "mark unseen nodes as seen"
-              // - ignore disabled nodes
               if (t.disabled) return;
-
-              // If you only want to affect unseen nodes (prevents double counting):
               if (t.seen) return;
 
-              // update bucket entries: node goes into group 0
               chapter.bucketEntries[0] = (chapter.bucketEntries[0] ?? 0) + 1;
 
               t.seen = true;
@@ -413,50 +530,68 @@ export const useTrainerStore = create<TrainerState>()(
               t.dueAt = nowSec + timeToAdd;
             });
 
-            // chapter.dirty = true;
-            // state.lastResult = null;
             state.showSuccessfulGuess = false;
           }),
         );
+
+        await persistChapterByIndex(get(), get().repertoireIndex);
       },
 
-      //TODO hover over this option in context menu should highlight which nodes are being disabled
-      disableLine: (path: string) => {
-        const { repertoire, repertoireIndex, updateDueCounts } = get();
-        const root = repertoire[repertoireIndex].root;
+      disableLine: async (path: string) => {
+        const { repertoire, repertoireIndex } = get();
+        const root = repertoire[repertoireIndex]?.root;
+        if (!root) return;
+
         updateRecursive(root, path, (node) => {
           node.data.training.disabled = true;
         });
-        updateDueCounts();
+
+        // touch + persist only this chapter
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[repertoireIndex] = { ...next[repertoireIndex] };
+          return { repertoire: next };
+        });
+
+        await persistChapterByIndex(get(), repertoireIndex);
       },
 
-      enableLine: (path: string) => {
-        const { repertoire, repertoireIndex, updateDueCounts } = get();
+      enableLine: async (path: string) => {
+        const { repertoire, repertoireIndex } = get();
         const chapter = repertoire[repertoireIndex];
+        if (!chapter) return;
+
         const trainAs = chapter.trainAs;
         updateRecursive(chapter.root, path, (node) => {
           const color: Color = colorFromPly(node.data.ply);
-          if (trainAs == color) {
-            node.data.training.disabled = false;
-          }
+          if (trainAs === color) node.data.training.disabled = false;
         });
-        updateDueCounts();
+
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[repertoireIndex] = { ...next[repertoireIndex] };
+          return { repertoire: next };
+        });
+
+        await persistChapterByIndex(get(), repertoireIndex);
       },
 
-      //TODO put in state
-      makeMove: (san: string) => {
+      makeMove: async (san: string) => {
         const { selectedNode, repertoire, repertoireIndex, selectedPath } = get();
+        const chapter = repertoire[repertoireIndex];
+        if (!chapter || !selectedNode) return;
 
         const fen = selectedNode.data.fen;
+
         if (!selectedNode.children.map((_) => _.data.san).includes(san)) {
-          const [pos, error] = positionFromFen(fen);
+          const [pos] = positionFromFen(fen);
           const move = parseSan(pos, san);
 
           const newNode: TrainableNode = {
             data: {
               training: {
                 disabled: !selectedNode.data.training.disabled,
-                seen: false, //TODO just use group and dueAt?
+                seen: false,
                 group: -1,
                 dueAt: -1,
               },
@@ -469,72 +604,89 @@ export const useTrainerStore = create<TrainerState>()(
             children: [],
           };
 
-          // update chapter-wide metadata if necessary
-          if (!newNode.data.training.disabled) repertoire[repertoireIndex].nodeCount++;
+          if (!newNode.data.training.disabled) chapter.nodeCount++;
           selectedNode.children.push(newNode);
         }
 
-        const movingTo = selectedNode.children.find((x) => x.data.san == san);
-
+        const movingTo = selectedNode.children.find((x) => x.data.san === san)!;
         const newPath = selectedPath + movingTo.data.id;
-
-        /*
-          Update state
-          */
 
         set({ selectedNode: movingTo, selectedPath: newPath });
 
-        //TODO update due counts, use builtin tree operations
+        // persist only this chapter
+        await persistChapterByIndex(get(), repertoireIndex);
       },
 
-      addNewChapter: (chapter: Chapter) => {
-        const { repertoire, trainingConfig } = get();
-        console.log('BUG | adding this chapter', chapter);
+      addNewChapter: async (chapter: Chapter) => {
+        console.log('add new chapter');
+        const { repertoire } = get();
 
-        // const chapter = chapterFromPgn(rawPgn, asColor, name, trainingConfig);
-        let newRepertoire;
-
-        // TODO handle correct placement
+        let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
           case 'white':
             newRepertoire = [chapter, ...repertoire];
             break;
-
           case 'black':
             newRepertoire = [...repertoire, chapter];
             break;
         }
 
+        // update memory
         set({ repertoire: newRepertoire });
+
+        // persist only the new chapter + ids list (not all chapters)
+        const cid = chapter.id;
+        await writeChapter(cid, chapter);
+        const ids = await readChapterIds();
+        console.log('ids so far', ids);
+        if (!ids.includes(cid)) await writeChapterIds([...ids, cid]);
       },
 
-      // TODO immer set?
-      importIntoChapter: (targetChapter: number, newPgn: string) => {
+      importIntoChapter: async (targetChapter: number, newPgn: string) => {
         const { repertoire } = get();
         const chapter = repertoire[targetChapter];
-        let parsedPgn: TrainableNode;
+        if (!chapter) return;
 
-        const { root: importRoot, nodeCount } = rootFromPgn(newPgn, chapter.trainAs);
+        const { root: importRoot } = rootFromPgn(newPgn, chapter.trainAs);
+        merge(chapter.root, importRoot);
 
-        const currentRoot = chapter.root;
-        // should change currentRoot in place
-        merge(currentRoot, importRoot);
+        // touch only this chapter so UI updates (no set({ repertoire }) on whole array reference)
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[targetChapter] = { ...next[targetChapter] };
+          return { repertoire: next };
+        });
 
-        // TODO edit chapter metadata
-        // nothing more?
-
-        set({ repertoire });
-      }
+        // persist only this chapter
+        await persistChapterByIndex(get(), targetChapter);
+      },
     }),
     {
-      name: 'trainer-store', // IndexedDB key
+      name: 'trainer-store',
       storage: indexedDBStorage,
+
+      // ✅ CRITICAL: do NOT persist repertoire anymore (it lives as per-chapter blobs)
       partialize: (state) => ({
-        // only persist long-term data
-        repertoire: state.repertoire,
         repertoireIndex: state.repertoireIndex,
         trainingConfig: state.trainingConfig,
+        // (optional) store last selection stuff if you want:
+        selectedPath: state.selectedPath,
       }),
+
+      // ✅ After small state is rehydrated, load chapters from IDB into memory
+      onRehydrateStorage: () => {
+        return async (state, err) => {
+          if (err || !state) return;
+          await state.hydrateRepertoireFromIDB();
+        };
+      },
     },
   ),
 );
+
+/**
+ * Usage note:
+ * - Your existing components can keep using `repertoire` from Zustand as before.
+ * - The big win: random `set({ selectedPath })` no longer triggers a huge IDB rewrite.
+ * - Chapter mutations now persist only the touched chapter (import/move/comment/etc).
+ */

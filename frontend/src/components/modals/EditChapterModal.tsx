@@ -1,47 +1,81 @@
 import React, { useRef, useState } from "react";
-import { CircleXIcon, GlassesIcon, PencilIcon, TrashIcon, UploadIcon } from "lucide-react";
+import { CircleXIcon, GlassesIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { useTrainerStore } from "../../state/state";
 
 interface EditChapterModalProps {
   chapterIndex: number;
   onClose: () => void;
-  onRename: (index: number, name: string) => void;
-  onDelete: (index: number) => void;
   onSetAllSeen: (index: number) => void;
 }
 
 const EditChapterModal: React.FC<EditChapterModalProps> = ({
   chapterIndex,
   onClose,
-  onDelete,
-  onRename,
   onSetAllSeen,
 }) => {
   const repertoire = useTrainerStore((s) => s.repertoire);
 
-  // ✅ state action you asked to use
+  // ✅ NEW state actions
+  const renameChapter = useTrainerStore((s) => s.renameChapter);
+  const deleteChapterAt = useTrainerStore((s) => s.deleteChapterAt);
+
+  // ✅ existing state action
   const importIntoChapter = useTrainerStore((s) => s.importIntoChapter);
 
   const chapter = repertoire[chapterIndex];
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [chapterName, setChapterName] = useState(chapter?.name || "");
 
-  // New: PGN input state
+  // Rename flow: click "Rename" -> edit -> "Done" triggers state action
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(chapter?.name || "");
+  const [renameError, setRenameError] = useState<string | null>(null);
+
+  // Import PGN
   const [pgnText, setPgnText] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!chapter) return null;
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      onRename(chapterIndex, chapterName.trim());
-      setIsEditingName(false);
+  const startRename = () => {
+    setRenameError(null);
+    setDraftName(chapter.name);
+    setIsRenaming(true);
+  };
+
+  const cancelRename = () => {
+    setRenameError(null);
+    setDraftName(chapter.name);
+    setIsRenaming(false);
+  };
+
+  const commitRename = async () => {
+    const next = draftName.trim();
+    if (!next) {
+      setRenameError("Name cannot be empty.");
+      return;
     }
-    if (e.key === "Escape") {
-      setChapterName(chapter.name);
-      setIsEditingName(false);
+    if (next === chapter.name) {
+      setIsRenaming(false);
+      return;
     }
+
+    setRenameError(null);
+    try {
+      await renameChapter(chapterIndex, next);
+      setIsRenaming(false);
+    } catch (err: any) {
+      setRenameError(err?.message ?? "Failed to rename chapter.");
+    }
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") commitRename();
+    if (e.key === "Escape") cancelRename();
+  };
+
+  const handleDelete = async () => {
+    await deleteChapterAt(chapterIndex);
+    onClose();
   };
 
   const handleImport = async () => {
@@ -53,10 +87,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
 
     setImportError(null);
     try {
-      // assuming your store action takes (chapterIndex, pgnString)
-      // if your signature is different, adjust here.
       await importIntoChapter(chapterIndex, trimmed);
-
       setPgnText("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
@@ -96,36 +127,56 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
 
       {/* Header */}
       <div className="p-6 border-b border-gray-200 flex items-center justify-between gap-3">
-        {isEditingName ? (
-          <input
-            className="text-2xl font-semibold text-gray-800 border-b border-gray-400
-                       focus:outline-none flex-1"
-            value={chapterName}
-            onChange={(e) => setChapterName(e.target.value)}
-            onBlur={() => {
-              onRename(chapterIndex, chapterName.trim());
-              setIsEditingName(false);
-            }}
-            onKeyDown={handleKeyDown}
-            autoFocus
-          />
+        {isRenaming ? (
+          <div className="flex-1">
+            <input
+              className="w-full text-2xl font-semibold text-gray-800 border-b border-gray-400
+                         focus:outline-none"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={handleRenameKeyDown}
+              autoFocus
+            />
+            {renameError ? (
+              <div className="mt-2 text-sm text-red-600">{renameError}</div>
+            ) : null}
+          </div>
         ) : (
           <h2 className="text-2xl font-bold text-gray-800 flex-1">{chapter.name}</h2>
         )}
 
-        <button
-          className="text-gray-500 hover:text-gray-800 transition"
-          onClick={() => setIsEditingName(true)}
-          type="button"
-        >
-          <PencilIcon className="w-5 h-5" />
-        </button>
+        {!isRenaming ? (
+          <button
+            className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition text-sm font-semibold"
+            onClick={startRename}
+            type="button"
+          >
+            Rename
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition text-sm font-semibold"
+              onClick={commitRename}
+              type="button"
+            >
+              Done
+            </button>
+            <button
+              className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition text-sm font-semibold"
+              onClick={cancelRename}
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
       <div className="p-6 space-y-3">
         <button
-          onClick={() => onDelete(chapterIndex)}
+          onClick={handleDelete}
           className="w-full py-2 px-4 bg-red-500 hover:bg-red-600
                      text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
           type="button"
@@ -145,7 +196,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
         </button>
       </div>
 
-      {/* ✅ Import PGN section at the bottom */}
+      {/* Import PGN section */}
       <div className="px-6 pb-6">
         <div className="border-t border-gray-200 pt-5">
           <h3 className="text-lg font-bold text-gray-800">Import PGN</h3>
@@ -157,7 +208,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
             rows={5}
             value={pgnText}
             onChange={(e) => setPgnText(e.target.value)}
-            placeholder="Paste PGN here…&#10;ex. 1. d4 d5 2. c4 c6"
+            placeholder={"Paste PGN here…\nex. 1. d4 d5 2. c4 c6"}
             className="mt-3 w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800 shadow"
           />
 

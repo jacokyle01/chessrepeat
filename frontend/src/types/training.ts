@@ -96,11 +96,13 @@ export type TrainingRoot<T> = {
 
 export interface Chapter {
   name: string;
+  id: string;
   lastDueCount: number;
   trainAs: Color;
   nodeCount: number;
   bucketEntries: number[];
   root: TrainableNode;
+  id: string;
 }
 //TODO different data structure for a chapter thats currently selected?
 

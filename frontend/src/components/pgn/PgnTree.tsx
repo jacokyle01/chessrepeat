@@ -485,20 +485,6 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
 
   // console.log('node', node);
   const ply = node.data.ply;
-  // console.log('PATH', path);
-  // console.log(ply, 'ply', path, 'path');
-
-  /*
-  e.x. d4 --> c4 
-
-  TrainableNodeList = d4,c4
-
-  d4, ply=1
-  c4, ply=3 
-
-  0
-: 
-*/
   const cs = node.children.filter((x, i) => {
     // console.log('x.san', x.san, 'vs', path[ply + 1].san);
     return (
@@ -513,10 +499,8 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
     const isWhite = main.data.ply % 2 === 1;
 
     //TODO why is this different than lichess ?  math.floor(..) line
-    // console.log("node.comment", node)
     //TODO force variation?
     if (!cs[1] && !main.data.comment && true) {
-      // console.log("node", node)
       return (
         <>
           {isWhite && IndexNode(Math.floor(main.data.ply / 2) + 1)}
@@ -546,7 +530,6 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
     );
     const mainHasChildren = main.children[0];
     // Not entering here
-    console.log('Hello??????');
     return (
       <>
         {isWhite && IndexNode(Math.floor(main.data.ply / 2) + 1)}
@@ -636,9 +619,6 @@ export default function PgnTree({ setActiveMoveId }) {
   // TODO conditionally use path or root, depending on context
 
   // TODO ???
-  // if (!repertoire[repertoireIndex]) return;
-  // const game = repertoire[repertoireIndex].subrep;
-  // console.log("game", game);
   // TODO handle multiple root nodes, possibly upon PGN import... (dont allow chapter w/ multiple roots)
 
   const ctx: Ctx = {
@@ -648,7 +628,6 @@ export default function PgnTree({ setActiveMoveId }) {
 
   //TODO should be false
   // const blackStarts = (root.data.ply & 1) === 1;
-  console.log('root should be correctly formed', root);
   return (
     <ContextMenuProvider>
       <div className="h-[400px] bg-white">

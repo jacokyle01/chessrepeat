@@ -16,11 +16,9 @@ const PgnControls = () => {
 
   const trainingPath = useTrainerStore().trainableContext?.startingPath || '';
 
-  const repertoire = useTrainerStore().repertoire;
-  const repertoireIndex = useTrainerStore().repertoireIndex;
+  const chapter = useTrainerStore.getState().activeChapter;
 
   const trainingMethod = useTrainerStore().trainingMethod;
-  const chapter = repertoire[repertoireIndex];
 
   const jump = useTrainerStore((s) => s.jump);
 
@@ -35,9 +33,6 @@ const PgnControls = () => {
     const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
     // dynamically generate training path from string path
     const currentPath = selectedPath;
-
-    console.log('currentPath', currentPath);
-    console.log('pathToTrain', pathToTrain);
 
     const nextId = pathToTrain.slice(currentPath.length, currentPath.length + 2);
 
