@@ -117,14 +117,6 @@ const KEYS = {
   chapter: (cid: string) => `trainer:chapter:${cid}`,
 };
 
-// Minimal chapter id helper.
-// If your Chapter already has a stable id (recommended), use that.
-// Otherwise, fallback to name+trainAs (works but renaming changes key).
-function chapterId(ch: Chapter): string {
-  // @ts-expect-error - if you have ch.id, it will use it
-  return (ch.id as string) ?? `${ch.trainAs}:${ch.name}`;
-}
-
 async function writeChapterIds(ids: string[]) {
   await set(KEYS.chapterIds, ids);
 }
@@ -240,6 +232,8 @@ export const useTrainerStore = create<TrainerState>()(
 
       // Call this once on app start (e.g. in App.tsx useEffect) after zustand persists small state.
       hydrateRepertoireFromIDB: async () => {
+        const { repertoire } = get();
+        if (repertoire.length > 0) return;
         const ids = await readChapterIds();
         console.log('ids', ids);
         if (!ids.length) return;
@@ -254,12 +248,12 @@ export const useTrainerStore = create<TrainerState>()(
         set({ repertoire: chapters });
 
         // also try to set selectedNode based on selectedPath if possible
-        const { repertoireIndex, selectedPath } = get();
-        const root = chapters[repertoireIndex]?.root;
-        if (root && selectedPath) {
-          const nodeList = getNodeList(root, selectedPath);
-          set({ selectedNode: nodeList.at(-1) ?? null });
-        }
+        // const { repertoireIndex, selectedPath } = get();
+        // const root = chapters[repertoireIndex]?.root;
+        // if (root && selectedPath) {
+        //   const nodeList = getNodeList(root, selectedPath);
+        //   set({ selectedNode: nodeList.at(-1) ?? null });
+        // }
       },
 
       jump: (path) => {
@@ -440,7 +434,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       guess: (san: string): TrainingOutcome => {
-        console.log("guess", san);
+        console.log('guess', san);
         const { repertoire, repertoireIndex, selectedPath, trainableContext, trainingMethod } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
@@ -573,6 +567,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       addNewChapter: async (chapter: Chapter) => {
+        console.log("add new chapter");
         const { repertoire } = get();
 
         let newRepertoire: Chapter[];
@@ -589,7 +584,7 @@ export const useTrainerStore = create<TrainerState>()(
         set({ repertoire: newRepertoire });
 
         // persist only the new chapter + ids list (not all chapters)
-        const cid = chapterId(chapter);
+        const cid = chapter.id;
         await writeChapter(cid, chapter);
         const ids = await readChapterIds();
         console.log('ids so far', ids);

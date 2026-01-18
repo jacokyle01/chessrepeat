@@ -83,10 +83,6 @@ const AddToRepertoireModal: React.FC = () => {
         await useTrainerStore.getState().addNewChapter(ch);
       }
 
-      // console.log("IMPORTED CHAPTERS", chapters);
-      for (const chapter of chapters) {
-        await addNewChapter(chapter);
-      }
       // reset + close
       setChessrepeatText('');
       if (chessrepeatFileRef.current) chessrepeatFileRef.current.value = '';
