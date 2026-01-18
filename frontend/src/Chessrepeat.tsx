@@ -43,6 +43,10 @@ export const Chessrepeat = () => {
     showingAddToRepertoireMenu,
     setShowingAddToRepertoireMenu,
 
+    repertoire,
+    setRepertoire,
+    repertoireIndex,
+
     showingHint,
     userTip,
     setUserTip,
@@ -58,7 +62,6 @@ export const Chessrepeat = () => {
     succeed,
     guess,
     makeMove,
-    hydrateChapterMeta
     hydrateRepertoireFromIDB
   } = useTrainerStore();
 
@@ -69,10 +72,6 @@ export const Chessrepeat = () => {
 
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
-
-  useEffect(() => {
-    hydrateChapterMeta();
-  }, [hydrateChapterMeta]);
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -114,18 +113,17 @@ export const Chessrepeat = () => {
     return () => observer.disconnect();
   }, []);
 
-  // //TODO move to state.ts
-  // const deleteChapter = (index) => {
-  //   setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
-  // };
+  //TODO move to state.ts
+  const deleteChapter = (index) => {
+    setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
+  };
 
-  // const renameChapter = (index, name) => {
-  //   repertoire[index].name = name;
-  // };
+  const renameChapter = (index, name) => {
+    repertoire[index].name = name;
+  };
 
   // TODO should be in different component?
-  //TODO how should we call this?
-  const chapter = useTrainerStore.getState().activeChapter;
+  const chapter = repertoire[repertoireIndex];
   const isEditing = trainingMethod == 'edit';
 
   //TODO hints
@@ -137,19 +135,13 @@ export const Chessrepeat = () => {
   The current move we're training
   */
   const targetDest = (): Key[] => {
-    if (!chapter) return;
-    // console.log(repertoire);
-    // if (!repertoire || repertoireIndex == -1) return;
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
     const uci = calcTarget(selectedNode?.data.fen || initial, targetNode.data.san!);
     return uci;
   };
 
   const createShapes = (): DrawShape[] => {
-    // if (!repertoire) return;
-    // if (!atLast() || !repertoire || (repertoireIndex == -1)) return [];
-    if (!atLast() || !chapter) return [];
-
+    if (!atLast()) return [];
     const result = [];
     if (!isEditing) {
       const uci = targetDest();
@@ -198,6 +190,7 @@ export const Chessrepeat = () => {
   const [box, setBox] = useState<{ x: number; y: number; time: string } | null>(null);
 
   const showBoxAtSquare = (square: string, time: number) => {
+    const chapter = repertoire[repertoireIndex];
     if (!containerRef.current) return;
     const bounds = containerRef.current.getBoundingClientRect();
     const coords = squareToCoords(square, bounds, chapter.trainAs);
@@ -208,8 +201,13 @@ export const Chessrepeat = () => {
     setTimeout(() => setBox(null), 1000);
   };
 
+
   //TODO refactor common logic here
   const prevMoveIfExists = () => {
+    let repertoire = useTrainerStore.getState().repertoire;
+    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+
+    const chapter = repertoire[repertoireIndex];
     if (!chapter) return undefined;
     const root = chapter.root;
     const nodeList = getNodeList(root, selectedPath);
@@ -232,7 +230,6 @@ export const Chessrepeat = () => {
 
   const atLast = (): boolean => {
     const trainableContext = useTrainerStore.getState().trainableContext;
-    console.log('ctx', trainableContext);
     if (!trainableContext) return false;
     const selectedPath = useTrainerStore.getState().selectedPath;
     const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
@@ -316,7 +313,7 @@ export const Chessrepeat = () => {
         {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
         <div className="flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 min-h-0 overflow-hidden">
           <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden">
-            <Repertoire />
+            <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
             <RepertoireActions></RepertoireActions>
             <Schedule />
           </div>
@@ -334,7 +331,6 @@ export const Chessrepeat = () => {
                   dests: calculateDests(),
                   events: {
                     after: (from: Key, to: Key, metadata: MoveMetadata) => {
-                      console.log("selected node", selectedNode);
                       const san = chessgroundToSan(selectedNode.data.fen, from, to);
                       if (!isEditing) {
                         // this.syncTime();
