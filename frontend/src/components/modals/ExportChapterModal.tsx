@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { CircleXIcon, DownloadIcon, FileTextIcon, InfoIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-import { pgnFromChapter } from '../../util/training';
+import { exportChapter, pgnFromChapter } from '../../util/training';
 import { downloadTextFile } from '../../util/io';
 
 interface ExportChapterModalProps {
@@ -12,13 +12,14 @@ interface ExportChapterModalProps {
 type ExportFormat = 'pgn' | 'chessrepeat';
 
 const ExportChapterModal: React.FC<ExportChapterModalProps> = ({ chapterIndex, onClose }) => {
+  const repertoire = useTrainerStore((s) => s.repertoire);
   // Adjust to your actual store API
   // const exportChapterAsPgn = useTrainerStore((s) => (s as any).exportChapterAsPgn);
   // const exportChapterAsChessrepeat = useTrainerStore(
   //   (s) => (s as any).exportChapterAsChessrepeat
   // );
 
-  const chapter = useTrainerStore.getState().activeChapter;
+  const chapter = repertoire[chapterIndex];
 
   const [format, setFormat] = useState<ExportFormat>('pgn');
   const [isExporting, setIsExporting] = useState(false);
