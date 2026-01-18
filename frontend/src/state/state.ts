@@ -1,4 +1,3 @@
-
 // state/trainerStore.ts
 // Minimal change: split persisted repertoire into per-chapter blobs in IndexedDB.
 // - Keep `repertoire: Chapter[]` in Zustand (in-memory).
@@ -321,7 +320,30 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       updateDueCounts: () => {
-        return;
+        const { repertoire, repertoireIndex, trainingConfig } = get();
+        if (repertoireIndex < 0) return;
+
+        const activeChapter = repertoire[repertoireIndex];
+        if (!activeChapter) return;
+
+        const counts = computeDueCounts(activeChapter.root, trainingConfig.buckets);
+
+        set((state) => {
+          const nextRepertoire = state.repertoire.slice();
+
+          // shallow clone only the active chapter so React/Zustand notices
+          const nextChapter = { ...nextRepertoire[repertoireIndex] };
+
+          // update derived metadata
+          nextChapter.lastDueCount = counts[0];
+
+          nextRepertoire[repertoireIndex] = nextChapter;
+
+          return {
+            dueTimes: counts,
+            repertoire: nextRepertoire,
+          };
+        });
       },
 
       clearChapterContext: () => {
@@ -418,13 +440,14 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       guess: (san: string): TrainingOutcome => {
+        console.log("guess", san);
         const { repertoire, repertoireIndex, selectedPath, trainableContext, trainingMethod } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
 
         const root = chapter.root;
         const pathToTrain = trainableContext?.startingPath;
-        if (!pathToTrain) return;
+        if (pathToTrain == null) return;
 
         const trainableNodeList: ChildNode<TrainingData>[] = getNodeList(root, pathToTrain);
         if (repertoireIndex === -1 || !trainableNodeList || trainingMethod === 'learn') return;
