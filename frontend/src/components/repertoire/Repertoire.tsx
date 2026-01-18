@@ -16,16 +16,14 @@ interface RepertoireSectionProps {
   repertoire: RepertoireChapter[];
   startsAt: number;
   repertoireIndex: number;
-  deleteChapter: (index: number) => void;
-  renameChapter: (index: number, name: string) => void;
 }
 
-export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
+export const Chapter = ({ entry, index, id }) => {
+  console.log("chapter ID should be visible", id);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const repertoireIndex = useTrainerStore().repertoireIndex;
   const cbConfig = useTrainerStore().cbConfig;
-
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -59,8 +57,6 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
             <EditChapterModal
               chapterIndex={index}
               onClose={() => setEditOpen(false)}
-              onRename={renameChapter}
-              onDelete={deleteChapter}
               onSetAllSeen={() => console.log('set all seen')}
             />
           </div>
@@ -125,60 +121,17 @@ export const Chapter = ({ entry, index, deleteChapter, renameChapter }) => {
             <FileDown />
           </div>
         </div>
-
-        {/* Rename Modal */}
-        <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="Rename Chapter">
-          <input
-            type="text"
-            placeholder="New chapter name"
-            className="w-full border rounded-md p-2 mb-4"
-            onChange={(e) => setNewName(e.target.value)}
-          />
-          <button
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            onClick={() => {
-              renameChapter(index, newName);
-              setRenameOpen(false);
-            }}
-          >
-            Save
-          </button>
-        </Modal>
-
-        {/* Delete Modal */}
-        <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete Chapter">
-          <p className="mb-4 text-gray-700">
-            Are you sure you want to delete this chapter? This action cannot be undone.
-          </p>
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-4 py-2 rounded-md border hover:bg-gray-100"
-              onClick={() => setDeleteOpen(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              onClick={() => {
-                deleteChapter(index);
-                setDeleteOpen(false);
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </Modal>
       </div>
     </React.Fragment>
   );
 };
 
-const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
+const Repertoire: React.FC = () => {
   const whiteEntries: RepertoireChapter[] = [];
   const blackEntries: RepertoireChapter[] = [];
 
   const repertoire = useTrainerStore().repertoire;
-  console.log("repertoire component", repertoire)
+  console.log('repertoire component', repertoire);
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);
@@ -201,13 +154,7 @@ const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
 
         <div className="flex-row rounded-md">
           {whiteEntries.map((entry, index) => (
-            <Chapter
-              key={index}
-              entry={entry}
-              index={index}
-              deleteChapter={deleteChapter}
-              renameChapter={renameChapter}
-            />
+            <Chapter id={entry.id} entry={entry} index={index} />
           ))}
         </div>
 
@@ -215,13 +162,7 @@ const Repertoire: React.FC = ({ deleteChapter, renameChapter }) => {
 
         <div className="flex-row rounded-md">
           {blackEntries.map((entry, index) => (
-            <Chapter
-              key={index}
-              entry={entry}
-              index={index + whiteEntries.length}
-              deleteChapter={deleteChapter}
-              renameChapter={renameChapter}
-            />
+            <Chapter id={entry.id} entry={entry} index={index + whiteEntries.length} />
           ))}
         </div>
       </div>

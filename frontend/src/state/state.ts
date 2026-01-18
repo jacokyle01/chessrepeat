@@ -103,6 +103,9 @@ interface TrainerState {
   enableLine: (path: string) => Promise<void>;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
+
+  renameChapter: (index: number, name: string) => void;
+  deleteChapterAt: (index: number) => void;
 }
 
 /**
@@ -133,6 +136,12 @@ async function deleteChapter(cid: string) {
   await del(KEYS.chapter(cid));
 }
 
+// // ---- helpers (you already have these) ----
+// async function rewriteChapterIdsFromRepertoire(repertoire: Chapter[]) {
+//   const ids = repertoire.map((c) => c.id);
+//   await writeChapterIds(ids);
+// }
+
 // --- IndexedDB storage for zustand/persist (keep small) ---
 const indexedDBStorage: StateStorage = {
   getItem: async (name) => {
@@ -152,7 +161,7 @@ async function persistChapterByIndex(state: { repertoire: Chapter[] }, idx: numb
   const ch = state.repertoire[idx];
   if (!ch) return;
 
-  const cid = chapterId(ch);
+  const cid = ch.id;
   await writeChapter(cid, ch);
 
   const ids = await readChapterIds();
@@ -165,7 +174,7 @@ async function persistChapterByIndex(state: { repertoire: Chapter[] }, idx: numb
 async function persistAllChapters(repertoire: Chapter[]) {
   const ids: string[] = [];
   for (const ch of repertoire) {
-    const cid = chapterId(ch);
+    const cid = ch.id;
     ids.push(cid);
     await writeChapter(cid, ch);
   }
@@ -230,7 +239,57 @@ export const useTrainerStore = create<TrainerState>()(
       cbConfig: {},
       setCbConfig: (cfg) => set({ cbConfig: cfg }),
 
-      // Call this once on app start (e.g. in App.tsx useEffect) after zustand persists small state.
+      // ---- inside create(...) actions ----
+      renameChapter: async (chapterIndex: number, newName: string) => {
+        const { repertoire } = get();
+        const chapter = repertoire[chapterIndex];
+        if (!chapter) return;
+
+        const cid = chapter.id;
+
+        // update in-memory (touch only that chapter)
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[chapterIndex] = { ...next[chapterIndex], name: newName };
+          return { repertoire: next };
+        });
+
+        // persist only this chapter
+        await writeChapter(cid, { ...chapter, name: newName });
+      },
+
+      deleteChapterAt: async (chapterIndex: number) => {
+        const { repertoire, repertoireIndex } = get();
+        const chapter = repertoire[chapterIndex];
+        if (!chapter) return;
+
+        const cid = chapter.id;
+
+        const nextRepertoire = repertoire.slice();
+        nextRepertoire.splice(chapterIndex, 1);
+
+        let nextIndex = repertoireIndex;
+        if (nextRepertoire.length === 0) nextIndex = 0;
+        else if (chapterIndex < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
+        else if (chapterIndex === repertoireIndex)
+          nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+
+        set({
+          repertoire: nextRepertoire,
+          repertoireIndex: nextIndex,
+          selectedPath: '',
+          selectedNode: null,
+          trainableContext: null as any,
+          userTip: 'empty',
+        });
+
+        await deleteChapter(cid);
+
+        const ids = nextRepertoire.map((c) => c.id);
+        await writeChapterIds(ids);
+      },
+
+      // try to load from IDB on refresh
       hydrateRepertoireFromIDB: async () => {
         const { repertoire } = get();
         if (repertoire.length > 0) return;
@@ -246,14 +305,6 @@ export const useTrainerStore = create<TrainerState>()(
 
         // hydrate in-memory
         set({ repertoire: chapters });
-
-        // also try to set selectedNode based on selectedPath if possible
-        // const { repertoireIndex, selectedPath } = get();
-        // const root = chapters[repertoireIndex]?.root;
-        // if (root && selectedPath) {
-        //   const nodeList = getNodeList(root, selectedPath);
-        //   set({ selectedNode: nodeList.at(-1) ?? null });
-        // }
       },
 
       jump: (path) => {
@@ -567,7 +618,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       addNewChapter: async (chapter: Chapter) => {
-        console.log("add new chapter");
+        console.log('add new chapter');
         const { repertoire } = get();
 
         let newRepertoire: Chapter[];
