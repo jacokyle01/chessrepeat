@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTrainerStore } from '../state/state';
+import { MessageSquareIcon } from 'lucide-react';
 
 // Only the comment CONTENT scrolls; header + buttons stay fixed.
 export const CommentBox = () => {
@@ -7,6 +8,8 @@ export const CommentBox = () => {
   const selectedNode = useTrainerStore((s) => s.selectedNode);
   const path = useTrainerStore((s) => s.selectedPath);
   const setCommentAt = useTrainerStore((s) => s.setCommentAt);
+  const trainingMethod = useTrainerStore((s) => s.trainingMethod);
+
 
   const currentComment = useMemo(() => {
     const c = (selectedNode as any)?.data?.comment;
@@ -49,23 +52,30 @@ export const CommentBox = () => {
 
   const hasChanges = draft !== currentComment;
 
+  if (!selectedNode) return null;
+
   return (
     // ✅ h-full + min-h-0 are required so the inner scroll area can actually scroll
-    <div className="flex min-h-0 flex-col rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+    <div className="flex min-h-0 flex-col rounded-xl border border-gray-200 bg-white p-3 shadow-sm my-2">
       {/* Header (never scrolls) */}
       <div className="shrink-0">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-gray-900">Comment</div>
+          <div id="schedule-header" className="shrink-0 flex items-center gap-1">
+        <div id="schedule-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
+          <MessageSquareIcon size={18}/>
+        </div>
+        <span className="text-sm text-gray-800 font-semibold">Comment</span>
+      </div>
 
           {!isEditing ? (
             <button
               type="button"
               onClick={onStartEdit}
               disabled={!canEdit}
-              className="rounded-lg px-2 py-1 text-xs font-medium
-                         text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
+              className="rounded-lg px-2 py-1 text-xs font-bold text-white
+                         text-gray-700 bg-gray-500 disabled:opacity-50 disabled:hover:bg-transparent"
             >
-              Edit comment
+              Edit
             </button>
           ) : null}
         </div>
