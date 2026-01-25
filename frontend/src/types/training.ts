@@ -33,10 +33,10 @@ export interface TrainingContext {
 //   meta: {
 //     trainAs: Color;
 //     //TODO should be determined dynamically ? or at least at import time
-//     nodeCount: number;
+//     enabledCount: number;
 //     bucketEntries: number[];
 //     //all unseen nodes can be derived from:
-//     //nodeCount - sum(bucketEntries)
+//     //enabledCount - sum(bucketEntries)
 //   };
 // }
 
@@ -99,7 +99,7 @@ export interface Chapter {
   id: string;
   lastDueCount: number;
   trainAs: Color;
-  nodeCount: number;
+  enabledCount: number;
   bucketEntries: number[];
   root: TrainableNode;
   id: string;
@@ -116,5 +116,3 @@ TODO: move to /tree?
 //     comments?: string[];
 //     moves: Node<T>;
 // }
-
-

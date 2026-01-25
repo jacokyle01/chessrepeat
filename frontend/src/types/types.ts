@@ -48,6 +48,6 @@ export interface LichessStudy {
 //   name: string;
 //   lastDueCount: number;
 //   trainAs: Color;
-//   nodeCount: number;
+//   enabledCount: number;
 //   bucketEntries: number[];
 // }

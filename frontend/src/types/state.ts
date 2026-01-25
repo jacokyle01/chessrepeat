@@ -24,7 +24,7 @@ export type PersistedChapterMeta = {
   name: string;
   trainAs: 'white' | 'black';
   rootId: string;
-  nodeCount: number;
+  enabledCount: number;
   bucketEntries: number[];
   updatedAt: number;
   lastDueCount: number;

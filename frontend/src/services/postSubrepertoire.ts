@@ -8,7 +8,7 @@ export const postChapter = async (entry: RepertoireEntry, color: string, alias: 
     tree: entry.subrep.moves,
     meta: {
       trainAs: color,
-      nodeCount: entry.chapter.nodeCount,
+      enabledCount: entry.chapter.enabledCount,
       bucketEntries: entry.chapter.bucketEntries,
     },
   };

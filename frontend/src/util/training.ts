@@ -57,7 +57,7 @@ export const annotateMoves = (
   // buckets: number[],
 ): {
   moves: Node<TrainingData>;
-  nodeCount: number;
+  enabledCount: number;
   // meta: {
   //   trainAs: Color;
   //   bucketEntries: number[];
@@ -121,7 +121,7 @@ export const annotateMoves = (
         };
       }
     }),
-    nodeCount: trainableNodes,
+    enabledCount: trainableNodes,
   };
 };
 

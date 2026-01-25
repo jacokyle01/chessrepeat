@@ -29,14 +29,14 @@ export function downloadTextFile(content: string, filename: string, mimeType = '
     -> PGN can be "annotated", which means it has training metadata attached that must be parsed
   */
 export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string, config: TrainingConfig) => {
-  const { root, nodeCount } = rootFromPgn(rawPgn, asColor);
+  const { root, enabledCount } = rootFromPgn(rawPgn, asColor);
 
   const chapter: Chapter = {
     id: crypto.randomUUID(),
     root: root,
     name: name,
     bucketEntries: config.buckets.map(() => 0),
-    nodeCount: nodeCount,
+    enabledCount: enabledCount,
     lastDueCount: 0,
     trainAs: asColor,
   };
@@ -48,11 +48,11 @@ export const rootFromPgn = (
   asColor: Color,
 ): {
   root: TrainableNode;
-  nodeCount: Number;
+  enabledCount: Number;
 } => {
   // don't allow multiple games in one PGN
   const parsedRoot: Node<PgnNodeData> = parsePgn(rawPgn).at(0).moves;
-  const { moves, nodeCount: nodeCount } = annotateMoves(parsedRoot, false, asColor);
+  const { moves, enabledCount: enabledCount } = annotateMoves(parsedRoot, false, asColor);
   // put initial position first
   //TODO do something about mainline, etc..
   const root: TrainableNode = {
@@ -72,7 +72,7 @@ export const rootFromPgn = (
     },
     children: moves.children,
   };
-  return { root, nodeCount };
+  return { root, enabledCount };
 };
 
 /*
@@ -84,9 +84,9 @@ export const importAnnotatedPgn = (annotatedPgn: string) => {
   const chapters: Chapter[] = [];
   const parts: Game<PgnNodeData>[] = parsePgn(annotatedPgn);
   parts.forEach((part) => {
-    console.log("part", part);
+    console.log('part', part);
 
-    const { moves, nodeCount: nodeCount } = annotateMoves(part.moves, true);
+    const { moves, enabledCount: enabledCount } = annotateMoves(part.moves, true);
     // put initial position first
     //TODO do something about mainline, etc..
     const root: TrainableNode = {
@@ -120,7 +120,7 @@ export const importAnnotatedPgn = (annotatedPgn: string) => {
       root: root,
       name: chapterName,
       bucketEntries: bucketEntries,
-      nodeCount: nodeCount,
+      enabledCount: enabledCount,
       lastDueCount: 0,
       trainAs: asColor,
     };

@@ -19,7 +19,7 @@ interface RepertoireSectionProps {
 }
 
 export const Chapter = ({ entry, index, id }) => {
-  console.log("chapter ID should be visible", id);
+  console.log('chapter ID should be visible', id);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const repertoireIndex = useTrainerStore().repertoireIndex;
@@ -30,7 +30,7 @@ export const Chapter = ({ entry, index, id }) => {
   const [exportOpen, setExportOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const meta = entry;
-  const unseenCount = meta.nodeCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
+  const unseenCount = meta.enabledCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
   const name = entry.name;
 
   //TODO dont change if already on this chapter..
@@ -90,7 +90,7 @@ export const Chapter = ({ entry, index, id }) => {
           <span className="font-bold pr-3 text-blue-600">{index + 1}</span>
           <h3 className="text-lg font-light flex-1 gap-2 flex items-end">
             <span className="text-md">{name}</span>
-            <span className="text-xs italic font-mono mb-1">{meta.nodeCount}</span>
+            <span className="text-xs italic font-mono mb-1">{meta.enabledCount}</span>
           </h3>
 
           {unseenCount > 0 && (

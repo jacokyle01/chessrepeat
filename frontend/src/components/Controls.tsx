@@ -41,7 +41,7 @@ const Controls = () => {
       <div className="flex gap-1 bg-white flex items-end p-1" id="training-controls">
         <button
           onClick={() => setTrainingMethod('edit')}
-          className={`gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-gray-700 hover:border-gray-500 hover:bg-gray-300 active:transform active:translate-y-px active:border-b ${
+          className={`gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-gray-700 hover:border-gray-500 hover:bg-gray-400 active:transform active:translate-y-px active:border-b ${
             trainingMethod == 'edit'
               ? 'bg-gray-400 translate-y-px transform border-b'
               : 'bg-gray-500 border-b-4'
@@ -77,9 +77,9 @@ const Controls = () => {
             setNextTrainable();
             updateDueCounts();
           }}
-          className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
+          className={`gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-800 hover:border-blue-700 hover:bg-blue-600 active:transform active:translate-y-px active:border-b ${
             trainingMethod == 'recall'
-              ? 'bg-blue-500 translate-y-px transform border-b'
+              ? 'bg-blue-600 translate-y-px transform border-b'
               : 'bg-blue-700 border-b-4'
           }`}
         >

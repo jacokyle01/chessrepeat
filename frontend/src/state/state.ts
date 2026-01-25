@@ -23,7 +23,7 @@ import {
 } from '../types/training';
 import { ChildNode } from 'chessops/pgn';
 import { defaults } from '../util/config';
-import { deleteNodeAt, getNodeList, nodeAtPath, updateRecursive } from '../util/tree';
+import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, updateRecursive } from '../util/tree';
 import { contains, init } from '../util/path';
 import { computeDueCounts, computeNextTrainableNode, merge } from '../util/training';
 import { colorFromPly, currentTime, positionFromFen } from '../util/chess';
@@ -324,7 +324,15 @@ export const useTrainerStore = create<TrainerState>()(
         const node = nodeAtPath(root, path);
         if (!node) return;
 
+        // count number of enabled moves we're deleted
+        let deleteCount = 0;
+        forEachNode(node, (node) => {
+          if (!node.data.training.disabled) deleteCount++;
+        });
+
         deleteNodeAt(root, path);
+
+        chapter.enabledCount -= deleteCount;
 
         // IMPORTANT: do NOT set({ repertoire }) anymore.
         // Instead, touch just this chapter in-memory to re-render,
@@ -539,10 +547,12 @@ export const useTrainerStore = create<TrainerState>()(
 
       disableLine: async (path: string) => {
         const { repertoire, repertoireIndex } = get();
+        const chapter = repertoire[repertoireIndex];
         const root = repertoire[repertoireIndex]?.root;
         if (!root) return;
 
         updateRecursive(root, path, (node) => {
+          if (!node.data.training.disabled) chapter.enabledCount--;
           node.data.training.disabled = true;
         });
 
@@ -564,6 +574,7 @@ export const useTrainerStore = create<TrainerState>()(
         const trainAs = chapter.trainAs;
         updateRecursive(chapter.root, path, (node) => {
           const color: Color = colorFromPly(node.data.ply);
+          if (trainAs === color && node.data.training.disabled) chapter.enabledCount++;
           if (trainAs === color) node.data.training.disabled = false;
         });
 
@@ -586,11 +597,15 @@ export const useTrainerStore = create<TrainerState>()(
         if (!selectedNode.children.map((_) => _.data.san).includes(san)) {
           const [pos] = positionFromFen(fen);
           const move = parseSan(pos, san);
+          const currentColor = colorFromPly(selectedNode.data.ply);
+          const trainAs = chapter.trainAs;
+          const disabled = currentColor == trainAs;
+          if (!disabled) chapter.enabledCount++;
 
           const newNode: TrainableNode = {
             data: {
               training: {
-                disabled: !selectedNode.data.training.disabled,
+                disabled: disabled,
                 seen: false,
                 group: -1,
                 dueAt: -1,
@@ -604,7 +619,7 @@ export const useTrainerStore = create<TrainerState>()(
             children: [],
           };
 
-          if (!newNode.data.training.disabled) chapter.nodeCount++;
+          if (!newNode.data.training.disabled) chapter.enabledCount++;
           selectedNode.children.push(newNode);
         }
 
@@ -649,6 +664,13 @@ export const useTrainerStore = create<TrainerState>()(
 
         const { root: importRoot } = rootFromPgn(newPgn, chapter.trainAs);
         merge(chapter.root, importRoot);
+        //TODO can we make this part of merge?
+
+        let enabledCount = 0;
+        forEachNode(chapter.root, (node) => {
+          if (!node.data.training.disabled) enabledCount++;
+        });
+        chapter.enabledCount = enabledCount;
 
         // touch only this chapter so UI updates (no set({ repertoire }) on whole array reference)
         set((state) => {
