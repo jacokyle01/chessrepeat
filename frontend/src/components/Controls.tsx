@@ -42,10 +42,10 @@ const Controls = () => {
       <div className="flex gap-1 bg-white flex items-end p-1" id="training-controls">
         <button
           onClick={() => setTrainingMethod('edit')}
-          className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-gray-700 hover:border-gray-500 hover:bg-gray-400 active:transform active:translate-y-px active:border-b ${
+          className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-slate-700 hover:border-slate-500 hover:bg-slate-400 active:transform active:translate-y-px active:border-b ${
             trainingMethod == 'edit'
-              ? 'bg-gray-400 translate-y-px transform border-b'
-              : 'bg-gray-500 border-b-4'
+              ? 'bg-slate-400 translate-y-px transform border-b'
+              : 'bg-slate-500 border-b-4'
           }`}
         >
           <SquarePen size={22} />
@@ -93,7 +93,7 @@ const Controls = () => {
 
       {/* //TODO responsive design */}
       <div className="flex h-11 items-center mr-auto" id="training-controls">
-                        <div id="settings-wrap" className="flex p-2 bg-gray-500 rounded-md text-white ml-5" onClick={() => setShowingTrainingSettings(true)}>
+                        <div id="settings-wrap" className="flex p-2 bg-slate-600 rounded-md text-white ml-2" onClick={() => setShowingTrainingSettings(true)}>
           {/* <SettingsButton></SettingsButton> */}
           <FolderCog2 size={22} />
         </div>
