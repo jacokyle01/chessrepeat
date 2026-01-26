@@ -2,6 +2,7 @@ import React, { Dispatch, SetStateAction, useEffect } from 'react';
 import {
   Book,
   FilePenLineIcon,
+  FolderCog2,
   GraduationCap,
   GraduationCapIcon,
   History,
@@ -86,13 +87,15 @@ const Controls = () => {
           <History size={22} />
           <span className="">Recall</span>
         </button>
+
+          
       </div>
 
       {/* //TODO responsive design */}
       <div className="flex h-11 items-center mr-auto" id="training-controls">
-        <div id="settings-wrap" className="flex p-2" onClick={() => setShowingTrainingSettings(true)}>
+                        <div id="settings-wrap" className="flex p-2 bg-gray-500 rounded-md text-white ml-5" onClick={() => setShowingTrainingSettings(true)}>
           {/* <SettingsButton></SettingsButton> */}
-          <Settings size={30} />
+          <FolderCog2 size={22} />
         </div>
       </div>
 
