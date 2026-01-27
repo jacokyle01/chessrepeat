@@ -19,7 +19,7 @@ interface RepertoireSectionProps {
 }
 
 export const Chapter = ({ entry, index, id }) => {
-  console.log('chapter ID should be visible', id);
+  // console.log('chapter ID should be visible', id);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const repertoireIndex = useTrainerStore().repertoireIndex;

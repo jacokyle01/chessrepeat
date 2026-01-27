@@ -53,39 +53,71 @@ const Empty = () => (
 );
 
 const Fail = () => {
-  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-  // const san = useTrainerStore((s) => s.TrainableNodeList.at(-1)?.san);
   const fail = useTrainerStore((s) => s.fail);
   const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
+  const makeMove = useTrainerStore((s) => s.makeMove);
+
+  // OPTIONAL: swap these for real store actions when ready
+  // const undoLastGuess = useTrainerStore((s) => s.undoLastGuess);
+  // const markAsAlternative = useTrainerStore((s) => s.markAsAlternative);
 
   const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
   const lastGuess = useTrainerStore.getState().lastGuess;
-  // const fail = useTrainerStore(s => s.fail);
-  // const handleRecall = useTrainerStore(s => s.handleRecall);
+  // const isWhite = useTrainerStore((s) => s.chapter.trainAs === 'white');
 
   const onContinue = () => {
-    // don't automatically fail;
-    // leaves room for an option to not mark as failure
     fail();
     setNextTrainable();
   };
 
+  const onMarkAlternative = (san: string) => {
+    // markAsAlternative?.(); // TODO: implement in store
+    // setNextTrainable();
+    makeMove(san);
+    setUserTip('recall');
+  };
+
+  const setUserTip = useTrainerStore((s) => s.setUserTip);
+
   return (
     <div id="recall" className="border-t-2">
-      <div className="bg-white py-10 shadow-md flex flex-col items-center gap-2">
-        <div className="flex flex-row justify-center items-center w-full space-x-5">
+      <div className="bg-white py-10 shadow-md flex flex-col items-center">
+        <div className="flex flex-row justify-center items-center w-full space-x-5 pb-5">
           <div className="text-red-500 text-7xl font-bold">✗</div>
           <div id="failure">
-            <h2 className="font-bold text-2xl text-gray-800">{`${lastGuess} is Incorrect`}</h2>
+            <h2 className="font-bold text-2xl text-gray-800">{`${lastGuess} is incorrect`}</h2>
             <p className="text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</p>
           </div>
         </div>
+
+        {/* Action buttons */}
+
         <button
           id="continue-btn"
-          className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-400"
+          className="flex-1 px-4 py-1 hover:bg-gray-50 text-blue-400 rounded-md hover:bg-gray-400 font-semibold"
           onClick={onContinue}
         >
-          Continue Training
+          CONTINUE TRAINING
+        </button>
+
+        <button
+          id="continue-btn"
+          className="flex-1 px-4 py-1 hover:bg-gray-50 text-blue-400 rounded-md hover:bg-gray-400 font-semibold"
+          onClick={() => setUserTip('recall')}
+        >
+          UNDO GUESS
+        </button>
+
+        <button
+          id="continue-btn"
+          className="flex-1 px-4 py-1 hover:bg-gray-50 text-blue-400 rounded-md hover:bg-gray-400 font-semibold"
+          onClick={() => onMarkAlternative(lastGuess)}
+        >
+          <span className="flex gap-2">
+            <h2>MARK</h2>
+            <h2 className="text-black">{`${lastGuess}`}</h2>
+            <h2>AS ALTERNATE MOVE</h2>
+          </span>
         </button>
       </div>
     </div>

@@ -588,7 +588,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       makeMove: async (san: string) => {
-        const { selectedNode, repertoire, repertoireIndex, selectedPath } = get();
+        const { selectedNode, repertoire, repertoireIndex, selectedPath, trainingMethod } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter || !selectedNode) return;
 
@@ -623,11 +623,13 @@ export const useTrainerStore = create<TrainerState>()(
           selectedNode.children.push(newNode);
         }
 
-        const movingTo = selectedNode.children.find((x) => x.data.san === san)!;
-        const newPath = selectedPath + movingTo.data.id;
+        //TODO separate "play move" state action? 
+        if (trainingMethod == 'edit') {
+          const movingTo = selectedNode.children.find((x) => x.data.san === san)!;
+          const newPath = selectedPath + movingTo.data.id;
 
-        set({ selectedNode: movingTo, selectedPath: newPath });
-
+          set({ selectedNode: movingTo, selectedPath: newPath });
+        }
         // persist only this chapter
         await persistChapterByIndex(get(), repertoireIndex);
       },

@@ -63,6 +63,7 @@ export const Chessrepeat = () => {
     guess,
     makeMove,
     hydrateRepertoireFromIDB,
+    fail
   } = useTrainerStore();
 
   useEffect(() => {
@@ -161,8 +162,8 @@ export const Chessrepeat = () => {
     // don't allow moves if user isn't on trainable move
     if (trainingMethod != 'edit' && !isAtLast) return new Map();
     // don't allow moves immediately after recall fail
-    if (userTip == 'fail') return new Map();
-    if (trainingMethod == 'learn' && isAtLast) {
+    // if (userTip == 'fail') return new Map();
+    if ((trainingMethod == 'learn' || userTip == 'fail') && isAtLast) {
       const uci = targetDest();
       return toDestMap(uci[0], uci[1]);
     }
@@ -345,6 +346,14 @@ export const Chessrepeat = () => {
                               //TODO just call setNextTrainable..
                               break;
                             case 'recall':
+                              // if this is after failing a recall
+
+                              if (userTip == 'fail') {
+                                console.log("here")
+                                fail();
+                                setNextTrainablePosition();
+                                return;
+                              }
                               //TODO be more permissive depending on config
                               setLastGuess(san);
                               switch (guess(san)) {
