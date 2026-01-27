@@ -86,41 +86,48 @@ export const Chapter = ({ entry, index, id }) => {
         onClick={handleChangeChapter}
         className={repertoireIndex === index ? 'bg-cyan-50' : ''}
       >
-        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
-          <span className="font-bold pr-3 text-blue-600">{index + 1}</span>
-          <h3 className="text-lg font-light flex-1 gap-2 flex items-end">
-            <span className="text-md">{name}</span>
-            <span className="text-xs italic font-mono mb-1">{meta.enabledCount}</span>
-          </h3>
+<div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
+  <span className="font-bold pr-3 text-blue-600 flex-shrink-0">
+    {index + 1}
+  </span>
 
-          {unseenCount > 0 && (
-            <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-full px-2 font-black mr-2">
-              Learn {unseenCount}
-            </button>
-          )}
+  <h3 className="text-md font-light flex-1 min-w-0 flex items-end gap-2 whitespace-nowrap">
+    <span className="text-md truncate">
+      {name}
+    </span>
+    <span className="text-xs italic font-mono mb-1 flex-shrink-0">
+      {meta.enabledCount}
+    </span>
+  </h3>
 
-          {entry.lastDueCount > 0 && (
-            <button className="font-roboto text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black mr-2">
-              Recall {entry.lastDueCount}
-            </button>
-          )}
+  {unseenCount > 0 && (
+    <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-full px-2 font-black mr-2 flex-shrink-0">
+      Learn {unseenCount}
+    </button>
+  )}
 
-          {/* Open edit modal */}
-          <div
-            id="edit-chapter"
-            className="ml-auto mr-2 text-gray-600 cursor-pointer"
-            onClick={() => setEditOpen(true)}
-          >
-            <FileCog />
-          </div>
-          <div
-            id="download-chapter"
-            className="ml-auto mr-2 text-gray-600 cursor-pointer"
-            onClick={() => setExportOpen(true)}
-          >
-            <FileDown />
-          </div>
-        </div>
+  {entry.lastDueCount > 0 && (
+    <button className="font-roboto text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black mr-2 flex-shrink-0">
+      Recall {entry.lastDueCount}
+    </button>
+  )}
+
+  <div
+    id="edit-chapter"
+    className="ml-auto mr-2 text-gray-600 cursor-pointer flex-shrink-0"
+    onClick={() => setEditOpen(true)}
+  >
+    <FileCog />
+  </div>
+
+  <div
+    id="download-chapter"
+    className="ml-auto mr-2 text-gray-600 cursor-pointer flex-shrink-0"
+    onClick={() => setExportOpen(true)}
+  >
+    <FileDown />
+  </div>
+</div>
       </div>
     </React.Fragment>
   );
