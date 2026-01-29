@@ -27,8 +27,10 @@ import Explorer from './components/Explorer';
 import { CommentBox } from './components/CommentBox';
 import { CopyFen } from './components/CopyFen';
 import SettingsModal from './components/modals/SettingsModal';
-import { calcTarget, chessgroundToSan, fenToDests, positionFromFen, toDestMap } from './util/chess';
+import { calcTarget, chessgroundToSan, fenToDests, isPromotionMove, positionFromFen, promotionColorFromFen, toDestMap } from './util/chess';
 import { getNodeList } from './util/tree';
+import { PendingPromotion } from './types/types';
+import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -63,7 +65,7 @@ export const Chessrepeat = () => {
     guess,
     makeMove,
     hydrateRepertoireFromIDB,
-    fail
+    fail,
   } = useTrainerStore();
 
   useEffect(() => {
@@ -111,6 +113,10 @@ export const Chessrepeat = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  const [pendingPromo, setPendingPromo] = useState<PendingPromotion | null>(null);
+
+  const closePromo = () => setPendingPromo(null);
 
   //TODO move to state.ts
   const deleteChapter = (index) => {
@@ -238,6 +244,123 @@ export const Chessrepeat = () => {
   const prevMove = prevMoveIfExists();
   const lastMove = selectedNode ? prevMove : undefined;
 
+  // const onAfterMove = (from: Key, to: Key, metadata: MoveMetadata) => {
+  //   const san = chessgroundToSan(selectedNode.data.fen, from, to);
+  //   if (!isEditing) {
+  //     // this.syncTime();
+  //     metadata.captured
+  //       ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
+  //       : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
+  //     //TODO separate function here! and for sound!
+  //     if (atLast()) {
+  //       //TODO find good time to update due counts
+  //       updateDueCounts();
+  //       switch (trainingMethod) {
+  //         case 'learn':
+  //           succeed();
+  //           setNextTrainablePosition();
+  //           //TODO just call setNextTrainable..
+  //           break;
+  //         case 'recall':
+  //           // if this is after failing a recall
+
+  //           if (userTip == 'fail') {
+  //             console.log('here');
+  //             fail();
+  //             setNextTrainablePosition();
+  //             return;
+  //           }
+  //           //TODO be more permissive depending on config
+  //           setLastGuess(san);
+  //           switch (guess(san)) {
+  //             case 'success':
+  //               const secsUntilDue = succeed();
+  //               showBoxAtSquare(to, secsUntilDue);
+  //               // handleRecall();
+  //               // succeed();
+  //               setNextTrainablePosition();
+  //               break;
+  //             case 'alternate':
+  //               setUserTip('alternate');
+  //               break;
+  //             case 'failure':
+  //               // set user tip to fail, this hsould inform UI to not let user play move
+  //               //TODO maybe dont fail right away?
+  //               setUserTip('fail');
+  //               break;
+  //           }
+  //           break;
+  //       }
+  //     }
+  //   } else {
+  //     // optionally add move
+  //     makeMove(san);
+  //   }
+  // };
+
+  const finishMove = (san: string, meta: MoveMetadata, to: Key) => {
+    // this is literally your existing code block, extracted so we can call it twice.
+    if (!isEditing) {
+      meta.captured ? sounds.capture.play().catch(console.error) : sounds.move.play().catch(console.error);
+
+      if (atLast()) {
+        updateDueCounts();
+        switch (trainingMethod) {
+          case 'learn':
+            succeed();
+            setNextTrainablePosition();
+            break;
+          case 'recall':
+            if (userTip == 'fail') {
+              fail();
+              setNextTrainablePosition();
+              return;
+            }
+            setLastGuess(san);
+            switch (guess(san)) {
+              case 'success': {
+                const secsUntilDue = succeed();
+                showBoxAtSquare(to, secsUntilDue);
+                setNextTrainablePosition();
+                break;
+              }
+              case 'alternate':
+                setUserTip('alternate');
+                break;
+              case 'failure':
+                setUserTip('fail');
+                break;
+            }
+            break;
+        }
+      }
+    } else {
+      makeMove(san);
+    }
+  };
+
+  const onAfterMove = (from: Key, to: Key, meta: MoveMetadata) => {
+
+    const fenBefore = selectedNode?.data.fen || initial;
+    console.log("fenBefore, from, to", fenBefore, from, to);
+
+    // If a promo is already open, ignore additional moves (defensive)
+    if (pendingPromo) return;
+
+    // Detect promotion and pause
+    console.log("meta", meta);
+    if (isPromotionMove(fenBefore, from, to)) {
+      console.log("promotion move")
+      // Lichess-like: ctrlKey forces choice; otherwise you can auto-queen.
+      setPendingPromo({ from, to, meta, fenBefore });
+      return;
+    }
+
+    // Normal move
+    const san = chessgroundToSan(fenBefore, from, to);
+    finishMove(san, meta, to);
+  };
+
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
@@ -328,63 +451,25 @@ export const Chessrepeat = () => {
                   color: turn,
                   dests: calculateDests(),
                   events: {
-                    after: (from: Key, to: Key, metadata: MoveMetadata) => {
-                      const san = chessgroundToSan(selectedNode.data.fen, from, to);
-                      if (!isEditing) {
-                        // this.syncTime();
-                        metadata.captured
-                          ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
-                          : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
-                        //TODO separate function here! and for sound!
-                        if (atLast()) {
-                          //TODO find good time to update due counts
-                          updateDueCounts();
-                          switch (trainingMethod) {
-                            case 'learn':
-                              succeed();
-                              setNextTrainablePosition();
-                              //TODO just call setNextTrainable..
-                              break;
-                            case 'recall':
-                              // if this is after failing a recall
-
-                              if (userTip == 'fail') {
-                                console.log("here")
-                                fail();
-                                setNextTrainablePosition();
-                                return;
-                              }
-                              //TODO be more permissive depending on config
-                              setLastGuess(san);
-                              switch (guess(san)) {
-                                case 'success':
-                                  const secsUntilDue = succeed();
-                                  showBoxAtSquare(to, secsUntilDue);
-                                  // handleRecall();
-                                  // succeed();
-                                  setNextTrainablePosition();
-                                  break;
-                                case 'alternate':
-                                  setUserTip('alternate');
-                                  break;
-                                case 'failure':
-                                  // set user tip to fail, this hsould inform UI to not let user play move
-                                  //TODO maybe dont fail right away?
-                                  setUserTip('fail');
-                                  break;
-                              }
-                              break;
-                          }
-                        }
-                      } else {
-                        // optionally add move
-                        makeMove(san);
-                      }
-                    },
+                    after: onAfterMove,
                   },
                 }}
                 drawable={{ autoShapes: createShapes() }}
               />
+              {pendingPromo && (
+                <PromotionOverlay
+                  dest={pendingPromo.to}
+                  color={promotionColorFromFen(pendingPromo.fenBefore)}
+                  orientation={chapter?.trainAs || 'white'}
+                  onCancel={closePromo}
+                  onPick={(role: PromoRole) => {
+                    const { fenBefore, from, to, meta } = pendingPromo;
+                    closePromo();
+                    const san = chessgroundToSan(fenBefore, from, to, role);
+                    finishMove(san, meta, to);
+                  }}
+                />
+              )}
             </div>
 
             <Controls />

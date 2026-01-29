@@ -1,5 +1,6 @@
 import { Chart } from 'chart.js';
 import { Color } from '../training/types';
+import { Key, MoveMetadata } from 'chessground/types';
 
 //TODO better organizatoin of types
 export type RepertoireMode = 'train' | 'edit';
@@ -51,3 +52,10 @@ export interface LichessStudy {
 //   enabledCount: number;
 //   bucketEntries: number[];
 // }
+
+export type PendingPromotion = {
+  from: Key;
+  to: Key;
+  meta: MoveMetadata;
+  fenBefore: string;
+};

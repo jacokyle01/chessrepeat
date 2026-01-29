@@ -294,7 +294,6 @@ export const useTrainerStore = create<TrainerState>()(
         const { repertoire } = get();
         if (repertoire.length > 0) return;
         const ids = await readChapterIds();
-        console.log('ids', ids);
         if (!ids.length) return;
 
         const chapters: Chapter[] = [];

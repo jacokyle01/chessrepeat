@@ -596,7 +596,6 @@ export default function PgnTree({ setActiveMoveId }) {
     while (el && el !== e.currentTarget) {
       const path = el.getAttribute('data-path');
       if (path) {
-        console.log('el', el);
         setActiveMoveId(el.id);
         // ctrl.userJump(path); // your navigation logic
         // ctrl.redraw();

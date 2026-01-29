@@ -2,7 +2,7 @@
 // how to organize functions?
 
 import { Dests, Key } from 'chessground/types';
-import { Chess, parseUci, Position, PositionError } from 'chessops';
+import { Chess, parseSquare, parseUci, Position, PositionError } from 'chessops';
 import { chessgroundDests, chessgroundMove, scalachessCharPair } from 'chessops/compat';
 import { parseFen, makeFen, FenError } from 'chessops/fen';
 import { makeSan, makeSanAndPlay, parseSan } from 'chessops/san';
@@ -28,13 +28,56 @@ export const toDestMap = (from: Key, to: Key): Dests => {
 };
 
 // TODO shouldn't need position context to determine SAN string from UCI
-export const chessgroundToSan = (fen: string, from: Key, to: Key): string => {
-  const move = parseUci(from + to);
-  const pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap();
-  const san = makeSan(pos, move!);
-  return san;
-};
+// util/chess.ts (patch)
 
+type PromoRole = 'queen' | 'rook' | 'bishop' | 'knight';
+
+function promoLetter(role: PromoRole) {
+  switch (role) {
+    case 'queen':
+      return 'q';
+    case 'rook':
+      return 'r';
+    case 'bishop':
+      return 'b';
+    case 'knight':
+      return 'n';
+  }
+}
+
+// TODO shouldn't need position context to determine SAN string from UCI
+// util/chess.ts (patch)
+export function chessgroundToSan(
+  fen: string,
+  from: Key,
+  to: Key,
+  promoteTo?: 'queen' | 'rook' | 'bishop' | 'knight',
+): string {
+  const setup = parseFen(fen);
+  if (!setup.isOk) throw new Error('Invalid FEN');
+
+  const pos = Chess.fromSetup(setup.value).unwrap();
+
+  const promoLetter =
+    promoteTo === 'queen'
+      ? 'q'
+      : promoteTo === 'rook'
+        ? 'r'
+        : promoteTo === 'bishop'
+          ? 'b'
+          : promoteTo === 'knight'
+            ? 'n'
+            : '';
+
+  const uci = `${from}${to}${promoLetter}`;
+
+  // ✅ parseUci ONLY parses, does not validate
+  const move = parseUci(uci);
+  if (!move) throw new Error(`Invalid UCI: ${uci}`);
+
+  // ✅ makeSanAndPlay validates + mutates pos
+  return makeSanAndPlay(pos, move);
+}
 export function uciLineToSan(fen: string, uciLine: string): string[] {
   const setup = parseFen(fen);
   if (!setup.isOk) throw new Error('Invalid FEN: ' + fen);
@@ -76,3 +119,28 @@ export const currentTime = (): number => {
 export const colorFromPly = (ply: number): Color => {
   return ply % 2 == 1 ? 'white' : 'black';
 };
+
+export function isPromotionMove(fen: string, from: Key, to: Key): boolean {
+  const setup = parseFen(fen);
+  if (!setup.isOk) return false;
+
+  const pos = Chess.fromSetup(setup.value).unwrap();
+  const board = pos.board;
+
+  // chessops squares are like 'e7' too
+  console.log("")
+  const piece = board.get(parseSquare(from));
+  console.log("piece", piece)
+  if (!piece || piece.role !== 'pawn') return false;
+
+  const destRank = to[1];
+  console.log("destR", destRank)
+  return destRank === '8' || destRank === '1';
+}
+
+export function promotionColorFromFen(fen: string): 'white' | 'black' {
+  const setup = parseFen(fen);
+  if (!setup.isOk) return 'white';
+  const pos = Chess.fromSetup(setup.value).unwrap();
+  return pos.turn; // who is moving
+}
