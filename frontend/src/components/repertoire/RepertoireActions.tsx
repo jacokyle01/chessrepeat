@@ -7,16 +7,17 @@ const RepertoireActions: React.FC = () => {
   const setShowingAddToRepertoireMenu = useTrainerStore((state) => state.setShowingAddToRepertoireMenu);
   const repertoire = useTrainerStore((state) => state.repertoire);
 
+  const isHighlighted = repertoire.length == 0;
   const downloadRepertoire = () => {
     const outFile = pgnFromRepertoire(repertoire);
-    downloadTextFile(outFile, "repertoire.chessrepeat", 'application/x-chess-pgn');
-    }
+    downloadTextFile(outFile, 'repertoire.chessrepeat', 'application/x-chess-pgn');
+  };
 
   return (
     <div id="repertoire-actions" className="my-2 flex flex-wrap justify-center gap-2 shrink-0">
       <button
         onClick={() => setShowingAddToRepertoireMenu(true)}
-        className="flex items-center justify-center bg-blue-500 text-white font-semibold rounded-md py-2 px-2 min-w-[180px] gap-2 transition duration-200 ease-in-out hover:bg-blue-600 active:scale-95 shadow-md hover:shadow-lg"
+        className={`flex items-center justify-center bg-blue-500 text-white font-semibold rounded-md py-2 px-2 min-w-[180px] gap-2 transition duration-200 ease-in-out hover:bg-blue-600 active:scale-95 shadow-md hover:shadow-lg ${isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2' : ''}`}
       >
         <BookPlus className="w-5 h-5" />
         <span>Add to Repertoire</span>

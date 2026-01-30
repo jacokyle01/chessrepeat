@@ -1,7 +1,14 @@
 import React from 'react';
 //TODO king SVG
 import { useTrainerStore } from '../state/state';
-import { Lightbulb, LucideRepeat2, Repeat2 } from 'lucide-react';
+import {
+  BookOpenIcon,
+  GraduationCapIcon,
+  HistoryIcon,
+  Lightbulb,
+  LucideRepeat2,
+  Repeat2,
+} from 'lucide-react';
 
 const isWhite = true;
 const Recall = () => {
@@ -12,10 +19,12 @@ const Recall = () => {
   // const fail = useTrainerStore((s) => s.fail);
 
   return (
-    <div className="bg-white justify-center border border-gray-300 gap-5">
+    <div className="bg-white justify-center border border-gray-300">
       <div className="bg-white flex items-center justify-center py-12 px-6 gap-3">
         <div className="w-12 h-12 flex items-center justify-center">
-          <Repeat2 className="w-14 h-14" />
+          <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
+            <HistoryIcon width={35} height={35} />
+          </div>
         </div>
         <div>
           <h1 className="font-bold text-2xl text-gray-800">Play the move</h1>
@@ -31,9 +40,11 @@ const Learn = () => {
   const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-5">
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3">
       <div className="w-12 h-12 flex items-center justify-center">
-        <Lightbulb className="w-20 h-20" />
+        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
+          <GraduationCapIcon width={35} height={35} />
+        </div>
       </div>
       <div>
         <h1 className="font-bold text-2xl text-gray-800">Play the move</h1>
@@ -142,9 +153,30 @@ const Alternate = () => {
   );
 };
 
-export const UserTip = () => {
-  const userTip = useTrainerStore((s) => s.userTip);
+const EmptyRepertoire = () => {
+  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
 
+  return (
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3">
+      <div className="w-12 h-12 flex items-center justify-center">
+        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
+          <GraduationCapIcon width={35} height={35} />
+        </div>
+      </div>
+      <div>
+        <h1 className="font-bold text-2xl text-gray-800">Repertoire is empty</h1>
+        <h2 className="text-lg text-gray-600">Click "Add to Repertoire" to get started!</h2>
+      </div>
+    </div>
+  );
+};
+
+export const UserTip = () => {
+  console.log('USER T');
+  const repertoire = useTrainerStore((s) => s.repertoire);
+  if (repertoire.length == 0) return <EmptyRepertoire />;
+
+  const userTip = useTrainerStore((s) => s.userTip);
   switch (userTip) {
     case 'recall':
       return <Recall />;
