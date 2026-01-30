@@ -244,62 +244,8 @@ export const Chessrepeat = () => {
   const prevMove = prevMoveIfExists();
   const lastMove = selectedNode ? prevMove : undefined;
 
-  // const onAfterMove = (from: Key, to: Key, metadata: MoveMetadata) => {
-  //   const san = chessgroundToSan(selectedNode.data.fen, from, to);
-  //   if (!isEditing) {
-  //     // this.syncTime();
-  //     metadata.captured
-  //       ? sounds.capture.play().catch((err) => console.error('Audio playback error:', err))
-  //       : sounds.move.play().catch((err) => console.error('Audio playback error:', err));
-  //     //TODO separate function here! and for sound!
-  //     if (atLast()) {
-  //       //TODO find good time to update due counts
-  //       updateDueCounts();
-  //       switch (trainingMethod) {
-  //         case 'learn':
-  //           succeed();
-  //           setNextTrainablePosition();
-  //           //TODO just call setNextTrainable..
-  //           break;
-  //         case 'recall':
-  //           // if this is after failing a recall
-
-  //           if (userTip == 'fail') {
-  //             console.log('here');
-  //             fail();
-  //             setNextTrainablePosition();
-  //             return;
-  //           }
-  //           //TODO be more permissive depending on config
-  //           setLastGuess(san);
-  //           switch (guess(san)) {
-  //             case 'success':
-  //               const secsUntilDue = succeed();
-  //               showBoxAtSquare(to, secsUntilDue);
-  //               // handleRecall();
-  //               // succeed();
-  //               setNextTrainablePosition();
-  //               break;
-  //             case 'alternate':
-  //               setUserTip('alternate');
-  //               break;
-  //             case 'failure':
-  //               // set user tip to fail, this hsould inform UI to not let user play move
-  //               //TODO maybe dont fail right away?
-  //               setUserTip('fail');
-  //               break;
-  //           }
-  //           break;
-  //       }
-  //     }
-  //   } else {
-  //     // optionally add move
-  //     makeMove(san);
-  //   }
-  // };
 
   const finishMove = (san: string, meta: MoveMetadata, to: Key) => {
-    // this is literally your existing code block, extracted so we can call it twice.
     if (!isEditing) {
       meta.captured ? sounds.capture.play().catch(console.error) : sounds.move.play().catch(console.error);
 
@@ -359,6 +305,7 @@ export const Chessrepeat = () => {
     // Normal move
     const san = chessgroundToSan(fenBefore, from, to);
     finishMove(san, meta, to);
+    updateDueCounts();
   };
 
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet

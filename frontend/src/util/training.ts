@@ -219,6 +219,14 @@ export function merge(n1: TrainableNode, n2: TrainableNode): void {
 
 //TODO return path to position + target ChildNode<TrainingData>
 //TODO better type for getNext
+/*
+for learn:
+  - have we learned everything? Y/N
+  - there may hidden moves to learn which the training settings preclude us from looking @ 
+
+for recall: 
+
+*/
 export function computeNextTrainableNode(
   root: TrainableNode,
   method: TrainingMethod,

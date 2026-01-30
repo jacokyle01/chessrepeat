@@ -9,6 +9,7 @@ import {
   LucideRepeat2,
   MousePointer,
   Repeat2,
+  XIcon,
 } from 'lucide-react';
 
 const isWhite = true;
@@ -55,14 +56,24 @@ const Learn = () => {
   );
 };
 
-const Empty = () => (
-  <div className="bg-white flex flex-col items-center justify-center py-12 border border-gray-300">
-    <h1 className="font-bold text-xl text-gray-800">No moves</h1>
-    <h2 className="text-md text-gray-600 mt-2 text-center">
-      Try training a different repertoire or switching modes
-    </h2>
-  </div>
-);
+// nextTrainablePosition couldn't find any moves to train
+const Empty = () => {
+  const method = useTrainerStore.getState().trainingMethod;
+
+  return (
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-1">
+      <div className="w-12 h-12 flex items-center justify-center">
+        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
+          <XIcon width={25} height={25} />
+        </div>
+      </div>
+      <div>
+        <h1 className="font-bold text-xl text-gray-600">{`No more moves to ${method}`}</h1>
+        <h2 className="text-md text-gray-600">Try switching the training mode or modifying settings</h2>
+      </div>
+    </div>
+  );
+};
 
 const Fail = () => {
   const fail = useTrainerStore((s) => s.fail);
@@ -126,7 +137,7 @@ const Fail = () => {
           onClick={() => onMarkAlternative(lastGuess)}
         >
           <span className="flex gap-2">
-            <h2>MARK</h2>
+            <h2>ADD</h2>
             <h2 className="text-black">{`${lastGuess}`}</h2>
             <h2>AS ALTERNATE MOVE</h2>
           </span>
@@ -196,9 +207,7 @@ export const UserTip = () => {
   const trainingMethod = useTrainerStore((s) => s.trainingMethod);
 
   if (repertoire.length == 0) return <EmptyRepertoire />;
-  if (trainingMethod == 'unselected') return <Unselected />
-
-
+  if (trainingMethod == 'unselected') return <Unselected />;
 
   // TODO repertoireIndex should be correct, so user have a repertoire selected
 

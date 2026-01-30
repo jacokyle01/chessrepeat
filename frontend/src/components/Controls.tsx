@@ -56,7 +56,7 @@ const Controls = () => {
           onClick={() => {
             setTrainingMethod('learn');
             setNextTrainable();
-            updateDueCounts();
+            // updateDueCounts();
           }}
           className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
             trainingMethod == 'learn'
@@ -76,7 +76,7 @@ const Controls = () => {
           onClick={() => {
             setTrainingMethod('recall');
             setNextTrainable();
-            updateDueCounts();
+            // updateDueCounts();
           }}
           className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-800 hover:border-blue-700 hover:bg-blue-600 active:transform active:translate-y-px active:border-b ${
             trainingMethod == 'recall'
