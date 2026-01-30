@@ -34,6 +34,7 @@ export const Chapter = ({ entry, index, id }) => {
   const name = entry.name;
 
   //TODO dont change if already on this chapter..
+  //TODO dont clear all chapter context? maybe dont change trainingMethod
   const handleChangeChapter = () => {
     setRepertoireIndex(index);
     clearChapterContext();

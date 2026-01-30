@@ -7,6 +7,7 @@ import {
   HistoryIcon,
   Lightbulb,
   LucideRepeat2,
+  MousePointer,
   Repeat2,
 } from 'lucide-react';
 
@@ -171,12 +172,36 @@ const EmptyRepertoire = () => {
   );
 };
 
-export const UserTip = () => {
-  console.log('USER T');
-  const repertoire = useTrainerStore((s) => s.repertoire);
-  if (repertoire.length == 0) return <EmptyRepertoire />;
+const Unselected = () => {
+  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
 
+  return (
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3">
+      <div className="w-12 h-12 flex items-center justify-center">
+        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
+          <MousePointer width={35} height={35} />
+        </div>
+      </div>
+      <div>
+        <h1 className="font-bold text-2xl text-gray-800">No training mode selected</h1>
+        <h2 className="text-md text-gray-600">Click Learn or Recall to start training</h2>
+      </div>
+    </div>
+  );
+};
+
+export const UserTip = () => {
   const userTip = useTrainerStore((s) => s.userTip);
+  const repertoire = useTrainerStore((s) => s.repertoire);
+  const trainingMethod = useTrainerStore((s) => s.trainingMethod);
+
+  if (repertoire.length == 0) return <EmptyRepertoire />;
+  if (trainingMethod == 'unselected') return <Unselected />
+
+
+
+  // TODO repertoireIndex should be correct, so user have a repertoire selected
+
   switch (userTip) {
     case 'recall':
       return <Recall />;
