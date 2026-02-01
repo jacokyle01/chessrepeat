@@ -1,22 +1,12 @@
 //TODO repertoire and repertoire section in same file
 
-import { FileCog, FileDown } from 'lucide-react';
+import { FileCog, FileDown, SettingsIcon } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
 import { Modal } from '../modals/Modal';
 import EditChapterModal from '../modals/EditChapterModal';
 import React, { Dispatch, SetStateAction, useState } from 'react';
-import { RepertoireChapter, RepertoireEntry } from '../../types/types';
 import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
-import { exportChapter } from '../../training/util';
-import ExportChapterModal from '../modals/ExportChapterModal';
-// import { progress } from './progress'; // Uncomment if needed
-
-interface RepertoireSectionProps {
-  repertoire: RepertoireChapter[];
-  startsAt: number;
-  repertoireIndex: number;
-}
 
 export const Chapter = ({ entry, index, id }) => {
   // console.log('chapter ID should be visible', id);
@@ -64,79 +54,49 @@ export const Chapter = ({ entry, index, id }) => {
         </div>
       )}
 
-      {exportOpen && (
-        <div
-          className="
-      fixed inset-0 z-40
-      bg-black/50 backdrop-blur-sm
-      flex items-center justify-center
-    "
-          onClick={() => setExportOpen(false)} // close on backdrop click
-        >
-          <div
-            className="z-50"
-            onClick={(e) => e.stopPropagation()} // prevent closing when clicking modal
-          >
-            <ExportChapterModal chapterIndex={index} onClose={() => setExportOpen(false)} />
-          </div>
-        </div>
-      )}
-
       <div
         id="chapter-wrap"
         onClick={handleChangeChapter}
         className={repertoireIndex === index ? 'bg-cyan-50' : ''}
       >
-<div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
-  <span className="font-bold pr-3 text-blue-600 flex-shrink-0">
-    {index + 1}
-  </span>
+        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
+          <span className="font-bold pr-3 text-blue-600 flex-shrink-0">{index + 1}</span>
 
-  <h3 className="text-md font-light flex-1 min-w-0 flex items-end gap-2 whitespace-nowrap">
-    <span className="text-md truncate">
-      {name}
-    </span>
-    <span className="text-xs italic font-mono mb-1 flex-shrink-0">
-      {meta.enabledCount}
-    </span>
-  </h3>
+          <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
+            <span className="text-md truncate leading-none">{name}</span>
+            <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
+          </h3>
 
-  {unseenCount > 0 && (
-    <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-full px-2 font-black mr-2 flex-shrink-0">
-      Learn {unseenCount}
-    </button>
-  )}
+          {unseenCount > 0 && (
+            <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-md px-2 font-black mr-2 flex-shrink-0">
+              Learn {unseenCount}
+            </button>
+          )}
 
-  {entry.lastDueCount > 0 && (
-    <button className="font-roboto text-sm font-medium text-orange-700 bg-orange-500/20 rounded-full px-2 font-black mr-2 flex-shrink-0">
-      Recall {entry.lastDueCount}
-    </button>
-  )}
+          {entry.lastDueCount > 0 && (
+            <button className="font-roboto text-sm font-medium text-orange-700 bg-orange-500/20 rounded-md px-2 font-black mr-2 flex-shrink-0">
+              Recall {entry.lastDueCount}
+            </button>
+          )}
 
-  <div
-    id="edit-chapter"
-    className="ml-auto mr-2 text-gray-600 cursor-pointer flex-shrink-0"
-    onClick={() => setEditOpen(true)}
-  >
-    <FileCog />
-  </div>
-
-  <div
-    id="download-chapter"
-    className="ml-auto mr-2 text-gray-600 cursor-pointer flex-shrink-0"
-    onClick={() => setExportOpen(true)}
-  >
-    <FileDown />
-  </div>
-</div>
+          <div
+            id="edit-chapter"
+            className="ml-auto mr-2 text-gray-600 cursor-pointer flex-shrink-0"
+            onClick={() => setEditOpen(true)}
+          >
+            <div id="icon-wrap">
+              <SettingsIcon width={20} height={20}/>
+            </div>
+          </div>
+        </div>
       </div>
     </React.Fragment>
   );
 };
 
 const Repertoire: React.FC = () => {
-  const whiteEntries: RepertoireChapter[] = [];
-  const blackEntries: RepertoireChapter[] = [];
+  const whiteEntries = [];
+  const blackEntries = [];
 
   const repertoire = useTrainerStore().repertoire;
 
@@ -156,8 +116,8 @@ const Repertoire: React.FC = () => {
       </div>
 
       {/* ONLY THIS SCROLLS */}
-      <div id="repertoire-wrap" className="flex-1 min-h-0 overflow-y-auto pb-2">
-        <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600 space-x-1">White</span>
+      <div id="repertoire-wrap" className="repertoire-scroll flex-1 min-h-0 overflow-y-auto pb-2">
+        <span className="font-semibold text-sm uppercase px-2 text-gray-600 space-x-1">White</span>
 
         <div className="flex-row rounded-md">
           {whiteEntries.map((entry, index) => (
@@ -165,7 +125,7 @@ const Repertoire: React.FC = () => {
           ))}
         </div>
 
-        <span className="font-semibold text-sm uppercase px-2 pl-4 text-gray-600">Black</span>
+        <span className="font-semibold text-sm uppercase px-2 text-gray-600">Black</span>
 
         <div className="flex-row rounded-md">
           {blackEntries.map((entry, index) => (
