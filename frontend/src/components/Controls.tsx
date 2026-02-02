@@ -27,7 +27,6 @@ const Controls = () => {
   const trainingMethod = useTrainerStore.getState().trainingMethod;
   const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
   const updateDueCounts = useTrainerStore((s) => s.updateDueCounts);
-  const setShowingTrainingSettings = useTrainerStore((s) => s.setShowingTrainingSettings);
 
   const lastGuess = useTrainerStore.getState().lastGuess;
 
@@ -39,7 +38,7 @@ const Controls = () => {
   return (
     <div className="flex flex-row justify-start items-start">
       {/* train/edit controls */}
-      <div className="flex gap-1 bg-white flex items-end p-1" id="training-controls">
+      <div className="flex bg-white flex items-end p-1" id="training-controls">
         <button
           onClick={() => setTrainingMethod('edit')}
           className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-slate-700 hover:border-slate-500 hover:bg-slate-400 active:transform active:translate-y-px active:border-b ${
@@ -91,13 +90,7 @@ const Controls = () => {
           
       </div>
 
-      {/* //TODO responsive design */}
-      <div className="flex h-11 items-center mr-auto" id="training-controls">
-                        <div id="settings-wrap" className="flex p-2 bg-slate-600 rounded-md text-white ml-2" onClick={() => setShowingTrainingSettings(true)}>
-          {/* <SettingsButton></SettingsButton> */}
-          <FolderCog2 size={22} />
-        </div>
-      </div>
+
 
       {/* {showLastMoveCorrect && <LastMoveCorrect></LastMoveCorrect>} */}
 

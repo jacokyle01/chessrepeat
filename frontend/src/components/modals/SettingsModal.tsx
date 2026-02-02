@@ -4,8 +4,7 @@ import { useTrainerStore } from '../../state/state';
 import Divider from '../common/Divider';
 import ToggleGroup from '../common/ToggleGroup';
 
-const SettingsModal: React.FC = () => {
-  const setShowingTrainingSettings = useTrainerStore((s) => s.setShowingTrainingSettings);
+const SettingsModal: React.FC = (setSettingsOpen: (b: boolean) => void) => {
   const trainingConfig = useTrainerStore((s) => s.trainingConfig);
   const setTrainingConfig = useTrainerStore((s) => s.setTrainingConfig);
 
@@ -35,7 +34,7 @@ const SettingsModal: React.FC = () => {
         className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-8 w-8
                    flex items-center justify-center shadow-md hover:bg-red-600"
         aria-label="Close"
-        onClick={() => setShowingTrainingSettings(false)}
+        onClick={() => setSettingsOpen(false)}
         type="button"
       >
         <CircleXIcon className="w-5 h-5" />

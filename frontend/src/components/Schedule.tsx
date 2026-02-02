@@ -4,7 +4,7 @@ import { ChartBarIncreasing } from 'lucide-react';
 
 const Schedule: React.FC = () => {
   return (
-    <div className="shrink-0 flex flex-col rounded-lg border border-gray-300 bg-white">
+    <div className="shrink-0 flex flex-col rounded-lg border border-gray-300 bg-white mb-5">
       <div id="schedule-header" className="shrink-0 flex items-center p-3 gap-2">
         <div id="schedule-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
           <ChartBarIncreasing />

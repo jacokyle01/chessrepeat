@@ -1,10 +1,3 @@
-// state/trainerStore.ts
-// Minimal change: split persisted repertoire into per-chapter blobs in IndexedDB.
-// - Keep `repertoire: Chapter[]` in Zustand (in-memory).
-// - STOP persisting `repertoire` via zustand/persist (that was causing big rewrites).
-// - Persist each chapter separately under `trainer:chapter:${cid}`.
-// - Persist only a tiny chapter index + small settings in zustand/persist.
-
 import { create } from 'zustand';
 import { persist, StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
@@ -36,9 +29,6 @@ interface TrainerState {
   /* UI Flags */
   trainingMethod: TrainingMethod;
   setTrainingMethod: (m: TrainingMethod) => void;
-
-  showingTrainingSettings: boolean;
-  setShowingTrainingSettings: (val: boolean) => void;
 
   showingAddToRepertoireMenu: boolean;
   setShowingAddToRepertoireMenu: (val: boolean) => void;
@@ -186,9 +176,6 @@ export const useTrainerStore = create<TrainerState>()(
     (set, get) => ({
       trainingMethod: 'unselected',
       setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
-
-      showingTrainingSettings: false,
-      setShowingTrainingSettings: (val) => set({ showingTrainingSettings: val }),
 
       showingAddToRepertoireMenu: false,
       setShowingAddToRepertoireMenu: (val) => set({ showingAddToRepertoireMenu: val }),

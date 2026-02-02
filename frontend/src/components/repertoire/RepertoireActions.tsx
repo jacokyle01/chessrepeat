@@ -1,10 +1,11 @@
-//TODO styling improvements, app theme, export repertoire as PGN 
+//TODO styling improvements, app theme, export repertoire as PGN
 
 import React, { useMemo, useState } from 'react';
-import { BookDownIcon, BookPlus, DownloadIcon, FileTextIcon } from 'lucide-react';
+import { BookDownIcon, BookPlus, DownloadIcon, FileTextIcon, FolderCog2Icon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import { pgnFromChapter, pgnFromRepertoire } from '../../util/training';
 import { downloadTextFile } from '../../util/io';
+import SettingsModal from '../modals/SettingsModal';
 
 type DownloadScope = 'repertoire' | 'chapter';
 type ExportFormat = 'chessrepeat' | 'pgn';
@@ -18,8 +19,10 @@ const RepertoireActions: React.FC = () => {
 
   const isHighlighted = repertoire.length === 0;
 
-  // --- download picker state ---
+  // ui flags
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const [scope, setScope] = useState<DownloadScope>('repertoire');
   const [format, setFormat] = useState<ExportFormat>('chessrepeat');
 
@@ -92,22 +95,67 @@ const RepertoireActions: React.FC = () => {
 
   return (
     <>
-      <div id="repertoire-actions" className="my-2 flex flex-wrap justify-center gap-2 shrink-0">
+      <div
+        id="repertoire-actions"
+        className="
+    my-2 shrink-0
+    flex items-center justify-center
+    gap-2
+  "
+      >
+        {/* Add to Repertoire */}
         <button
           onClick={() => setShowingAddToRepertoireMenu(true)}
-          className={`flex items-center justify-center bg-blue-500 text-white font-semibold rounded-md py-2 px-2 gap-2 transition duration-200 ease-in-out hover:bg-blue-600 active:scale-95 shadow-md hover:shadow-lg ${
-            isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2' : ''
-          }`}
+          className={`
+      h-11
+      inline-flex items-center justify-center gap-2
+      rounded-md px-3
+      font-semibold text-white
+      bg-blue-600 hover:bg-blue-700
+      shadow-sm hover:shadow
+      transition active:scale-[0.98]
+      whitespace-nowrap
+      ${isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}
+    `}
         >
-          <BookPlus className="w-5 h-5" />
+          <BookPlus className="h-5 w-5" />
           <span>Add to Repertoire</span>
         </button>
 
+        {/* Settings (center icon button) */}
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="
+      h-11 w-11
+      inline-flex items-center justify-center
+      rounded-md
+      bg-blue-500 text-white
+      hover:bg-blue-600
+      shadow-sm hover:shadow
+      transition active:scale-[0.98]
+    "
+          aria-label="Settings"
+          title="Settings"
+        >
+          <FolderCog2Icon size={22} />
+        </button>
+
+        {/* Download */}
         <button
           onClick={() => setIsDownloadOpen(true)}
-          className="flex items-center justify-center bg-blue-700 text-white font-semibold rounded-md py-2 px-3 gap-2 transition duration-200 ease-in-out hover:bg-blue-800 active:scale-95 shadow-md hover:shadow-lg"
+          className="
+      h-11
+      inline-flex items-center justify-center gap-2
+      rounded-md px-3
+      font-semibold text-white
+      bg-blue-800 hover:bg-blue-900
+      shadow-sm hover:shadow
+      transition active:scale-[0.98]
+      whitespace-nowrap
+    "
         >
-          <BookDownIcon className="w-5 h-5" />
+          <BookDownIcon className="h-5 w-5" />
           <span>Download</span>
         </button>
       </div>
@@ -222,6 +270,19 @@ const RepertoireActions: React.FC = () => {
           </dialog>
         </div>
       ) : null}
+
+      {settingsOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setSettingsOpen(false)} // close on backdrop click
+          ></div>
+
+          {/* Modal */}
+          <SettingsModal setSettingsOpen={setSettingsOpen}></SettingsModal>
+        </>
+      )}
     </>
   );
 };

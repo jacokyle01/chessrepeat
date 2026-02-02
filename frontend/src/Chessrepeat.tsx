@@ -26,8 +26,15 @@ import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
 import { CommentBox } from './components/CommentBox';
 import { CopyFen } from './components/CopyFen';
-import SettingsModal from './components/modals/SettingsModal';
-import { calcTarget, chessgroundToSan, fenToDests, isPromotionMove, positionFromFen, promotionColorFromFen, toDestMap } from './util/chess';
+import {
+  calcTarget,
+  chessgroundToSan,
+  fenToDests,
+  isPromotionMove,
+  positionFromFen,
+  promotionColorFromFen,
+  toDestMap,
+} from './util/chess';
 import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
@@ -40,8 +47,6 @@ const SOUNDS = {
 export const Chessrepeat = () => {
   const {
     setNextTrainablePosition,
-    showingTrainingSettings,
-    setShowingTrainingSettings,
     showingAddToRepertoireMenu,
     setShowingAddToRepertoireMenu,
 
@@ -244,7 +249,6 @@ export const Chessrepeat = () => {
   const prevMove = prevMoveIfExists();
   const lastMove = selectedNode ? prevMove : undefined;
 
-
   const finishMove = (san: string, meta: MoveMetadata, to: Key) => {
     if (!isEditing) {
       meta.captured ? sounds.capture.play().catch(console.error) : sounds.move.play().catch(console.error);
@@ -286,17 +290,16 @@ export const Chessrepeat = () => {
   };
 
   const onAfterMove = (from: Key, to: Key, meta: MoveMetadata) => {
-
     const fenBefore = selectedNode?.data.fen || initial;
-    console.log("fenBefore, from, to", fenBefore, from, to);
+    console.log('fenBefore, from, to', fenBefore, from, to);
 
     // If a promo is already open, ignore additional moves (defensive)
     if (pendingPromo) return;
 
     // Detect promotion and pause
-    console.log("meta", meta);
+    console.log('meta', meta);
     if (isPromotionMove(fenBefore, from, to)) {
-      console.log("promotion move")
+      console.log('promotion move');
       // Lichess-like: ctrlKey forces choice; otherwise you can auto-queen.
       setPendingPromo({ from, to, meta, fenBefore });
       return;
@@ -364,21 +367,6 @@ export const Chessrepeat = () => {
             <AddToRepertoireModal></AddToRepertoireModal>
           </>
         )}
-        {showingTrainingSettings && (
-          <>
-            {/* Overlay */}
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => setShowingTrainingSettings(false)} // close on backdrop click
-            ></div>
-
-            {/* Modal */}
-            <SettingsModal></SettingsModal>
-          </>
-        )}
-
-        {/* <SettingsModal></SettingsModal> */}
-        {/* {showTrainingSettings && <SettingsModal></SettingsModal>} */}
         <div className="flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 overflow-hidden">
           <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden flex-1">
             <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
