@@ -26,6 +26,8 @@ import { formatTime } from './util/time';
 import Explorer from './components/Explorer';
 import { CommentBox } from './components/CommentBox';
 import { CopyFen } from './components/CopyFen';
+import { SiDiscord, SiGithub } from 'react-icons/si';
+import { Bug, Mail, User, UserX } from 'lucide-react';
 import {
   calcTarget,
   chessgroundToSan,
@@ -120,6 +122,9 @@ export const Chessrepeat = () => {
   }, []);
 
   const [pendingPromo, setPendingPromo] = useState<PendingPromotion | null>(null);
+
+  // TODO dont store this directly. .
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   const closePromo = () => setPendingPromo(null);
 
@@ -323,35 +328,53 @@ export const Chessrepeat = () => {
             <span className="text-stone-600">repeat</span>
           </div>
 
-          {/* Links */}
-          <div className="flex gap-6 text-base font-light text-gray-500 font-mono mt-auto">
-            <a
-              href="https://discord.gg/xhjra9W6Bh"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-black capitalize font-mono"
-              title="Join our Discord"
+          <div className="flex items-center w-full mt-auto text-gray-500 ml-10">
+            <div className="flex items-center gap-10">
+              {/* Discord */}
+              <a
+                href="https://discord.gg/xhjra9W6Bh"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Join our Discord"
+                className="flex items-center gap-1 text-base hover:text-black transition"
+              >
+                <span>join discord</span>
+                <SiDiscord className="w-5 h-5" />
+              </a>
+
+              {/* GitHub */}
+              <a
+                href="https://github.com/jacokyle01/chessrepeat"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on GitHub"
+                className="flex items-center gap-1 text-base hover:text-black transition"
+              >
+                <span>view github</span>
+                <SiGithub className="w-5 h-5" />
+              </a>
+
+              {/* Bug report */}
+              <a
+                href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
+                title="Report a Bug"
+                className="flex items-center gap-1 text-base hover:text-black transition"
+              >
+                <span>report bug</span>
+                <Bug className="w-5 h-5" />
+              </a>
+            </div>
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Profile */}
+            <button
+              className="hover:text-black transition mr-2"
+              title={isAuthenticated ? 'Profile' : 'Sign in with Google'}
             >
-              JOIN DISCORD
-            </a>
-            <span>•</span>
-            <a
-              href="https://github.com/jacokyle01/chessrepeat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-black"
-              title="View on GitHub"
-            >
-              VIEW GITHUB
-            </a>
-            <span>•</span>
-            <a
-              href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
-              className="hover:text-black"
-              title="Report a Bug via Email"
-            >
-              REPORT BUG
-            </a>
+              {isAuthenticated ? <User className="w-8 h-8" /> : <UserX className="w-8 h-8" />}
+            </button>
           </div>
         </div>
         {/* //TODO overlap wrapper component? */}
@@ -409,8 +432,6 @@ export const Chessrepeat = () => {
 
             <Controls />
             <CommentBox />
-            {/* TODO  where is copy FEN?*/}
-            <CopyFen></CopyFen>
           </div>
           <div className="tree-wrap flex flex-col flex-1 h-full w-1/3">
             {/* TODO should be in PGNTree? */}
