@@ -40,6 +40,8 @@ import {
 import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
+import { ProfileButton } from './components/ProfileButton';
+import { useAuthStore } from './state/auth';
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -75,10 +77,21 @@ export const Chessrepeat = () => {
     fail,
   } = useTrainerStore();
 
+  // hydrate repertoire from IDB
   useEffect(() => {
     console.log('test');
     hydrateRepertoireFromIDB();
   }, []);
+
+  // hydrate token
+  const hydrate = useAuthStore((s) => s.hydrateFromStorage);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  const user = useAuthStore((s) => s.user);
+  const isAuthed = useAuthStore((s) => s.isAuthenticated());
 
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
@@ -320,7 +333,7 @@ export const Chessrepeat = () => {
   return (
     <MantineProvider>
       <div id="root" className="w-full h-dvh min-h-0 flex flex-col bg-gray-200">
-        <div id="header" className="flex items-center justify-start text-3xl mb-3 gap-10">
+        <div id="header" className="flex items-end justify-start text-3xl mb-3 gap-10">
           {/* Logo + Title */}
           <div className="flex items-end">
             <img src="logo.png" alt="Logo" className="h-12 w-12 mr-2" />
@@ -328,15 +341,15 @@ export const Chessrepeat = () => {
             <span className="text-stone-600">repeat</span>
           </div>
 
-          <div className="flex items-center w-full mt-auto text-gray-500 ml-10">
-            <div className="flex items-center gap-10">
+          <div className="flex items-end w-full text-gray-500 ml-10">
+            <div className="flex items-end gap-10">
               {/* Discord */}
               <a
                 href="https://discord.gg/xhjra9W6Bh"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Join our Discord"
-                className="flex items-center gap-1 text-base hover:text-black transition"
+                className="flex items-end gap-1 text-base hover:text-black transition"
               >
                 <span>join discord</span>
                 <SiDiscord className="w-5 h-5" />
@@ -348,7 +361,7 @@ export const Chessrepeat = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 title="View on GitHub"
-                className="flex items-center gap-1 text-base hover:text-black transition"
+                className="flex items-end gap-1 text-base hover:text-black transition"
               >
                 <span>view github</span>
                 <SiGithub className="w-5 h-5" />
@@ -358,7 +371,7 @@ export const Chessrepeat = () => {
               <a
                 href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
                 title="Report a Bug"
-                className="flex items-center gap-1 text-base hover:text-black transition"
+                className="flex items-end gap-1 text-base hover:text-black transition"
               >
                 <span>report bug</span>
                 <Bug className="w-5 h-5" />
@@ -368,15 +381,10 @@ export const Chessrepeat = () => {
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Profile */}
-            <button
-              className="hover:text-black transition mr-2"
-              title={isAuthenticated ? 'Profile' : 'Sign in with Google'}
-            >
-              {isAuthenticated ? <User className="w-8 h-8" /> : <UserX className="w-8 h-8" />}
-            </button>
+            <ProfileButton />
           </div>
         </div>
+
         {/* //TODO overlap wrapper component? */}
         {showingAddToRepertoireMenu && (
           <>

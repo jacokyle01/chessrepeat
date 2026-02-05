@@ -58,6 +58,7 @@ export const annotateMoves = (
 ): {
   moves: Node<TrainingData>;
   enabledCount: number;
+  largestIdx: number
   // meta: {
   //   trainAs: Color;
   //   bucketEntries: number[];
@@ -65,7 +66,7 @@ export const annotateMoves = (
 } => {
   //TODO cleaner here.. .
   const context = trainingContext(color || 'white');
-  // let idCount = 0;
+  let idx = 1;
   let trainableNodes = 0;
 
   return {
@@ -85,6 +86,7 @@ export const annotateMoves = (
       if (!alreadyAnnotated) {
         return {
           ...data,
+          idx: idx++,
           id: scalachessCharPair(move),
           fen: makeFen(context.pos.toSetup()),
           comment: data.comments?.join('|') || '',
@@ -122,6 +124,7 @@ export const annotateMoves = (
       }
     }),
     enabledCount: trainableNodes,
+    largestIdx: idx
   };
 };
 
@@ -195,7 +198,9 @@ export const pathContext: PathContext = {
   Given the roots of two PGN trees n1, n2, 
   merge n1 into n2 in place.
 */
+//
 // TODO
+// need to edit n2's ids to avoid duplicate
 export function merge(n1: TrainableNode, n2: TrainableNode): void {
   // merge n2 comments into n1, if exists
   n1.data.comment == n1.data.comment + (n2.data.comment ? ' | ' + n2.data.comment : '');

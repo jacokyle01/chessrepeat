@@ -79,6 +79,8 @@ export interface TrainingData {
     dueAt: number;
   };
   id: string;
+  //TODO better naming here.. 
+  idx: number; 
   fen: string;
   ply: number;
   san: string;
@@ -102,7 +104,8 @@ export interface Chapter {
   enabledCount: number;
   bucketEntries: number[];
   root: TrainableNode;
-  id: string;
+  // use this to assign ids to nodes 
+  largestMoveId: number
 }
 //TODO different data structure for a chapter thats currently selected?
 

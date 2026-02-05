@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
-import { produce } from 'immer';
 
 import { Config as CbConfig } from 'chessground/config';
 import {
@@ -24,6 +23,8 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
 import { rootFromPgn } from '../util/io';
+import { useAuthStore } from './auth';
+import { postChapter } from '../api/chapter';
 
 interface TrainerState {
   /* UI Flags */
@@ -609,7 +610,7 @@ export const useTrainerStore = create<TrainerState>()(
           selectedNode.children.push(newNode);
         }
 
-        //TODO separate "play move" state action? 
+        //TODO separate "play move" state action?
         if (trainingMethod == 'edit') {
           const movingTo = selectedNode.children.find((x) => x.data.san === san)!;
           const newPath = selectedPath + movingTo.data.id;
@@ -643,6 +644,21 @@ export const useTrainerStore = create<TrainerState>()(
         const ids = await readChapterIds();
         console.log('ids so far', ids);
         if (!ids.includes(cid)) await writeChapterIds([...ids, cid]);
+
+        // 2) if signed in, push to backend
+        const isAuthed = useAuthStore.getState().isAuthenticated();
+        if (!isAuthed) return;
+
+        try {
+          const resp = await postChapter(chapter);
+          console.log("RESP", resp);
+          // optionally store resp.revision back into IndexedDB/store
+          // await idb.updateChapterRevision(chapter.id, resp.revision)
+        } catch (e) {
+          // optional: mark as "needsSync" instead of rolling back
+          // set((s) => markChapterNeedsSync(s, chapter.id))
+          console.error(e);
+        }
       },
 
       importIntoChapter: async (targetChapter: number, newPgn: string) => {

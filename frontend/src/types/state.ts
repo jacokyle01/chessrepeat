@@ -1,6 +1,6 @@
 export type PersistedMoveNode = {
   id: string;
-  parentId: string | null;
+  parentIdx: string | null;
   ply: number;
   san: string;
   // optional: omit fen to save space, compute/cached in-memory

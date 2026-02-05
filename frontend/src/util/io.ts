@@ -29,7 +29,7 @@ export function downloadTextFile(content: string, filename: string, mimeType = '
     -> PGN can be "annotated", which means it has training metadata attached that must be parsed
   */
 export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string, config: TrainingConfig) => {
-  const { root, enabledCount } = rootFromPgn(rawPgn, asColor);
+  const { root, enabledCount, largestIdx } = rootFromPgn(rawPgn, asColor);
 
   const chapter: Chapter = {
     id: crypto.randomUUID(),
@@ -39,6 +39,7 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string, con
     enabledCount: enabledCount,
     lastDueCount: 0,
     trainAs: asColor,
+    largestMoveId: largestIdx,
   };
   return chapter;
 };
@@ -48,11 +49,12 @@ export const rootFromPgn = (
   asColor: Color,
 ): {
   root: TrainableNode;
-  enabledCount: Number;
+  enabledCount: number;
+  largestIdx: number;
 } => {
   // don't allow multiple games in one PGN
   const parsedRoot: Node<PgnNodeData> = parsePgn(rawPgn).at(0).moves;
-  const { moves, enabledCount: enabledCount } = annotateMoves(parsedRoot, false, asColor);
+  const { moves, enabledCount: enabledCount, largestIdx } = annotateMoves(parsedRoot, false, asColor);
   // put initial position first
   //TODO do something about mainline, etc..
   const root: TrainableNode = {
@@ -60,6 +62,7 @@ export const rootFromPgn = (
       comment: '',
       fen: INITIAL_BOARD_FEN,
       id: '',
+      idx: 0,
       ply: 0,
       san: '',
       //TODO shortcut for disabled
@@ -72,7 +75,7 @@ export const rootFromPgn = (
     },
     children: moves.children,
   };
-  return { root, enabledCount };
+  return { root, enabledCount, largestIdx };
 };
 
 /*
