@@ -12,6 +12,8 @@ const AddToRepertoireModal: React.FC = () => {
   // ✅ Adjust to your real store action name/signature
   // expected: importChessrepeatIntoRepertoire(fileText: string): Promise<void> | void
   const addNewChapter = useTrainerStore((s) => s.addNewChapter);
+  const uploadChapter = useTrainerStore((s) => s.uploadChapter);
+
 
   const [tab, setTab] = useState<ImportTab>('pgn');
 
@@ -34,7 +36,9 @@ const AddToRepertoireModal: React.FC = () => {
     const color = selectedColor || 'white';
 
     const chapter = chapterFromPgn(pgn, color, name, trainingConfig);
+    //TODO abstraction here... ?
     addNewChapter(chapter);
+    uploadChapter(chapter);
     setShowModal(false);
   };
 

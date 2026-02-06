@@ -24,7 +24,8 @@ import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
 import { rootFromPgn } from '../util/io';
 import { useAuthStore } from './auth';
-import { postChapter } from '../api/chapter';
+import { apiGetChapters, postChapter } from '../api/chapter';
+import { rebuildChapter } from '../api/util';
 
 interface TrainerState {
   /* UI Flags */
@@ -97,6 +98,8 @@ interface TrainerState {
 
   renameChapter: (index: number, name: string) => void;
   deleteChapterAt: (index: number) => void;
+  refreshFromDb: () => void;
+  uploadChapter: (chapter: Chapter) => void;
 }
 
 /**
@@ -620,9 +623,27 @@ export const useTrainerStore = create<TrainerState>()(
         // persist only this chapter
         await persistChapterByIndex(get(), repertoireIndex);
       },
+      // TODO should network actions be in state?
+      uploadChapter: async (chapter: Chapter) => {
+        // 2) if signed in, push to backend
+        const isAuthed = useAuthStore.getState().isAuthenticated();
+        if (!isAuthed) return;
+
+        try {
+          const resp = await postChapter(chapter);
+          console.log('RESP', resp);
+          // optionally store resp.revision back into IndexedDB/store
+          // await idb.updateChapterRevision(chapter.id, resp.revision)
+        } catch (e) {
+          // optional: mark as "needsSync" instead of rolling back
+          // set((s) => markChapterNeedsSync(s, chapter.id))
+          console.error(e);
+        }
+      },
 
       addNewChapter: async (chapter: Chapter) => {
         console.log('add new chapter');
+        console.log('adding this chapter', chapter);
         const { repertoire } = get();
 
         let newRepertoire: Chapter[];
@@ -644,21 +665,6 @@ export const useTrainerStore = create<TrainerState>()(
         const ids = await readChapterIds();
         console.log('ids so far', ids);
         if (!ids.includes(cid)) await writeChapterIds([...ids, cid]);
-
-        // 2) if signed in, push to backend
-        const isAuthed = useAuthStore.getState().isAuthenticated();
-        if (!isAuthed) return;
-
-        try {
-          const resp = await postChapter(chapter);
-          console.log("RESP", resp);
-          // optionally store resp.revision back into IndexedDB/store
-          // await idb.updateChapterRevision(chapter.id, resp.revision)
-        } catch (e) {
-          // optional: mark as "needsSync" instead of rolling back
-          // set((s) => markChapterNeedsSync(s, chapter.id))
-          console.error(e);
-        }
       },
 
       importIntoChapter: async (targetChapter: number, newPgn: string) => {
@@ -685,6 +691,22 @@ export const useTrainerStore = create<TrainerState>()(
 
         // persist only this chapter
         await persistChapterByIndex(get(), targetChapter);
+      },
+
+      //TODO should this really be a state action?
+      //TODO also, it is inefficient...
+      //TODO use local storage as cache
+      refreshFromDb: async () => {
+        const { addNewChapter } = get();
+        let chapters = await apiGetChapters();
+
+        let rebuiltChapters: Chapter[];
+        rebuiltChapters = chapters.map((_) => rebuildChapter(_));
+        console.log('CHAPTERS', rebuiltChapters);
+
+        for (const chapter of rebuiltChapters) {
+          addNewChapter(chapter);
+        }
       },
     }),
     {

@@ -6,11 +6,12 @@ import (
   "net/http"
   "os"
   "strings"
-
+  
   "github.com/go-chi/chi/v5"
   "github.com/go-chi/cors"
   "github.com/jackc/pgx/v5/pgxpool"
-
+  "github.com/joho/godotenv"
+  
   "github.com/jacokyle01/chessrepeat/backend/internal/auth"
   "github.com/jacokyle01/chessrepeat/backend/internal/httpx"
   "github.com/jacokyle01/chessrepeat/backend/internal/store"
@@ -25,6 +26,7 @@ func mustEnv(k string) string {
 }
 
 func main() {
+  _ = godotenv.Load("P.env")
   dbURL := mustEnv("DATABASE_URL")
   googleClientID := mustEnv("GOOGLE_CLIENT_ID")
   frontendOrigin := os.Getenv("FRONTEND_ORIGIN")
@@ -67,7 +69,9 @@ func main() {
   // Protected chapter routes (cookie-based)
   r.Group(func(pr chi.Router) {
     pr.Use(httpx.WithAuth(sessions))
-    pr.Post("/api/chapters", chapterHandlers.Create) // MVP: Create only
+
+    pr.Post("/api/chapters", chapterHandlers.Create)
+    pr.Get("/api/chapters", chapterHandlers.List) // ✅ NEW: list all chapters for user
   })
 
   log.Println("listening on :8080")

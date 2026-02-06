@@ -119,3 +119,37 @@ TODO: move to /tree?
 //     comments?: string[];
 //     moves: Node<T>;
 // }
+
+
+// Chapter from DB and TODO from indexedDB
+export interface FlatChapter {
+  name: string;
+  id: string;
+  lastDueCount: number;
+  trainAs: Color;
+  enabledCount: number;
+  bucketEntries: number[];
+  moves: MoveRow[];
+  largestMoveId: number
+  updatedAt?: number; // (optional) unix ms // TODO should be mandatory
+}
+
+
+// TODO just extend TrainableNode type?
+// TrainableNode with context of its tree position
+export type MoveRow = {
+  id: string;
+  parentIdx: number | null; // parent id or null for root
+  idx: number
+  ord: number;
+  fen: string;
+  ply: number;
+  san: string;
+  comment?: string | null;
+  training: {
+    disabled: boolean;
+    seen: boolean;
+    group: number;
+    dueAt: number;
+  };
+};

@@ -27,7 +27,7 @@ create table chapters (
   train_as text not null,
   last_due_count int not null default 0,
   enabled_count int not null default 0,
-  largest_move_id int not null default 0 
+  largest_move_id int not null default 0, 
 
   bucket_entries int[] not null default '{}'::int[],
 

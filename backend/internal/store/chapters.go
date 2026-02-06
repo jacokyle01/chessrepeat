@@ -19,6 +19,7 @@ type ChapterDTO struct {
 	LastDueCount  int       `json:"lastDueCount"`
 	TrainAs       string    `json:"trainAs"`
 	EnabledCount  int       `json:"enabledCount"`
+	LargestMoveId int 			`json:"largestMoveId"`
 	BucketEntries []int     `json:"bucketEntries"`
 	Moves         []MoveDTO `json:"moves"`
 }
@@ -119,4 +120,127 @@ func (s *ChapterStore) CreateChapter(ctx context.Context, userID uuid.UUID, ch C
 	_, _ = tx.Exec(ctx, `update chapters set updated_at=now() where id=$1`, chapterDBID)
 
 	return tx.Commit(ctx)
+}
+
+
+// get chapterDTOs from querying DB 
+// TODO optimizations here? 
+func (s *ChapterStore) ListChapters(ctx context.Context, userID uuid.UUID) ([]ChapterDTO, error) {
+	// 1) fetch chapter rows
+	rows, err := s.DB.Query(ctx, `
+		select
+			id,            -- client chapter id (string)
+			name,
+			last_due_count,
+			train_as,
+			enabled_count,
+			coalesce(bucket_entries, '{}'::int[]),
+			coalesce(largest_move_id, 0)
+		from chapters
+		where user_id = $1
+		order by updated_at desc
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	type chapMeta struct {
+		dto ChapterDTO
+	}
+	chapters := make([]ChapterDTO, 0, 32)
+	byClientID := make(map[string]*ChapterDTO)
+
+	for rows.Next() {
+		var ch ChapterDTO
+		if err := rows.Scan(
+			&ch.ID,
+			&ch.Name,
+			&ch.LastDueCount,
+			&ch.TrainAs,
+			&ch.EnabledCount,
+			&ch.BucketEntries,
+			&ch.LargestMoveId,
+		); err != nil {
+			return nil, err
+		}
+		ch.Moves = []MoveDTO{}
+		chapters = append(chapters, ch)
+		byClientID[ch.ID] = &chapters[len(chapters)-1]
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(chapters) == 0 {
+		return chapters, nil
+	}
+
+	// 2) fetch moves for all chapters for this user (join on chapters.user_id)
+	moveRows, err := s.DB.Query(ctx, `
+		select
+			c.id as chapter_client_id,
+			m.id,
+			m.idx,
+			m.parent_idx,
+			m.ord,
+			m.fen,
+			m.ply,
+			m.san,
+			coalesce(m.comment, ''),
+			m.disabled,
+			m.seen,
+			m.train_group,
+			m.due_at
+		from moves m
+		join chapters c on c.id = m.chapter_id
+		where c.user_id = $1
+		order by c.updated_at desc, m.idx asc
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer moveRows.Close()
+
+	for moveRows.Next() {
+		var chapterClientID string
+		var m MoveDTO
+		var disabled, seen bool
+		var group int
+		var dueAt int64
+
+		if err := moveRows.Scan(
+			&chapterClientID,
+			&m.ID,
+			&m.IDX,
+			&m.ParentIDX,
+			&m.Ord,
+			&m.Fen,
+			&m.Ply,
+			&m.San,
+			&m.Comment,
+			&disabled,
+			&seen,
+			&group,
+			&dueAt,
+		); err != nil {
+			return nil, err
+		}
+
+		m.Training.Disabled = disabled
+		m.Training.Seen = seen
+		m.Training.Group = group
+		m.Training.DueAt = dueAt
+
+		ch := byClientID[chapterClientID]
+		if ch == nil {
+			return nil, fmt.Errorf("move references unknown chapter client id %q", chapterClientID)
+		}
+		ch.Moves = append(ch.Moves, m)
+	}
+	if err := moveRows.Err(); err != nil {
+		return nil, err
+	}
+
+	return chapters, nil
 }
