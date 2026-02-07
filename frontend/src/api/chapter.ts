@@ -39,3 +39,52 @@ export async function apiGetChapters(): Promise<FlatChapter[]> {
   console.log('DATA', data);
   return data.chapters;
 }
+
+
+
+/**
+ * POST /api/chapters/{chapterId}/moves
+ * Backend expects: { move: MoveDTO }
+ */
+
+//TODO chapter id should be just a number? or something more lightweight.. 
+export async function apiAddMove(chapterId: string, move: MoveRow) {
+  const res = await fetch(`${API_URL}/api/chapters/${chapterId}/moves`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ move }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`POST /api/chapters/${chapterId}/moves failed (${res.status}): ${text}`);
+  }
+
+  const data = await res.json();
+  return data.move; // canonical move echoed from backend
+}
+
+export type MoveTrainingPatch = {
+  disabled?: boolean;
+  seen?: boolean;
+  group?: number;
+  dueAt?: number;
+};
+
+export async function apiTrainMove(chapterId: string, idx: number, patch: MoveTrainingPatch) {
+  const res = await fetch(`${API_URL}/api/chapters/${chapterId}/moves/${idx}/training`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(patch),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`PATCH training failed (${res.status}): ${text}`);
+  }
+
+  const data = await res.json();
+  return data.move;
+}

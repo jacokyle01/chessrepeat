@@ -6,6 +6,7 @@ import { Config as CbConfig } from 'chessground/config';
 import {
   Chapter,
   Color,
+  MoveRow,
   TrainableContext,
   TrainableNode,
   TrainingConfig,
@@ -24,7 +25,7 @@ import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
 import { rootFromPgn } from '../util/io';
 import { useAuthStore } from './auth';
-import { apiGetChapters, postChapter } from '../api/chapter';
+import { apiAddMove, apiGetChapters, apiTrainMove, postChapter } from '../api/chapter';
 import { rebuildChapter } from '../api/util';
 
 interface TrainerState {
@@ -416,43 +417,69 @@ export const useTrainerStore = create<TrainerState>()(
         await persistChapterByIndex(get(), get().repertoireIndex);
       },
 
-      succeed: (): number | null => {
+      //TODO shouldnt be async? 
+      succeed: async (): Promise<number | null> => {
         const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
         const targetNode = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
         if (!chapter || !targetNode) return null;
 
-        let timeToAdd = 0;
-        switch (trainingMethod) {
-          case 'recall': {
-            let groupIndex = parseInt(targetNode.data.training.group + '');
-            chapter.bucketEntries[groupIndex]--;
-            switch (trainingConfig!.promotion) {
-              case 'most':
-                groupIndex = trainingConfig!.buckets!.length - 1;
-                break;
-              case 'next':
-                groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
-                break;
-            }
-            chapter.bucketEntries[groupIndex]++;
-            timeToAdd = trainingConfig!.buckets![groupIndex];
-            targetNode.data.training.group = groupIndex;
-            break;
-          }
-          case 'learn': {
-            targetNode.data.training.seen = true;
-            timeToAdd = trainingConfig!.buckets![0];
-            targetNode.data.training.group = 0;
-            chapter.bucketEntries[0]++;
-            break;
-          }
-        }
+        // snapshots for rollback
+        // const prevTraining = { ...targetNode.data.training };
+        // const prevBuckets = [...chapter.bucketEntries];
 
-        targetNode.data.training.dueAt = currentTime() + timeToAdd;
-        // persist only the current chapter
-        persistChapterByIndex(get(), get().repertoireIndex);
-        return timeToAdd;
+        let timeToAdd = 0;
+
+        try {
+          switch (trainingMethod) {
+            case 'recall': {
+              let groupIndex = parseInt(targetNode.data.training.group + '');
+              chapter.bucketEntries[groupIndex]--;
+
+              switch (trainingConfig!.promotion) {
+                case 'most':
+                  groupIndex = trainingConfig!.buckets!.length - 1;
+                  break;
+                case 'next':
+                  groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
+                  break;
+              }
+
+              chapter.bucketEntries[groupIndex]++;
+              timeToAdd = trainingConfig!.buckets![groupIndex];
+              targetNode.data.training.group = groupIndex;
+              break;
+            }
+
+            case 'learn': {
+              targetNode.data.training.seen = true;
+              timeToAdd = trainingConfig!.buckets![0];
+              targetNode.data.training.group = 0;
+              chapter.bucketEntries[0]++;
+              break;
+            }
+          }
+
+          const dueAt = currentTime() + timeToAdd;
+          targetNode.data.training.dueAt = dueAt;
+
+          // ✅ persist training change for THIS move
+          await apiTrainMove(chapter.id, targetNode.data.idx, {
+            seen: targetNode.data.training.seen,
+            group: targetNode.data.training.group,
+            dueAt: targetNode.data.training.dueAt,
+          });
+
+          // (optional) stop persisting whole chapter now:
+          // persistChapterByIndex(get(), get().repertoireIndex);
+
+          return timeToAdd;
+        } catch (e) {
+          // rollback local state
+          // targetNode.data.training = prevTraining;
+          // chapter.bucketEntries = prevBuckets;
+          throw e;
+        }
       },
 
       fail: () => {
@@ -591,7 +618,10 @@ export const useTrainerStore = create<TrainerState>()(
           const trainAs = chapter.trainAs;
           const disabled = currentColor == trainAs;
           if (!disabled) chapter.enabledCount++;
+          console.log('CHAPTER MOVEID', chapter.largestMoveId);
 
+          //TODO do we have to save chapter here..?
+          //TODO factor out makeMove ??
           const newNode: TrainableNode = {
             data: {
               training: {
@@ -602,6 +632,7 @@ export const useTrainerStore = create<TrainerState>()(
               },
               ply: selectedNode.data.ply + 1,
               id: scalachessCharPair(move),
+              idx: ++chapter.largestMoveId,
               san: makeSanAndPlay(pos, move),
               fen: makeFen(pos.toSetup()),
               comment: '',
@@ -609,8 +640,37 @@ export const useTrainerStore = create<TrainerState>()(
             children: [],
           };
 
-          if (!newNode.data.training.disabled) chapter.enabledCount++;
+          console.log('NEW NODE', newNode);
+
           selectedNode.children.push(newNode);
+          //TODO abstraction here...
+          //TODO iff logged in ...
+
+          // flattened fields
+          let ord = selectedNode.children.length - 1;
+          let parentIdx = selectedNode.data.idx;
+          try {
+            // ✅ persist to backend
+
+            let flatMove: MoveRow;
+            flatMove = {
+              ...newNode.data,
+              parentIdx: parentIdx,
+              ord: ord,
+            };
+            await apiAddMove(chapter.id, flatMove);
+
+            // If backend is authoritative and might adjust fields, you could merge returned move:
+            // const saved = await apiAddMove(chapter.id, newNode.data);
+            // newNode.data = { ...newNode.data, ...saved };
+          } catch (e) {
+            // // rollback optimistic update if you want strict correctness
+            // selectedNode.children.pop();
+            // if (!newNode.data.training.disabled) chapter.enabledCount--;
+            // chapter.largestMoveId--; // rollback local id allocation
+
+            throw e; // or toast + return
+          }
         }
 
         //TODO separate "play move" state action?

@@ -5,6 +5,7 @@
 import { Chapter, FlatChapter, MoveRow, TrainableNode } from '../types/training';
 
 //TODO types here..
+//TODO factor out flatten move operation for use in makeMove
 export function rebuildMoveTree(rows: MoveRow[]): TrainableNode {
   const byId = new Map<number, any>();
   const childrenByParent = new Map<number | null, MoveRow[]>();

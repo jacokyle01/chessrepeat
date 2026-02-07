@@ -6,7 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/jacokyle01/chessrepeat/backend/internal/store"
 )
 
@@ -104,5 +106,70 @@ func (h *ChapterHandlers) List(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"ok":       true,
 		"chapters": chs,
+	})
+}
+
+//TODO should take an arbitary number of moves, 
+// e.x. if we are importing into a chapter.. 
+func (h *ChapterHandlers) AddMove(w http.ResponseWriter, r *http.Request) {
+	u := MustUser(r)
+	chapterID := chi.URLParam(r, "chapterId")
+
+	var body struct {
+		Move store.MoveDTO `json:"move"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad json", http.StatusBadRequest)
+		return
+	}
+
+	created, err := h.Chapters.AddMove(r.Context(), u.UserID, chapterID, body.Move)
+	if err != nil {
+		log.Printf("[AddMove] err=%v user=%s chapter=%s", err, u.UserID, chapterID)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"ok":   true,
+		"move": created,
+	})
+}
+
+
+
+
+
+// given chapterId, moveId, and a "patch", train this move. 
+func (h *ChapterHandlers) TrainMove(w http.ResponseWriter, r *http.Request) {
+	u := MustUser(r)
+	chapterID := chi.URLParam(r, "chapterId")
+	idxStr := chi.URLParam(r, "idx")
+
+	idx, err := strconv.ParseInt(idxStr, 10, 64)
+	if err != nil {
+		http.Error(w, "bad idx", http.StatusBadRequest)
+		return
+	}
+
+	var patch store.MoveTrainingPatch
+	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+		http.Error(w, "bad json", http.StatusBadRequest)
+		return
+	}
+
+	updated, err := h.Chapters.UpdateMoveTraining(r.Context(), u.UserID, chapterID, idx, patch)
+	if err != nil {
+		log.Printf("[TrainMove] user=%s chapter=%s idx=%d err=%v", u.UserID, chapterID, idx, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"ok":   true,
+		"move": updated,
 	})
 }
