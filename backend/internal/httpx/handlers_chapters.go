@@ -173,3 +173,29 @@ func (h *ChapterHandlers) TrainMove(w http.ResponseWriter, r *http.Request) {
 		"move": updated,
 	})
 }
+
+//TODO return type? 
+func (h *ChapterHandlers) EditMoves(w http.ResponseWriter, r *http.Request) {
+	
+	u := MustUser(r)
+	chapterID := chi.URLParam(r, "chapterId")
+
+	var body store.EditMovesRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad json", http.StatusBadRequest)
+		return
+	}
+
+	moves, err := h.Chapters.EditMoves(r.Context(), u.UserID, chapterID, body.Edits)
+	if err != nil {
+		log.Printf("[EditMoves] user=%s chapter=%s err=%v", u.UserID, chapterID, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"ok":    true,
+		"moves": moves,
+	})
+}

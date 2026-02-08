@@ -525,3 +525,317 @@ func (s *ChapterStore) UpdateMoveTraining(
 	}
 	return m, nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+//
+
+
+
+
+
+
+
+
+
+
+
+//
+
+
+
+
+
+
+
+
+// TODO we just need one API call to edit moves.. 
+// can remove all others!
+
+// MoveEdit identifies a move by IDX (not ID) and applies a partial patch.
+// If the move at IDX doesn't exist, we INSERT it (upsert) using fields from the patch.
+// For create, patch must include: id, ord, fen, ply, san (parentIdx optional). idx is implied by MoveEdit.Idx.
+type MoveEdit struct {
+	Idx   int64     `json:"idx"`
+	Patch MovePatch `json:"patch"`
+}
+
+type MovePatch struct {
+	// Required on create (when idx doesn't exist)
+	ID  *string `json:"id,omitempty"`  // stable client id (string), not used as identifier for edits
+	Ord *int    `json:"ord,omitempty"`
+
+	Fen     *string `json:"fen,omitempty"`
+	Ply     *int    `json:"ply,omitempty"`
+	San     *string `json:"san,omitempty"`
+	Comment *string `json:"comment,omitempty"`
+
+	// Optional on create/update
+	ParentIDX *int64        `json:"parentIdx,omitempty"`
+	Training  *TrainingPatch `json:"training,omitempty"`
+}
+
+type TrainingPatch struct {
+	Disabled *bool  `json:"disabled,omitempty"`
+	Seen     *bool  `json:"seen,omitempty"`
+	Group    *int   `json:"group,omitempty"`
+	DueAt    *int64 `json:"dueAt,omitempty"`
+}
+
+// store/types.go (or wherever you keep these)
+type EditMovesRequest struct {
+  Edits []MoveEdit `json:"edits"`
+}
+
+// EditMoves upserts by (chapter_id, idx). IDX is the identifier for edits.
+// ID is just another editable field.
+func (s *ChapterStore) EditMoves(ctx context.Context, userID uuid.UUID, chapterID string, edits []MoveEdit) ([]MoveDTO, error) {
+	if len(edits) == 0 {
+		return []MoveDTO{}, nil
+	}
+
+	chID, err := uuid.Parse(chapterID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid chapterId: %w", err)
+	}
+
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// ownership + serialize edits
+	var ok bool
+	err = tx.QueryRow(ctx, `
+		select true
+		from chapters
+		where user_id = $1 and id = $2
+		for update
+	`, userID, chID).Scan(&ok)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("chapter not found")
+		}
+		return nil, err
+	}
+
+	affectedIdxs := make([]int64, 0, len(edits))
+
+	for _, e := range edits {
+		if e.Idx <= 0 {
+			return nil, fmt.Errorf("idx required")
+		}
+		affectedIdxs = append(affectedIdxs, e.Idx)
+
+		// does move exist at this idx?
+		var exists bool
+		if err := tx.QueryRow(ctx, `
+			select exists(select 1 from moves where chapter_id=$1 and idx=$2)
+		`, chID, e.Idx).Scan(&exists); err != nil {
+			return nil, err
+		}
+
+		var cur MoveDTO
+		if exists {
+			// load current row
+			var disabled, seen bool
+			var group int
+			var dueAt int64
+
+			err = tx.QueryRow(ctx, `
+				select
+					id, idx, parent_idx, ord,
+					fen, ply, san, coalesce(comment,''),
+					disabled, seen, train_group, due_at
+				from moves
+				where chapter_id=$1 and idx=$2
+			`, chID, e.Idx).Scan(
+				&cur.ID, &cur.IDX, &cur.ParentIDX, &cur.Ord,
+				&cur.Fen, &cur.Ply, &cur.San, &cur.Comment,
+				&disabled, &seen, &group, &dueAt,
+			)
+			if err != nil {
+				return nil, err
+			}
+			cur.Training.Disabled = disabled
+			cur.Training.Seen = seen
+			cur.Training.Group = group
+			cur.Training.DueAt = dueAt
+
+			// apply patch (IDX stays the identifier; allow patching ID)
+			applyMovePatch(&cur, e.Patch)
+
+			// IMPORTANT: idx identifier is e.Idx; ignore any attempt to patch idx
+			cur.IDX = e.Idx
+		} else {
+			// create: require minimum fields (idx implied by edit)
+			if e.Patch.ID == nil || e.Patch.Ord == nil || e.Patch.Fen == nil || e.Patch.Ply == nil || e.Patch.San == nil {
+				return nil, fmt.Errorf("create move at idx=%d requires id, ord, fen, ply, san", e.Idx)
+			}
+
+			cur = MoveDTO{
+				ID:        *e.Patch.ID,
+				IDX:       e.Idx,
+				ParentIDX: e.Patch.ParentIDX,
+				Ord:       *e.Patch.Ord,
+				Fen:       *e.Patch.Fen,
+				Ply:       *e.Patch.Ply,
+				San:       *e.Patch.San,
+				Comment:   "",
+			}
+			if e.Patch.Comment != nil {
+				cur.Comment = *e.Patch.Comment
+			}
+
+			// training defaults
+			cur.Training.Disabled = false
+			cur.Training.Seen = false
+			cur.Training.Group = 0
+			cur.Training.DueAt = 0
+			if e.Patch.Training != nil {
+				if e.Patch.Training.Disabled != nil {
+					cur.Training.Disabled = *e.Patch.Training.Disabled
+				}
+				if e.Patch.Training.Seen != nil {
+					cur.Training.Seen = *e.Patch.Training.Seen
+				}
+				if e.Patch.Training.Group != nil {
+					cur.Training.Group = *e.Patch.Training.Group
+				}
+				if e.Patch.Training.DueAt != nil {
+					cur.Training.DueAt = *e.Patch.Training.DueAt
+				}
+			}
+		}
+
+		// upsert by (chapter_id, idx)
+		_, err = tx.Exec(ctx, `
+			insert into moves (
+				chapter_id, idx, id, parent_idx, ord,
+				fen, ply, san, comment,
+				disabled, seen, train_group, due_at
+			)
+			values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+			on conflict (chapter_id, idx) do update set
+				id = excluded.id,
+				parent_idx = excluded.parent_idx,
+				ord = excluded.ord,
+				fen = excluded.fen,
+				ply = excluded.ply,
+				san = excluded.san,
+				comment = excluded.comment,
+				disabled = excluded.disabled,
+				seen = excluded.seen,
+				train_group = excluded.train_group,
+				due_at = excluded.due_at
+		`, chID,
+			cur.IDX, cur.ID, cur.ParentIDX, cur.Ord,
+			cur.Fen, cur.Ply, cur.San, cur.Comment,
+			cur.Training.Disabled, cur.Training.Seen, cur.Training.Group, cur.Training.DueAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// keep chapter metadata consistent
+		_, _ = tx.Exec(ctx, `
+			update chapters
+			set largest_move_id = greatest(largest_move_id, $3),
+			    updated_at = now()
+			where user_id=$1 and id=$2
+		`, userID, chID, int(cur.IDX))
+	}
+
+	// return canonical affected moves by idx
+	rows, err := tx.Query(ctx, `
+		select
+			id, idx, parent_idx, ord,
+			fen, ply, san, coalesce(comment,''),
+			disabled, seen, train_group, due_at
+		from moves
+		where chapter_id=$1 and idx = any($2::bigint[])
+		order by idx asc
+	`, chID, affectedIdxs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]MoveDTO, 0, len(edits))
+	for rows.Next() {
+		var m MoveDTO
+		var disabled, seen bool
+		var group int
+		var dueAt int64
+
+		if err := rows.Scan(
+			&m.ID, &m.IDX, &m.ParentIDX, &m.Ord,
+			&m.Fen, &m.Ply, &m.San, &m.Comment,
+			&disabled, &seen, &group, &dueAt,
+		); err != nil {
+			return nil, err
+		}
+		m.Training.Disabled = disabled
+		m.Training.Seen = seen
+		m.Training.Group = group
+		m.Training.DueAt = dueAt
+		out = append(out, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func applyMovePatch(m *MoveDTO, p MovePatch) {
+	// ID is now just another editable field
+	if p.ID != nil {
+		m.ID = *p.ID
+	}
+	if p.ParentIDX != nil {
+		m.ParentIDX = p.ParentIDX
+	}
+	if p.Ord != nil {
+		m.Ord = *p.Ord
+	}
+	if p.Fen != nil {
+		m.Fen = *p.Fen
+	}
+	if p.Ply != nil {
+		m.Ply = *p.Ply
+	}
+	if p.San != nil {
+		m.San = *p.San
+	}
+	if p.Comment != nil {
+		m.Comment = *p.Comment
+	}
+	if p.Training != nil {
+		if p.Training.Disabled != nil {
+			m.Training.Disabled = *p.Training.Disabled
+		}
+		if p.Training.Seen != nil {
+			m.Training.Seen = *p.Training.Seen
+		}
+		if p.Training.Group != nil {
+			m.Training.Group = *p.Training.Group
+		}
+		if p.Training.DueAt != nil {
+			m.Training.DueAt = *p.Training.DueAt
+		}
+	}
+}

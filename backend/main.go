@@ -74,6 +74,7 @@ func main() {
 		pr.Get("/api/chapters", chapterHandlers.List) // ✅ NEW: list all chapters for user
 		pr.Post("/api/chapters/{chapterId}/moves", chapterHandlers.AddMove)
 		pr.Patch("/api/chapters/{chapterId}/moves/{idx}/training", chapterHandlers.TrainMove)
+		pr.Post("/api/chapters/{chapterId}/edit", chapterHandlers.EditMoves)
 	})
 
 	log.Println("listening on :8080")

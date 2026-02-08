@@ -106,6 +106,7 @@ export interface Chapter {
   root: TrainableNode;
   // use this to assign ids to nodes 
   largestMoveId: number
+  synced: boolean // does database have latest version of this chapter?
 }
 //TODO different data structure for a chapter thats currently selected?
 

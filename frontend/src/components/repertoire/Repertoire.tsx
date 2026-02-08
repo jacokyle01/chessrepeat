@@ -1,6 +1,6 @@
 //TODO repertoire and repertoire section in same file
 
-import { FileCog, FileDown, SettingsIcon } from 'lucide-react';
+import { CloudAlert, FileCog, FileDown, SettingsIcon } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
 import { Modal } from '../modals/Modal';
@@ -65,6 +65,7 @@ export const Chapter = ({ entry, index, id }) => {
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
             <span className="text-md truncate leading-none">{name}</span>
             <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
+            {!entry.synced && <CloudAlert width={15} height={15} color='red'/>} 
           </h3>
 
           {unseenCount > 0 && (
@@ -85,7 +86,7 @@ export const Chapter = ({ entry, index, id }) => {
             onClick={() => setEditOpen(true)}
           >
             <div id="icon-wrap">
-              <SettingsIcon width={20} height={20}/>
+              <SettingsIcon width={20} height={20} />
             </div>
           </div>
         </div>

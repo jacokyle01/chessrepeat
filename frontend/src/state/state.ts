@@ -25,7 +25,14 @@ import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
 import { rootFromPgn } from '../util/io';
 import { useAuthStore } from './auth';
-import { apiAddMove, apiGetChapters, apiTrainMove, postChapter } from '../api/chapter';
+import {
+  apiAddMove,
+  apiEditMoves,
+  apiGetChapters,
+  apiTrainMove,
+  MoveEdit,
+  postChapter,
+} from '../api/chapter';
 import { rebuildChapter } from '../api/util';
 
 interface TrainerState {
@@ -306,6 +313,7 @@ export const useTrainerStore = create<TrainerState>()(
         set({ selectedPath: path, selectedNode: nodeList.at(-1) });
       },
 
+      //TODO network actions for delete
       deleteLine: async (path) => {
         const { repertoire, repertoireIndex, selectedPath, jump } = get();
         const chapter = repertoire[repertoireIndex];
@@ -401,23 +409,43 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       setCommentAt: async (comment: string, path: string) => {
-        set(
-          produce((state) => {
-            const chapter = state.repertoire[state.repertoireIndex];
-            if (!chapter) return;
-
-            const node = nodeAtPath(chapter.root, path);
-            if (!node) return;
-
-            node.data.comment = comment;
-          }),
-        );
-
-        // persist only the current chapter
+        const authed = useAuthStore.getState().isAuthenticated();
+        const { repertoire, repertoireIndex } = get();
+        const chapter = repertoire[repertoireIndex];
+        if (!chapter) return;
+        const node = nodeAtPath(chapter.root, path);
+        if (!node) return;
+        node.data.comment = comment;
         await persistChapterByIndex(get(), get().repertoireIndex);
+
+        // ---- minimal backend sync attempt ----
+        //TODO use state action?
+        if (!authed) {
+          chapter.synced = false;
+          return;
+        }
+
+        try {
+          await apiEditMoves(chapter.id, [{ idx: node.data.idx, patch: { comment } }]);
+        } catch {
+          chapter.synced = false;
+        }
+
+        // //TODO why set,produce?
+        // set(
+        //   produce((state) => {
+        //     const chapter = state.repertoire[state.repertoireIndex];
+        //     if (!chapter) return;
+
+        //     const node = nodeAtPath(chapter.root, path);
+        //     if (!node) return;
+
+        //     node.data.comment = comment;
+        //   }),
+        // );
       },
 
-      //TODO shouldnt be async? 
+      //TODO shouldnt be async?
       succeed: async (): Promise<number | null> => {
         const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
         const targetNode = trainableContext?.targetMove;
@@ -568,9 +596,13 @@ export const useTrainerStore = create<TrainerState>()(
         const root = repertoire[repertoireIndex]?.root;
         if (!root) return;
 
+        const edits: MoveEdit[] = [];
         updateRecursive(root, path, (node) => {
-          if (!node.data.training.disabled) chapter.enabledCount--;
-          node.data.training.disabled = true;
+          if (!node.data.training.disabled) {
+            chapter.enabledCount--;
+            node.data.training.disabled = true;
+            edits.push();
+          }
         });
 
         // touch + persist only this chapter
@@ -581,6 +613,7 @@ export const useTrainerStore = create<TrainerState>()(
         });
 
         await persistChapterByIndex(get(), repertoireIndex);
+        isAuthenticated;
       },
 
       enableLine: async (path: string) => {
@@ -728,6 +761,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       importIntoChapter: async (targetChapter: number, newPgn: string) => {
+        const isAuthenticated = useAuthStore.getState().isAuthenticated();
         const { repertoire } = get();
         const chapter = repertoire[targetChapter];
         if (!chapter) return;
@@ -751,6 +785,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         // persist only this chapter
         await persistChapterByIndex(get(), targetChapter);
+        // isAuthenticated ?
       },
 
       //TODO should this really be a state action?
@@ -767,6 +802,27 @@ export const useTrainerStore = create<TrainerState>()(
         for (const chapter of rebuiltChapters) {
           addNewChapter(chapter);
         }
+      },
+
+      markChapterUnsaved: (idx: number) => {
+        set((state) => {
+          const next = state.repertoire.slice();
+          const ch = next[idx];
+          if (!ch) return state;
+          next[idx] = { ...ch, synced: true };
+          return { repertoire: next };
+        });
+      },
+
+      // if we save chapter to database
+      markChapterSaved: (idx: number) => {
+        set((state) => {
+          const next = state.repertoire.slice();
+          const ch = next[idx];
+          if (!ch) return state;
+          next[idx] = { ...ch, synced: false };
+          return { repertoire: next };
+        });
       },
     }),
     {
