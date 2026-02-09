@@ -757,9 +757,9 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       addNewChapter: async (chapter: Chapter) => {
-        console.log('add new chapter');
-        console.log('adding this chapter', chapter);
         const { repertoire } = get();
+        const ids = await readChapterIds();
+        if (ids.includes(chapter.id)) return; // don't write duplicates
 
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
@@ -774,12 +774,10 @@ export const useTrainerStore = create<TrainerState>()(
         // update memory
         set({ repertoire: newRepertoire });
 
-        // persist only the new chapter + ids list (not all chapters)
+        // add to indexedDB
         const cid = chapter.id;
         await writeChapter(cid, chapter);
-        const ids = await readChapterIds();
-        console.log('ids so far', ids);
-        if (!ids.includes(cid)) await writeChapterIds([...ids, cid]);
+        writeChapterIds([...ids, cid]);
       },
 
       importIntoChapter: async (targetChapter: number, newPgn: string) => {
@@ -822,7 +820,7 @@ export const useTrainerStore = create<TrainerState>()(
         console.log('CHAPTERS', rebuiltChapters);
 
         for (const chapter of rebuiltChapters) {
-          addNewChapter(chapter);
+          await addNewChapter(chapter);
         }
       },
 
