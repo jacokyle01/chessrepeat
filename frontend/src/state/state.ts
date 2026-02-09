@@ -108,6 +108,8 @@ interface TrainerState {
   deleteChapterAt: (index: number) => void;
   refreshFromDb: () => void;
   uploadChapter: (chapter: Chapter) => void;
+  syncChapter: (chapterIndex: number) => void;
+  editRemote: (chapterIndex: number, apiCall) => void;
 }
 
 /**
@@ -410,108 +412,86 @@ export const useTrainerStore = create<TrainerState>()(
 
       setCommentAt: async (comment: string, path: string) => {
         const authed = useAuthStore.getState().isAuthenticated();
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, repertoireIndex, editRemote } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
         const node = nodeAtPath(chapter.root, path);
         if (!node) return;
         node.data.comment = comment;
+        //TODO abstraction over both persistence mechanisms?
+        //TODO better naming
         await persistChapterByIndex(get(), get().repertoireIndex);
-
-        // ---- minimal backend sync attempt ----
-        //TODO use state action?
-        if (!authed) {
-          chapter.synced = false;
-          return;
-        }
-
-        try {
-          await apiEditMoves(chapter.id, [{ idx: node.data.idx, patch: { comment } }]);
-        } catch {
-          chapter.synced = false;
-        }
-
-        // //TODO why set,produce?
-        // set(
-        //   produce((state) => {
-        //     const chapter = state.repertoire[state.repertoireIndex];
-        //     if (!chapter) return;
-
-        //     const node = nodeAtPath(chapter.root, path);
-        //     if (!node) return;
-
-        //     node.data.comment = comment;
-        //   }),
-        // );
+        await editRemote(repertoireIndex, () =>
+          apiEditMoves(chapter.id, [{ idx: node.data.idx, patch: { comment } }]),
+        );
       },
 
-      //TODO shouldnt be async?
       succeed: async (): Promise<number | null> => {
-        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
+        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig, editRemote } =
+          get();
         const targetNode = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
         if (!chapter || !targetNode) return null;
 
-        // snapshots for rollback
-        // const prevTraining = { ...targetNode.data.training };
-        // const prevBuckets = [...chapter.bucketEntries];
-
         let timeToAdd = 0;
 
-        try {
-          switch (trainingMethod) {
-            case 'recall': {
-              let groupIndex = parseInt(targetNode.data.training.group + '');
-              chapter.bucketEntries[groupIndex]--;
+        switch (trainingMethod) {
+          case 'recall': {
+            let groupIndex = parseInt(targetNode.data.training.group + '');
+            chapter.bucketEntries[groupIndex]--;
 
-              switch (trainingConfig!.promotion) {
-                case 'most':
-                  groupIndex = trainingConfig!.buckets!.length - 1;
-                  break;
-                case 'next':
-                  groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
-                  break;
-              }
-
-              chapter.bucketEntries[groupIndex]++;
-              timeToAdd = trainingConfig!.buckets![groupIndex];
-              targetNode.data.training.group = groupIndex;
-              break;
+            switch (trainingConfig!.promotion) {
+              case 'most':
+                groupIndex = trainingConfig!.buckets!.length - 1;
+                break;
+              case 'next':
+                groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
+                break;
             }
 
-            case 'learn': {
-              targetNode.data.training.seen = true;
-              timeToAdd = trainingConfig!.buckets![0];
-              targetNode.data.training.group = 0;
-              chapter.bucketEntries[0]++;
-              break;
-            }
+            chapter.bucketEntries[groupIndex]++;
+            timeToAdd = trainingConfig!.buckets![groupIndex];
+            targetNode.data.training.group = groupIndex;
+            break;
           }
 
-          const dueAt = currentTime() + timeToAdd;
-          targetNode.data.training.dueAt = dueAt;
-
-          // ✅ persist training change for THIS move
-          await apiTrainMove(chapter.id, targetNode.data.idx, {
-            seen: targetNode.data.training.seen,
-            group: targetNode.data.training.group,
-            dueAt: targetNode.data.training.dueAt,
-          });
-
-          // (optional) stop persisting whole chapter now:
-          // persistChapterByIndex(get(), get().repertoireIndex);
-
-          return timeToAdd;
-        } catch (e) {
-          // rollback local state
-          // targetNode.data.training = prevTraining;
-          // chapter.bucketEntries = prevBuckets;
-          throw e;
+          case 'learn': {
+            targetNode.data.training.seen = true;
+            timeToAdd = trainingConfig!.buckets![0];
+            targetNode.data.training.group = 0;
+            chapter.bucketEntries[0]++;
+            break;
+          }
         }
+
+        const dueAt = currentTime() + timeToAdd;
+        targetNode.data.training.dueAt = dueAt;
+
+        // local-first persist
+        await persistChapterByIndex(get(), repertoireIndex);
+
+        await editRemote(repertoireIndex, () =>
+          apiEditMoves(chapter.id, [
+            {
+              idx: targetNode.data.idx,
+              patch: {
+                training: {
+                  seen: targetNode.data.training.seen,
+                  group: targetNode.data.training.group,
+                  dueAt: targetNode.data.training.dueAt,
+                },
+              },
+            },
+          ]),
+        );
+
+        return timeToAdd;
       },
 
-      fail: () => {
-        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
+      fail: async () => {
+        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig, editRemote } =
+          get();
+
         const node = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
         if (!chapter || !node) return;
@@ -528,12 +508,29 @@ export const useTrainerStore = create<TrainerState>()(
               groupIndex = Math.max(groupIndex - 1, 0);
               break;
           }
+
           chapter.bucketEntries[groupIndex]++;
           const interval = trainingConfig!.buckets![groupIndex];
           node.data.training.group = groupIndex;
           node.data.training.dueAt = currentTime() + interval;
-          // persist only the current chapter
-          persistChapterByIndex(get(), get().repertoireIndex);
+
+          // local-first persist
+          await persistChapterByIndex(get(), repertoireIndex);
+
+          // remote best-effort (optimistic, don’t await)
+          await editRemote(repertoireIndex, () =>
+            apiEditMoves(chapter.id, [
+              {
+                idx: node.data.idx,
+                patch: {
+                  training: {
+                    group: node.data.training.group,
+                    dueAt: node.data.training.dueAt,
+                  },
+                },
+              },
+            ]),
+          );
         }
       },
 
@@ -591,41 +588,62 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       disableLine: async (path: string) => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, repertoireIndex, editRemote } = get();
         const chapter = repertoire[repertoireIndex];
-        const root = repertoire[repertoireIndex]?.root;
-        if (!root) return;
+        const root = chapter?.root;
+        if (!chapter || !root) return;
 
         const edits: MoveEdit[] = [];
+
         updateRecursive(root, path, (node) => {
           if (!node.data.training.disabled) {
             chapter.enabledCount--;
             node.data.training.disabled = true;
-            edits.push();
+
+            edits.push({
+              idx: node.data.idx,
+              patch: { training: { disabled: true } },
+            });
           }
         });
 
-        // touch + persist only this chapter
+        // touch so UI updates
         set((state) => {
           const next = state.repertoire.slice();
           next[repertoireIndex] = { ...next[repertoireIndex] };
           return { repertoire: next };
         });
 
+        // local-first persist
         await persistChapterByIndex(get(), repertoireIndex);
-        isAuthenticated;
+
+        // remote best-effort (don’t block UI)
+        if (edits.length > 0) {
+          await editRemote(repertoireIndex, () => apiEditMoves(chapter.id, edits));
+        }
       },
 
       enableLine: async (path: string) => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, repertoireIndex, editRemote } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
 
+        const edits: MoveEdit[] = [];
         const trainAs = chapter.trainAs;
+
         updateRecursive(chapter.root, path, (node) => {
           const color: Color = colorFromPly(node.data.ply);
-          if (trainAs === color && node.data.training.disabled) chapter.enabledCount++;
-          if (trainAs === color) node.data.training.disabled = false;
+
+          // your existing logic: only enable moves for the side being trained
+          if (trainAs === color && node.data.training.disabled) {
+            chapter.enabledCount++;
+            node.data.training.disabled = false;
+
+            edits.push({
+              idx: node.data.idx,
+              patch: { training: { disabled: false } },
+            });
+          }
         });
 
         set((state) => {
@@ -635,6 +653,10 @@ export const useTrainerStore = create<TrainerState>()(
         });
 
         await persistChapterByIndex(get(), repertoireIndex);
+
+        if (edits.length > 0) {
+          void editRemote(repertoireIndex, () => apiEditMoves(chapter.id, edits));
+        }
       },
 
       makeMove: async (san: string) => {
@@ -824,7 +846,98 @@ export const useTrainerStore = create<TrainerState>()(
           return { repertoire: next };
         });
       },
+      /*  
+        Try to propagate changes to remote database, 
+        if fail, set chapter as "unsynced" and try to 
+        re-sync at next possible moment
+
+        Enables users to edit repertoire 
+      */
+      editRemote: async <T>(chapterIndex: number, apiCall: () => Promise<T>) => {
+        const { repertoire, syncChapter } = get();
+        const chapter = repertoire[chapterIndex];
+        if (!chapter) return { executed: false as const };
+
+        // if not authed/online -> can't remote edit
+        const authed = useAuthStore.getState().isAuthenticated();
+        const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+
+        if (!authed || !online) {
+          // mark unsynced and exit
+          set((state) => {
+            const next = state.repertoire.slice();
+            next[chapterIndex] = { ...next[chapterIndex], synced: false };
+            return { repertoire: next };
+          });
+          return { executed: false as const };
+        }
+
+        const wasUnsynced = !chapter.synced;
+
+        try {
+          const value = await apiCall();
+
+          // If local was unsynced (offline edits existed), reconcile now
+          if (wasUnsynced) {
+            // best-effort; if it fails it will re-mark unsynced
+            try {
+              await syncChapter(chapterIndex);
+            } catch {
+              set((state) => {
+                const next = state.repertoire.slice();
+                next[chapterIndex] = { ...next[chapterIndex], synced: false };
+                return { repertoire: next };
+              });
+            }
+          } else {
+            // remote edit succeeded and local wasn't behind -> consider synced
+            set((state) => {
+              const next = state.repertoire.slice();
+              next[chapterIndex] = { ...next[chapterIndex], synced: true };
+              return { repertoire: next };
+            });
+          }
+
+          return { executed: true as const, value };
+        } catch {
+          set((state) => {
+            const next = state.repertoire.slice();
+            next[chapterIndex] = { ...next[chapterIndex], synced: false };
+            return { repertoire: next };
+          });
+          return { executed: false as const };
+        }
+      },
+      //TODO implement on backend..
+      syncChapter: async (chapterIndex: number) => {
+        const { repertoire } = get();
+        const chapter = repertoire[chapterIndex];
+        if (!chapter) return;
+
+        // must be authed + online
+        if (!useAuthStore.getState().isAuthenticated()) return;
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
+        // const res = await apiSyncChapter(chapter); // server resolves conflicts via updatedAt
+
+        // if (res.chapter) {
+        //   // server returned canonical chapter -> replace local
+        //   set((state) => {
+        //     const next = state.repertoire.slice();
+        //     next[chapterIndex] = { ...res.chapter, unsynced: false };
+        //     return { repertoire: next };
+        //   });
+        // } else {
+        //   // server accepted local -> just mark synced
+        //   set((state) => {
+        //     const next = state.repertoire.slice();
+        //     next[chapterIndex] = { ...next[chapterIndex], unsynced: false };
+        //     return { repertoire: next };
+        //   });
+        // }
+      },
     }),
+
     {
       name: 'trainer-store',
       storage: indexedDBStorage,
