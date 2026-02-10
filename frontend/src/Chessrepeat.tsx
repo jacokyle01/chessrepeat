@@ -1,6 +1,6 @@
 //TODO better solution for syncing chessground state w/ react store state
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Chessground } from './components/Chessground';
 import Controls from './components/Controls';
 
@@ -40,8 +40,8 @@ import {
 import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
-import { ProfileButton } from './components/ProfileButton';
-import { useAuthStore } from './state/auth';
+// import { ProfileButton } from './components/ProfileButton';
+import { useAuth } from './contexts/AuthContext';
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -55,7 +55,6 @@ export const Chessrepeat = () => {
     setShowingAddToRepertoireMenu,
 
     repertoire,
-    setRepertoire,
     repertoireIndex,
 
     showingHint,
@@ -73,32 +72,38 @@ export const Chessrepeat = () => {
     succeed,
     guess,
     makeMove,
-    hydrateRepertoireFromIDB,
     fail,
+    hydrateRepertoireFromDB,
   } = useTrainerStore();
 
-  const refreshFromDb = useTrainerStore((s) => s.refreshFromDb);
+  // const refreshFromDb = useTrainerStore((s) => s.refreshFromDb);
+
+  const [isHydrating, setIsHydrating] = useState(true);
+  const loadData = useCallback(async () => {
+    setIsHydrating(true);
+    try {
+      await hydrateRepertoireFromDB();
+      console.log('Repertoire loaded from local database');
+    } catch (err) {
+      console.error('Failed to load repertoire:', err);
+    } finally {
+      setIsHydrating(false);
+    }
+  }, [hydrateRepertoireFromDB]);
 
   useEffect(() => {
-    // Runs on hard refresh / initial page load
-    refreshFromDb();
-  }, [refreshFromDb]);
+    loadData();
+  }, [loadData]);
 
-  // hydrate repertoire from IDB
-  useEffect(() => {
-    console.log('test');
-    hydrateRepertoireFromIDB();
-  }, []);
+  // // hydrate token
+  // const hydrate = useAuthStore((s) => s.hydrateFromStorage);
 
-  // hydrate token
-  const hydrate = useAuthStore((s) => s.hydrateFromStorage);
+  // useEffect(() => {
+  //   hydrate();
+  // }, [hydrate]);
 
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
-
-  const user = useAuthStore((s) => s.user);
-  const isAuthed = useAuthStore((s) => s.isAuthenticated());
+  // const user = useAuthStore((s) => s.user);
+  // const isAuthed = useAuthStore((s) => s.isAuthenticated());
 
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
@@ -388,7 +393,7 @@ export const Chessrepeat = () => {
             {/* Spacer */}
             <div className="flex-1" />
 
-            <ProfileButton />
+            {/* <ProfileButton /> */}
           </div>
         </div>
 
