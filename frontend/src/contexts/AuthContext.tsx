@@ -6,13 +6,11 @@ TODO:
     use case fits
 */
 
-
 // frontend/src/contexts/AuthContext.tsx
 // Authentication context with PouchDB sync management
 
-
-//TODO should we a store instead? 
-// store vs. context? 
+//TODO should we a store instead?
+// store vs. context?
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import PouchDB from 'pouchdb';
 import PouchDBFind from 'pouchdb-find';
@@ -65,14 +63,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-//TODO change 
+//TODO change
 const API_URL = import.meta.env.VITE_API_URL;
 const LOCAL_DB_NAME = 'chess-training-local';
 
 // Initialize local database IMMEDIATELY - not in useEffect
 // This ensures localDB is always available, even before component mounts
-// TODO is localDB always working? 
-// TODO do we want to export this in this way? 
+// TODO is localDB always working?
+// TODO do we want to export this in this way?
 export const localDB = new PouchDB(LOCAL_DB_NAME);
 
 // Create indexes for efficient queries
@@ -255,11 +253,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setRemoteDB(remote);
 
-      // Start live sync
+      // FIRST: Pull all existing data from remote to local
+      // This ensures data is available immediately when loading
+      console.log('Pulling initial data from remote...');
+      setSyncStatus({ state: 'syncing' });
+      await localDB.replicate.from(remote);
+      console.log('Initial data pull complete');
+
+      // Update status to indicate data is ready
+      setSyncStatus({
+        state: 'synced',
+        lastSync: new Date(),
+      });
+
+      // THEN: Start continuous live sync for ongoing updates
       const sync = localDB.sync(remote, {
         live: true,
         retry: true,
       });
+
+      // Set up event handlers
+      sync.on('change', (info) => {
+        setSyncStatus((prev) => ({
+          ...prev,
+          state: 'syncing',
+          changesReceived:
+            (prev.changesReceived || 0) + (info.direction === 'pull' ? info.change.docs.length : 0),
+          changesSent: (prev.changesSent || 0) + (info.direction === 'push' ? info.change.docs.length : 0),
+        }));
+    });
 
       // Set up event handlers
       sync.on('change', (info) => {
@@ -397,7 +419,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [remoteDB]);
 
-  // TODO can also store pfp! 
+  // TODO can also store pfp!
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,

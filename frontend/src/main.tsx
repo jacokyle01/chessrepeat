@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './css/style.css';
 import './css/theme.css';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

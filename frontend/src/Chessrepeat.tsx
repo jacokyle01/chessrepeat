@@ -76,10 +76,25 @@ export const Chessrepeat = () => {
     hydrateRepertoireFromDB,
   } = useTrainerStore();
 
+  const { user, isLoading: authLoading, syncStatus, signInWithGoogle, signOut, localDB } = useAuth();
+
   // const refreshFromDb = useTrainerStore((s) => s.refreshFromDb);
 
   const [isHydrating, setIsHydrating] = useState(true);
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    if (syncStatus.state === 'synced' && syncStatus.lastSync) {
+      loadData(); // Data is already in localDB!
+    }
+  }, [syncStatus.state, syncStatus.lastSync]);
+
+  // Also listen for ongoing changes
+  useEffect(() => {
+    const changes = localDB.changes({ since: 'now', live: true });
+    changes.on('change', () => loadData());
+    return () => changes.cancel();
+  }, [localDB]);
+
+  const loadData = async () => {
     setIsHydrating(true);
     try {
       await hydrateRepertoireFromDB();
@@ -89,11 +104,7 @@ export const Chessrepeat = () => {
     } finally {
       setIsHydrating(false);
     }
-  }, [hydrateRepertoireFromDB]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   // // hydrate token
   // const hydrate = useAuthStore((s) => s.hydrateFromStorage);
