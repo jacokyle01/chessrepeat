@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  couchdb:
+    image: couchdb:3.3
+    container_name: chess-training-couchdb
+    ports:
+      - "5984:5984"
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+    # Enable CORS for local development
+    command: >
+      bash -c "
+        echo '[httpd]' > /opt/couchdb/etc/local.d/cors.ini &&
+        echo 'enable_cors = true' >> /opt/couchdb/etc/local.d/cors.ini &&
+        echo '[cors]' >> /opt/couchdb/etc/local.d/cors.ini &&
+        echo 'origins = http://localhost:3000, http://localhost:5173' >> /opt/couchdb/etc/local.d/cors.ini &&
+        echo 'credentials = true' >> /opt/couchdb/etc/local.d/cors.ini &&
+        echo 'methods = GET, PUT, POST, HEAD, DELETE' >> /opt/couchdb/etc/local.d/cors.ini &&
+        echo 'headers = accept, authorization, content-type, origin, referer' >> /opt/couchdb/etc/local.d/cors.ini &&
+        /docker-entrypoint.sh /opt/couchdb/bin/couchdb
+      "
+
+volumes:
+  couchdb-data:

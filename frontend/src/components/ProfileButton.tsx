@@ -1,3 +1,6 @@
+// TODO different view for logged in / logged out 
+
+
 // import React, { useEffect, useRef, useState } from 'react';
 // import { GoogleLogin, googleLogout } from '@react-oauth/google';
 // import { User, UserX, LogOut } from 'lucide-react';
@@ -85,3 +88,116 @@
 //     </div>
 //   );
 // }
+
+
+// frontend/src/examples/SignInComponent.tsx
+// Example sign-in component with sync status
+
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+
+export function ProfileButton() {
+  const { 
+    user, 
+    isAuthenticated, 
+    isLoading,
+    syncStatus,
+    signInWithGoogle, 
+    signOut,
+    pauseSync,
+    resumeSync,
+    forceSync,
+  } = useAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ textAlign: 'center'}}>
+        {/* <span className='font-md'>Sign in to sync your repertoire</span> */}
+        {/* <p>Your data works offline. Sign in to sync across devices.</p> */}
+        
+        <button
+          onClick={signInWithGoogle}
+          style={{
+            fontSize: '1rem',
+            background: '#4285f4',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            margin: '1rem auto',
+          }}
+        >
+          <img 
+            src="https://www.google.com/favicon.ico" 
+            alt="Google"
+            style={{ width: '20px', height: '20px' }}
+          />
+          Sign in with Google
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ 
+      border: '1px solid #ddd', 
+      padding: '1rem', 
+      borderRadius: '4px',
+      marginBottom: '1rem',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <strong>{user?.email}</strong>
+          <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+            {syncStatus.state === 'syncing' && '🔄 Syncing...'}
+            {/* {syncStatus.state === 'synced' && `✅ Synced (${formatTime(syncStatus.lastSync)})`} */}
+            {syncStatus.state === 'error' && `❌ Error: ${syncStatus.error}`}
+            {syncStatus.state === 'paused' && '⏸ Sync paused'}
+          </div>
+          {syncStatus.changesReceived || syncStatus.changesSent ? (
+            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem' }}>
+              ↓ {syncStatus.changesReceived || 0} • ↑ {syncStatus.changesSent || 0}
+            </div>
+          ) : null}
+        </div>
+        
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {syncStatus.state === 'paused' ? (
+            <button onClick={resumeSync} style={buttonStyle}>
+              Resume Sync
+            </button>
+          ) : (
+            <button onClick={pauseSync} style={buttonStyle}>
+              Pause Sync
+            </button>
+          )}
+          
+          <button onClick={forceSync} style={buttonStyle} disabled={syncStatus.state === 'syncing'}>
+            Force Sync
+          </button>
+          
+          <button onClick={signOut} style={{ ...buttonStyle, background: '#dc3545' }}>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const buttonStyle: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  background: '#007bff',
+  color: 'white',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  fontSize: '0.875rem',
+};

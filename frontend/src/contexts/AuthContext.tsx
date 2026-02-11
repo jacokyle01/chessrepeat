@@ -10,6 +10,9 @@ TODO:
 // frontend/src/contexts/AuthContext.tsx
 // Authentication context with PouchDB sync management
 
+
+//TODO should we a store instead? 
+// store vs. context? 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import PouchDB from 'pouchdb';
 import PouchDBFind from 'pouchdb-find';

@@ -40,7 +40,7 @@ import {
 import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
-// import { ProfileButton } from './components/ProfileButton';
+import { ProfileButton } from './components/ProfileButton';
 import { useAuth } from './contexts/AuthContext';
 
 //TODO better sound handling, separate sound for check?
@@ -393,7 +393,7 @@ export const Chessrepeat = () => {
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* <ProfileButton /> */}
+            <ProfileButton />
           </div>
         </div>
 
