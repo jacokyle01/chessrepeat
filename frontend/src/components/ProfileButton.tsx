@@ -1,5 +1,4 @@
-// TODO different view for logged in / logged out 
-
+// TODO different view for logged in / logged out
 
 // import React, { useEffect, useRef, useState } from 'react';
 // import { GoogleLogin, googleLogout } from '@react-oauth/google';
@@ -89,7 +88,6 @@
 //   );
 // }
 
-
 // frontend/src/examples/SignInComponent.tsx
 // Example sign-in component with sync status
 
@@ -97,17 +95,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function ProfileButton() {
-  const { 
-    user, 
-    isAuthenticated, 
-    isLoading,
-    syncStatus,
-    signInWithGoogle, 
-    signOut,
-    pauseSync,
-    resumeSync,
-    forceSync,
-  } = useAuth();
+  const { user, isAuthenticated, isLoading, syncStatus, signInWithGoogle, signOut, forceSync } = useAuth();
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -115,10 +103,10 @@ export function ProfileButton() {
 
   if (!isAuthenticated) {
     return (
-      <div style={{ textAlign: 'center'}}>
+      <div style={{ textAlign: 'center' }}>
         {/* <span className='font-md'>Sign in to sync your repertoire</span> */}
         {/* <p>Your data works offline. Sign in to sync across devices.</p> */}
-        
+
         <button
           onClick={signInWithGoogle}
           style={{
@@ -134,8 +122,8 @@ export function ProfileButton() {
             margin: '1rem auto',
           }}
         >
-          <img 
-            src="https://www.google.com/favicon.ico" 
+          <img
+            src="https://www.google.com/favicon.ico"
             alt="Google"
             style={{ width: '20px', height: '20px' }}
           />
@@ -146,12 +134,14 @@ export function ProfileButton() {
   }
 
   return (
-    <div style={{ 
-      border: '1px solid #ddd', 
-      padding: '1rem', 
-      borderRadius: '4px',
-      marginBottom: '1rem',
-    }}>
+    <div
+      style={{
+        border: '1px solid #ddd',
+        padding: '1rem',
+        borderRadius: '4px',
+        marginBottom: '1rem',
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <strong>{user?.email}</strong>
@@ -167,22 +157,12 @@ export function ProfileButton() {
             </div>
           ) : null}
         </div>
-        
+
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {syncStatus.state === 'paused' ? (
-            <button onClick={resumeSync} style={buttonStyle}>
-              Resume Sync
-            </button>
-          ) : (
-            <button onClick={pauseSync} style={buttonStyle}>
-              Pause Sync
-            </button>
-          )}
-          
           <button onClick={forceSync} style={buttonStyle} disabled={syncStatus.state === 'syncing'}>
             Force Sync
           </button>
-          
+
           <button onClick={signOut} style={{ ...buttonStyle, background: '#dc3545' }}>
             Sign Out
           </button>

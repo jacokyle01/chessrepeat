@@ -56,8 +56,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 
   // Sync methods
-  pauseSync: () => void;
-  resumeSync: () => void;
   forceSync: () => Promise<void>;
 }
 
@@ -330,68 +328,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Pause sync
-   */
-  const pauseSync = useCallback(() => {
-    if (syncHandler) {
-      syncHandler.cancel();
-      setSyncStatus((prev) => ({ ...prev, state: 'paused' }));
-    }
-  }, [syncHandler]);
-
-  /**
-   * Resume sync
-   */
-  const resumeSync = useCallback(async () => {
-    if (!remoteDB) {
-      console.warn('Cannot resume sync: not authenticated');
-      return;
-    }
-
-    const sync = localDB.sync(remoteDB, {
-      live: true,
-      retry: true,
-    });
-
-    // Re-attach event handlers (same as setupSync)
-    sync.on('change', (info) => {
-      setSyncStatus((prev) => ({
-        ...prev,
-        state: 'syncing',
-        changesReceived:
-          (prev.changesReceived || 0) + (info.direction === 'pull' ? info.change.docs.length : 0),
-        changesSent: (prev.changesSent || 0) + (info.direction === 'push' ? info.change.docs.length : 0),
-      }));
-    });
-
-    sync.on('paused', () => {
-      setSyncStatus((prev) => ({
-        ...prev,
-        state: 'synced',
-        lastSync: new Date(),
-      }));
-    });
-
-    sync.on('active', () => {
-      setSyncStatus((prev) => ({
-        ...prev,
-        state: 'syncing',
-        error: undefined,
-      }));
-    });
-
-    sync.on('error', (err) => {
-      setSyncStatus((prev) => ({
-        ...prev,
-        state: 'error',
-        error: err.message,
-      }));
-    });
-
-    setSyncHandler(sync);
-  }, [remoteDB]);
-
-  /**
    * Force immediate sync
    */
   const forceSync = useCallback(async () => {
@@ -429,8 +365,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     remoteDB,
     signInWithGoogle,
     signOut,
-    pauseSync,
-    resumeSync,
     forceSync,
   };
 
