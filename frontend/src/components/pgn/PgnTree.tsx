@@ -614,8 +614,6 @@ export default function PgnTree({ setActiveMoveId }) {
   if (!chapter) return;
   let root = chapter.root;
   if (!root) return;
-  console.log("ROOT", root);
-  // console.log('root path');
   // TODO conditionally use path or root, depending on context
 
   // TODO ???

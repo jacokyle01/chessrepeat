@@ -6,10 +6,18 @@ import { create } from 'zustand';
 import { localDB } from '../contexts/AuthContext';
 import { ChildNode, startingPosition } from 'chessops/pgn';
 import { INITIAL_FEN } from 'chessops/fen';
-import { Chapter, TrainableContext, TrainingConfig, TrainingData, TrainingMethod, TrainingOutcome } from '../types/training';
+import {
+  Chapter,
+  TrainableContext,
+  TrainingConfig,
+  TrainingData,
+  TrainingMethod,
+  TrainingOutcome,
+} from '../types/training';
 import { Config as CbConfig } from 'chessground/config';
 import { defaults } from '../util/config';
-
+import { computeNextTrainableNode } from '../util/training';
+import { currentTime } from '../util/chess';
 
 // ============================================================================
 // HELPERS
@@ -45,15 +53,18 @@ async function upsertDoc<T extends { _id: string; _rev?: string }>(
 }
 
 // Load chapter tree from node documents
+//TODO look at API for other find options...
 async function loadChapterTree(userId: string, chapterId: string) {
   const result = await localDB.find({
     selector: { type: 'node', userId, chapterId },
+    limit: 99999,
   });
 
   const nodes = result.docs;
+  console.log('NODES FROM IDB ONLY 25', nodes);
   const nodeMap = new Map();
 
-  //TODO don't keep all these fields.. 
+  //TODO don't keep all these fields..
   nodes.forEach((doc) => {
     nodeMap.set(doc.nodeIdx, {
       data: {
@@ -105,7 +116,7 @@ async function loadChapterTree(userId: string, chapterId: string) {
 function flattenTree(userId: string, chapter: any) {
   const docs = [];
 
-  //TODO Don't need every field! Also, simplify training field.. 
+  //TODO Don't need every field! Also, simplify training field..
   const traverse = (node, parentIdx, ord) => {
     docs.push({
       _id: idNode(userId, chapter.id, node.data.idx),
@@ -171,7 +182,6 @@ function updateRecursive(root, path, updateFn) {
 // ============================================================================
 // STORE
 // ============================================================================
-
 
 //TODO separate interfaces folder?
 interface TrainerState {
@@ -288,7 +298,7 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
    */
   hydrateRepertoireFromDB: async () => {
     const userId = getUserId();
-    console.log("HYDRATING")
+    console.log('HYDRATING');
 
     try {
       const indexDoc = await localDB.get(idIndex(userId));
@@ -374,6 +384,8 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
   /**
    * Delete chapter - auto-pushes ✅
    */
+
+  //TODO does this actually delete everything?
   deleteChapterAt: async (chapterIndex) => {
     const { repertoire, repertoireIndex } = get();
     const chapter = repertoire[chapterIndex];
@@ -382,6 +394,7 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
     const userId = getUserId();
 
     // Delete nodes
+    //TODO move DB operations to a different file?
     const result = await localDB.find({
       selector: { type: 'node', userId, chapterId: chapter.id },
     });
@@ -403,6 +416,7 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
     } catch (err) {}
 
     // Update index
+
     await upsertDoc(idIndex(userId), (current) => ({
       ...current,
       chapterIds: current.chapterIds.filter((id) => id !== chapter.id),
@@ -649,33 +663,56 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
 
   /**
    * Training success - auto-pushes ✅
-   */
-  succeed: async () => {
-    const { repertoire, repertoireIndex, trainableContext, trainingConfig } = get();
-    const chapter = repertoire[repertoireIndex];
-    const node = trainableContext?.targetMove;
-    if (!chapter || !node) return;
+   * */
 
+  succeed: async (): Promise<number | null> => {
+    const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
     const userId = getUserId();
 
-    let group = node.data.training.group;
-    chapter.bucketEntries[group]--;
-    group = Math.min(group + 1, trainingConfig.buckets.length - 1);
-    chapter.bucketEntries[group]++;
+    const targetNode = trainableContext?.targetMove;
+    const chapter = repertoire[repertoireIndex];
+    if (!chapter || !targetNode) return null;
 
-    const dueAt = Date.now() + trainingConfig.buckets[group] * 1000;
-    node.data.training.group = group;
-    node.data.training.dueAt = dueAt;
+    let timeToAdd = 0;
 
-    await upsertDoc(idNode(userId, chapter.id, node.data.idx), (current) => ({
+    switch (trainingMethod) {
+      case 'recall': {
+        let groupIndex = parseInt(targetNode.data.training.group + '');
+        chapter.bucketEntries[groupIndex]--;
+
+        switch (trainingConfig!.promotion) {
+          case 'most':
+            groupIndex = trainingConfig!.buckets!.length - 1;
+            break;
+          case 'next':
+            groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
+            break;
+        }
+
+        chapter.bucketEntries[groupIndex]++;
+        timeToAdd = trainingConfig!.buckets![groupIndex];
+        targetNode.data.training.group = groupIndex;
+        break;
+      }
+
+      case 'learn': {
+        targetNode.data.training.seen = true;
+        timeToAdd = trainingConfig!.buckets![0];
+        targetNode.data.training.group = 0;
+        chapter.bucketEntries[0]++;
+        break;
+      }
+    }
+
+    const dueAt = currentTime() + timeToAdd;
+    targetNode.data.training.dueAt = dueAt;
+    await upsertDoc(idNode(userId, chapter.id, targetNode.data.idx), (current) => ({
       ...current,
-      training: { ...current.training, group, dueAt },
+      training: { ...targetNode.data.training },
       updatedAt: Date.now(),
     }));
 
-    set({ repertoire: [...repertoire] });
-
-    // Push happens automatically! ✅
+    return timeToAdd;
   },
 
   /**
@@ -707,6 +744,26 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
     set({ repertoire: [...repertoire] });
 
     // Push happens automatically! ✅
+  },
+
+  guess: (san: string): TrainingOutcome => {
+    console.log('guess', san);
+    const { repertoire, repertoireIndex, selectedPath, trainableContext, trainingMethod } = get();
+    const chapter = repertoire[repertoireIndex];
+    if (!chapter) return;
+
+    const root = chapter.root;
+    const pathToTrain = trainableContext?.startingPath;
+    if (pathToTrain == null) return;
+
+    const trainableNodeList: ChildNode<TrainingData>[] = getNodeList(root, pathToTrain);
+    if (repertoireIndex === -1 || !trainableNodeList || trainingMethod === 'learn') return;
+
+    const possibleMoves = trainableNodeList.at(-1)!.children.map((_) => _.data.san);
+    set({ lastGuess: san });
+
+    const target = trainableContext.targetMove;
+    return possibleMoves.includes(san) ? (target.data.san === san ? 'success' : 'alternate') : 'failure';
   },
 
   // Navigation
@@ -753,12 +810,31 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
     console.log('markAllAsSeen not yet implemented');
   },
 
-  setNextTrainablePosition: () => {
-    console.log('setNextTrainablePosition not yet implemented');
-  },
-
   updateDueCounts: () => {
     console.log('updateDueCounts not yet implemented');
+  },
+
+  setNextTrainablePosition: () => {
+    const { trainingMethod: method, repertoireIndex, repertoire, trainingConfig } = get();
+    if (repertoireIndex === -1 || method === 'edit') return null;
+    const chapter = repertoire[repertoireIndex];
+    if (!chapter) return;
+    const root = chapter.root;
+
+    const maybeTrainingContext = computeNextTrainableNode(chapter.root, method, trainingConfig!.getNext!);
+
+    if (!maybeTrainingContext) {
+      set({ userTip: 'empty', selectedPath: '', selectedNode: null, trainableContext: null });
+    } else {
+      const targetPath = maybeTrainingContext.startingPath;
+      const nodeList = getNodeList(root, targetPath);
+      set({
+        selectedPath: targetPath,
+        selectedNode: nodeList.at(-1),
+        trainableContext: maybeTrainingContext,
+        userTip: method,
+      });
+    }
   },
 }));
 
@@ -2367,68 +2443,6 @@ export const useTrainerStore = create<TrainerState>((set, get) => ({
 //         await editRemote(repertoireIndex, () =>
 //           apiEditMoves(chapter.id, [{ idx: node.data.idx, patch: { comment } }]),
 //         );
-//       },
-
-//       succeed: async (): Promise<number | null> => {
-//         const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig, editRemote } =
-//           get();
-//         const targetNode = trainableContext?.targetMove;
-//         const chapter = repertoire[repertoireIndex];
-//         if (!chapter || !targetNode) return null;
-
-//         let timeToAdd = 0;
-
-//         switch (trainingMethod) {
-//           case 'recall': {
-//             let groupIndex = parseInt(targetNode.data.training.group + '');
-//             chapter.bucketEntries[groupIndex]--;
-
-//             switch (trainingConfig!.promotion) {
-//               case 'most':
-//                 groupIndex = trainingConfig!.buckets!.length - 1;
-//                 break;
-//               case 'next':
-//                 groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
-//                 break;
-//             }
-
-//             chapter.bucketEntries[groupIndex]++;
-//             timeToAdd = trainingConfig!.buckets![groupIndex];
-//             targetNode.data.training.group = groupIndex;
-//             break;
-//           }
-
-//           case 'learn': {
-//             targetNode.data.training.seen = true;
-//             timeToAdd = trainingConfig!.buckets![0];
-//             targetNode.data.training.group = 0;
-//             chapter.bucketEntries[0]++;
-//             break;
-//           }
-//         }
-
-//         const dueAt = currentTime() + timeToAdd;
-//         targetNode.data.training.dueAt = dueAt;
-
-//         // local-first persist
-//         await persistChapterByIndex(get(), repertoireIndex);
-
-//         await editRemote(repertoireIndex, () =>
-//           apiEditMoves(chapter.id, [
-//             {
-//               idx: targetNode.data.idx,
-//               patch: {
-//                 training: {
-//                   seen: targetNode.data.training.seen,
-//                   group: targetNode.data.training.group,
-//                   dueAt: targetNode.data.training.dueAt,
-//                 },
-//               },
-//             },
-//           ]),
-//         );
-
-//         return timeToAdd;
 //       },
 
 //       fail: async () => {
