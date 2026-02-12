@@ -7,6 +7,7 @@ import { Modal } from '../modals/Modal';
 import EditChapterModal from '../modals/EditChapterModal';
 import React, { Dispatch, SetStateAction, useState } from 'react';
 import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const Chapter = ({ entry, index, id }) => {
   // console.log('chapter ID should be visible', id);
@@ -65,7 +66,7 @@ export const Chapter = ({ entry, index, id }) => {
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
             <span className="text-md truncate leading-none">{name}</span>
             <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
-            {!entry.synced && <CloudAlert width={15} height={15} color='red'/>} 
+            {!entry.synced && <CloudAlert width={15} height={15} color="red" />}
           </h3>
 
           {unseenCount > 0 && (
@@ -100,6 +101,7 @@ const Repertoire: React.FC = () => {
   const blackEntries = [];
 
   const repertoire = useTrainerStore().repertoire;
+  const { isAuthenticated } = useAuth();
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);
@@ -114,6 +116,9 @@ const Repertoire: React.FC = () => {
           <BookOpenIcon />
         </div>
         <span className="text-gray-800 font-semibold text-xl">My Repertoire</span>
+        <div className="alert-wrap pl-1 text-red-400" title="Sign in to sync repertoire across devices!">
+          {!isAuthenticated && <CloudAlert />}
+        </div>
       </div>
 
       {/* ONLY THIS SCROLLS */}
