@@ -66,7 +66,6 @@ export const Chapter = ({ entry, index, id }) => {
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
             <span className="text-md truncate leading-none">{name}</span>
             <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
-            {!entry.synced && <CloudAlert width={15} height={15} color="red" />}
           </h3>
 
           {unseenCount > 0 && (
