@@ -90,94 +90,61 @@
 
 // frontend/src/examples/SignInComponent.tsx
 // Example sign-in component with sync status
-
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { CloudAlert, LucideLogOut } from 'lucide-react';
 
 export function ProfileButton() {
-  const { user, isAuthenticated, isLoading, syncStatus, signInWithGoogle, signOut, forceSync } = useAuth();
+  const { user, isAuthenticated, isLoading, signInWithGoogle, signOut } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center py-2 text-sm text-gray-500">Loading...</div>;
   }
 
   if (!isAuthenticated) {
     return (
-      <div style={{ textAlign: 'center' }}>
-        {/* <span className='font-md'>Sign in to sync your repertoire</span> */}
-        {/* <p>Your data works offline. Sign in to sync across devices.</p> */}
-
+      <div className="flex flex-row items-end px-10">
         <button
           onClick={signInWithGoogle}
-          style={{
-            fontSize: '1rem',
-            background: '#4285f4',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            margin: '1rem auto',
-          }}
+          className="bg-white mx-auto mt-3 inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-50 hover:shadow active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
-          <img
-            src="https://www.google.com/favicon.ico"
-            alt="Google"
-            style={{ width: '20px', height: '20px' }}
-          />
-          Sign in with Google
+          <img src="https://www.google.com/favicon.ico" alt="Google" className="h-5 w-5" />
+          <span>Sign in with Google</span>
         </button>
+
+        {/* optional helper text (keeps structure simple) */}
+        {/* <p className="mt-2 text-xs text-gray-500">Sign in to sync across devices.</p> */}
       </div>
     );
   }
 
+  //TODO more consistent padding 
   return (
-    <div
-      style={{
-        border: '1px solid #ddd',
-        padding: '1rem',
-        borderRadius: '4px',
-        marginBottom: '1rem',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <strong>{user?.email}</strong>
-          <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
-            {syncStatus.state === 'syncing' && '🔄 Syncing...'}
-            {/* {syncStatus.state === 'synced' && `✅ Synced (${formatTime(syncStatus.lastSync)})`} */}
-            {syncStatus.state === 'error' && `❌ Error: ${syncStatus.error}`}
-            {syncStatus.state === 'paused' && '⏸ Sync paused'}
-          </div>
-          {syncStatus.changesReceived || syncStatus.changesSent ? (
-            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem' }}>
-              ↓ {syncStatus.changesReceived || 0} • ↑ {syncStatus.changesSent || 0}
-            </div>
-          ) : null}
+    <div>
+      <div className="flex items-center gap-2 rounded-md bg-white p-1 my-1 shadow-sm ring-1 ring-gray-200">
+        <div className="min-w-0">
+          <strong className="block truncate text-sm text-gray-900">{user?.name}</strong>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={forceSync} style={buttonStyle} disabled={syncStatus.state === 'syncing'}>
-            Force Sync
-          </button>
+        <img
+          src={user?.picture}
+          alt="profile picture"
+          width={25}
+          height={25}
+          className="ml-auto h-7 w-7 rounded-full rounded-md ring-gray-200"
+        />
 
-          <button onClick={signOut} style={{ ...buttonStyle, background: '#dc3545' }}>
-            Sign Out
+        <div className="flex items-center gap-2">
+          <button
+            onClick={signOut}
+            className="inline-flex items-center justify-center rounded-md bg-gray-600 p-2 text-white shadow-sm transition hover:bg-red-600 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LucideLogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-const buttonStyle: React.CSSProperties = {
-  padding: '0.5rem 1rem',
-  background: '#007bff',
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontSize: '0.875rem',
-};
