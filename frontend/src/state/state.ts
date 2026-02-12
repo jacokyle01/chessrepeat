@@ -1,123 +1,255 @@
-// Zustand store integrated with PouchDB for offline-first persistence
+// frontend/src/stores/state.ts
+// Complete Zustand store with PouchDB push-only sync
+// Changes to localDB automatically push to remote ✅
 
 import { create } from 'zustand';
-import {
-  type Chapter,
-  type TrainableNode,
-  type Color,
-  saveChapter,
-  updateChapterMetadata,
-  saveNode,
-  flattenTree,
-  calculateDerivedMetadata,
-  deleteChapter,
-  loadAllChapters,
-} from '../lib/database';
-import { localDB, useAuth } from '../contexts/AuthContext';
+import { localDB } from '../contexts/AuthContext';
+import { ChildNode, startingPosition } from 'chessops/pgn';
+import { INITIAL_FEN } from 'chessops/fen';
+import { Chapter, TrainableContext, TrainingConfig, TrainingData, TrainingMethod, TrainingOutcome } from '../types/training';
+import { Config as CbConfig } from 'chessground/config';
+import { defaults } from '../util/config';
 
-// Types
-type TrainingMethod = 'unselected' | 'learn' | 'recall' | 'edit';
-type UserTip = 'init' | 'empty' | 'learn' | 'recall' | 'edit';
-type TrainingOutcome = 'success' | 'alternate' | 'failure' | undefined;
 
-interface TrainableContext {
-  startingPath: string;
-  targetMove: TrainableNode;
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+const getUserId = (): string => {
+  return sessionStorage.getItem('userId') || 'anonymous';
+};
+
+const idIndex = (userId: string) => `index:${userId}`;
+const idChapter = (userId: string, chapterId: string) => `chapter:${userId}:${chapterId}`;
+const idNode = (userId: string, chapterId: string, nodeIdx: number) =>
+  `node:${userId}:${chapterId}:${nodeIdx}`;
+
+async function upsertDoc<T extends { _id: string; _rev?: string }>(
+  docId: string,
+  updateFn: (current: T | null) => T,
+): Promise<T> {
+  try {
+    const existing = await localDB.get<T>(docId);
+    const updated = updateFn(existing);
+    updated._rev = existing._rev;
+    const result = await localDB.put(updated);
+    return { ...updated, _rev: result.rev };
+  } catch (err: any) {
+    if (err.status === 404) {
+      const newDoc = updateFn(null);
+      const result = await localDB.put(newDoc);
+      return { ...newDoc, _rev: result.rev };
+    }
+    throw err;
+  }
 }
 
-interface TrainingConfig {
-  buckets: number[];
-  promotion: 'next' | 'most';
-  demotion: 'next' | 'most';
-  getNext?: (chapter: Chapter) => TrainableNode | null;
-}
+// Load chapter tree from node documents
+async function loadChapterTree(userId: string, chapterId: string) {
+  const result = await localDB.find({
+    selector: { type: 'node', userId, chapterId },
+  });
 
-interface ChessboardConfig {
-  lastMove?: string;
-  drawable?: {
-    shapes: any[];
+  const nodes = result.docs;
+  const nodeMap = new Map();
+
+  //TODO don't keep all these fields.. 
+  nodes.forEach((doc) => {
+    nodeMap.set(doc.nodeIdx, {
+      data: {
+        idx: doc.nodeIdx,
+        id: doc.moveId,
+        ply: doc.ply,
+        san: doc.san,
+        fen: doc.fen,
+        comment: doc.comment,
+        training: doc.training,
+      },
+      children: [],
+    });
+  });
+
+  //TODO create root constant?
+  const root = {
+    data: {
+      idx: -1,
+      id: '',
+      ply: 0,
+      san: '',
+      fen: INITIAL_FEN,
+      comment: '',
+      training: { disabled: false, seen: false, group: -1, dueAt: -1 },
+    },
+    children: [],
   };
+
+  nodes.sort((a, b) => {
+    if (a.parentIdx !== b.parentIdx) return a.parentIdx - b.parentIdx;
+    return a.ord - b.ord;
+  });
+
+  nodes.forEach((doc) => {
+    const node = nodeMap.get(doc.nodeIdx);
+    if (doc.parentIdx === -1) {
+      root.children.push(node);
+    } else {
+      const parent = nodeMap.get(doc.parentIdx);
+      if (parent) parent.children.push(node);
+    }
+  });
+
+  return root;
 }
 
+// Flatten tree to node documents
+function flattenTree(userId: string, chapter: any) {
+  const docs = [];
+
+  //TODO Don't need every field! Also, simplify training field.. 
+  const traverse = (node, parentIdx, ord) => {
+    docs.push({
+      _id: idNode(userId, chapter.id, node.data.idx),
+      type: 'node',
+      userId,
+      chapterId: chapter.id,
+      nodeIdx: node.data.idx,
+      parentIdx,
+      ord,
+      ply: node.data.ply,
+      moveId: node.data.id,
+      san: node.data.san,
+      fen: node.data.fen,
+      comment: node.data.comment || '',
+      training: node.data.training,
+      updatedAt: Date.now(),
+    });
+
+    node.children.forEach((child, index) => {
+      traverse(child, node.data.idx, index);
+    });
+  };
+
+  chapter.root.children.forEach((child, index) => {
+    traverse(child, -1, index);
+  });
+
+  return docs;
+}
+
+function getNodeList(root, path) {
+  const list = [root];
+  let current = root;
+
+  for (let i = 0; i < path.length; i += 2) {
+    const moveId = path.slice(i, i + 2);
+    const child = current.children.find((c) => c.data.id === moveId);
+    if (!child) break;
+    list.push(child);
+    current = child;
+  }
+
+  return list;
+}
+
+function nodeAtPath(root, path) {
+  const list = getNodeList(root, path);
+  return list[list.length - 1] || null;
+}
+
+function updateRecursive(root, path, updateFn) {
+  const startNode = nodeAtPath(root, path);
+  if (!startNode) return;
+
+  const traverse = (node) => {
+    updateFn(node);
+    node.children.forEach(traverse);
+  };
+
+  traverse(startNode);
+}
+
+// ============================================================================
+// STORE
+// ============================================================================
+
+
+//TODO separate interfaces folder?
 interface TrainerState {
-  // Training state
+  /* UI Flags */
   trainingMethod: TrainingMethod;
-  trainableContext?: TrainableContext;
-  selectedPath: string;
-  selectedNode: TrainableNode | null;
-  showingHint: boolean;
-  userTip: UserTip;
-  lastGuess: string;
-  showSuccessfulGuess: boolean;
-  dueTimes: number[];
-  trainingConfig: TrainingConfig;
-  cbConfig: ChessboardConfig;
+  setTrainingMethod: (m: TrainingMethod) => void;
 
-  // Repertoire state (in-memory)
-  repertoire: Chapter[];
-  repertoireIndex: number;
-
-  // UI state
   showingAddToRepertoireMenu: boolean;
-  showingImportIntoChapterModal: boolean;
-
-  // Actions
-  setTrainingMethod: (method: TrainingMethod) => void;
   setShowingAddToRepertoireMenu: (val: boolean) => void;
+
+  showingImportIntoChapterModal: boolean;
   setShowingImportIntoChapterModal: (val: boolean) => void;
+
+  repertoire: Chapter[];
+  setRepertoire: (r: Chapter[]) => Promise<void>; // now async (writes per chapter)
+
+  repertoireIndex: number;
   setRepertoireIndex: (i: number) => void;
-  setTrainableContext: (t?: TrainableContext) => void;
-  setSelectedPath: (path: string) => void;
-  setSelectedNode: (node: TrainableNode | null) => void;
+
+  trainableContext: TrainableContext | undefined;
+  setTrainableContext: (t: TrainableContext) => void;
+
+  selectedPath: string;
+  setSelectedPath: (p: string) => void;
+
+  selectedNode: ChildNode<TrainingData>;
+  setSelectedNode: (n: any) => void;
+
+  showingHint: boolean;
   setShowingHint: (v: boolean) => void;
-  setUserTip: (f: UserTip) => void;
+
+  userTip: string;
+  setUserTip: (f: string) => void;
+
+  lastGuess: string;
   setLastGuess: (g: string) => void;
+
+  showSuccessfulGuess: boolean;
   setShowSuccessfulGuess: (val: boolean) => void;
+
+  dueTimes: number[];
   setDueTimes: (t: number[]) => void;
-  setTrainingConfig: (cfg: TrainingConfig) => void;
-  setCbConfig: (cfg: ChessboardConfig) => void;
 
-  // Chapter management
+  trainingConfig: TrainingConfig;
+  setTrainingConfig: (config: TrainingConfig) => void;
+
+  cbConfig: CbConfig;
+  setCbConfig: (cfg: CbConfig) => void;
+
+  // NEW: hydrate chapters from IDB after persist rehydrates small state
   hydrateRepertoireFromDB: () => Promise<void>;
-  addNewChapter: (chapter: Chapter) => Promise<void>;
-  renameChapter: (chapterIndex: number, newName: string) => Promise<void>;
-  deleteChapterAt: (chapterIndex: number) => Promise<void>;
-  importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
 
-  // Move management
   jump: (path: string) => void;
   makeMove: (san: string) => Promise<void>;
-  deleteLine: (path: string) => Promise<void>;
-  setCommentAt: (comment: string, path: string) => Promise<void>;
 
-  // Training
-  setNextTrainablePosition: () => void;
-  updateDueCounts: () => void;
   clearChapterContext: () => void;
+  setCommentAt: (comment: string, path: string) => Promise<void>;
+  updateDueCounts: () => void;
+  setNextTrainablePosition: () => void;
+  succeed: () => number | null;
+  fail: () => void;
   guess: (san: string) => TrainingOutcome;
-  succeed: () => Promise<number | null>;
-  fail: () => Promise<void>;
+
+  // higher-level ops
   markAllAsSeen: () => Promise<void>;
   disableLine: (path: string) => Promise<void>;
+  deleteLine: (path: string) => Promise<void>;
   enableLine: (path: string) => Promise<void>;
+  addNewChapter: (chapter: Chapter) => Promise<void>;
+  importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
+
+  renameChapter: (index: number, name: string) => void;
+  deleteChapterAt: (index: number) => void;
+  refreshFromDb: () => void;
+  uploadChapter: (chapter: Chapter) => void;
 }
 
-// Helper to get localDB from auth context
-//TODO shouldnt be tied to auth?
-// const getLocalDB = () => {
-//   const { localDB } = useAuth();
-//   return localDB;
-// };
-
-// Default training config
-const defaults = (): TrainingConfig => ({
-  buckets: [86400, 172800, 345600, 691200, 1382400, 2764800, 5529600, 11059200, 22118400, 44236800],
-  promotion: 'next',
-  demotion: 'next',
-});
-
-export const useTrainerStore = create<TrainerState>()((set, get) => ({
-  // Initial state
+export const useTrainerStore = create<TrainerState>((set, get) => ({
   trainingMethod: 'unselected',
   trainableContext: undefined,
   selectedPath: '',
@@ -150,603 +282,1232 @@ export const useTrainerStore = create<TrainerState>()((set, get) => ({
   setTrainingConfig: (cfg) => set({ trainingConfig: cfg }),
   setCbConfig: (cfg) => set({ cbConfig: cfg }),
 
-  // ============================================================================
-  // Data Management
-  // ============================================================================
-
   /**
    * Load all chapters from PouchDB
+   * TODO should be ran after synced
    */
   hydrateRepertoireFromDB: async () => {
+    const userId = getUserId();
+    console.log("HYDRATING")
 
     try {
-      const chapters = await loadAllChapters(localDB);
+      const indexDoc = await localDB.get(idIndex(userId));
+      const chapterIds = indexDoc.chapterIds || [];
+
+      const chapters = await Promise.all(
+        chapterIds.map(async (chapterId) => {
+          const meta = await localDB.get(idChapter(userId, chapterId));
+          const root = await loadChapterTree(userId, chapterId);
+
+          return {
+            id: meta.chapterId,
+            name: meta.name,
+            trainAs: meta.trainAs,
+            root,
+            lastDueCount: meta.lastDueCount,
+            enabledCount: meta.enabledCount,
+            bucketEntries: meta.bucketEntries,
+            largestMoveId: meta.largestMoveId,
+          };
+        }),
+      );
+
       set({ repertoire: chapters });
-      console.log(`Loaded ${chapters.length} chapters from database`);
+      console.log(`Loaded ${chapters.length} chapters`);
     } catch (err) {
-      console.error('Failed to hydrate repertoire:', err);
-      set({ repertoire: [] });
+      if (err.status === 404) {
+        set({ repertoire: [] });
+      } else {
+        console.error('Load error:', err);
+      }
     }
   },
 
   /**
-   * Add a new chapter
+   * Add new chapter - auto-pushes ✅
    */
-  addNewChapter: async (chapter: Chapter) => {
+  addNewChapter: async (chapter) => {
+    const userId = getUserId();
 
-    // Update in-memory state first (optimistic update)
+    // Update index
+    await upsertDoc(idIndex(userId), (current) => ({
+      _id: idIndex(userId),
+      type: 'index',
+      userId,
+      chapterIds: [...(current?.chapterIds || []), chapter.id],
+      updatedAt: Date.now(),
+    }));
+
+    // Create chapter meta
+    //TODO simplify
+    await localDB.put({
+      _id: idChapter(userId, chapter.id),
+      type: 'chapter',
+      userId,
+      chapterId: chapter.id,
+      name: chapter.name,
+      trainAs: chapter.trainAs,
+      lastDueCount: chapter.lastDueCount || 0,
+      enabledCount: chapter.enabledCount || 0,
+      bucketEntries: chapter.bucketEntries || [0, 0, 0, 0, 0],
+      largestMoveId: chapter.largestMoveId || 0,
+      updatedAt: Date.now(),
+    });
+
+    // Create nodes
+    const nodeDocs = flattenTree(userId, chapter);
+    if (nodeDocs.length > 0) {
+      await localDB.bulkDocs(nodeDocs);
+    }
+
+    // Update in-memory
     set((state) => {
       const next = state.repertoire.slice();
-      // Keep your white first, black last ordering logic
       const insertAt = chapter.trainAs === 'white' ? 0 : next.length;
       next.splice(insertAt, 0, chapter);
       return { repertoire: next };
     });
 
-    // Persist to PouchDB (syncs automatically)
-    //TODO this should never fail? why cant we save to localDB?
-    try {
-      await saveChapter(localDB, chapter);
-      console.log(`Chapter "${chapter.name}" saved to database`);
-    } catch (err) {
-      console.error('Failed to save chapter:', err);
-      // Rollback on error
-      set((state) => ({
-        repertoire: state.repertoire.filter((c) => c.id !== chapter.id),
-      }));
-      throw err;
-    }
+    // Push happens automatically! ✅
   },
 
   /**
-   * Rename a chapter
+   * Delete chapter - auto-pushes ✅
    */
-  renameChapter: async (chapterIndex: number, newName: string) => {
-    const { repertoire } = get();
-    const chapter = repertoire[chapterIndex];
-    if (!chapter) return;
-
-    // Update in-memory
-    set((state) => {
-      const next = state.repertoire.slice();
-      next[chapterIndex] = { ...next[chapterIndex], name: newName };
-      return { repertoire: next };
-    });
-
-    // Persist to database
-    try {
-      await updateChapterMetadata(localDB, chapter.id, { name: newName });
-    } catch (err) {
-      console.error('Failed to rename chapter:', err);
-      // Could rollback here if desired
-    }
-  },
-
-  /**
-   * Delete a chapter
-   */
-  deleteChapterAt: async (chapterIndex: number) => {
+  deleteChapterAt: async (chapterIndex) => {
     const { repertoire, repertoireIndex } = get();
     const chapter = repertoire[chapterIndex];
     if (!chapter) return;
 
-    const nextRepertoire = repertoire.slice();
-    nextRepertoire.splice(chapterIndex, 1);
+    const userId = getUserId();
 
-    // Calculate new index
-    let nextIndex = repertoireIndex;
-    if (nextRepertoire.length === 0) nextIndex = 0;
-    else if (chapterIndex < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
-    else if (chapterIndex === repertoireIndex)
-      nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+    // Delete nodes
+    const result = await localDB.find({
+      selector: { type: 'node', userId, chapterId: chapter.id },
+    });
+
+    const toDelete = result.docs.map((doc) => ({
+      _id: doc._id,
+      _rev: doc._rev,
+      _deleted: true,
+    }));
+
+    if (toDelete.length > 0) {
+      await localDB.bulkDocs(toDelete);
+    }
+
+    // Delete chapter
+    try {
+      const doc = await localDB.get(idChapter(userId, chapter.id));
+      await localDB.remove(doc);
+    } catch (err) {}
+
+    // Update index
+    await upsertDoc(idIndex(userId), (current) => ({
+      ...current,
+      chapterIds: current.chapterIds.filter((id) => id !== chapter.id),
+      updatedAt: Date.now(),
+    }));
 
     // Update in-memory
+    const next = repertoire.slice();
+    next.splice(chapterIndex, 1);
+
+    let newIndex = repertoireIndex;
+    if (next.length === 0) newIndex = -1;
+    else if (chapterIndex <= repertoireIndex) newIndex = Math.max(0, repertoireIndex - 1);
+
     set({
-      repertoire: nextRepertoire,
-      repertoireIndex: nextIndex,
+      repertoire: next,
+      repertoireIndex: newIndex,
       selectedPath: '',
       selectedNode: null,
-      trainableContext: undefined,
-      userTip: 'empty',
+      trainingMethod: 'unselected',
     });
 
-    // Delete from database
-    try {
-      await deleteChapter(localDB, chapter.id);
-      console.log(`Chapter "${chapter.name}" deleted`);
-    } catch (err) {
-      console.error('Failed to delete chapter:', err);
-    }
+    // Push happens automatically! ✅
   },
 
   /**
-   * Import PGN into existing chapter
+   * Rename chapter - auto-pushes ✅
    */
-  importIntoChapter: async (targetChapter: number, newPgn: string) => {
+  renameChapter: async (chapterIndex, newName) => {
     const { repertoire } = get();
-    const chapter = repertoire[targetChapter];
+    const chapter = repertoire[chapterIndex];
     if (!chapter) return;
 
-    // Parse PGN and merge into tree
-    // (You'll need to implement rootFromPgn and merge functions)
-    // const { root: importRoot } = rootFromPgn(newPgn, chapter.trainAs);
-    // merge(chapter.root, importRoot);
+    const userId = getUserId();
 
-    // Recalculate enabled count
-    const nodeDocs = flattenTree(chapter.id, chapter.root);
-    const derived = calculateDerivedMetadata(nodeDocs);
-    chapter.enabledCount = derived.enabledCount;
+    await upsertDoc(idChapter(userId, chapter.id), (current) => ({
+      ...current,
+      name: newName,
+      updatedAt: Date.now(),
+    }));
 
-    // Update in-memory
-    set((state) => {
-      const next = state.repertoire.slice();
-      next[targetChapter] = { ...chapter };
-      return { repertoire: next };
-    });
+    const next = repertoire.slice();
+    next[chapterIndex] = { ...chapter, name: newName };
+    set({ repertoire: next });
 
-    // Persist to database
-    try {
-      await saveChapter(localDB, chapter);
-      console.log(`Imported moves into "${chapter.name}"`);
-    } catch (err) {
-      console.error('Failed to import moves:', err);
-    }
+    // Push happens automatically! ✅
   },
 
-  // ============================================================================
-  // Navigation
-  // ============================================================================
-
   /**
-   * Jump to a specific position in the tree
+   * Make a move - auto-pushes ✅
    */
-  jump: (path: string) => {
-    const { repertoire, repertoireIndex } = get();
-    const root = repertoire[repertoireIndex]?.root;
-    if (!root) return;
-
-    // You'll need to implement getNodeList
-    // const nodeList = getNodeList(root, path);
-    // set({ selectedPath: path, selectedNode: nodeList.at(-1) || null });
-  },
-
-  // ============================================================================
-  // Move Management
-  // ============================================================================
-
-  /**
-   * Make a move in the current position
-   */
-  makeMove: async (san: string) => {
+  makeMove: async (san) => {
     const { selectedNode, repertoire, repertoireIndex, selectedPath, trainingMethod } = get();
     const chapter = repertoire[repertoireIndex];
     if (!chapter || !selectedNode) return;
 
-    // Check if move already exists
-    const existingChild = selectedNode.children.find((c) => c.data.san === san);
+    const userId = getUserId();
 
-    if (!existingChild) {
-      // Create new move node
-      // (You'll need to implement chess logic: positionFromFen, parseSan, makeSanAndPlay, makeFen)
-      const currentColor = selectedNode.data.ply % 2 === 0 ? 'white' : 'black';
-      const disabled = currentColor !== chapter.trainAs;
-
-      if (!disabled) chapter.enabledCount++;
-
-      const newNode: TrainableNode = {
-        data: {
-          training: {
-            disabled,
-            seen: false,
-            group: -1,
-            dueAt: -1,
-          },
-          id: san.toLowerCase().replace(/[^a-z0-9]/g, ''), // Simplified ID
-          idx: ++chapter.largestMoveId,
-          san,
-          fen: '', // You'll calculate this from chess.js or similar
-          ply: selectedNode.data.ply + 1,
-          comment: '',
-        },
-        children: [],
-      };
-
-      // Add to tree
-      selectedNode.children.push(newNode);
-
-      // Persist node
-      try {
-        const ord = selectedNode.children.length - 1;
-        await saveNode(localDB, chapter.id, newNode, selectedNode.data.idx, ord);
-
-        // Update chapter metadata
-        await updateChapterMetadata(localDB, chapter.id, {
-          largestMoveId: chapter.largestMoveId,
+    // Check if exists
+    const existing = selectedNode.children.find((c) => c.data.san === san);
+    if (existing) {
+      if (trainingMethod === 'edit') {
+        set({
+          selectedPath: selectedPath + existing.data.id,
+          selectedNode: existing,
         });
-
-        console.log(`Move ${san} added to chapter`);
-      } catch (err) {
-        console.error('Failed to save move:', err);
-        // Rollback
-        selectedNode.children.pop();
-        if (!disabled) chapter.enabledCount--;
-        chapter.largestMoveId--;
-        throw err;
       }
+      return;
     }
 
-    // Navigate to the move if in edit mode
-    if (trainingMethod === 'edit') {
-      const targetNode = existingChild || selectedNode.children[selectedNode.children.length - 1];
-      const newPath = selectedPath + targetNode.data.id;
-      set({ selectedNode: targetNode, selectedPath: newPath });
-    }
-  },
+    // Create new node (simplified - you need your chess logic here)
+    const newNode = {
+      data: {
+        idx: ++chapter.largestMoveId,
+        id: 'xx', // Use scalachessCharPair
+        ply: selectedNode.data.ply + 1,
+        san,
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', // Use makeFen
+        comment: '',
+        training: { disabled: false, seen: false, group: -1, dueAt: -1 },
+      },
+      children: [],
+    };
 
-  /**
-   * Delete a line from the current position
-   */
-  deleteLine: async (path: string) => {
-    const { repertoire, repertoireIndex, selectedPath, jump } = get();
-    const chapter = repertoire[repertoireIndex];
-    const root = chapter?.root;
-    if (!root) return;
+    selectedNode.children.push(newNode);
 
-    // const node = nodeAtPath(root, path);
-    // if (!node) return;
-
-    // Count enabled moves being deleted
-    // let deleteCount = 0;
-    // forEachNode(node, (n) => {
-    //   if (!n.data.training.disabled) deleteCount++;
-    // });
-
-    // deleteNodeAt(root, path);
-    // chapter.enabledCount -= deleteCount;
-
-    // Update in-memory
-    set((state) => {
-      const next = state.repertoire.slice();
-      next[repertoireIndex] = { ...next[repertoireIndex] };
-      return { repertoire: next };
+    // Save to PouchDB
+    await localDB.put({
+      _id: idNode(userId, chapter.id, newNode.data.idx),
+      type: 'node',
+      userId,
+      chapterId: chapter.id,
+      nodeIdx: newNode.data.idx,
+      parentIdx: selectedNode.data.idx,
+      ord: selectedNode.children.length - 1,
+      ply: newNode.data.ply,
+      moveId: newNode.data.id,
+      san: newNode.data.san,
+      fen: newNode.data.fen,
+      comment: '',
+      training: newNode.data.training,
+      updatedAt: Date.now(),
     });
 
-    // Persist
-    try {
-      await saveChapter(localDB, chapter);
-    } catch (err) {
-      console.error('Failed to delete line:', err);
+    // Update chapter meta
+    await upsertDoc(idChapter(userId, chapter.id), (current) => ({
+      ...current,
+      largestMoveId: chapter.largestMoveId,
+      updatedAt: Date.now(),
+    }));
+
+    // Update in-memory
+    if (trainingMethod === 'edit') {
+      set({
+        repertoire: [...repertoire],
+        selectedPath: selectedPath + newNode.data.id,
+        selectedNode: newNode,
+      });
+    } else {
+      set({ repertoire: [...repertoire] });
     }
 
-    // Adjust selection if needed
-    // if (contains(selectedPath, path)) jump(init(path));
-    // else jump(path);
+    // Push happens automatically! ✅
   },
 
   /**
-   * Set comment on a node
+   * Set comment - auto-pushes ✅
    */
-  setCommentAt: async (comment: string, path: string) => {
+  setCommentAt: async (comment, path) => {
     const { repertoire, repertoireIndex } = get();
     const chapter = repertoire[repertoireIndex];
     if (!chapter) return;
 
+    const userId = getUserId();
+    const node = nodeAtPath(chapter.root, path);
+    if (!node) return;
 
-    // You'll need to implement nodeAtPath
-    // const node = nodeAtPath(chapter.root, path);
-    // if (!node) return;
-    // node.data.comment = comment;
+    node.data.comment = comment;
 
-    // Persist
-    try {
-      // await saveNode(localDB, chapter.id, node, parentIdx, ord);
-      console.log('Comment saved');
-    } catch (err) {
-      console.error('Failed to save comment:', err);
+    await upsertDoc(idNode(userId, chapter.id, node.data.idx), (current) => ({
+      ...current,
+      comment,
+      updatedAt: Date.now(),
+    }));
+
+    set({ repertoire: [...repertoire] });
+
+    // Push happens automatically! ✅
+  },
+
+  /**
+   * Enable line - auto-pushes ✅
+   */
+  enableLine: async (path) => {
+    const { repertoire, repertoireIndex } = get();
+    const chapter = repertoire[repertoireIndex];
+    if (!chapter) return;
+
+    const userId = getUserId();
+    const updatedNodes = [];
+
+    updateRecursive(chapter.root, path, (node) => {
+      if (node.data.training.disabled) {
+        node.data.training.disabled = false;
+        chapter.enabledCount++;
+        updatedNodes.push(node.data.idx);
+      }
+    });
+
+    // Update nodes in PouchDB
+    const updates = await Promise.all(
+      updatedNodes.map(async (idx) => {
+        const doc = await localDB.get(idNode(userId, chapter.id, idx));
+        return {
+          ...doc,
+          training: { ...doc.training, disabled: false },
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+
+    if (updates.length > 0) {
+      await localDB.bulkDocs(updates);
     }
-  },
 
-  // ============================================================================
-  // Training
-  // ============================================================================
+    // Update chapter meta
+    await upsertDoc(idChapter(userId, chapter.id), (current) => ({
+      ...current,
+      enabledCount: chapter.enabledCount,
+      updatedAt: Date.now(),
+    }));
 
-  /**
-   * Set up the next trainable position
-   */
-  setNextTrainablePosition: () => {
-    const { trainingMethod, repertoireIndex, repertoire, trainingConfig } = get();
-    if (repertoireIndex === -1 || trainingMethod === 'edit') return;
+    set({ repertoire: [...repertoire] });
 
-    const chapter = repertoire[repertoireIndex];
-    if (!chapter) return;
-
-    // You'll need to implement computeNextTrainableNode
-    // const maybeContext = computeNextTrainableNode(
-    //   chapter.root,
-    //   trainingMethod,
-    //   trainingConfig.getNext
-    // );
-
-    // if (!maybeContext) {
-    //   set({
-    //     userTip: 'empty',
-    //     selectedPath: '',
-    //     selectedNode: null,
-    //     trainableContext: undefined
-    //   });
-    // } else {
-    //   const targetPath = maybeContext.startingPath;
-    //   const nodeList = getNodeList(chapter.root, targetPath);
-    //   set({
-    //     selectedPath: targetPath,
-    //     selectedNode: nodeList.at(-1) || null,
-    //     trainableContext: maybeContext,
-    //     userTip: trainingMethod,
-    //   });
-    // }
+    // Push happens automatically! ✅
   },
 
   /**
-   * Update due counts for current chapter
+   * Disable line - auto-pushes ✅
    */
-  updateDueCounts: () => {
-    const { repertoire, repertoireIndex, trainingConfig } = get();
-    if (repertoireIndex < 0) return;
-
+  disableLine: async (path) => {
+    const { repertoire, repertoireIndex } = get();
     const chapter = repertoire[repertoireIndex];
     if (!chapter) return;
 
-    // You'll need to implement computeDueCounts
-    // const counts = computeDueCounts(chapter.root, trainingConfig.buckets);
+    const userId = getUserId();
+    const updatedNodes = [];
 
-    set((state) => {
-      const nextRepertoire = state.repertoire.slice();
-      const nextChapter = { ...nextRepertoire[repertoireIndex] };
-      // nextChapter.lastDueCount = counts[0];
-      nextRepertoire[repertoireIndex] = nextChapter;
+    updateRecursive(chapter.root, path, (node) => {
+      if (!node.data.training.disabled) {
+        node.data.training.disabled = true;
+        chapter.enabledCount--;
+        updatedNodes.push(node.data.idx);
+      }
+    });
 
-      return {
-        // dueTimes: counts,
-        repertoire: nextRepertoire,
-      };
+    // Update nodes in PouchDB
+    const updates = await Promise.all(
+      updatedNodes.map(async (idx) => {
+        const doc = await localDB.get(idNode(userId, chapter.id, idx));
+        return {
+          ...doc,
+          training: { ...doc.training, disabled: true },
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+
+    if (updates.length > 0) {
+      await localDB.bulkDocs(updates);
+    }
+
+    // Update chapter meta
+    await upsertDoc(idChapter(userId, chapter.id), (current) => ({
+      ...current,
+      enabledCount: chapter.enabledCount,
+      updatedAt: Date.now(),
+    }));
+
+    set({ repertoire: [...repertoire] });
+
+    // Push happens automatically! ✅
+  },
+
+  /**
+   * Training success - auto-pushes ✅
+   */
+  succeed: async () => {
+    const { repertoire, repertoireIndex, trainableContext, trainingConfig } = get();
+    const chapter = repertoire[repertoireIndex];
+    const node = trainableContext?.targetMove;
+    if (!chapter || !node) return;
+
+    const userId = getUserId();
+
+    let group = node.data.training.group;
+    chapter.bucketEntries[group]--;
+    group = Math.min(group + 1, trainingConfig.buckets.length - 1);
+    chapter.bucketEntries[group]++;
+
+    const dueAt = Date.now() + trainingConfig.buckets[group] * 1000;
+    node.data.training.group = group;
+    node.data.training.dueAt = dueAt;
+
+    await upsertDoc(idNode(userId, chapter.id, node.data.idx), (current) => ({
+      ...current,
+      training: { ...current.training, group, dueAt },
+      updatedAt: Date.now(),
+    }));
+
+    set({ repertoire: [...repertoire] });
+
+    // Push happens automatically! ✅
+  },
+
+  /**
+   * Training failure - auto-pushes ✅
+   */
+  fail: async () => {
+    const { repertoire, repertoireIndex, trainableContext, trainingConfig } = get();
+    const chapter = repertoire[repertoireIndex];
+    const node = trainableContext?.targetMove;
+    if (!chapter || !node) return;
+
+    const userId = getUserId();
+
+    let group = node.data.training.group;
+    chapter.bucketEntries[group]--;
+    group = Math.max(group - 1, 0);
+    chapter.bucketEntries[group]++;
+
+    const dueAt = Date.now() + trainingConfig.buckets[group] * 1000;
+    node.data.training.group = group;
+    node.data.training.dueAt = dueAt;
+
+    await upsertDoc(idNode(userId, chapter.id, node.data.idx), (current) => ({
+      ...current,
+      training: { ...current.training, group, dueAt },
+      updatedAt: Date.now(),
+    }));
+
+    set({ repertoire: [...repertoire] });
+
+    // Push happens automatically! ✅
+  },
+
+  // Navigation
+  setRepertoireIndex: (index) => {
+    set({
+      repertoireIndex: index,
+      selectedPath: '',
+      selectedNode: null,
+      trainingMethod: 'edit',
     });
   },
 
-  /**
-   * Clear chapter context
-   */
   clearChapterContext: () => {
     set({
       trainingMethod: 'unselected',
       selectedPath: '',
-      userTip: 'empty',
-      cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
       selectedNode: null,
+      trainableContext: null,
     });
   },
 
-  /**
-   * Make a guess during training
-   */
-  guess: (san: string): TrainingOutcome => {
-    const { repertoire, repertoireIndex, trainableContext, trainingMethod } = get();
+  jump: (path) => {
+    const { repertoire, repertoireIndex } = get();
     const chapter = repertoire[repertoireIndex];
-    if (!chapter || trainingMethod === 'learn') return;
+    if (!chapter) return;
 
-    const pathToTrain = trainableContext?.startingPath;
-    if (!pathToTrain) return;
-
-    // You'll need to implement getNodeList
-    // const trainableNodeList = getNodeList(chapter.root, pathToTrain);
-    // const possibleMoves = trainableNodeList.at(-1)?.children.map(c => c.data.san) || [];
-
-    set({ lastGuess: san });
-
-    // const target = trainableContext.targetMove;
-    // return possibleMoves.includes(san)
-    //   ? (target.data.san === san ? 'success' : 'alternate')
-    //   : 'failure';
+    const nodeList = getNodeList(chapter.root, path);
+    set({
+      selectedPath: path,
+      selectedNode: nodeList[nodeList.length - 1] || null,
+    });
   },
 
-  /**
-   * Handle successful training attempt
-   */
-  succeed: async (): Promise<number | null> => {
-    const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
-    const targetNode = trainableContext?.targetMove;
-    const chapter = repertoire[repertoireIndex];
-    if (!chapter || !targetNode) return null;
-
-    let timeToAdd = 0;
-
-    switch (trainingMethod) {
-      case 'recall': {
-        let groupIndex = targetNode.data.training.group;
-        chapter.bucketEntries[groupIndex]--;
-
-        switch (trainingConfig.promotion) {
-          case 'most':
-            groupIndex = trainingConfig.buckets.length - 1;
-            break;
-          case 'next':
-            groupIndex = Math.min(groupIndex + 1, trainingConfig.buckets.length - 1);
-            break;
-        }
-
-        chapter.bucketEntries[groupIndex]++;
-        timeToAdd = trainingConfig.buckets[groupIndex];
-        targetNode.data.training.group = groupIndex;
-        break;
-      }
-
-      case 'learn': {
-        targetNode.data.training.seen = true;
-        timeToAdd = trainingConfig.buckets[0];
-        targetNode.data.training.group = 0;
-        chapter.bucketEntries[0]++;
-        break;
-      }
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    targetNode.data.training.dueAt = now + timeToAdd;
-
-    // Persist
-    try {
-      // await saveNode(localDB, chapter.id, targetNode, parentIdx, ord);
-      console.log('Training progress saved');
-    } catch (err) {
-      console.error('Failed to save training progress:', err);
-    }
-
-    return timeToAdd;
+  // TODO: Implement these based on your training logic
+  deleteLine: async (path) => {
+    console.log('deleteLine not yet implemented');
   },
 
-  /**
-   * Handle failed training attempt
-   */
-  fail: async () => {
-    const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
-    const node = trainableContext?.targetMove;
-    const chapter = repertoire[repertoireIndex];
-    if (!chapter || !node) return;
-
-
-    if (trainingMethod === 'recall') {
-      let groupIndex = node.data.training.group;
-      chapter.bucketEntries[groupIndex]--;
-
-      switch (trainingConfig.demotion) {
-        case 'most':
-          groupIndex = 0;
-          break;
-        case 'next':
-          groupIndex = Math.max(groupIndex - 1, 0);
-          break;
-      }
-
-      chapter.bucketEntries[groupIndex]++;
-      const interval = trainingConfig.buckets[groupIndex];
-      node.data.training.group = groupIndex;
-
-      const now = Math.floor(Date.now() / 1000);
-      node.data.training.dueAt = now + interval;
-
-      // Persist
-      try {
-        // await saveNode(localDB, chapter.id, node, parentIdx, ord);
-        console.log('Training failure recorded');
-      } catch (err) {
-        console.error('Failed to save training failure:', err);
-      }
-    }
+  importIntoChapter: async (chapterIndex, pgn) => {
+    console.log('importIntoChapter not yet implemented');
   },
 
-  /**
-   * Mark all moves as seen
-   */
   markAllAsSeen: async () => {
-    const { repertoireIndex, repertoire, trainingConfig } = get();
-    if (repertoireIndex < 0) return;
-
-    const chapter = repertoire[repertoireIndex];
-    if (!chapter) return;
-
-    const now = Math.floor(Date.now() / 1000);
-    const timeToAdd = trainingConfig.buckets[0];
-
-    // You'll need to implement updateRecursive
-    // updateRecursive(chapter.root, '', (node) => {
-    //   if (node.data.training.disabled) return;
-    //   if (node.data.training.seen) return;
-    //
-    //   chapter.bucketEntries[0]++;
-    //   node.data.training.seen = true;
-    //   node.data.training.group = 0;
-    //   node.data.training.dueAt = now + timeToAdd;
-    // });
-
-    set({ showSuccessfulGuess: false });
-
-    // Persist
-    try {
-      await saveChapter(localDB, chapter);
-      console.log('All moves marked as seen');
-    } catch (err) {
-      console.error('Failed to mark all as seen:', err);
-    }
+    console.log('markAllAsSeen not yet implemented');
   },
 
-  /**
-   * Disable a line
-   */
-  disableLine: async (path: string) => {
-    const { repertoire, repertoireIndex } = get();
-    const chapter = repertoire[repertoireIndex];
-    if (!chapter) return;
-
-
-    // You'll need to implement updateRecursive
-    // updateRecursive(chapter.root, path, (node) => {
-    //   if (!node.data.training.disabled) {
-    //     chapter.enabledCount--;
-    //     node.data.training.disabled = true;
-    //   }
-    // });
-
-    // Update in-memory
-    set((state) => {
-      const next = state.repertoire.slice();
-      next[repertoireIndex] = { ...next[repertoireIndex] };
-      return { repertoire: next };
-    });
-
-    // Persist
-    try {
-      await saveChapter(localDB, chapter);
-      console.log('Line disabled');
-    } catch (err) {
-      console.error('Failed to disable line:', err);
-    }
+  setNextTrainablePosition: () => {
+    console.log('setNextTrainablePosition not yet implemented');
   },
 
-  /**
-   * Enable a line
-   */
-  enableLine: async (path: string) => {
-    const { repertoire, repertoireIndex } = get();
-    const chapter = repertoire[repertoireIndex];
-    if (!chapter) return;
-
-    const trainAs = chapter.trainAs;
-
-    // You'll need to implement updateRecursive and colorFromPly
-    // updateRecursive(chapter.root, path, (node) => {
-    //   const color = colorFromPly(node.data.ply);
-    //   if (trainAs === color && node.data.training.disabled) {
-    //     chapter.enabledCount++;
-    //     node.data.training.disabled = false;
-    //   }
-    // });
-
-    // Update in-memory
-    set((state) => {
-      const next = state.repertoire.slice();
-      next[repertoireIndex] = { ...next[repertoireIndex] };
-      return { repertoire: next };
-    });
-
-    // Persist
-    try {
-      await saveChapter(localDB, chapter);
-      console.log('Line enabled');
-    } catch (err) {
-      console.error('Failed to enable line:', err);
-    }
+  updateDueCounts: () => {
+    console.log('updateDueCounts not yet implemented');
   },
 }));
 
-// //TODO UI flags in state
+// // Zustand store integrated with PouchDB for offline-first persistence
+
+// import { create } from 'zustand';
+// import {
+//   type Chapter,
+//   type TrainableNode,
+//   type Color,
+//   saveChapter,
+//   updateChapterMetadata,
+//   saveNode,
+//   flattenTree,
+//   calculateDerivedMetadata,
+//   deleteChapter,
+//   loadAllChapters,
+// } from '../lib/database';
+// import { localDB, useAuth } from '../contexts/AuthContext';
+
+// // Types
+// type TrainingMethod = 'unselected' | 'learn' | 'recall' | 'edit';
+// type UserTip = 'init' | 'empty' | 'learn' | 'recall' | 'edit';
+// type TrainingOutcome = 'success' | 'alternate' | 'failure' | undefined;
+
+// interface TrainableContext {
+//   startingPath: string;
+//   targetMove: TrainableNode;
+// }
+
+// interface TrainingConfig {
+//   buckets: number[];
+//   promotion: 'next' | 'most';
+//   demotion: 'next' | 'most';
+//   getNext?: (chapter: Chapter) => TrainableNode | null;
+// }
+
+// interface ChessboardConfig {
+//   lastMove?: string;
+//   drawable?: {
+//     shapes: any[];
+//   };
+// }
+
+// interface TrainerState {
+//   // Training state
+//   trainingMethod: TrainingMethod;
+//   trainableContext?: TrainableContext;
+//   selectedPath: string;
+//   selectedNode: TrainableNode | null;
+//   showingHint: boolean;
+//   userTip: UserTip;
+//   lastGuess: string;
+//   showSuccessfulGuess: boolean;
+//   dueTimes: number[];
+//   trainingConfig: TrainingConfig;
+//   cbConfig: ChessboardConfig;
+
+//   // Repertoire state (in-memory)
+//   repertoire: Chapter[];
+//   repertoireIndex: number;
+
+//   // UI state
+//   showingAddToRepertoireMenu: boolean;
+//   showingImportIntoChapterModal: boolean;
+
+//   // Actions
+//   setTrainingMethod: (method: TrainingMethod) => void;
+//   setShowingAddToRepertoireMenu: (val: boolean) => void;
+//   setShowingImportIntoChapterModal: (val: boolean) => void;
+//   setRepertoireIndex: (i: number) => void;
+//   setTrainableContext: (t?: TrainableContext) => void;
+//   setSelectedPath: (path: string) => void;
+//   setSelectedNode: (node: TrainableNode | null) => void;
+//   setShowingHint: (v: boolean) => void;
+//   setUserTip: (f: UserTip) => void;
+//   setLastGuess: (g: string) => void;
+//   setShowSuccessfulGuess: (val: boolean) => void;
+//   setDueTimes: (t: number[]) => void;
+//   setTrainingConfig: (cfg: TrainingConfig) => void;
+//   setCbConfig: (cfg: ChessboardConfig) => void;
+
+//   // Chapter management
+//   hydrateRepertoireFromDB: () => Promise<void>;
+//   addNewChapter: (chapter: Chapter) => Promise<void>;
+//   renameChapter: (chapterIndex: number, newName: string) => Promise<void>;
+//   deleteChapterAt: (chapterIndex: number) => Promise<void>;
+//   importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
+
+//   // Move management
+//   jump: (path: string) => void;
+//   makeMove: (san: string) => Promise<void>;
+//   deleteLine: (path: string) => Promise<void>;
+//   setCommentAt: (comment: string, path: string) => Promise<void>;
+
+//   // Training
+//   setNextTrainablePosition: () => void;
+//   updateDueCounts: () => void;
+//   clearChapterContext: () => void;
+//   guess: (san: string) => TrainingOutcome;
+//   succeed: () => Promise<number | null>;
+//   fail: () => Promise<void>;
+//   markAllAsSeen: () => Promise<void>;
+//   disableLine: (path: string) => Promise<void>;
+//   enableLine: (path: string) => Promise<void>;
+// }
+
+// // Helper to get localDB from auth context
+// //TODO shouldnt be tied to auth?
+// // const getLocalDB = () => {
+// //   const { localDB } = useAuth();
+// //   return localDB;
+// // };
+
+// // Default training config
+// const defaults = (): TrainingConfig => ({
+//   buckets: [86400, 172800, 345600, 691200, 1382400, 2764800, 5529600, 11059200, 22118400, 44236800],
+//   promotion: 'next',
+//   demotion: 'next',
+// });
+
+// export const useTrainerStore = create<TrainerState>()((set, get) => ({
+//   // Initial state
+//   trainingMethod: 'unselected',
+//   trainableContext: undefined,
+//   selectedPath: '',
+//   selectedNode: null,
+//   showingHint: false,
+//   userTip: 'init',
+//   lastGuess: '',
+//   showSuccessfulGuess: false,
+//   dueTimes: [],
+//   trainingConfig: defaults(),
+//   cbConfig: {},
+//   repertoire: [],
+//   repertoireIndex: 0,
+//   showingAddToRepertoireMenu: false,
+//   showingImportIntoChapterModal: false,
+
+//   // Simple setters
+//   setTrainingMethod: (trainingMethod) => set({ trainingMethod }),
+//   setShowingAddToRepertoireMenu: (val) => set({ showingAddToRepertoireMenu: val }),
+//   setShowingImportIntoChapterModal: (val) => set({ showingImportIntoChapterModal: val }),
+//   setRepertoireIndex: (i) => set({ repertoireIndex: i }),
+//   setTrainableContext: (t) => set({ trainableContext: t }),
+//   setSelectedPath: (path) => set({ selectedPath: path }),
+//   setSelectedNode: (node) => set({ selectedNode: node }),
+//   setShowingHint: (v) => set({ showingHint: v }),
+//   setUserTip: (f) => set({ userTip: f }),
+//   setLastGuess: (g) => set({ lastGuess: g }),
+//   setShowSuccessfulGuess: (val) => set({ showSuccessfulGuess: val }),
+//   setDueTimes: (t) => set({ dueTimes: t }),
+//   setTrainingConfig: (cfg) => set({ trainingConfig: cfg }),
+//   setCbConfig: (cfg) => set({ cbConfig: cfg }),
+
+//   // ============================================================================
+//   // Data Management
+//   // ============================================================================
+
+//   /**
+//    * Load all chapters from PouchDB
+//    */
+//   hydrateRepertoireFromDB: async () => {
+
+//     try {
+//       const chapters = await loadAllChapters(localDB);
+//       set({ repertoire: chapters });
+//       console.log(`Loaded ${chapters.length} chapters from database`);
+//     } catch (err) {
+//       console.error('Failed to hydrate repertoire:', err);
+//       set({ repertoire: [] });
+//     }
+//   },
+
+//   /**
+//    * Add a new chapter
+//    */
+//   addNewChapter: async (chapter: Chapter) => {
+
+//     // Update in-memory state first (optimistic update)
+//     set((state) => {
+//       const next = state.repertoire.slice();
+//       // Keep your white first, black last ordering logic
+//       const insertAt = chapter.trainAs === 'white' ? 0 : next.length;
+//       next.splice(insertAt, 0, chapter);
+//       return { repertoire: next };
+//     });
+
+//     // Persist to PouchDB (syncs automatically)
+//     //TODO this should never fail? why cant we save to localDB?
+//     try {
+//       await saveChapter(localDB, chapter);
+//       console.log(`Chapter "${chapter.name}" saved to database`);
+//     } catch (err) {
+//       console.error('Failed to save chapter:', err);
+//       // Rollback on error
+//       set((state) => ({
+//         repertoire: state.repertoire.filter((c) => c.id !== chapter.id),
+//       }));
+//       throw err;
+//     }
+//   },
+
+//   /**
+//    * Rename a chapter
+//    */
+//   renameChapter: async (chapterIndex: number, newName: string) => {
+//     const { repertoire } = get();
+//     const chapter = repertoire[chapterIndex];
+//     if (!chapter) return;
+
+//     // Update in-memory
+//     set((state) => {
+//       const next = state.repertoire.slice();
+//       next[chapterIndex] = { ...next[chapterIndex], name: newName };
+//       return { repertoire: next };
+//     });
+
+//     // Persist to database
+//     try {
+//       await updateChapterMetadata(localDB, chapter.id, { name: newName });
+//     } catch (err) {
+//       console.error('Failed to rename chapter:', err);
+//       // Could rollback here if desired
+//     }
+//   },
+
+//   /**
+//    * Delete a chapter
+//    */
+//   deleteChapterAt: async (chapterIndex: number) => {
+//     const { repertoire, repertoireIndex } = get();
+//     const chapter = repertoire[chapterIndex];
+//     if (!chapter) return;
+
+//     const nextRepertoire = repertoire.slice();
+//     nextRepertoire.splice(chapterIndex, 1);
+
+//     // Calculate new index
+//     let nextIndex = repertoireIndex;
+//     if (nextRepertoire.length === 0) nextIndex = 0;
+//     else if (chapterIndex < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
+//     else if (chapterIndex === repertoireIndex)
+//       nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+
+//     // Update in-memory
+//     set({
+//       repertoire: nextRepertoire,
+//       repertoireIndex: nextIndex,
+//       selectedPath: '',
+//       selectedNode: null,
+//       trainableContext: undefined,
+//       userTip: 'empty',
+//     });
+
+//     // Delete from database
+//     try {
+//       await deleteChapter(localDB, chapter.id);
+//       console.log(`Chapter "${chapter.name}" deleted`);
+//     } catch (err) {
+//       console.error('Failed to delete chapter:', err);
+//     }
+//   },
+
+//   /**
+//    * Import PGN into existing chapter
+//    */
+//   importIntoChapter: async (targetChapter: number, newPgn: string) => {
+//     const { repertoire } = get();
+//     const chapter = repertoire[targetChapter];
+//     if (!chapter) return;
+
+//     // Parse PGN and merge into tree
+//     // (You'll need to implement rootFromPgn and merge functions)
+//     // const { root: importRoot } = rootFromPgn(newPgn, chapter.trainAs);
+//     // merge(chapter.root, importRoot);
+
+//     // Recalculate enabled count
+//     const nodeDocs = flattenTree(chapter.id, chapter.root);
+//     const derived = calculateDerivedMetadata(nodeDocs);
+//     chapter.enabledCount = derived.enabledCount;
+
+//     // Update in-memory
+//     set((state) => {
+//       const next = state.repertoire.slice();
+//       next[targetChapter] = { ...chapter };
+//       return { repertoire: next };
+//     });
+
+//     // Persist to database
+//     try {
+//       await saveChapter(localDB, chapter);
+//       console.log(`Imported moves into "${chapter.name}"`);
+//     } catch (err) {
+//       console.error('Failed to import moves:', err);
+//     }
+//   },
+
+//   // ============================================================================
+//   // Navigation
+//   // ============================================================================
+
+//   /**
+//    * Jump to a specific position in the tree
+//    */
+//   jump: (path: string) => {
+//     const { repertoire, repertoireIndex } = get();
+//     const root = repertoire[repertoireIndex]?.root;
+//     if (!root) return;
+
+//     // You'll need to implement getNodeList
+//     // const nodeList = getNodeList(root, path);
+//     // set({ selectedPath: path, selectedNode: nodeList.at(-1) || null });
+//   },
+
+//   // ============================================================================
+//   // Move Management
+//   // ============================================================================
+
+//   /**
+//    * Make a move in the current position
+//    */
+//   makeMove: async (san: string) => {
+//     const { selectedNode, repertoire, repertoireIndex, selectedPath, trainingMethod } = get();
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter || !selectedNode) return;
+
+//     // Check if move already exists
+//     const existingChild = selectedNode.children.find((c) => c.data.san === san);
+
+//     if (!existingChild) {
+//       // Create new move node
+//       // (You'll need to implement chess logic: positionFromFen, parseSan, makeSanAndPlay, makeFen)
+//       const currentColor = selectedNode.data.ply % 2 === 0 ? 'white' : 'black';
+//       const disabled = currentColor !== chapter.trainAs;
+
+//       if (!disabled) chapter.enabledCount++;
+
+//       const newNode: TrainableNode = {
+//         data: {
+//           training: {
+//             disabled,
+//             seen: false,
+//             group: -1,
+//             dueAt: -1,
+//           },
+//           id: san.toLowerCase().replace(/[^a-z0-9]/g, ''), // Simplified ID
+//           idx: ++chapter.largestMoveId,
+//           san,
+//           fen: '', // You'll calculate this from chess.js or similar
+//           ply: selectedNode.data.ply + 1,
+//           comment: '',
+//         },
+//         children: [],
+//       };
+
+//       // Add to tree
+//       selectedNode.children.push(newNode);
+
+//       // Persist node
+//       try {
+//         const ord = selectedNode.children.length - 1;
+//         await saveNode(localDB, chapter.id, newNode, selectedNode.data.idx, ord);
+
+//         // Update chapter metadata
+//         await updateChapterMetadata(localDB, chapter.id, {
+//           largestMoveId: chapter.largestMoveId,
+//         });
+
+//         console.log(`Move ${san} added to chapter`);
+//       } catch (err) {
+//         console.error('Failed to save move:', err);
+//         // Rollback
+//         selectedNode.children.pop();
+//         if (!disabled) chapter.enabledCount--;
+//         chapter.largestMoveId--;
+//         throw err;
+//       }
+//     }
+
+//     // Navigate to the move if in edit mode
+//     if (trainingMethod === 'edit') {
+//       const targetNode = existingChild || selectedNode.children[selectedNode.children.length - 1];
+//       const newPath = selectedPath + targetNode.data.id;
+//       set({ selectedNode: targetNode, selectedPath: newPath });
+//     }
+//   },
+
+//   /**
+//    * Delete a line from the current position
+//    */
+//   deleteLine: async (path: string) => {
+//     const { repertoire, repertoireIndex, selectedPath, jump } = get();
+//     const chapter = repertoire[repertoireIndex];
+//     const root = chapter?.root;
+//     if (!root) return;
+
+//     // const node = nodeAtPath(root, path);
+//     // if (!node) return;
+
+//     // Count enabled moves being deleted
+//     // let deleteCount = 0;
+//     // forEachNode(node, (n) => {
+//     //   if (!n.data.training.disabled) deleteCount++;
+//     // });
+
+//     // deleteNodeAt(root, path);
+//     // chapter.enabledCount -= deleteCount;
+
+//     // Update in-memory
+//     set((state) => {
+//       const next = state.repertoire.slice();
+//       next[repertoireIndex] = { ...next[repertoireIndex] };
+//       return { repertoire: next };
+//     });
+
+//     // Persist
+//     try {
+//       await saveChapter(localDB, chapter);
+//     } catch (err) {
+//       console.error('Failed to delete line:', err);
+//     }
+
+//     // Adjust selection if needed
+//     // if (contains(selectedPath, path)) jump(init(path));
+//     // else jump(path);
+//   },
+
+//   /**
+//    * Set comment on a node
+//    */
+//   setCommentAt: async (comment: string, path: string) => {
+//     const { repertoire, repertoireIndex } = get();
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter) return;
+
+//     // You'll need to implement nodeAtPath
+//     // const node = nodeAtPath(chapter.root, path);
+//     // if (!node) return;
+//     // node.data.comment = comment;
+
+//     // Persist
+//     try {
+//       // await saveNode(localDB, chapter.id, node, parentIdx, ord);
+//       console.log('Comment saved');
+//     } catch (err) {
+//       console.error('Failed to save comment:', err);
+//     }
+//   },
+
+//   // ============================================================================
+//   // Training
+//   // ============================================================================
+
+//   /**
+//    * Set up the next trainable position
+//    */
+//   setNextTrainablePosition: () => {
+//     const { trainingMethod, repertoireIndex, repertoire, trainingConfig } = get();
+//     if (repertoireIndex === -1 || trainingMethod === 'edit') return;
+
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter) return;
+
+//     // You'll need to implement computeNextTrainableNode
+//     // const maybeContext = computeNextTrainableNode(
+//     //   chapter.root,
+//     //   trainingMethod,
+//     //   trainingConfig.getNext
+//     // );
+
+//     // if (!maybeContext) {
+//     //   set({
+//     //     userTip: 'empty',
+//     //     selectedPath: '',
+//     //     selectedNode: null,
+//     //     trainableContext: undefined
+//     //   });
+//     // } else {
+//     //   const targetPath = maybeContext.startingPath;
+//     //   const nodeList = getNodeList(chapter.root, targetPath);
+//     //   set({
+//     //     selectedPath: targetPath,
+//     //     selectedNode: nodeList.at(-1) || null,
+//     //     trainableContext: maybeContext,
+//     //     userTip: trainingMethod,
+//     //   });
+//     // }
+//   },
+
+//   /**
+//    * Update due counts for current chapter
+//    */
+//   updateDueCounts: () => {
+//     const { repertoire, repertoireIndex, trainingConfig } = get();
+//     if (repertoireIndex < 0) return;
+
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter) return;
+
+//     // You'll need to implement computeDueCounts
+//     // const counts = computeDueCounts(chapter.root, trainingConfig.buckets);
+
+//     set((state) => {
+//       const nextRepertoire = state.repertoire.slice();
+//       const nextChapter = { ...nextRepertoire[repertoireIndex] };
+//       // nextChapter.lastDueCount = counts[0];
+//       nextRepertoire[repertoireIndex] = nextChapter;
+
+//       return {
+//         // dueTimes: counts,
+//         repertoire: nextRepertoire,
+//       };
+//     });
+//   },
+
+//   /**
+//    * Clear chapter context
+//    */
+//   clearChapterContext: () => {
+//     set({
+//       trainingMethod: 'unselected',
+//       selectedPath: '',
+//       userTip: 'empty',
+//       cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
+//       selectedNode: null,
+//     });
+//   },
+
+//   /**
+//    * Make a guess during training
+//    */
+//   guess: (san: string): TrainingOutcome => {
+//     const { repertoire, repertoireIndex, trainableContext, trainingMethod } = get();
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter || trainingMethod === 'learn') return;
+
+//     const pathToTrain = trainableContext?.startingPath;
+//     if (!pathToTrain) return;
+
+//     // You'll need to implement getNodeList
+//     // const trainableNodeList = getNodeList(chapter.root, pathToTrain);
+//     // const possibleMoves = trainableNodeList.at(-1)?.children.map(c => c.data.san) || [];
+
+//     set({ lastGuess: san });
+
+//     // const target = trainableContext.targetMove;
+//     // return possibleMoves.includes(san)
+//     //   ? (target.data.san === san ? 'success' : 'alternate')
+//     //   : 'failure';
+//   },
+
+//   /**
+//    * Handle successful training attempt
+//    */
+//   succeed: async (): Promise<number | null> => {
+//     const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
+//     const targetNode = trainableContext?.targetMove;
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter || !targetNode) return null;
+
+//     let timeToAdd = 0;
+
+//     switch (trainingMethod) {
+//       case 'recall': {
+//         let groupIndex = targetNode.data.training.group;
+//         chapter.bucketEntries[groupIndex]--;
+
+//         switch (trainingConfig.promotion) {
+//           case 'most':
+//             groupIndex = trainingConfig.buckets.length - 1;
+//             break;
+//           case 'next':
+//             groupIndex = Math.min(groupIndex + 1, trainingConfig.buckets.length - 1);
+//             break;
+//         }
+
+//         chapter.bucketEntries[groupIndex]++;
+//         timeToAdd = trainingConfig.buckets[groupIndex];
+//         targetNode.data.training.group = groupIndex;
+//         break;
+//       }
+
+//       case 'learn': {
+//         targetNode.data.training.seen = true;
+//         timeToAdd = trainingConfig.buckets[0];
+//         targetNode.data.training.group = 0;
+//         chapter.bucketEntries[0]++;
+//         break;
+//       }
+//     }
+
+//     const now = Math.floor(Date.now() / 1000);
+//     targetNode.data.training.dueAt = now + timeToAdd;
+
+//     // Persist
+//     try {
+//       // await saveNode(localDB, chapter.id, targetNode, parentIdx, ord);
+//       console.log('Training progress saved');
+//     } catch (err) {
+//       console.error('Failed to save training progress:', err);
+//     }
+
+//     return timeToAdd;
+//   },
+
+//   /**
+//    * Handle failed training attempt
+//    */
+//   fail: async () => {
+//     const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
+//     const node = trainableContext?.targetMove;
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter || !node) return;
+
+//     if (trainingMethod === 'recall') {
+//       let groupIndex = node.data.training.group;
+//       chapter.bucketEntries[groupIndex]--;
+
+//       switch (trainingConfig.demotion) {
+//         case 'most':
+//           groupIndex = 0;
+//           break;
+//         case 'next':
+//           groupIndex = Math.max(groupIndex - 1, 0);
+//           break;
+//       }
+
+//       chapter.bucketEntries[groupIndex]++;
+//       const interval = trainingConfig.buckets[groupIndex];
+//       node.data.training.group = groupIndex;
+
+//       const now = Math.floor(Date.now() / 1000);
+//       node.data.training.dueAt = now + interval;
+
+//       // Persist
+//       try {
+//         // await saveNode(localDB, chapter.id, node, parentIdx, ord);
+//         console.log('Training failure recorded');
+//       } catch (err) {
+//         console.error('Failed to save training failure:', err);
+//       }
+//     }
+//   },
+
+//   /**
+//    * Mark all moves as seen
+//    */
+//   markAllAsSeen: async () => {
+//     const { repertoireIndex, repertoire, trainingConfig } = get();
+//     if (repertoireIndex < 0) return;
+
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter) return;
+
+//     const now = Math.floor(Date.now() / 1000);
+//     const timeToAdd = trainingConfig.buckets[0];
+
+//     // You'll need to implement updateRecursive
+//     // updateRecursive(chapter.root, '', (node) => {
+//     //   if (node.data.training.disabled) return;
+//     //   if (node.data.training.seen) return;
+//     //
+//     //   chapter.bucketEntries[0]++;
+//     //   node.data.training.seen = true;
+//     //   node.data.training.group = 0;
+//     //   node.data.training.dueAt = now + timeToAdd;
+//     // });
+
+//     set({ showSuccessfulGuess: false });
+
+//     // Persist
+//     try {
+//       await saveChapter(localDB, chapter);
+//       console.log('All moves marked as seen');
+//     } catch (err) {
+//       console.error('Failed to mark all as seen:', err);
+//     }
+//   },
+
+//   /**
+//    * Disable a line
+//    */
+//   disableLine: async (path: string) => {
+//     const { repertoire, repertoireIndex } = get();
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter) return;
+
+//     // You'll need to implement updateRecursive
+//     // updateRecursive(chapter.root, path, (node) => {
+//     //   if (!node.data.training.disabled) {
+//     //     chapter.enabledCount--;
+//     //     node.data.training.disabled = true;
+//     //   }
+//     // });
+
+//     // Update in-memory
+//     set((state) => {
+//       const next = state.repertoire.slice();
+//       next[repertoireIndex] = { ...next[repertoireIndex] };
+//       return { repertoire: next };
+//     });
+
+//     // Persist
+//     try {
+//       await saveChapter(localDB, chapter);
+//       console.log('Line disabled');
+//     } catch (err) {
+//       console.error('Failed to disable line:', err);
+//     }
+//   },
+
+//   /**
+//    * Enable a line
+//    */
+//   enableLine: async (path: string) => {
+//     const { repertoire, repertoireIndex } = get();
+//     const chapter = repertoire[repertoireIndex];
+//     if (!chapter) return;
+
+//     const trainAs = chapter.trainAs;
+
+//     // You'll need to implement updateRecursive and colorFromPly
+//     // updateRecursive(chapter.root, path, (node) => {
+//     //   const color = colorFromPly(node.data.ply);
+//     //   if (trainAs === color && node.data.training.disabled) {
+//     //     chapter.enabledCount++;
+//     //     node.data.training.disabled = false;
+//     //   }
+//     // });
+
+//     // Update in-memory
+//     set((state) => {
+//       const next = state.repertoire.slice();
+//       next[repertoireIndex] = { ...next[repertoireIndex] };
+//       return { repertoire: next };
+//     });
+
+//     // Persist
+//     try {
+//       await saveChapter(localDB, chapter);
+//       console.log('Line enabled');
+//     } catch (err) {
+//       console.error('Failed to enable line:', err);
+//     }
+//   },
+// }));
+
+// // //TODO UI flags in state
 
 // // trainerStore.pouch.ts
 // // Minimal working PouchDB setup for:

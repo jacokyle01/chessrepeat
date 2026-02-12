@@ -79,45 +79,50 @@ export const Chessrepeat = () => {
   const { user, isLoading: authLoading, syncStatus, signInWithGoogle, signOut, localDB } = useAuth();
 
   // const refreshFromDb = useTrainerStore((s) => s.refreshFromDb);
-
+  const [sounds, setSounds] = useState(SOUNDS);
+  const [activeMoveId, setActiveMoveId] = useState();
   const [isHydrating, setIsHydrating] = useState(true);
+
+  /**
+   * ALWAYS load data on mount
+   * Don't wait for sync! Local data is always available
+   */
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  /**
+   * Optionally reload after initial pull (if online)
+   */
   useEffect(() => {
     if (syncStatus.state === 'synced' && syncStatus.lastSync) {
-      loadData(); // Data is already in localDB!
+      const timeSinceSync = Date.now() - syncStatus.lastSync.getTime();
+
+      // Only reload if this is the initial pull (< 5 seconds ago)
+      if (timeSinceSync < 5000) {
+        console.log('Initial pull completed - reloading');
+        loadData();
+      }
     }
   }, [syncStatus.state, syncStatus.lastSync]);
-
-  // Also listen for ongoing changes
-  useEffect(() => {
-    const changes = localDB.changes({ since: 'now', live: true });
-    changes.on('change', () => loadData());
-    return () => changes.cancel();
-  }, [localDB]);
 
   const loadData = async () => {
     setIsHydrating(true);
     try {
       await hydrateRepertoireFromDB();
-      console.log('Repertoire loaded from local database');
+      console.log('Loaded from localDB');
     } catch (err) {
-      console.error('Failed to load repertoire:', err);
+      console.error('Load error:', err);
     } finally {
       setIsHydrating(false);
     }
   };
 
-  // // hydrate token
-  // const hydrate = useAuthStore((s) => s.hydrateFromStorage);
+  // if (authLoading || isHydrating) {
+  //   return <div>Loading...</div>;
+  // }
 
-  // useEffect(() => {
-  //   hydrate();
-  // }, [hydrate]);
 
-  // const user = useAuthStore((s) => s.user);
-  // const isAuthed = useAuthStore((s) => s.isAuthenticated());
-
-  const [sounds, setSounds] = useState(SOUNDS);
-  const [activeMoveId, setActiveMoveId] = useState();
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
 

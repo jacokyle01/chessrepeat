@@ -1,24 +1,27 @@
-/*
-TODO:
-  do we need all syncState types?
-  do we need bi-direction syncing? 
-    how can trigger rerender? 
-    use case fits
-*/
+//TODO hook instead of context?
 
-// frontend/src/contexts/AuthContext.tsx
-// Authentication context with PouchDB sync management
+// frontend/src/contexts/AuthContext-PushOnly.tsx
+// Simple push-only sync: Pull once on auth, then continuous push
 
-//TODO should we a store instead?
-// store vs. context?
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import PouchDB from 'pouchdb';
 import PouchDBFind from 'pouchdb-find';
 
-// Enable PouchDB find plugin
 PouchDB.plugin(PouchDBFind);
 
-// Types
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+const LOCAL_DB_NAME = 'chess-training-local';
+
+// Export localDB as constant (always available)
+export const localDB = new PouchDB(LOCAL_DB_NAME);
+
+// Create indexes
+localDB
+  .createIndex({
+    index: { fields: ['type', 'userId'] },
+  })
+  .catch((err) => console.error('Failed to create index:', err));
+
 interface User {
   id: string;
   email: string;
@@ -26,21 +29,10 @@ interface User {
   picture?: string;
 }
 
-interface DatabaseConfig {
-  name: string;
-  url: string;
-  userName: string;
-  password?: string;
-}
-
-type SyncState = 'idle' | 'syncing' | 'synced' | 'error' | 'paused';
-
 interface SyncStatus {
-  state: SyncState;
-  error?: string;
+  state: 'idle' | 'pulling' | 'pushing' | 'synced' | 'error';
   lastSync?: Date;
-  changesReceived?: number;
-  changesSent?: number;
+  error?: string;
 }
 
 interface AuthContextType {
@@ -48,75 +40,228 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   syncStatus: SyncStatus;
-  localDB: PouchDB.Database; // Always available, never null
-  remoteDB: PouchDB.Database | null; // Only available when authenticated
+  localDB: PouchDB.Database;
+  remoteDB: PouchDB.Database | null;
 
-  // Auth methods
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-
-  // Sync methods
-  forceSync: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-//TODO change
-const API_URL = import.meta.env.VITE_API_URL;
-const LOCAL_DB_NAME = 'chess-training-local';
-
-// Initialize local database IMMEDIATELY - not in useEffect
-// This ensures localDB is always available, even before component mounts
-// TODO is localDB always working?
-// TODO do we want to export this in this way?
-export const localDB = new PouchDB(LOCAL_DB_NAME);
-
-// Create indexes for efficient queries
-localDB
-  .createIndex({
-    index: { fields: ['type', 'chapterId'] },
-  })
-  .catch((err) => console.error('Failed to create index:', err));
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ state: 'idle' });
-
   const [remoteDB, setRemoteDB] = useState<PouchDB.Database | null>(null);
-  const [syncHandler, setSyncHandler] = useState<PouchDB.Replication.Sync<{}> | null>(null);
-
-  // Check authentication status on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const [pushHandler, setPushHandler] = useState<PouchDB.Replication.Replication<{}> | null>(null);
 
   /**
-   * Check if user is authenticated
+   * SIMPLE PUSH-ONLY SYNC
+   *
+   * Flow:
+   * 1. On auth: Pull remote → local (one time, get latest)
+   * 2. Start continuous push: local → remote (all changes sync automatically)
+   * 3. That's it!
+   *
+   * Conflicts:
+   * - Last write wins (simple!)
+   * - Remote is source of truth on sign-in
+   * - No complex conflict detection needed
    */
-  const checkAuth = async () => {
+  const setupPushOnlySync = async (dbConfig: any, password?: string) => {
+    console.log('SET UP');
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        credentials: 'include',
+      console.log('Setting up push-only sync...');
+      console.log("DBCONF", dbConfig)
+
+      // Get credentials if needed
+      let auth = { username: dbConfig.userName, password: password || '' };
+
+      if (!password) {
+        const credsResponse = await fetch(`${API_URL}/auth/couch-credentials`, {
+          credentials: 'include',
+        });
+
+        if (credsResponse.ok) {
+          const creds = await credsResponse.json();
+          auth.password = creds.password;
+        } else {
+          throw new Error('Could not retrieve database credentials');
+        }
+      }
+
+      // Connect to remote database
+      const remote = new PouchDB(dbConfig.url, {
+        auth,
+        skip_setup: true,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
+      setRemoteDB(remote);
 
-        // Set up sync with stored credentials
-        await setupSync(data.database);
-      }
+      // STEP 1: Pull from remote to get latest state
+      console.log('Pulling latest state from remote...');
+      setSyncStatus({ state: 'pulling' });
+
+      await localDB.replicate.from(remote);
+      console.log('Pull complete - local is up to date');
+
+      // STEP 2: Start continuous push to remote
+      console.log('Starting continuous push to remote...');
+      setSyncStatus({ state: 'pushing' });
+
+      const push = localDB.replicate.to(remote, {
+        live: true,
+        retry: true,
+      });
+
+      // Event handlers
+      push.on('change', (info) => {
+        console.log(`Pushed ${info.docs.length} changes to remote`);
+        setSyncStatus({
+          state: 'synced',
+          lastSync: new Date(),
+        });
+      });
+
+      push.on('paused', () => {
+        // Replication is idle (caught up)
+        setSyncStatus((prev) => ({
+          ...prev,
+          state: 'synced',
+          lastSync: new Date(),
+        }));
+      });
+
+      push.on('active', () => {
+        // Replication is actively pushing
+        setSyncStatus((prev) => ({
+          ...prev,
+          state: 'pushing',
+        }));
+      });
+
+      push.on('error', (err) => {
+        console.error('Push error:', err);
+        setSyncStatus({
+          state: 'error',
+          error: err.message,
+        });
+      });
+
+      setPushHandler(push);
+
+      console.log('Push-only sync active');
     } catch (err) {
-      console.log('Not authenticated');
-    } finally {
-      setIsLoading(false);
+      console.error('Sync setup error:', err);
+      setSyncStatus({
+        state: 'error',
+        error: err instanceof Error ? err.message : 'Sync failed',
+      });
+      throw err;
     }
   };
 
   /**
+   * Check authentication status on mount
+   */
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(`${API_URL}/auth/status`, {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.isAuthenticated) {
+            setUser({
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.name,
+              picture: data.user.picture,
+            });
+
+            // Set up sync with stored database config
+            if (data.dbConfig) {
+              await setupPushOnlySync(data.dbConfig);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  /**
    * Sign in with Google
    */
+  // const signInWithGoogle = useCallback(async () => {
+  //   const width = 500;
+  //   const height = 600;
+  //   const left = window.screenX + (window.outerWidth - width) / 2;
+  //   const top = window.screenY + (window.outerHeight - height) / 2;
+
+  //   const popup = window.open(
+  //     `${API_URL}/auth/google/url`,
+  //     'Google Sign In',
+  //     `width=${width},height=${height},left=${left},top=${top}`,
+  //   );
+
+  //   if (!popup) {
+  //     alert('Please allow popups for this site');
+  //     return;
+  //   }
+
+  //   // Listen for auth code from popup
+  //   const handleMessage = async (event: MessageEvent) => {
+  //     if (event.origin !== window.location.origin) return;
+
+  //     if (event.data.type === 'auth-success' && event.data.code) {
+  //       window.removeEventListener('message', handleMessage);
+
+  //       try {
+  //         // Exchange code for session
+  //         const response = await fetch(`${API_URL}/auth/google/callback`, {
+  //           method: 'POST',
+  //           headers: { 'Content-Type': 'application/json' },
+  //           credentials: 'include',
+  //           body: JSON.stringify({ code: event.data.code }),
+  //         });
+
+  //         if (!response.ok) {
+  //           throw new Error('Authentication failed');
+  //         }
+
+  //         const data = await response.json();
+
+  //         setUser({
+  //           id: data.user.id,
+  //           email: data.user.email,
+  //           name: data.user.name,
+  //           picture: data.user.picture,
+  //         });
+
+  //         // Set up push-only sync
+  //         await setupPushOnlySync(data.dbConfig, data.couchPassword);
+  //       } catch (err) {
+  //         console.error('Sign in error:', err);
+  //         setSyncStatus({
+  //           state: 'error',
+  //           error: err instanceof Error ? err.message : 'Sign in failed',
+  //         });
+  //       }
+  //     }
+  //   };
+
+  //   window.addEventListener('message', handleMessage);
+  // }, []);
+
   const signInWithGoogle = async () => {
     try {
       // Get Google OAuth URL from backend
@@ -158,10 +303,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
 
               const data = await response.json();
-              setUser(data.user);
+              // server(auth code) ==> DB creds
+              console.log("DATA From server after sending auth code", data);
+              setUser({
+                id: data.user.id,
+                email: data.user.email,
+                name: data.user.name,
+                picture: data.user.picture,
+              });
 
               // Set up sync
-              await setupSync(data.database, data.database.password);
+              await setupPushOnlySync(data.database, data.database.password);
 
               resolve();
             } catch (err) {
@@ -194,178 +346,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /**
    * Sign out
    */
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
-      // Stop sync
-      if (syncHandler) {
-        syncHandler.cancel();
-        setSyncHandler(null);
+      // Cancel push replication
+      if (pushHandler) {
+        pushHandler.cancel();
       }
 
-      // Close remote DB
-      if (remoteDB) {
-        await remoteDB.close();
-        setRemoteDB(null);
-      }
-
-      // Clear user
-      setUser(null);
-      setSyncStatus({ state: 'idle' });
-
-      // Call backend logout
-      await fetch(`${API_URL}/auth/logout`, {
+      // Call backend to clear session
+      await fetch(`${API_URL}/auth/signout`, {
         method: 'POST',
         credentials: 'include',
       });
+
+      setUser(null);
+      setRemoteDB(null);
+      setPushHandler(null);
+      setSyncStatus({ state: 'idle' });
     } catch (err) {
       console.error('Sign out error:', err);
     }
-  };
+  }, [pushHandler]);
 
-  /**
-   * Set up PouchDB sync
-   */
-  const setupSync = async (dbConfig: DatabaseConfig, password?: string) => {
-    try {
-      // Get credentials if not provided
-      let auth = { username: dbConfig.userName, password: password || '' };
-
-      if (!password) {
-        const credsResponse = await fetch(`${API_URL}/auth/couch-credentials`, {
-          credentials: 'include',
-        });
-
-        if (credsResponse.ok) {
-          const creds = await credsResponse.json();
-          auth.password = creds.password;
-        } else {
-          throw new Error('Could not retrieve database credentials');
-        }
-      }
-
-      // Create remote database connection
-      const remote = new PouchDB(dbConfig.url, {
-        auth,
-        skip_setup: true,
-      });
-
-      setRemoteDB(remote);
-
-      // FIRST: Pull all existing data from remote to local
-      // This ensures data is available immediately when loading
-      console.log('Pulling initial data from remote...');
-      setSyncStatus({ state: 'syncing' });
-      await localDB.replicate.from(remote);
-      console.log('Initial data pull complete');
-
-      // Update status to indicate data is ready
-      setSyncStatus({
-        state: 'synced',
-        lastSync: new Date(),
-      });
-
-      // THEN: Start continuous live sync for ongoing updates
-      const sync = localDB.sync(remote, {
-        live: true,
-        retry: true,
-      });
-
-      // Set up event handlers
-      sync.on('change', (info) => {
-        setSyncStatus((prev) => ({
-          ...prev,
-          state: 'syncing',
-          changesReceived:
-            (prev.changesReceived || 0) + (info.direction === 'pull' ? info.change.docs.length : 0),
-          changesSent: (prev.changesSent || 0) + (info.direction === 'push' ? info.change.docs.length : 0),
-        }));
-    });
-
-      // Set up event handlers
-      sync.on('change', (info) => {
-        setSyncStatus((prev) => ({
-          ...prev,
-          state: 'syncing',
-          changesReceived:
-            (prev.changesReceived || 0) + (info.direction === 'pull' ? info.change.docs.length : 0),
-          changesSent: (prev.changesSent || 0) + (info.direction === 'push' ? info.change.docs.length : 0),
-        }));
-      });
-
-      sync.on('paused', () => {
-        setSyncStatus((prev) => ({
-          ...prev,
-          state: 'synced',
-          lastSync: new Date(),
-        }));
-      });
-
-      sync.on('active', () => {
-        setSyncStatus((prev) => ({
-          ...prev,
-          state: 'syncing',
-          error: undefined,
-        }));
-      });
-
-      sync.on('error', (err) => {
-        console.error('Sync error:', err);
-        setSyncStatus((prev) => ({
-          ...prev,
-          state: 'error',
-          error: err.message,
-        }));
-      });
-
-      setSyncHandler(sync);
-    } catch (err) {
-      console.error('Sync setup error:', err);
-      setSyncStatus({
-        state: 'error',
-        error: err instanceof Error ? err.message : 'Sync setup failed',
-      });
-    }
-  };
-
-  /**
-   * Force immediate sync
-   */
-  const forceSync = useCallback(async () => {
-    if (!remoteDB) {
-      throw new Error('Cannot sync: not authenticated');
-    }
-
-    setSyncStatus((prev) => ({ ...prev, state: 'syncing' }));
-
-    try {
-      await localDB.replicate.to(remoteDB);
-      await localDB.replicate.from(remoteDB);
-
-      setSyncStatus((prev) => ({
-        ...prev,
-        state: 'synced',
-        lastSync: new Date(),
-      }));
-    } catch (err) {
-      setSyncStatus({
-        state: 'error',
-        error: err instanceof Error ? err.message : 'Sync failed',
-      });
-      throw err;
-    }
-  }, [remoteDB]);
-
-  // TODO can also store pfp!
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
     isLoading,
     syncStatus,
-    localDB, // Always available - constant, not state
+    localDB,
     remoteDB,
     signInWithGoogle,
     signOut,
-    forceSync,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -373,8 +384,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
 };
