@@ -24,7 +24,7 @@ import { useTrainerStore } from '../state/state';
 
 const Controls = () => {
   const setTrainingMethod = useTrainerStore((s) => s.setTrainingMethod);
-  const trainingMethod = useTrainerStore.getState().trainingMethod;
+  const method = useTrainerStore.getState().trainingMethod;
   const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
   const updateDueCounts = useTrainerStore((s) => s.updateDueCounts);
 
@@ -36,72 +36,78 @@ const Controls = () => {
 
   //TODO difference between handleLearn and setting mode to learn?
   return (
-    <div className="flex flex-row justify-start items-start">
-      {/* train/edit controls */}
-      <div className="flex bg-white flex items-end p-1" id="training-controls">
-        <button
-          onClick={() => setTrainingMethod('edit')}
-          className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex items-end border-slate-700 hover:border-slate-500 hover:bg-slate-400 active:transform active:translate-y-px active:border-b ${
-            trainingMethod == 'edit'
-              ? 'bg-slate-400 translate-y-px transform border-b'
-              : 'bg-slate-500 border-b-4'
-          }`}
-        >
-          <SquarePen size={22} />
-          <span className="">Edit</span>
-        </button>
+  <div className="flex justify-start items-start">
+    <div
+      id="training-controls"
+      className="inline-flex rounded-b-xl bg-white p-1"
+    >
+      {/* EDIT */}
+      <button
+        onClick={() => setTrainingMethod('edit')}
+        className={`
+          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+          transition-all duration-200
+          ${
+            method === 'edit'
+              ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-300'
+              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200'
+          }
+        `}
+      >
+        <SquarePen size={18} />
+        Edit
+      </button>
 
-        <button
-          onClick={() => {
-            setTrainingMethod('learn');
-            setNextTrainable();
-            updateDueCounts();
-          }}
-          className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-700 hover:border-blue-500 hover:bg-blue-400 active:transform active:translate-y-px active:border-b ${
-            trainingMethod == 'learn'
-              ? 'bg-blue-400 translate-y-px transform border-b'
-              : 'bg-blue-500 border-b-4'
+      {/* LEARN */}
+      <button
+        onClick={() => {
+          setTrainingMethod('learn');
+          setNextTrainable();
+          updateDueCounts();
+        }}
+        className={`
+          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+          transition-all duration-200
+          ${
+            method === 'learn'
+              ? 'bg-white text-blue-600 shadow-md ring-1 ring-blue-300'
+              : 'text-slate-500 hover:text-blue-600 hover:bg-slate-200'
           }
           ${
-            trainingMethod == 'unselected' && name == 'Example Repertoire' && 'shadow-lg shadow-blue-500/70'
-          }  
-          `}
-        >
-          <GraduationCap size={22} />
-          <span className="">Learn</span>
-        </button>
+            method === 'unselected' && name === 'Example Repertoire'
+              ? 'animate-pulse'
+              : ''
+          }
+        `}
+      >
+        <GraduationCap size={18} />
+        Learn
+      </button>
 
-        <button
-          onClick={() => {
-            setTrainingMethod('recall');
-            setNextTrainable();
-            updateDueCounts();
-          }}
-          className={`rounded-md gap-1 text-white font-bold py-1 px-3 rounded flex border-blue-800 hover:border-blue-700 hover:bg-blue-600 active:transform active:translate-y-px active:border-b ${
-            trainingMethod == 'recall'
-              ? 'bg-blue-600 translate-y-px transform border-b'
-              : 'bg-blue-700 border-b-4'
-          }`}
-        >
-          <History size={22} />
-          <span className="">Recall</span>
-        </button>
-
-          
-      </div>
-
-
-
-      {/* {showLastMoveCorrect && <LastMoveCorrect></LastMoveCorrect>} */}
-
-      {/* <div id="settings-wrap" className="flex justify-center items-center m-auto">
-        <SettingsButton></SettingsButton>
-      </div> */}
-      {/* <div className="settings-wrap">
-        <Settings size={30} />
-      </div> */}
+      {/* RECALL */}
+      <button
+        onClick={() => {
+          setTrainingMethod('recall');
+          setNextTrainable();
+          updateDueCounts();
+        }}
+        className={`
+          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+          transition-all duration-200
+          ${
+            method === 'recall'
+              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-indigo-300'
+              : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-200'
+          }
+        `}
+      >
+        <History size={18} />
+        Recall
+      </button>
     </div>
-  );
+  </div>
+);
+
 };
 
 export default Controls;
