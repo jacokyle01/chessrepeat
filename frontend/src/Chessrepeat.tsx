@@ -77,12 +77,6 @@ export const Chessrepeat = () => {
     fail,
   } = useTrainerStore();
 
-  const refreshFromDb = useTrainerStore((s) => s.refreshFromDb);
-
-  useEffect(() => {
-    // Runs on hard refresh / initial page load
-    refreshFromDb();
-  }, [refreshFromDb]);
 
   // hydrate repertoire from IDB
   useEffect(() => {

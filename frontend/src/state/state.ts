@@ -106,10 +106,7 @@ interface TrainerState {
 
   renameChapter: (index: number, name: string) => void;
   deleteChapterAt: (index: number) => void;
-  refreshFromDb: () => void;
   uploadChapter: (chapter: Chapter) => void;
-  syncChapter: (chapterIndex: number) => void;
-  editRemote: (chapterIndex: number, apiCall) => void;
 }
 
 /**
@@ -412,7 +409,7 @@ export const useTrainerStore = create<TrainerState>()(
 
       setCommentAt: async (comment: string, path: string) => {
         const authed = useAuthStore.getState().isAuthenticated();
-        const { repertoire, repertoireIndex, editRemote } = get();
+        const { repertoire, repertoireIndex } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
         const node = nodeAtPath(chapter.root, path);
@@ -421,14 +418,10 @@ export const useTrainerStore = create<TrainerState>()(
         //TODO abstraction over both persistence mechanisms?
         //TODO better naming
         await persistChapterByIndex(get(), get().repertoireIndex);
-        await editRemote(repertoireIndex, () =>
-          apiEditMoves(chapter.id, [{ idx: node.data.idx, patch: { comment } }]),
-        );
       },
 
       succeed: async (): Promise<number | null> => {
-        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig, editRemote } =
-          get();
+        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
         const targetNode = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
         if (!chapter || !targetNode) return null;
@@ -470,27 +463,11 @@ export const useTrainerStore = create<TrainerState>()(
         // local-first persist
         await persistChapterByIndex(get(), repertoireIndex);
 
-        await editRemote(repertoireIndex, () =>
-          apiEditMoves(chapter.id, [
-            {
-              idx: targetNode.data.idx,
-              patch: {
-                training: {
-                  seen: targetNode.data.training.seen,
-                  group: targetNode.data.training.group,
-                  dueAt: targetNode.data.training.dueAt,
-                },
-              },
-            },
-          ]),
-        );
-
         return timeToAdd;
       },
 
       fail: async () => {
-        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig, editRemote } =
-          get();
+        const { repertoire, repertoireIndex, trainableContext, trainingMethod, trainingConfig } = get();
 
         const node = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
@@ -518,19 +495,6 @@ export const useTrainerStore = create<TrainerState>()(
           await persistChapterByIndex(get(), repertoireIndex);
 
           // remote best-effort (optimistic, don’t await)
-          await editRemote(repertoireIndex, () =>
-            apiEditMoves(chapter.id, [
-              {
-                idx: node.data.idx,
-                patch: {
-                  training: {
-                    group: node.data.training.group,
-                    dueAt: node.data.training.dueAt,
-                  },
-                },
-              },
-            ]),
-          );
         }
       },
 
@@ -588,7 +552,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       disableLine: async (path: string) => {
-        const { repertoire, repertoireIndex, editRemote } = get();
+        const { repertoire, repertoireIndex } = get();
         const chapter = repertoire[repertoireIndex];
         const root = chapter?.root;
         if (!chapter || !root) return;
@@ -616,15 +580,10 @@ export const useTrainerStore = create<TrainerState>()(
 
         // local-first persist
         await persistChapterByIndex(get(), repertoireIndex);
-
-        // remote best-effort (don’t block UI)
-        if (edits.length > 0) {
-          await editRemote(repertoireIndex, () => apiEditMoves(chapter.id, edits));
-        }
       },
 
       enableLine: async (path: string) => {
-        const { repertoire, repertoireIndex, editRemote } = get();
+        const { repertoire, repertoireIndex } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
 
@@ -653,10 +612,6 @@ export const useTrainerStore = create<TrainerState>()(
         });
 
         await persistChapterByIndex(get(), repertoireIndex);
-
-        if (edits.length > 0) {
-          void editRemote(repertoireIndex, () => apiEditMoves(chapter.id, edits));
-        }
       },
 
       makeMove: async (san: string) => {
@@ -806,133 +761,6 @@ export const useTrainerStore = create<TrainerState>()(
         // persist only this chapter
         await persistChapterByIndex(get(), targetChapter);
         // isAuthenticated ?
-      },
-
-      //TODO should this really be a state action?
-      //TODO also, it is inefficient...
-      //TODO use local storage as cache
-      refreshFromDb: async () => {
-        const { addNewChapter } = get();
-        let chapters = await apiGetChapters();
-
-        let rebuiltChapters: Chapter[];
-        rebuiltChapters = chapters.map((_) => rebuildChapter(_));
-        console.log('CHAPTERS', rebuiltChapters);
-
-        for (const chapter of rebuiltChapters) {
-          await addNewChapter(chapter);
-        }
-      },
-
-      markChapterUnsaved: (idx: number) => {
-        set((state) => {
-          const next = state.repertoire.slice();
-          const ch = next[idx];
-          if (!ch) return state;
-          next[idx] = { ...ch, synced: true };
-          return { repertoire: next };
-        });
-      },
-
-      // if we save chapter to database
-      markChapterSaved: (idx: number) => {
-        set((state) => {
-          const next = state.repertoire.slice();
-          const ch = next[idx];
-          if (!ch) return state;
-          next[idx] = { ...ch, synced: false };
-          return { repertoire: next };
-        });
-      },
-      /*  
-        Try to propagate changes to remote database, 
-        if fail, set chapter as "unsynced" and try to 
-        re-sync at next possible moment
-
-        Enables users to edit repertoire 
-      */
-      editRemote: async <T>(chapterIndex: number, apiCall: () => Promise<T>) => {
-        const { repertoire, syncChapter } = get();
-        const chapter = repertoire[chapterIndex];
-        if (!chapter) return { executed: false as const };
-
-        // if not authed/online -> can't remote edit
-        const authed = useAuthStore.getState().isAuthenticated();
-        const online = typeof navigator === 'undefined' ? true : navigator.onLine;
-
-        if (!authed || !online) {
-          // mark unsynced and exit
-          set((state) => {
-            const next = state.repertoire.slice();
-            next[chapterIndex] = { ...next[chapterIndex], synced: false };
-            return { repertoire: next };
-          });
-          return { executed: false as const };
-        }
-
-        const wasUnsynced = !chapter.synced;
-
-        try {
-          const value = await apiCall();
-
-          // If local was unsynced (offline edits existed), reconcile now
-          if (wasUnsynced) {
-            // best-effort; if it fails it will re-mark unsynced
-            try {
-              await syncChapter(chapterIndex);
-            } catch {
-              set((state) => {
-                const next = state.repertoire.slice();
-                next[chapterIndex] = { ...next[chapterIndex], synced: false };
-                return { repertoire: next };
-              });
-            }
-          } else {
-            // remote edit succeeded and local wasn't behind -> consider synced
-            set((state) => {
-              const next = state.repertoire.slice();
-              next[chapterIndex] = { ...next[chapterIndex], synced: true };
-              return { repertoire: next };
-            });
-          }
-
-          return { executed: true as const, value };
-        } catch {
-          set((state) => {
-            const next = state.repertoire.slice();
-            next[chapterIndex] = { ...next[chapterIndex], synced: false };
-            return { repertoire: next };
-          });
-          return { executed: false as const };
-        }
-      },
-      //TODO implement on backend..
-      syncChapter: async (chapterIndex: number) => {
-        const { repertoire } = get();
-        const chapter = repertoire[chapterIndex];
-        if (!chapter) return;
-
-        // must be authed + online
-        if (!useAuthStore.getState().isAuthenticated()) return;
-        if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-
-        // const res = await apiSyncChapter(chapter); // server resolves conflicts via updatedAt
-
-        // if (res.chapter) {
-        //   // server returned canonical chapter -> replace local
-        //   set((state) => {
-        //     const next = state.repertoire.slice();
-        //     next[chapterIndex] = { ...res.chapter, unsynced: false };
-        //     return { repertoire: next };
-        //   });
-        // } else {
-        //   // server accepted local -> just mark synced
-        //   set((state) => {
-        //     const next = state.repertoire.slice();
-        //     next[chapterIndex] = { ...next[chapterIndex], unsynced: false };
-        //     return { repertoire: next };
-        //   });
-        // }
       },
     }),
 
