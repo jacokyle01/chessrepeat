@@ -2,6 +2,7 @@ import { Chessground as NativeChessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import type { Config } from 'chessground/config';
 import { useEffect, useRef, useState } from 'react';
+import resizeHandle from '../util/resize';
 
 export function Chessground(props: Config & { setBoardFen?: (fen: string) => void }) {
   const [api, setApi] = useState<Api | null>(null);
@@ -29,6 +30,9 @@ export function Chessground(props: Config & { setBoardFen?: (fen: string) => voi
             if (props.setBoardFen && chessgroundApi) {
               props.setBoardFen(chessgroundApi.getFen());
             }
+          },
+          insert(elements) {
+              resizeHandle(elements)
           },
         },
         draggable: {

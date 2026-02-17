@@ -185,6 +185,7 @@ export const Chessrepeat = () => {
   };
 
   //TODO cleaner logic, reuse fenToDests w/ EDIT
+  //TODO should be in util file
   const calculateDests = () => {
     const isAtLast = atLast();
     // don't allow moves if user isn't on trainable move
