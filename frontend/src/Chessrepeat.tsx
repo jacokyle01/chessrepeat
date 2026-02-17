@@ -448,27 +448,33 @@ export const Chessrepeat = () => {
           </div>
         </div>
       </div>
-      {/* <Debug atLast={atLast} /> */}
-      {/*TODO handle with animation, allow multiple UserTip at the same time */}
-      {box && trainingMethod == 'recall' && (
+      {box && trainingMethod === 'recall' && (
         <div
           style={{
             position: 'absolute',
             left: `${box.x - 5}px`,
             top: `${box.y - 25}px`,
-            width: '40px',
-            height: '40px',
-            // backgroundColor: 'black',
             pointerEvents: 'none',
-            transition: 'opacity 1s ease',
+            transition: 'opacity 300ms ease',
             zIndex: 10,
-            fontStyle: 'oblique',
-            fontWeight: 'bold',
-            color: 'black',
-            transform: 'rotate(45deg)', // <-- rotation here
+            transform: 'rotate(45deg)',
           }}
         >
-          +{box.time}
+          <div
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              fontStyle: 'italic',
+              color: '#111',
+              padding: '2px 6px',
+              border: 'rgba(255,255,255,0.2)',
+              whiteSpace: 'nowrap',
+              letterSpacing: '0.5px',
+              background: 'rgba(255,255,255,0.2)',
+            }}
+          >
+            +{box.time}
+          </div>
         </div>
       )}
     </MantineProvider>
