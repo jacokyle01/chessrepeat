@@ -85,7 +85,7 @@ export const ChapterRow = ({ entry, index, id }) => {
             onClick={() => setEditOpen(true)}
           >
             <div id="icon-wrap">
-              <SettingsIcon width={20} height={20} />
+              <SettingsIcon width={20} height={20} color='black'/>
             </div>
           </div>
         </div>

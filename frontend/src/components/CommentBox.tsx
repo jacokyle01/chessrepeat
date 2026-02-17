@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTrainerStore } from '../state/state';
 import { MessageSquareIcon } from 'lucide-react';
 
@@ -8,10 +8,10 @@ export const CommentBox = () => {
   const path = useTrainerStore((s) => s.selectedPath);
   const setCommentAt = useTrainerStore((s) => s.setCommentAt);
 
-  const currentComment = useMemo(() => {
+  const currentComment = (() => {
     const c = (selectedNode as any)?.data?.comment;
     return typeof c === 'string' ? c : '';
-  }, [selectedNode]);
+  })();
 
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(currentComment);
@@ -53,7 +53,7 @@ export const CommentBox = () => {
 
   return (
     <div className="my-2 mb-5 flex min-h-0 flex-col rounded-xl border border-gray-200 bg-white">
-      {/* Header (fixed) */}
+      {/* Header */}
       <div className="shrink-0 border-b border-gray-100 px-3 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-gray-800">
@@ -63,7 +63,6 @@ export const CommentBox = () => {
             <span className="text-sm font-semibold">Comment</span>
           </div>
 
-          {/* Actions live in header (like Edit) */}
           <div className="flex items-center gap-1">
             {!isEditing ? (
               <button
@@ -98,7 +97,6 @@ export const CommentBox = () => {
         </div>
       </div>
 
-      {/* Body (the only scrollable region) */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
         {!isEditing ? (
           currentComment.trim() ? (
@@ -109,8 +107,6 @@ export const CommentBox = () => {
             <p className="text-sm italic text-gray-400">No comment yet.</p>
           )
         ) : (
-          // Key fix: textarea is NOT inside a padded/rounded inner box that steals height.
-          // It fills the entire scrollable body.
           <textarea
             ref={textareaRef}
             value={draft}
@@ -120,6 +116,7 @@ export const CommentBox = () => {
               bg-transparent text-sm text-gray-900
               outline-none
               [overflow-wrap:anywhere]
+              overflow-y-auto
             "
             placeholder="Write a comment…"
             onKeyDown={(e) => {
