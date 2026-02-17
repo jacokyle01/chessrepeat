@@ -1,7 +1,9 @@
-import { Game, Node, parsePgn, PgnNodeData } from 'chessops/pgn';
+import { Game, Node, parsePgn, PgnNodeData, transform } from 'chessops/pgn';
 import { Chapter, Color, TrainableNode, TrainingConfig } from '../types/training';
-import { annotateMoves } from './training';
-import { INITIAL_BOARD_FEN } from 'chessops/fen';
+import { trainingContext } from './training';
+import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
+import { parseSan } from 'chessops/san';
+import { scalachessCharPair } from 'chessops/compat';
 
 export function downloadTextFile(content: string, filename: string, mimeType = 'text/plain') {
   const blob = new Blob([content], { type: mimeType });
@@ -28,108 +30,100 @@ export function downloadTextFile(content: string, filename: string, mimeType = '
     -> PGN can consist of one or more chapters 
     -> PGN can be "annotated", which means it has training metadata attached that must be parsed
   */
-export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string, config: TrainingConfig) => {
-  const { root, enabledCount, largestIdx } = rootFromPgn(rawPgn, asColor);
+export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Chapter => {
+  // const root = rootFromPgn(rawPgn, asColor);
 
-  const chapter: Chapter = {
-    id: crypto.randomUUID(),
-    root: root,
-    name: name,
-    bucketEntries: config.buckets.map(() => 0),
-    enabledCount: enabledCount,
-    lastDueCount: 0,
+  // const chapter: Chapter = {
+  //   id: crypto.randomUUID(),
+  //   root: root,
+  //   name: name,
+  //   trainAs: asColor,
+  // };
+  // return chapter;
+
+  const context = trainingContext(asColor || 'white');
+
+  let moves = parsePgn(rawPgn)[0].moves;
+  let nodeCount = 0;
+  let enabledCount = 0;
+  moves = transform(moves, context, (context, data) => {
+    const move = parseSan(context.pos, data.san);
+    // assume the move is playable
+    context.pos.play(move!);
+    context.ply++;
+    context.trainable = !context.trainable; // moves by opposite color are not trainable
+    // idCount++;/
+
+    // add training types to each node
+    nodeCount++;
+    if (context.trainable) enabledCount++;
+    return {
+      ...data,
+      id: scalachessCharPair(move),
+      fen: makeFen(context.pos.toSetup()),
+      comment: data.comments?.join('|') || '', //TODO should handle multi comments ..
+      ply: context.ply,
+      training: null,
+      enabled: !context.trainable,
+    };
+  });
+
+  return {
+    name,
     trainAs: asColor,
-    largestMoveId: largestIdx,
-  };
-  return chapter;
-};
-
-export const rootFromPgn = (
-  rawPgn: string,
-  asColor: Color,
-): {
-  root: TrainableNode;
-  enabledCount: number;
-  largestIdx: number;
-} => {
-  // don't allow multiple games in one PGN
-  const parsedRoot: Node<PgnNodeData> = parsePgn(rawPgn).at(0).moves;
-  const { moves, enabledCount: enabledCount, largestIdx } = annotateMoves(parsedRoot, false, asColor);
-  // put initial position first
-  //TODO do something about mainline, etc..
-  const root: TrainableNode = {
-    data: {
-      comment: '',
-      fen: INITIAL_BOARD_FEN,
-      id: '',
-      idx: 0,
-      ply: 0,
-      san: '',
-      //TODO shortcut for disabled
-      training: {
-        disabled: true,
-        dueAt: -1,
-        group: -1,
-        seen: false,
-      },
-    },
-    children: moves.children,
-  };
-  return { root, enabledCount, largestIdx };
-};
-
-/*
-  Import annotated entry 
-*/
-
-export const importAnnotatedPgn = (annotatedPgn: string) => {
-  // TODO why is PGN undefined?
-  const chapters: Chapter[] = [];
-  const parts: Game<PgnNodeData>[] = parsePgn(annotatedPgn);
-  parts.forEach((part) => {
-    console.log('part', part);
-
-    const { moves, enabledCount: enabledCount } = annotateMoves(part.moves, true);
-    // put initial position first
-    //TODO do something about mainline, etc..
-    const root: TrainableNode = {
+    id: crypto.randomUUID(),
+    root: {
       data: {
         comment: '',
         fen: INITIAL_BOARD_FEN,
         id: '',
         ply: 0,
         san: '',
-        //TODO shortcut for disabled
-        training: {
-          disabled: true,
-          dueAt: -1,
-          group: -1,
-          seen: false,
-        },
+        enabled: false,
+        training: null,
       },
       children: moves.children,
-    };
-
-    const bucketEntries = part.headers
-      .get('bucketEntries')!
-      .split(',')
-      .map((x) => parseInt(x));
-
-    const chapterName = part.headers.get('ChessrepeatChapterName');
-    const asColor = part.headers.get('trainAs') as Color;
-
-    const chapter: Chapter = {
-      id: crypto.randomUUID(),
-      root: root,
-      name: chapterName,
-      bucketEntries: bucketEntries,
-      enabledCount: enabledCount,
-      lastDueCount: 0,
-      trainAs: asColor,
-    };
-
-    chapters.push(chapter);
-  });
-
-  return chapters;
+    },
+    nodeCount,
+    enabledCount,
+    unseenCount: nodeCount, //TODO have the option to mark all nodes as already seen
+    lastDueCount: 0 //TODO
+  };
 };
+
+// export const rootFromPgn = (
+//   rawPgn: string,
+//   asColor: Color,
+// ): {
+//   root: TrainableNode;
+// } => {
+//   // don't allow multiple games in one PGN
+//   const parsedRoot: Node<PgnNodeData> = parsePgn(rawPgn).at(0).moves;
+//   const { moves } = annotateMoves(parsedRoot, asColor);
+//   // put initial position first
+//   //TODO do something about mainline, etc..
+//   const root: TrainableNode = {
+//     data: {
+//       comment: '',
+//       fen: INITIAL_BOARD_FEN,
+//       id: '',
+//       ply: 0,
+//       san: '',
+//       //TODO shortcut for disabled
+//       enabled: false,
+//       training: null,
+//     },
+//     children: moves.children,
+//   };
+//   return root;
+// };
+
+export function exportRepertoireAsJson(chapters: Chapter[]): string {
+  return JSON.stringify(
+    {
+      chapters,
+    },
+    null,
+    2, // pretty print
+  );
+}

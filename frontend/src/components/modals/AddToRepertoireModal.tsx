@@ -1,19 +1,16 @@
 import React, { useRef, useState } from 'react';
 import { CircleXIcon, UploadIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
-import { chapterFromPgn, importAnnotatedPgn } from '../../util/io';
+import { chapterFromPgn } from '../../util/io';
 
 type ImportTab = 'pgn' | 'chessrepeat';
 
 const AddToRepertoireModal: React.FC = () => {
   const setShowModal = useTrainerStore((s) => s.setShowingAddToRepertoireMenu);
-  const trainingConfig = useTrainerStore((s) => s.trainingConfig);
 
   // ✅ Adjust to your real store action name/signature
   // expected: importChessrepeatIntoRepertoire(fileText: string): Promise<void> | void
   const addNewChapter = useTrainerStore((s) => s.addNewChapter);
-  const uploadChapter = useTrainerStore((s) => s.uploadChapter);
-
 
   const [tab, setTab] = useState<ImportTab>('pgn');
 
@@ -35,10 +32,9 @@ const AddToRepertoireModal: React.FC = () => {
     const pgn = pgnRef.current?.value || '';
     const color = selectedColor || 'white';
 
-    const chapter = chapterFromPgn(pgn, color, name, trainingConfig);
+    const chapter = chapterFromPgn(pgn, color, name);
     //TODO abstraction here... ?
     addNewChapter(chapter);
-    uploadChapter(chapter);
     setShowModal(false);
   };
 
@@ -66,36 +62,37 @@ const AddToRepertoireModal: React.FC = () => {
   };
 
   const handleImportChessrepeat = async (e: React.FormEvent) => {
-    e.preventDefault();
+    alert('WIP, JSON imports!');
+    // e.preventDefault();
 
-    const trimmed = chessrepeatText.trim();
-    if (!trimmed) {
-      setChessrepeatError('Choose a .chessrepeat file first.');
-      return;
-    }
+    // const trimmed = chessrepeatText.trim();
+    // if (!trimmed) {
+    //   setChessrepeatError('Choose a .chessrepeat file first.');
+    //   return;
+    // }
 
-    // importAnnotatedPgn(chessrepeatText);
-    setShowModal(false);
+    // // importAnnotatedPgn(chessrepeatText);
+    // setShowModal(false);
 
-    setChessrepeatError(null);
-    setIsImportingChessrepeat(true);
-    try {
-      // await importChessrepeatIntoRepertoire(trimmed);
-      const chapters = importAnnotatedPgn(chessrepeatText);
-      //TODO state action addChapters?
-      for (const ch of chapters) {
-        await useTrainerStore.getState().addNewChapter(ch);
-      }
+    // setChessrepeatError(null);
+    // setIsImportingChessrepeat(true);
+    // try {
+    //   // await importChessrepeatIntoRepertoire(trimmed);
+    //   const chapters = importAnnotatedPgn(chessrepeatText);
+    //   //TODO state action addChapters?
+    //   for (const ch of chapters) {
+    //     await useTrainerStore.getState().addNewChapter(ch);
+    //   }
 
-      // reset + close
-      setChessrepeatText('');
-      if (chessrepeatFileRef.current) chessrepeatFileRef.current.value = '';
-      setShowModal(false);
-    } catch (err: any) {
-      setChessrepeatError(err?.message ?? 'Failed to import Chessrepeat file.');
-    } finally {
-      setIsImportingChessrepeat(false);
-    }
+    //   // reset + close
+    //   setChessrepeatText('');
+    //   if (chessrepeatFileRef.current) chessrepeatFileRef.current.value = '';
+    //   setShowModal(false);
+    // } catch (err: any) {
+    //   setChessrepeatError(err?.message ?? 'Failed to import Chessrepeat file.');
+    // } finally {
+    //   setIsImportingChessrepeat(false);
+    // }
   };
 
   return (

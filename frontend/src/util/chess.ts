@@ -2,11 +2,10 @@
 // how to organize functions?
 
 import { Dests, Key } from 'chessground/types';
-import { Chess, parseSquare, parseUci, Position, PositionError } from 'chessops';
+import { Chess, Color, parseSquare, parseUci, Position, PositionError } from 'chessops';
 import { chessgroundDests, chessgroundMove, scalachessCharPair } from 'chessops/compat';
 import { parseFen, makeFen, FenError } from 'chessops/fen';
 import { makeSan, makeSanAndPlay, parseSan } from 'chessops/san';
-import { Color } from '../types/training';
 
 // leverages chessops library and its compatability module to transform a fen string into a legal move dictionary
 export const fenToDests = (fen: string): Dests => {
@@ -112,10 +111,6 @@ export function positionFromFen(fen: string): [Chess, null] | [null, FenError | 
   );
 }
 
-export const currentTime = (): number => {
-  return Math.round(Date.now() / 1000);
-};
-
 export const colorFromPly = (ply: number): Color => {
   return ply % 2 == 1 ? 'white' : 'black';
 };
@@ -128,13 +123,10 @@ export function isPromotionMove(fen: string, from: Key, to: Key): boolean {
   const board = pos.board;
 
   // chessops squares are like 'e7' too
-  console.log("")
   const piece = board.get(parseSquare(from));
-  console.log("piece", piece)
   if (!piece || piece.role !== 'pawn') return false;
 
   const destRank = to[1];
-  console.log("destR", destRank)
   return destRank === '8' || destRank === '1';
 }
 

@@ -76,7 +76,7 @@ const Empty = () => {
 };
 
 const Fail = () => {
-  const fail = useTrainerStore((s) => s.fail);
+  const train = useTrainerStore((s) => s.train);
   const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
   const makeMove = useTrainerStore((s) => s.makeMove);
 
@@ -89,7 +89,7 @@ const Fail = () => {
   // const isWhite = useTrainerStore((s) => s.chapter.trainAs === 'white');
 
   const onContinue = () => {
-    fail();
+    train(false);
     setNextTrainable();
   };
 
@@ -207,7 +207,7 @@ export const UserTip = () => {
   const trainingMethod = useTrainerStore((s) => s.trainingMethod);
 
   if (repertoire.length == 0) return <EmptyRepertoire />;
-  if (trainingMethod == 'unselected') return <Unselected />;
+  if (!trainingMethod) return <Unselected />;
 
   // TODO repertoireIndex should be correct, so user have a repertoire selected
 

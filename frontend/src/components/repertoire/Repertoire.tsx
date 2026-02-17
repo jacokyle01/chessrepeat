@@ -7,8 +7,9 @@ import { Modal } from '../modals/Modal';
 import EditChapterModal from '../modals/EditChapterModal';
 import React, { Dispatch, SetStateAction, useState } from 'react';
 import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
+import { Chapter } from '../../types/training';
 
-export const Chapter = ({ entry, index, id }) => {
+export const ChapterRow = ({ entry, index, id }) => {
   // console.log('chapter ID should be visible', id);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
@@ -20,7 +21,6 @@ export const Chapter = ({ entry, index, id }) => {
   const [exportOpen, setExportOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const meta = entry;
-  const unseenCount = meta.enabledCount - meta.bucketEntries.reduce((a, b) => a + b, 0);
   const name = entry.name;
 
   //TODO dont change if already on this chapter..
@@ -65,12 +65,11 @@ export const Chapter = ({ entry, index, id }) => {
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
             <span className="text-md truncate leading-none">{name}</span>
             <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
-            {!entry.synced && <CloudAlert width={15} height={15} color='red'/>} 
           </h3>
 
-          {unseenCount > 0 && (
+          {entry.unseenCount > 0 && (
             <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-md px-2 font-black mr-2 flex-shrink-0">
-              Learn {unseenCount}
+              Learn {entry.unseenCount}
             </button>
           )}
 
@@ -96,8 +95,8 @@ export const Chapter = ({ entry, index, id }) => {
 };
 
 const Repertoire: React.FC = () => {
-  const whiteEntries = [];
-  const blackEntries = [];
+  const whiteEntries: Chapter[] = [];
+  const blackEntries: Chapter[] = [];
 
   const repertoire = useTrainerStore().repertoire;
 
@@ -122,7 +121,7 @@ const Repertoire: React.FC = () => {
 
         <div className="flex-row rounded-md">
           {whiteEntries.map((entry, index) => (
-            <Chapter id={entry.id} entry={entry} index={index} />
+            <ChapterRow id={entry.id} entry={entry} index={index} />
           ))}
         </div>
 
@@ -130,7 +129,7 @@ const Repertoire: React.FC = () => {
 
         <div className="flex-row rounded-md">
           {blackEntries.map((entry, index) => (
-            <Chapter id={entry.id} entry={entry} index={index + whiteEntries.length} />
+            <ChapterRow id={entry.id} entry={entry} index={index + whiteEntries.length} />
           ))}
         </div>
       </div>

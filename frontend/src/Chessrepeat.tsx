@@ -40,7 +40,6 @@ import {
 import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
-import { ProfileButton } from './components/ProfileButton';
 import { useAuthStore } from './state/auth';
 
 //TODO better sound handling, separate sound for check?
@@ -69,14 +68,13 @@ export const Chessrepeat = () => {
     trainingMethod,
 
     updateDueCounts,
+    learn,
+    train,
 
-    succeed,
     guess,
     makeMove,
     hydrateRepertoireFromIDB,
-    fail,
   } = useTrainerStore();
-
 
   // hydrate repertoire from IDB
   useEffect(() => {
@@ -276,19 +274,19 @@ export const Chessrepeat = () => {
         updateDueCounts();
         switch (trainingMethod) {
           case 'learn':
-            succeed();
+            learn();
             setNextTrainablePosition();
             break;
           case 'recall':
             if (userTip == 'fail') {
-              fail();
+              train(false);
               setNextTrainablePosition();
               return;
             }
             setLastGuess(san);
             switch (guess(san)) {
               case 'success': {
-                const secsUntilDue = succeed();
+                const secsUntilDue = train(true);
                 showBoxAtSquare(to, secsUntilDue);
                 setNextTrainablePosition();
                 break;
@@ -310,15 +308,12 @@ export const Chessrepeat = () => {
 
   const onAfterMove = (from: Key, to: Key, meta: MoveMetadata) => {
     const fenBefore = selectedNode?.data.fen || initial;
-    console.log('fenBefore, from, to', fenBefore, from, to);
 
     // If a promo is already open, ignore additional moves (defensive)
     if (pendingPromo) return;
 
     // Detect promotion and pause
-    console.log('meta', meta);
     if (isPromotionMove(fenBefore, from, to)) {
-      console.log('promotion move');
       // Lichess-like: ctrlKey forces choice; otherwise you can auto-queen.
       setPendingPromo({ from, to, meta, fenBefore });
       return;
@@ -381,8 +376,6 @@ export const Chessrepeat = () => {
 
             {/* Spacer */}
             <div className="flex-1" />
-
-            <ProfileButton />
           </div>
         </div>
 
@@ -401,7 +394,7 @@ export const Chessrepeat = () => {
         )}
         <div className="flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 overflow-hidden">
           <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden flex-1">
-            <Repertoire deleteChapter={deleteChapter} renameChapter={renameChapter} />
+            <Repertoire />
             <RepertoireActions></RepertoireActions>
             <Schedule />
           </div>

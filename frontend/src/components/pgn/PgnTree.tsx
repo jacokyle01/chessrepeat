@@ -299,7 +299,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
       className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
         leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold
         hover:bg-blue-400 select-none cursor-pointer
-        ${!node.data.training.disabled ? ' text-gray-600' : 'text-gray-400'} 
+        ${node.data.enabled ? ' text-gray-600' : 'text-gray-400'} 
         ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''} `}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
@@ -340,7 +340,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   whitespace-normal break-words
   px-[7.9px] pr-[4.74px]
   hover:bg-blue-400 select-none cursor-pointer ${activeClass}
-          ${!node.data.training.disabled ? ' text-gray-600' : 'text-gray-400'} 
+          ${node.data.enabled ? ' text-gray-600' : 'text-gray-400'} 
   `}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
@@ -614,7 +614,7 @@ export default function PgnTree({ setActiveMoveId }) {
   if (!chapter) return;
   let root = chapter.root;
   if (!root) return;
-  console.log("ROOT", root);
+  // console.log("ROOT", root);
   // console.log('root path');
   // TODO conditionally use path or root, depending on context
 

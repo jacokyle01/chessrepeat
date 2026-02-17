@@ -1,25 +1,28 @@
 // TODO "core" folder or something for main spaced repetition logic and types
-import { Position } from 'chessops';
+import { Color, Position } from 'chessops';
 import { ChildNode, PgnNodeData } from 'chessops/pgn';
+import { CardState } from '../util/srs';
 
-export type Color = 'white' | 'black';
-// export type Method = 'recall' | 'learn' | 'unselected';
 export type TrainingOutcome = 'success' | 'alternate' | 'failure';
-export type TrainingMethod = 'learn' | 'recall' | 'edit' | 'unselected';
+export type TrainingMethod = 'learn' | 'recall' | 'edit' | null;
 export interface TrainableContext {
   startingPath: string;
   targetMove: ChildNode<TrainingData>;
 }
 
-export interface TrainingConfig {
-  getNext?: {
-    by?: 'depth' | 'breadth'; // exploration strategy to find next position
-    max?: number; //dont look at positions after this many moves
-  };
-  buckets?: number[]; //the "spaces" for spaced repetition. see "leitner system"
-  promotion?: 'most' | 'next';
-  demotion?: 'most' | 'next';
+/*
+  Control how we search the node tree 
+  for the next trainable move 
+*/
+export interface NodeSearch {
+  algorithm: 'bfs' | 'dfs';
+  limit: number;
 }
+
+export const DEFAULT_NODE_SEARCH: NodeSearch = {
+  algorithm: 'dfs',
+  limit: 1000,
+};
 
 //TODO trainAsColor, depth, only first child
 export interface TrainingContext {
@@ -71,20 +74,15 @@ export interface PgnNodeData {
 
 //TODO is id the same id we are looking for?
 // there is scalachessid too...
+
 export interface TrainingData {
-  training: {
-    disabled: boolean;
-    seen: boolean;
-    group: number;
-    dueAt: number;
-  };
   id: string;
-  //TODO better naming here.. 
-  idx: number; 
   fen: string;
   ply: number;
   san: string;
   comment: string;
+  enabled: boolean;
+  training: CardState | null; //TODO better type here? // null if unseen
 }
 
 export interface RootData {}
@@ -99,14 +97,23 @@ export type TrainingRoot<T> = {
 export interface Chapter {
   name: string;
   id: string;
-  lastDueCount: number;
   trainAs: Color;
-  enabledCount: number;
-  bucketEntries: number[];
   root: TrainableNode;
-  // use this to assign ids to nodes 
-  largestMoveId: number
-  synced: boolean // does database have latest version of this chapter?
+  nodeCount: number;
+  enabledCount: number;
+  unseenCount: number;
+  lastDueCount: number;
+}
+
+/*
+  Additional chapter data for selected chapter, 
+  computed upon selecting chapter. 
+*/
+// TODO better type hierarchy here?
+export interface LiveChapterData {
+  nodeCount: number;
+  enabledCount: number;
+  dueTimes: number[]; // epochs
 }
 //TODO different data structure for a chapter thats currently selected?
 
@@ -120,37 +127,3 @@ TODO: move to /tree?
 //     comments?: string[];
 //     moves: Node<T>;
 // }
-
-
-// Chapter from DB and TODO from indexedDB
-export interface FlatChapter {
-  name: string;
-  id: string;
-  lastDueCount: number;
-  trainAs: Color;
-  enabledCount: number;
-  bucketEntries: number[];
-  moves: MoveRow[];
-  largestMoveId: number
-  updatedAt?: number; // (optional) unix ms // TODO should be mandatory
-}
-
-
-// TODO just extend TrainableNode type?
-// TrainableNode with context of its tree position
-export type MoveRow = {
-  id: string;
-  parentIdx: number | null; // parent id or null for root
-  idx: number
-  ord: number;
-  fen: string;
-  ply: number;
-  san: string;
-  comment?: string | null;
-  training: {
-    disabled: boolean;
-    seen: boolean;
-    group: number;
-    dueAt: number;
-  };
-};

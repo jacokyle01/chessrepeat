@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { BookDownIcon, BookPlus, DownloadIcon, FileTextIcon, FolderCog2Icon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import { pgnFromChapter, pgnFromRepertoire } from '../../util/training';
-import { downloadTextFile } from '../../util/io';
+import { downloadTextFile, exportRepertoireAsJson } from '../../util/io';
 import SettingsModal from '../modals/SettingsModal';
 
 type DownloadScope = 'repertoire' | 'chapter';
@@ -38,7 +38,7 @@ const RepertoireActions: React.FC = () => {
     if (scope === 'chapter') {
       if (!chapter) return;
 
-      const content = pgnFromChapter(chapter, format === 'chessrepeat');
+      const content = pgnFromChapter(chapter);
       const fileName = format === 'chessrepeat' ? `${chapter.name}.chessrepeat` : `${chapter.name}.pgn`;
 
       downloadTextFile(content, fileName, 'application/x-chess-pgn');
@@ -50,14 +50,13 @@ const RepertoireActions: React.FC = () => {
     if (!canDownloadRepertoire) return;
 
     if (format === 'pgn') {
+      const outFile = exportRepertoireAsJson(repertoire);
+      downloadTextFile(outFile, 'repertoire.json', 'json');
+      setIsDownloadOpen(false);
       // TODO: support exporting the entire repertoire as a single .pgn file
       // (Right now repertoire export is only implemented as a .chessrepeat annotated export.)
       return;
     }
-
-    const outFile = pgnFromRepertoire(repertoire);
-    downloadTextFile(outFile, 'repertoire.chessrepeat', 'application/x-chess-pgn');
-    setIsDownloadOpen(false);
   };
 
   const SegButton = ({
@@ -99,7 +98,7 @@ const RepertoireActions: React.FC = () => {
         id="repertoire-actions"
         className="
     my-2 shrink-0
-    flex items-center justify-center
+    flex items-center justify-start
     gap-2
   "
       >
@@ -228,12 +227,6 @@ const RepertoireActions: React.FC = () => {
                     PGN file
                   </SegButton>
                 </div>
-
-                {scope === 'repertoire' && format === 'pgn' ? (
-                  <div className="mt-2 text-xs text-gray-500">
-                    TODO: Repertoire → PGN export isn’t implemented yet.
-                  </div>
-                ) : null}
               </div>
             </div>
 
@@ -251,12 +244,10 @@ const RepertoireActions: React.FC = () => {
                 type="button"
                 disabled={
                   (scope === 'repertoire' && !canDownloadRepertoire) ||
-                  (scope === 'chapter' && !canDownloadChapter) ||
-                  (scope === 'repertoire' && format === 'pgn') // TODO
+                  (scope === 'chapter' && !canDownloadChapter)
                 }
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition
                   ${
-                    (scope === 'repertoire' && format === 'pgn') ||
                     (scope === 'repertoire' && !canDownloadRepertoire) ||
                     (scope === 'chapter' && !canDownloadChapter)
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
