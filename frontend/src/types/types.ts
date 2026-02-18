@@ -1,3 +1,5 @@
+//TODO remove 
+
 import { Chart } from 'chart.js';
 import { Color } from '../training/types';
 import { Key, MoveMetadata } from 'chessground/types';

@@ -1,15 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { CircleXIcon, UploadIcon } from 'lucide-react';
+import { CircleXIcon, UploadIcon, CheckCircle2, TreePalmIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import { chapterFromPgn } from '../../util/io';
+import { Chapter } from '../../types/training';
+// import { importJSON } from '../../util/importJSON'; // <- assume this exists
 
-type ImportTab = 'pgn' | 'chessrepeat';
+type ImportTab = 'pgn' | 'json';
 
 const AddToRepertoireModal: React.FC = () => {
   const setShowModal = useTrainerStore((s) => s.setShowingAddToRepertoireMenu);
-
-  // ✅ Adjust to your real store action name/signature
-  // expected: importChessrepeatIntoRepertoire(fileText: string): Promise<void> | void
   const addNewChapter = useTrainerStore((s) => s.addNewChapter);
 
   const [tab, setTab] = useState<ImportTab>('pgn');
@@ -19,11 +18,21 @@ const AddToRepertoireModal: React.FC = () => {
   const nameRef = useRef<HTMLInputElement>(null);
   const pgnRef = useRef<HTMLTextAreaElement>(null);
 
-  // Chessrepeat refs/state
-  const chessrepeatFileRef = useRef<HTMLInputElement>(null);
-  const [chessrepeatText, setChessrepeatText] = useState('');
-  const [chessrepeatError, setChessrepeatError] = useState<string | null>(null);
-  const [isImportingChessrepeat, setIsImportingChessrepeat] = useState(false);
+  // JSON refs/state
+  const jsonFileRef = useRef<HTMLInputElement>(null);
+  const [jsonText, setJsonText] = useState<string>(''); // stored but never displayed
+  const [jsonFilename, setJsonFilename] = useState<string>('');
+  const [jsonLoaded, setJsonLoaded] = useState(false);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [isImportingJson, setIsImportingJson] = useState(false);
+
+  const resetJsonState = () => {
+    setJsonText('');
+    setJsonFilename('');
+    setJsonLoaded(false);
+    setJsonError(null);
+    if (jsonFileRef.current) jsonFileRef.current.value = '';
+  };
 
   const handleSubmitPgn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +42,6 @@ const AddToRepertoireModal: React.FC = () => {
     const color = selectedColor || 'white';
 
     const chapter = chapterFromPgn(pgn, color, name);
-    //TODO abstraction here... ?
     addNewChapter(chapter);
     setShowModal(false);
   };
@@ -49,56 +57,81 @@ const AddToRepertoireModal: React.FC = () => {
     reader.readAsText(file);
   };
 
-  const handleChessrepeatFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //TODO dont need all this
+  const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // basic UX: ensure it "looks like" json
+    const isJson = file.type === 'application/json' || file.name.toLowerCase().endsWith('.json');
+    if (!isJson) {
+      setJsonError('Please choose a .json file.');
+      setJsonLoaded(false);
+      setJsonText('');
+      setJsonFilename('');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
-      setChessrepeatText(String(reader.result ?? ''));
-      setChessrepeatError(null);
+      const text = String(reader.result ?? '').trim();
+      setJsonError(null);
+      setJsonFilename(file.name);
+
+      // validate parse now so user gets immediate feedback
+      try {
+        JSON.parse(text);
+        setJsonText(text);
+        setJsonLoaded(true);
+      } catch {
+        setJsonText('');
+        setJsonLoaded(false);
+        setJsonError('That file is not valid JSON.');
+      }
+    };
+    reader.onerror = () => {
+      setJsonText('');
+      setJsonLoaded(false);
+      setJsonFilename('');
+      setJsonError('Failed to read file.');
     };
     reader.readAsText(file);
   };
 
-  const handleImportChessrepeat = async (e: React.FormEvent) => {
-    alert('WIP, JSON imports!');
-    // e.preventDefault();
+  const handleImportJson = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    // const trimmed = chessrepeatText.trim();
-    // if (!trimmed) {
-    //   setChessrepeatError('Choose a .chessrepeat file first.');
-    //   return;
-    // }
+    const trimmed = jsonText.trim();
+    if (!trimmed) {
+      setJsonError('Choose a .json file first.');
+      return;
+    }
 
-    // // importAnnotatedPgn(chessrepeatText);
-    // setShowModal(false);
+    setJsonError(null);
+    setIsImportingJson(true);
 
-    // setChessrepeatError(null);
-    // setIsImportingChessrepeat(true);
-    // try {
-    //   // await importChessrepeatIntoRepertoire(trimmed);
-    //   const chapters = importAnnotatedPgn(chessrepeatText);
-    //   //TODO state action addChapters?
-    //   for (const ch of chapters) {
-    //     await useTrainerStore.getState().addNewChapter(ch);
-    //   }
+    try {
+      // assume this restores repertoire / chapters internally
+      // (or returns chapters that you add—either way, you said it exists)
+      const parsed = JSON.parse(trimmed);
+      console.log('Chapters', parsed);
 
-    //   // reset + close
-    //   setChessrepeatText('');
-    //   if (chessrepeatFileRef.current) chessrepeatFileRef.current.value = '';
-    //   setShowModal(false);
-    // } catch (err: any) {
-    //   setChessrepeatError(err?.message ?? 'Failed to import Chessrepeat file.');
-    // } finally {
-    //   setIsImportingChessrepeat(false);
-    // }
+      console.log('pars', parsed.chapters);
+      for (const chapter of parsed.chapters) {
+        await addNewChapter(chapter);
+      }
+      resetJsonState();
+      setShowModal(false);
+    } catch (err: any) {
+      setJsonError(err?.message ?? 'Failed to import JSON backup.');
+    } finally {
+      setIsImportingJson(false);
+    }
   };
-
   return (
     <dialog
       open
-      className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10
+      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000]
                  border-none bg-white rounded-lg shadow-lg w-full max-w-lg"
     >
       {/* Close button */}
@@ -106,7 +139,10 @@ const AddToRepertoireModal: React.FC = () => {
         className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-8 w-8
                    flex items-center justify-center shadow-md hover:bg-red-600"
         aria-label="Close"
-        onClick={() => setShowModal(false)}
+        onClick={() => {
+          resetJsonState();
+          setShowModal(false);
+        }}
         type="button"
       >
         <CircleXIcon className="w-5 h-5" />
@@ -116,7 +152,6 @@ const AddToRepertoireModal: React.FC = () => {
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-2xl font-bold text-gray-800">Add to Repertoire</h2>
 
-        {/* Tabs */}
         <div className="mt-4 inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
           <button
             type="button"
@@ -129,12 +164,12 @@ const AddToRepertoireModal: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={() => setTab('chessrepeat')}
+            onClick={() => setTab('json')}
             className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-              tab === 'chessrepeat' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
+              tab === 'json' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Chessrepeat file
+            JSON backup
           </button>
         </div>
       </div>
@@ -188,7 +223,7 @@ const AddToRepertoireModal: React.FC = () => {
                   />
                   <span
                     className="block text-center py-3 text-lg font-medium bg-gray-200 text-gray-800 rounded-l-lg
-                                   peer-checked:bg-gray-700 peer-checked:text-white cursor-pointer transition"
+                               peer-checked:bg-gray-700 peer-checked:text-white cursor-pointer transition"
                   >
                     White
                   </span>
@@ -204,7 +239,7 @@ const AddToRepertoireModal: React.FC = () => {
                   />
                   <span
                     className="block text-center py-3 text-lg font-medium bg-gray-200 text-gray-800 rounded-r-lg
-                                   peer-checked:bg-gray-700 peer-checked:text-white cursor-pointer transition"
+                               peer-checked:bg-gray-700 peer-checked:text-white cursor-pointer transition"
                   >
                     Black
                   </span>
@@ -212,7 +247,6 @@ const AddToRepertoireModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={!selectedColor}
@@ -226,57 +260,68 @@ const AddToRepertoireModal: React.FC = () => {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleImportChessrepeat}>
+          <form onSubmit={handleImportJson}>
             <p className="text-sm text-gray-500 mb-4">
-              Importing a Chessrepeat file restores your saved annotations/training metadata. Name and “Train
-              as” are not needed.
+              Import a JSON file of a repertoire or chapter that you've previously downloaded.{' '}
             </p>
 
             <div className="mb-4">
-              <label className="block text-gray-700 text-base font-semibold mb-2">File (.chessrepeat)</label>
+              <label className="block text-gray-700 text-base font-semibold mb-2">File (.json)</label>
               <input
-                ref={chessrepeatFileRef}
+                ref={jsonFileRef}
                 type="file"
-                accept=".chessrepeat,.txt"
-                onChange={handleChessrepeatFileChange}
+                accept="application/json,.json"
+                onChange={handleJsonFileChange}
                 className="text-sm"
               />
+
+              {/* Loaded indicator (no content preview) */}
+              <div className="mt-3">
+                {jsonLoaded ? (
+                  <div className="inline-flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="font-medium">Loaded</span>
+                    {jsonFilename ? (
+                      <span className="text-green-700/80 truncate">— {jsonFilename}</span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No file loaded yet.</div>
+                )}
+              </div>
             </div>
 
-            {/* Optional preview/edit */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-base font-semibold mb-2">Contents</label>
-              <textarea
-                rows={6}
-                value={chessrepeatText}
-                onChange={(e) => setChessrepeatText(e.target.value)}
-                placeholder="Choose a .chessrepeat file to load its contents…"
-                className="shadow block w-full text-sm text-gray-700 rounded-lg border border-gray-300 p-3"
-              />
-            </div>
+            {jsonError ? <div className="mb-3 text-sm text-red-600">{jsonError}</div> : null}
 
-            {chessrepeatError ? <div className="mb-3 text-sm text-red-600">{chessrepeatError}</div> : null}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={resetJsonState}
+                className="flex-1 rounded py-2 px-4 font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Clear
+              </button>
 
-            <button
-              type="submit"
-              disabled={isImportingChessrepeat || !chessrepeatText.trim()}
-              className={`w-full text-lg font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition
+              <button
+                type="submit"
+                disabled={isImportingJson || !jsonLoaded}
+                className={`flex-1 text-lg font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition
                 ${
-                  isImportingChessrepeat || !chessrepeatText.trim()
+                  isImportingJson || !jsonLoaded
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 }`}
-            >
-              <span className="inline-flex items-center justify-center gap-2">
-                <UploadIcon className="w-5 h-5" />
-                {isImportingChessrepeat ? 'Importing...' : 'Import'}
-              </span>
-            </button>
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  <UploadIcon className="w-5 h-5" />
+                  {isImportingJson ? 'Importing...' : 'Import'}
+                </span>
+              </button>
+            </div>
           </form>
         )}
       </div>
     </dialog>
   );
 };
-
 export default AddToRepertoireModal;
