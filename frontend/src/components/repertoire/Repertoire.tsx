@@ -85,7 +85,7 @@ export const ChapterRow = ({ entry, index, id }) => {
             onClick={() => setEditOpen(true)}
           >
             <div id="icon-wrap">
-              <SettingsIcon width={20} height={20} color='black'/>
+              <SettingsIcon width={20} height={20} color="black" />
             </div>
           </div>
         </div>
@@ -116,9 +116,15 @@ const Repertoire: React.FC = () => {
       </div>
 
       {/* ONLY THIS SCROLLS */}
-      <div id="repertoire-wrap" className="repertoire-scroll flex-1 min-h-0 overflow-y-auto pb-2">
-        <span className="font-semibold text-sm uppercase px-2 text-gray-600 space-x-1">White</span>
-
+      <div
+        id="repertoire-wrap"
+        className="
+        repertoire-scroll
+        flex-1 min-h-0 overflow-y-auto pb-2
+        pr-1
+      "
+      >
+        <span className="font-semibold text-sm uppercase px-2 text-gray-600">White</span>
         <div className="flex-row rounded-md">
           {whiteEntries.map((entry, index) => (
             <ChapterRow id={entry.id} entry={entry} index={index} />
@@ -126,7 +132,6 @@ const Repertoire: React.FC = () => {
         </div>
 
         <span className="font-semibold text-sm uppercase px-2 text-gray-600">Black</span>
-
         <div className="flex-row rounded-md">
           {blackEntries.map((entry, index) => (
             <ChapterRow id={entry.id} entry={entry} index={index + whiteEntries.length} />

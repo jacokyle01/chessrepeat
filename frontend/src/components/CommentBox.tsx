@@ -97,7 +97,7 @@ export const CommentBox = () => {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 repertoire-scroll">
         {!isEditing ? (
           currentComment.trim() ? (
             <p className="whitespace-pre-wrap text-sm text-gray-900 [overflow-wrap:anywhere]">
