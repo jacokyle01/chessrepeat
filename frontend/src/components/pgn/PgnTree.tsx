@@ -33,6 +33,8 @@ const isEmpty = (a: any | undefined): boolean => !a || a.length === 0;
 //TODO right clicking these should provide more training info
 //TODO disable line option
 //TODO mark line as seen option
+import { Trash2, Ban, CheckCircle2, MessageSquarePlus } from 'lucide-react';
+
 const contextMenuItems = (path: string, san: string) => {
   const deleteLine = useTrainerStore((s) => s.deleteLine);
   const disableLine = useTrainerStore((s) => s.disableLine);
@@ -44,62 +46,85 @@ const contextMenuItems = (path: string, san: string) => {
       label: san,
       disabled: true,
       template: (item: any) => (
-        <div className="px-3 py-2 font-semibold text-gray-800 select-none">{item.label}</div>
-      ),
-    },
-
-    { separator: true },
-
-    {
-      label: 'Delete from here',
-      icon: 'pi pi-trash',
-      command: () => deleteLine(path),
-    },
-
-    // ✅ Combined Enable / Disable row
-    {
-      template: () => (
-        <div
-          className="flex items-center justify-between gap-2 px-3 py-2
-                rounded-md transition hover:bg-gray-50"
-        >
-          <span className="text-sm text-gray-700">Line state</span>
-
-          <div className="flex gap-1">
-            <button
-              className="rounded-md px-2 py-1 text-xs font-medium
-                         bg-gray-100 text-gray-700 hover:bg-gray-200"
-              onClick={() => disableLine(path)}
-            >
-              Disable
-            </button>
-
-            <button
-              className="rounded-md px-2 py-1 text-xs font-medium
-                         bg-blue-600 text-white hover:bg-blue-700"
-              onClick={() => enableLine(path)}
-            >
-              Enable
-            </button>
-          </div>
+        <div className="px-3 py-2 font-semibold text-gray-800 select-none truncate">
+          {item.label}
         </div>
       ),
     },
 
     { separator: true },
 
+    // ✅ Line actions row: Delete + Enable/Disable grouped and responsive
     {
-      label: 'Add Comment',
-      icon: 'pi pi-comment',
-      command: () => {
-        const comment = prompt('Enter a comment:');
-        if (comment != null) {
-          useTrainerStore.getState().setCommentAt(comment, path);
-        }
-      },
+      template: () => (
+        <div className="px-3 py-2">
+          <div className="text-xs font-medium text-gray-500 mb-2 select-none">Line actions</div>
+
+          <div className="flex flex-col flex-wrap gap-2">
+            {/* Delete */}
+            <button
+              type="button"
+              className="
+                inline-flex items-center gap-2
+                rounded-md border border-gray-200 bg-white
+                px-2.5 py-1.5 text-sm text-gray-900
+                hover:bg-gray-50 active:bg-gray-100
+              "
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                deleteLine(path);
+              }}
+            >
+              <Trash2 className="w-4 h-4 text-gray-600" />
+              <span className="whitespace-nowrap">Delete from here</span>
+            </button>
+
+            {/* Disable */}
+            <button
+              type="button"
+              className="
+                inline-flex items-center gap-2
+                rounded-md border border-gray-200 bg-gray-50
+                px-2.5 py-1.5 text-sm text-gray-800
+                hover:bg-gray-100 active:bg-gray-200
+              "
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                disableLine(path);
+              }}
+            >
+              <Ban className="w-4 h-4 text-gray-600" />
+              <span className="whitespace-nowrap">Disable</span>
+            </button>
+
+            {/* Enable */}
+            <button
+              type="button"
+              className="
+                inline-flex items-center gap-2
+                rounded-md bg-blue-600
+                px-2.5 py-1.5 text-sm text-white
+                hover:bg-blue-700 active:bg-blue-800
+              "
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                enableLine(path);
+              }}
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="whitespace-nowrap">Enable</span>
+            </button>
+          </div>
+        </div>
+      ),
     },
+
   ];
 };
+
 
 // COMMENTS
 
