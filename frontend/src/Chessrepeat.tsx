@@ -333,7 +333,7 @@ export const Chessrepeat = () => {
         {/* HEADER (shared) */}
         <div
           id="header"
-          className="flex flex-wrap items-end justify-start text-3xl mb-3 gap-x-10 gap-y-2 px-4 sm:px-6 lg:px-10"
+          className="flex flex-wrap items-end justify-start text-3xl mb-3 gap-20 gap-y-2 px-4 sm:px-6 lg:px-10"
         >
           <div className="flex items-end shrink-0">
             <img src="logo.png" alt="Logo" className="h-12 w-12 mr-2" />
@@ -341,7 +341,6 @@ export const Chessrepeat = () => {
             <span className="text-stone-600">repeat</span>
           </div>
 
-          <div className="flex items-end gap-10">
             {/* Discord */}
             <a
               href="https://discord.gg/xhjra9W6Bh"
@@ -375,7 +374,6 @@ export const Chessrepeat = () => {
               <span>report bug</span>
               <Bug className="w-5 h-5" />
             </a>
-          </div>
         </div>
 
         {showingAddToRepertoireMenu && (
