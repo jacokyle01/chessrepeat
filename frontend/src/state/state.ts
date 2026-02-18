@@ -22,7 +22,7 @@ import { colorFromPly, positionFromFen } from '../util/chess';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
-import { rootFromPgn } from '../util/io';
+import { annotatePgn, rootFromPgn } from '../util/io';
 import { createCard, review } from '../util/srs';
 import { Color } from 'chessops';
 
@@ -606,31 +606,37 @@ export const useTrainerStore = create<TrainerState>()(
 
       //TODO namespace
       importIntoChapter: async (targetChapter: number, newPgn: string) => {
-        alert('WIP');
-        // const { repertoire, liveChapterData } = get();
-        // const chapter = repertoire[targetChapter];
-        // if (!chapter) return;
+        const { repertoire } = get();
+        const chapter = repertoire[targetChapter];
+        if (!chapter) return;
 
-        // const { root: importRoot } = rootFromPgn(newPgn, chapter.trainAs);
-        // merge(chapter.root, importRoot);
+        const importedPgnRoot = annotatePgn(newPgn, chapter.trainAs);
+        merge(chapter.root, importedPgnRoot);
         // //TODO can we make this part of merge?
 
-        // let enabledCount = 0;
-        // forEachNode(chapter.root, (node) => {
-        //   if (node.data.enabled) enabledCount++;
-        // });
-        // liveChapterData.enabledCount = enabledCount;
+        let enabledCount = 0;
+        let nodeCount = 0;
+        let unseenCount = 0;
+        forEachNode(chapter.root, (node) => {
+          if (node.data.enabled) enabledCount++;
+          nodeCount++;
+          if (!node.data.training) unseenCount++;
+        });
 
-        // // touch only this chapter so UI updates (no set({ repertoire }) on whole array reference)
-        // set((state) => {
-        //   const next = state.repertoire.slice();
-        //   next[targetChapter] = { ...next[targetChapter] };
-        //   return { repertoire: next };
-        // });
+        chapter.enabledCount = enabledCount;
+        chapter.nodeCount = nodeCount;
+        chapter.unseenCount = unseenCount;
 
-        // // persist only this chapter
-        // await persistChapter(chapter);
-        // // isAuthenticated ?
+        // touch only this chapter so UI updates (no set({ repertoire }) on whole array reference)
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[targetChapter] = { ...next[targetChapter] };
+          return { repertoire: next };
+        });
+
+        // persist only this chapter
+        await persistChapter(chapter);
+        // isAuthenticated ?
       },
     }),
 

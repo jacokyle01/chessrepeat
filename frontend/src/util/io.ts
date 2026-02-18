@@ -87,8 +87,35 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
     nodeCount,
     enabledCount,
     unseenCount: nodeCount, //TODO have the option to mark all nodes as already seen
-    lastDueCount: 0 //TODO
+    lastDueCount: 0, //TODO
   };
+};
+
+//TODO should be combined with function above
+export const annotatePgn = (rawPgn: string, asColor: Color) => {
+  const context = trainingContext(asColor || 'white');
+
+  let moves = parsePgn(rawPgn)[0].moves;
+  moves = transform(moves, context, (context, data) => {
+    const move = parseSan(context.pos, data.san);
+    // assume the move is playable
+    context.pos.play(move!);
+    context.ply++;
+    context.trainable = !context.trainable; // moves by opposite color are not trainable
+    // idCount++;/
+
+    // add training types to each node
+    return {
+      ...data,
+      id: scalachessCharPair(move),
+      fen: makeFen(context.pos.toSetup()),
+      comment: data.comments?.join('|') || '', //TODO should handle multi comments ..
+      ply: context.ply,
+      training: null,
+      enabled: !context.trainable,
+    };
+  });
+  return moves;
 };
 
 // export const rootFromPgn = (
