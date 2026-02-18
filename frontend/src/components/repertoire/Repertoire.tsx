@@ -74,7 +74,7 @@ export const ChapterRow = ({ entry, index, id }) => {
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="font-roboto text-sm font-medium text-orange-700 bg-orange-500/20 rounded-md px-2 font-black mr-2 flex-shrink-0">
+            <button className="font-roboto text-sm font-medium text-sky-600 bg-sky-400/20 rounded-md px-2 font-black mr-2 flex-shrink-0">
               Recall {entry.lastDueCount}
             </button>
           )}

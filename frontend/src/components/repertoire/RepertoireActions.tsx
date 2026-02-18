@@ -109,11 +109,12 @@ const RepertoireActions: React.FC = () => {
       h-11
       inline-flex items-center justify-center gap-2
       rounded-md px-3
-      font-semibold text-white
-      bg-blue-600 hover:bg-blue-700
-      shadow-sm hover:shadow
+      font-semibold
+      hover:shadow
       transition active:scale-[0.98]
       whitespace-nowrap
+      rounded-md border border-gray-300
+      bg-white
       ${isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}
     `}
         >
@@ -147,11 +148,13 @@ const RepertoireActions: React.FC = () => {
       h-11
       inline-flex items-center justify-center gap-2
       rounded-md px-3
-      font-semibold text-white
-      bg-blue-800 hover:bg-blue-900
-      shadow-sm hover:shadow
+      font-semibold
+      hover:shadow
       transition active:scale-[0.98]
       whitespace-nowrap
+      rounded-md border border-gray-300
+      bg-white
+
     "
         >
           <BookDownIcon className="h-5 w-5" />
