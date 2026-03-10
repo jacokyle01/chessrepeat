@@ -5,7 +5,6 @@ import { useTrainerStore } from '../../state/state';
 const ImportIntoChapterModal: React.FC = (chapterIndex: number) => {
   const setShowModal = useTrainerStore((s) => s.setShowingImportIntoChapterModal);
   const importIntoChapter = useTrainerStore((s) => s.importIntoChapter);
-  const trainingConfig = useTrainerStore((s) => s.trainingConfig);
   const [selectedColor, setSelectedColor] = useState(undefined);
   const nameRef = useRef<HTMLInputElement>(null);
   const pgnRef = useRef<HTMLTextAreaElement>(null);

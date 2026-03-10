@@ -1,5 +1,3 @@
-import React from 'react';
-//TODO king SVG
 import { useTrainerStore } from '../state/state';
 import {
   BookOpenIcon,
@@ -14,11 +12,10 @@ import {
 
 const isWhite = true;
 const Recall = () => {
-  //TODO change
-  let isWhite = true;
-  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-  // const toggleShowingHint = useTrainerStore.getState().showingHint;
-  // const fail = useTrainerStore((s) => s.fail);
+  const { repertoire, repertoireIndex } = useTrainerStore();
+  const chapter = repertoire[repertoireIndex];
+  if (!chapter) return;
+  const isWhite = chapter.trainAs == 'white';
 
   return (
     <div className="bg-white justify-center border border-gray-300">
