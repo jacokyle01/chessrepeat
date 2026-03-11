@@ -12,8 +12,7 @@ import { ContextMenuProvider } from './ContextMenuProvider';
 
 import React, { useRef } from 'react';
 import { TrainableNode } from '../../types/training';
-import { ChevronRight, Trash } from 'lucide-react';
-import { getNodeList, nodeAtPath } from '../../util/tree';
+import { getNodeList, nodeAtPath, hasBranching } from '../../util/tree';
 export interface Opts {
   parentPath: string;
   isMainline: boolean;
@@ -33,7 +32,14 @@ const isEmpty = (a: any | undefined): boolean => !a || a.length === 0;
 //TODO right clicking these should provide more training info
 //TODO disable line option
 //TODO mark line as seen option
-import { Trash2, Ban, CheckCircle2, MessageSquarePlus } from 'lucide-react';
+import {
+  Trash2,
+  Ban,
+  CheckCircle2,
+  MessageSquarePlus,
+  ChevronsRightLeftIcon,
+  EllipsisIcon,
+} from 'lucide-react';
 
 const contextMenuItems = (path: string, san: string) => {
   const deleteLine = useTrainerStore((s) => s.deleteLine);
@@ -46,9 +52,7 @@ const contextMenuItems = (path: string, san: string) => {
       label: san,
       disabled: true,
       template: (item: any) => (
-        <div className="px-3 py-2 font-semibold text-gray-800 select-none truncate">
-          {item.label}
-        </div>
+        <div className="px-3 py-2 font-semibold text-gray-800 select-none truncate">{item.label}</div>
       ),
     },
 
@@ -121,15 +125,18 @@ const contextMenuItems = (path: string, san: string) => {
         </div>
       ),
     },
-
   ];
 };
+
+const MAX_LEN_MAINLINE_COMMENT = 300;
+const MAX_LEN_INLINE_COMMENT = 200; 
+const MAX_BRANCH_DEPTH = 5; //TODO can conditionally shrink this on mobile? 
 
 
 // COMMENTS
 
 function truncateComment(text: string, len: number, ctx: Ctx) {
-  return ctx.truncateComments && text.length > len ? text.slice(0, len - 10) + ' [...]' : text;
+  return ctx.truncateComments && text.length > len ? text.slice(0, len) : text;
 }
 
 function enrichText(text: string): string {
@@ -140,21 +147,6 @@ function enrichText(text: string): string {
 // -------------------------
 // Components
 // -------------------------
-
-function TruncatedComment({ path, ctx, children }: { path: string; ctx: Ctx; children: React.ReactNode }) {
-  const handleClick = () => {
-    // ctx.ctrl.userJumpIfCan(path);
-    // ctx.ctrl.study?.vm.toolTab('comments');
-    // ctx.ctrl.redraw();
-    // document.querySelector('.analyse__underboard')?.scrollIntoView();
-  };
-
-  return (
-    <div className="comment truncated" onClick={handleClick}>
-      {children}
-    </div>
-  );
-}
 
 function RenderComment({
   comment,
@@ -167,42 +159,30 @@ function RenderComment({
   path: string;
   maxLength: number;
 }) {
-  const repertoire = useTrainerStore.getState().repertoire;
-  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
-  const setCommentAt = useTrainerStore((s) => s.setCommentAt);
-  const chapter = repertoire[repertoireIndex];
-  if (!chapter) return;
-  // let root = chapter.root;
-
-  // const by = others.length > 1 ? <span className="by">{commentAuthorText(comment.by)}</span> : null;
-
+  const [expanded, setExpanded] = React.useState(false); //TODO can we do this with a class instead? OPTIMIZATION
   const truncated = truncateComment(comment, maxLength, ctx);
-  //TODO sometime maybe?
-  // const enriched = (
-  //   <span
-  //     dangerouslySetInnerHTML={{
-  //       __html: (by ? by.props.children : '') + enrichText(truncated),
-  //     }}
-  //   />
-  // );
+  const isTruncated = truncated.length < comment.length;
 
-  if (truncated.length < comment.length) {
-    return (
-      <TruncatedComment path={path} ctx={ctx}>
-        {comment + 'SDFSDF'}
-        <Trash />
-      </TruncatedComment>
-    );
-  }
+  const displayText = isTruncated && !expanded ? truncated : comment;
 
-  // console.log('path', path);
   return (
-    <span className="comment inline-block text-gray-500 mx-2">
-      {comment}
-      {/* <Trash
-        className="inline-block w-5 h-5 align-text-bottom ml-5 text-black"
-        onClick={() => setCommentAt(root, '', path)}
-      /> */}
+    <span className="comment inline-block text-gray-500 mx-2 break-words">
+      {displayText}
+      {isTruncated && (
+        <span
+          className="text-gray-500 bg-gray-200 rounded-md cursor-pointer ml-1 hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+        >
+          {expanded ? (
+            <ChevronsRightLeftIcon className="inline w-4 h-4" />
+          ) : (
+            <EllipsisIcon className="inline w-4 h-4" />
+          )}
+        </span>
+      )}
     </span>
   );
 }
@@ -213,7 +193,9 @@ export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: Tr
   // if (isEmpty(node.comment) return null;
   if (!node.data.comment) return null;
 
-  return <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={300} />;
+  return (
+    <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={MAX_LEN_INLINE_COMMENT} />
+  );
 }
 
 //TODO conceal?
@@ -235,7 +217,7 @@ export function RenderMainlineCommentsOf({
 
   const colorClass = withColor ? (node.data.ply % 2 === 0 ? ' black' : ' white') : '';
 
-  return <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={400} />;
+  return <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={MAX_LEN_MAINLINE_COMMENT} />;
 }
 
 // END COMMENTS
@@ -276,7 +258,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? 'bg-blue-400/50 active' : '';
+  const activeClass = path === selectedPath ? 'bg-blue-600/50 active' : '';
 
   const { repertoire, repertoireIndex } = useTrainerStore.getState();
   const chapter = repertoire[repertoireIndex];
@@ -284,38 +266,6 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
 
-  // const items = [
-  //   {
-  //     label: nodeFromPath.data.san,
-  //     disabled: true,
-  //     className: 'px-3 py-2 font-semibold text-gray-800 cursor-default',
-  //     template: (item: any) => (
-  //       <div className="px-3 py-2 font-semibold text-gray-800 select-none">{item.label}</div>
-  //     ),
-  //   },
-  //   { separator: true },
-
-  //   {
-  //     label: 'Delete from here',
-  //     command: () => {
-  //       console.log('delete', path);
-  //       deleteNode(path);
-  //     },
-  //   },
-  //   { label: 'Promote', command: () => console.log('promote', path) },
-  //   {
-  //     label: 'Add Comment',
-  //     command: () => {
-  //       const comment = prompt('Enter a comment:');
-  //       if (comment !== null) {
-  //         const { repertoire, repertoireIndex } = useTrainerStore.getState();
-  //         const chapter = repertoire[repertoireIndex];
-  //         if (!chapter) return;
-  //         useTrainerStore.getState().setCommentAt(comment, path);
-  //       }
-  //     },
-  //   },
-  // ];
   const items = contextMenuItems(path, nodeFromPath.data.san);
 
   return (
@@ -323,8 +273,8 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
       data-path={path}
       className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
         leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold
-        hover:bg-blue-400 select-none cursor-pointer
-        ${node.data.enabled ? ' text-gray-600' : 'text-gray-400'} 
+        hover:bg-blue-400 hover:rounded-md select-none cursor-pointer
+        text-gray-700
         ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''} `}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
@@ -356,7 +306,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   // const classes = nodeClasses(ctx, node, path);
 
   const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'bg-blue-400/50 rounded-md active' : '';
+  const activeClass = path == selectedPath ? 'bg-blue-600/50 rounded-md active' : '';
 
   return (
     <span
@@ -364,8 +314,8 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
       className={`move variation inline-block max-w-full align-top
   whitespace-normal break-words
   px-[7.9px] pr-[4.74px]
-  hover:bg-blue-400 select-none cursor-pointer ${activeClass}
-          ${node.data.enabled ? ' text-gray-600' : 'text-gray-400'} 
+  hover:bg-blue-200 hover:rounded-md select-none cursor-pointer ${activeClass}
+  text-gray-700
   `}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
@@ -390,7 +340,8 @@ function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts
 
 function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   return (
-    <div className="inline italic">
+    <span className="inline">
+      {'( '}
       <RenderMoveAndChildren
         ctx={ctx}
         node={node}
@@ -398,9 +349,11 @@ function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts
           ...opts,
           withIndex: true,
           isMainline: false,
+          inline: undefined,
         }}
       />
-    </div>
+      {' ) '}
+    </span>
   );
 }
 
@@ -435,48 +388,35 @@ function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableN
 }
 
 export function RenderLines({ ctx, parentNode, nodes, opts }) {
-  let collapsed = false;
-  // const collapsed =
-  //   parentNode.collapsed === undefined ? opts.depth >= 2 && opts.depth % 2 === 0 : parentNode.collapsed;
-  // console.log('render lines w/ parent'
-  // , parentNode.san);
-  if (collapsed) {
+  // At high depth, render variations inline with parens instead of nested branches
+  if (opts.depth >= MAX_BRANCH_DEPTH) {
     return (
-      <div className={`lines basis-full w-full ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
-        {/* assume uncollapsed */}
-        {nodes.map((n) => {
-          return (
-            <div className="flex">
-              <ChevronRight color="gray" />
-              <div className="line block relative ps-[7px] w-full min-w-0" key={n.id}>
-                <div className="branch" />
-                <RenderMoveAndChildren
-                  ctx={ctx}
-                  node={n}
-                  opts={{
-                    ...opts,
-                    withIndex: true,
-                    isMainline: false,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <span className="lines inline">
+        {nodes.map((n) => (
+          <span className="inline" key={n.data.id}>
+            {'('}
+            <RenderMoveAndChildren
+              ctx={ctx}
+              node={n}
+              opts={{
+                parentPath: opts.parentPath,
+                isMainline: false,
+                depth: opts.depth + 1,
+                withIndex: true,
+              }}
+            />
+            {')'}
+          </span>
+        ))}
+      </span>
     );
   }
 
   return (
-    <div className={`lines ${!nodes[1] ? 'single' : ''} ${collapsed ? 'collapsed' : ''}`}>
+    <div className={`lines ${!nodes[1] ? 'single' : ''}`}>
       {nodes.map((n) => {
-        // const retro = retroLine(ctx, n);
-        // if (retro) return retro;
-
-        // const truncate = n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined;
-
         return (
-          <div className="line block relative ps-[7px]" key={n.id}>
+          <div className="line block relative ps-[7px]" key={n.data.id}>
             <div className="branch" />
             <RenderMoveAndChildren
               ctx={ctx}
@@ -486,8 +426,6 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
                 isMainline: false,
                 depth: opts.depth + 1,
                 withIndex: true,
-                // noConceal: opts.noConceal,
-                // truncate: n.comp && !treePath.contains(ctx.ctrl.path, opts.parentPath + n.id) ? 3 : undefined,
               }}
             />
           </div>
@@ -574,7 +512,12 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
         <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
           {/* {commentTags} */}
           {/* ctx, main, conceal, true, opts.parentPath + main.id */}
-          <RenderMainlineCommentsOf ctx={ctx} node={main} withColor={true} path={opts.parentPath + main.data.id} />
+          <RenderMainlineCommentsOf
+            ctx={ctx}
+            node={main}
+            withColor={true}
+            path={opts.parentPath + main.data.id}
+          />
           {/* ^^^^ COMPONENT */}
           <RenderLines
             ctx={ctx}
@@ -599,13 +542,23 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
     return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts} />;
   }
 
-  const nodes = cs;
-  let shouldRenderLines = !nodes[1] || nodes[2] || false;
-  // console.log('in render children');
-  return <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />;
+  // Inline rendering: exactly 2 branches, second branch has no sub-branching within 6 moves
+  if (cs[1] && !cs[2] && !hasBranching(cs[1], 6)) {
+    return (
+      <RenderMoveAndChildren
+        ctx={ctx}
+        node={cs[0]}
+        opts={{
+          parentPath: opts.parentPath,
+          isMainline: false,
+          depth: opts.depth,
+          inline: cs[1],
+        }}
+      />
+    );
+  }
 
-  // TODO - fix infinite render loop, figure out if we need renderInlined
-  // TODO - we just need a way to ensure that the whole PGN is viewable
+  return <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />;
 }
 
 //TODO function should be part of state
@@ -648,7 +601,7 @@ export default function PgnTree({ setActiveMoveId }) {
 
   const ctx: Ctx = {
     currentPath: '',
-    truncateComments: false,
+    truncateComments: true,
   };
 
   //TODO should be false

@@ -83,5 +83,12 @@ export function deleteNodeAt(root: TrainableNode, path: string): void {
   removeChild(parentNode(root, path), last(path));
 }
 
+export function hasBranching(node: TrainableNode, depth: number): boolean {
+  if (depth <= 0) return false;
+  if (node.children.length > 1) return true;
+  if (node.children.length === 0) return false;
+  return hasBranching(node.children[0], depth - 1);
+}
+
 const parentNode = (root: TrainableNode, path: string): TrainableNode =>
   nodeAtPath(root, init(path));
