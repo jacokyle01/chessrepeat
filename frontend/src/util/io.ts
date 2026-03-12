@@ -1,6 +1,6 @@
 import { Game, Node, parsePgn, PgnNodeData, transform } from 'chessops/pgn';
 import { Chapter, Color, TrainableNode, TrainingConfig } from '../types/training';
-import { trainingContext } from './training';
+import { pgnFromChapter, trainingContext } from './training';
 import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
@@ -145,7 +145,7 @@ export const annotatePgn = (rawPgn: string, asColor: Color) => {
 //   return root;
 // };
 
-export function exportRepertoireAsJson(chapters: Chapter[]): string {
+export function repertoireAsJson(chapters: Chapter[]): string {
   return JSON.stringify(
     {
       chapters,
@@ -153,4 +153,12 @@ export function exportRepertoireAsJson(chapters: Chapter[]): string {
     null,
     2, // pretty print
   );
+}
+
+//
+export function repertoireAsPgn(chapters: Chapter[]): string {
+  let repertoire = chapters.map((chapter) => {
+    pgnFromChapter(chapter);
+  });
+  return repertoire.join('');
 }

@@ -16,7 +16,7 @@ import { useTrainerStore } from './state/state';
 import { UserTip } from './components/UserTip';
 import Schedule from './components/Schedule';
 import AddToRepertoireModal from './components/modals/AddToRepertoireModal';
-import RepertoireActions from './components/repertoire/RepertoireActions';
+import RepertoireActions from './components/repertoire/DownloadModal';
 import PgnControls from './components/pgn/PgnControls';
 import PgnTree from './components/pgn/PgnTree';
 import { parseFen } from 'chessops/fen';

@@ -1,3 +1,5 @@
+//TODO use repertoireAsPgn
+
 import { defaultPosition } from 'chessops/variant';
 import { parseSan } from 'chessops/san';
 import { makeFen } from 'chessops/fen';
@@ -59,7 +61,7 @@ export const pgnFromRepertoire = (repertoire: Chapter[]) => {
   training context remembered.
 */
 
-export const pgnFromChapter = (chapter: Chapter) => {
+export const pgnFromChapter = (chapter: Chapter): string => {
   const headers = new Map<string, string>();
   headers.set('ChessrepeatChapterName', chapter.name);
 
