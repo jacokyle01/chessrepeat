@@ -608,10 +608,10 @@ export default function PgnTree({ setActiveMoveId }) {
   // const blackStarts = (root.data.ply & 1) === 1;
   return (
     <ContextMenuProvider>
-      <div className="h-[400px] bg-white">
+      <div className="bg-gray-100">
         <div
           onMouseDown={handleMouseDown}
-          className="tview2 tview2-column repertoire-scroll overflow-y-auto max-h-[400px] flex flex-row flex-wrap items-start bg-white"
+          className="tview2 tview2-column repertoire-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white"
         >
           {root.data.comment && (
             <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">

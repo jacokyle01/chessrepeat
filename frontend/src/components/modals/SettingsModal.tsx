@@ -3,8 +3,9 @@ import { CircleXIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import Divider from '../common/Divider';
 import ToggleGroup from '../common/ToggleGroup';
+import './SettingsModal.css';
 
-const SettingsModal: React.FC = (setSettingsOpen: (b: boolean) => void) => {
+const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ setSettingsOpen }) => {
   const trainingConfig = useTrainerStore((s) => s.trainingConfig);
   const setTrainingConfig = useTrainerStore((s) => s.setTrainingConfig);
 
@@ -24,31 +25,22 @@ const SettingsModal: React.FC = (setSettingsOpen: (b: boolean) => void) => {
   };
 
   return (
-    <dialog
-      open
-      className="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2
-                 border-none !bg-white rounded-lg shadow-lg"
-    >
-      {/* Close button (matches your AddToRepertoireModal) */}
+    <dialog open className="settings-dialog">
       <button
-        className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-8 w-8
-                   flex items-center justify-center shadow-md hover:bg-red-600"
+        className="settings-close-btn"
         aria-label="Close"
         onClick={() => setSettingsOpen(false)}
         type="button"
       >
-        <CircleXIcon className="w-5 h-5" />
+        <CircleXIcon style={{ width: '1.25rem', height: '1.25rem' }} />
       </button>
 
-      {/* Heading */}
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-800">Training Settings</h2>
-        <p className="mt-1 text-sm text-gray-500">Configure spaced repetition and display preferences.</p>
+      <div className="settings-header">
+        <h2>Training Settings</h2>
+        <p>Configure spaced repetition and display preferences.</p>
       </div>
 
-      {/* Body */}
-      <div className="p-6">
-        {/* Spaced Repetition */}
+      <div className="settings-body">
         <Divider label="Spaced Repetition" />
 
         <ToggleGroup
@@ -58,54 +50,42 @@ const SettingsModal: React.FC = (setSettingsOpen: (b: boolean) => void) => {
           onChange={(val) => updateConfig('getNext.by', val.toLowerCase())}
         />
 
-        <div className="mt-4">
-          <label className="block text-gray-700 text-base font-semibold mb-2">Max moves to consider</label>
+        <div className="settings-field">
+          <label>Max moves to consider</label>
           <input
             type="number"
             min={1}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight
-                       focus:outline-none focus:shadow-outline"
             value={trainingConfig.getNext?.max ?? ''}
             onChange={(e) => updateConfig('getNext.max', Number(e.target.value))}
           />
         </div>
 
-        <div className="mt-4">
-          <ToggleGroup
-            label="Promotion"
-            labels={['Next', 'Most']}
-            selected={trainingConfig.promotion === 'next' ? 'Next' : 'Most'}
-            onChange={(val) => updateConfig('promotion', val.toLowerCase())}
-          />
-        </div>
+        <ToggleGroup
+          label="Promotion"
+          labels={['Next', 'Most']}
+          selected={trainingConfig.promotion === 'next' ? 'Next' : 'Most'}
+          onChange={(val) => updateConfig('promotion', val.toLowerCase())}
+        />
 
-        <div className="mt-4">
-          <ToggleGroup
-            label="Demotion"
-            labels={['Next', 'Most']}
-            selected={trainingConfig.demotion === 'next' ? 'Next' : 'Most'}
-            onChange={(val) => updateConfig('demotion', val.toLowerCase())}
-          />
-        </div>
+        <ToggleGroup
+          label="Demotion"
+          labels={['Next', 'Most']}
+          selected={trainingConfig.demotion === 'next' ? 'Next' : 'Most'}
+          onChange={(val) => updateConfig('demotion', val.toLowerCase())}
+        />
 
-        {/* Display */}
-        <div className="mt-6">
-          <Divider label="Display" />
-          <ToggleGroup
-            label="Animation"
-            labels={['None', 'Slow']}
-            selected="None"
-            onChange={(val) => console.log('Animation changed to', val)}
-          />
-        </div>
+        <Divider label="Display" />
+        <ToggleGroup
+          label="Animation"
+          labels={['None', 'Slow']}
+          selected="None"
+          onChange={(val) => console.log('Animation changed to', val)}
+        />
 
-        {/* Footer / Done */}
         <button
           type="button"
-          onClick={() => setShowingTrainingSettings(false)}
-          className="mt-6 w-full text-lg font-bold py-2 px-4 rounded
-                     bg-green-600 hover:bg-green-700 text-white
-                     focus:outline-none focus:shadow-outline transition"
+          className="settings-done-btn"
+          onClick={() => setSettingsOpen(false)}
         >
           Done
         </button>

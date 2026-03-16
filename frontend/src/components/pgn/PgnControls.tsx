@@ -4,7 +4,16 @@
 // put logic into state
 // see en-crossaint
 
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeftToLineIcon,
+  ArrowRightToLineIcon,
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
+  MoveLeftIcon,
+  MoveRightIcon,
+} from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import { fromNodeList, init } from '../../util/path';
 const PgnControls = () => {
@@ -53,10 +62,18 @@ const PgnControls = () => {
 
   return (
     <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto">
-      <button onClick={first}>{<ChevronFirst size={36} />}</button>
-      <button onClick={prev}>{<ChevronLeft size={36} />}</button>
-      <button onClick={next}>{<ChevronRight size={36} />}</button>
-      <button onClick={last}>{<ChevronLast size={36} />}</button>
+      <button onClick={first} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+        {<ArrowLeftToLineIcon size={30} />}
+      </button>
+      <button onClick={prev} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+        {<MoveLeftIcon size={30} />}
+      </button>
+      <button onClick={next} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+        {<MoveRightIcon size={30} />}
+      </button>
+      <button onClick={last} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+        {<ArrowRightToLineIcon size={30} />}
+      </button>
     </div>
   );
 };

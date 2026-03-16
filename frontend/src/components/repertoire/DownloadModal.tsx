@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { BookDownIcon, BookPlus, DownloadIcon, FolderCog2Icon, XIcon } from 'lucide-react';
+import { BookDownIcon, BookPlus, DownloadIcon, XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import { pgnFromChapter, pgnFromRepertoire } from '../../util/training';
 import { downloadTextFile, repertoireAsJson } from '../../util/io';
-import SettingsModal from '../modals/SettingsModal';
 
 type DownloadScope = 'repertoire' | 'chapter';
 type ExportFormat = 'json' | 'pgn';
@@ -172,7 +171,6 @@ const RepertoireActions: React.FC = () => {
   const isHighlighted = repertoire.length === 0;
 
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <>
@@ -195,16 +193,6 @@ const RepertoireActions: React.FC = () => {
         </button>
 
         <button
-          type="button"
-          onClick={() => setSettingsOpen(true)}
-          className="h-11 w-11 inline-flex items-center justify-center rounded-md bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow transition active:scale-[0.98]"
-          aria-label="Settings"
-          title="Settings"
-        >
-          <FolderCog2Icon size={22} />
-        </button>
-
-        <button
           onClick={() => setIsDownloadOpen(true)}
           className="h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 font-semibold hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
         >
@@ -214,16 +202,6 @@ const RepertoireActions: React.FC = () => {
       </div>
 
       {isDownloadOpen && <DownloadModal onClose={() => setIsDownloadOpen(false)} />}
-
-      {settingsOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setSettingsOpen(false)}
-          />
-          <SettingsModal setSettingsOpen={setSettingsOpen} />
-        </>
-      )}
     </>
   );
 };

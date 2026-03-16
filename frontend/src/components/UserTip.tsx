@@ -18,8 +18,8 @@ const Recall = () => {
   const isWhite = chapter.trainAs == 'white';
 
   return (
-    <div className="bg-white justify-center border border-gray-300">
-      <div className="bg-white flex items-center justify-center py-12 px-6 gap-3">
+    <div className="bg-white justify-center border border-gray-300 rounded-md">
+      <div className="flex items-center justify-center py-12 px-6 gap-3">
         <div className="w-12 h-12 flex items-center justify-center">
           <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
             <HistoryIcon width={35} height={35} />
@@ -39,7 +39,7 @@ const Learn = () => {
   const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3">
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3 rounded-md">
       <div className="w-12 h-12 flex items-center justify-center">
         <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
           <GraduationCapIcon width={35} height={35} />
@@ -100,8 +100,7 @@ const Fail = () => {
   const setUserTip = useTrainerStore((s) => s.setUserTip);
 
   return (
-    <div id="recall" className="border-t-2">
-      <div className="bg-white py-10 shadow-md flex flex-col items-center">
+    <div className="bg-white py-5 flex flex-col items-center rounded-md border border-gray-300">
         <div className="flex flex-row justify-center items-center w-full space-x-5 pb-5">
           <div className="text-red-500 text-7xl font-bold">✗</div>
           <div id="failure">
@@ -111,35 +110,28 @@ const Fail = () => {
         </div>
 
         {/* Action buttons */}
+        <div className="flex flex-row items-center justify-center gap-2 w-full px-4">
+          <button
+            className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+            onClick={onContinue}
+          >
+            CONTINUE
+          </button>
 
-        <button
-          id="continue-btn"
-          className="flex-1 px-4 py-1 hover:bg-gray-50 text-blue-400 rounded-md hover:bg-gray-400 font-semibold"
-          onClick={onContinue}
-        >
-          CONTINUE TRAINING
-        </button>
+          <button
+            className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+            onClick={() => setUserTip('recall')}
+          >
+            UNDO GUESS
+          </button>
 
-        <button
-          id="continue-btn"
-          className="flex-1 px-4 py-1 hover:bg-gray-50 text-blue-400 rounded-md hover:bg-gray-400 font-semibold"
-          onClick={() => setUserTip('recall')}
-        >
-          UNDO GUESS
-        </button>
-
-        <button
-          id="continue-btn"
-          className="flex-1 px-4 py-1 hover:bg-gray-50 text-blue-400 rounded-md hover:bg-gray-400 font-semibold"
-          onClick={() => onMarkAlternative(lastGuess)}
-        >
-          <span className="flex gap-2">
-            <h2>ADD</h2>
-            <h2 className="text-black">{`${lastGuess}`}</h2>
-            <h2>AS ALTERNATE MOVE</h2>
-          </span>
-        </button>
-      </div>
+          <button
+            className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+            onClick={() => onMarkAlternative(lastGuess)}
+          >
+            ADD <span className="text-black">{lastGuess}</span> TO MOVES
+          </button>
+        </div>
     </div>
   );
 };

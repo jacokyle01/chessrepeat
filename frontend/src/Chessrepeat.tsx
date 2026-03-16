@@ -23,11 +23,11 @@ import { parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
-import Explorer from './components/Explorer';
 import { CommentBox } from './components/CommentBox';
 import { CopyFen } from './components/CopyFen';
 import { SiDiscord, SiGithub } from 'react-icons/si';
-import { Bug, Mail, User, UserX } from 'lucide-react';
+import { BookOpenIcon, Bug, FolderCog2Icon, Mail, NetworkIcon, User, UserX } from 'lucide-react';
+import SettingsModal from './components/modals/SettingsModal';
 import {
   calcTarget,
   chessgroundToSan,
@@ -41,6 +41,7 @@ import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import { useAuthStore } from './state/auth';
+import './css/layout.css';
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -94,6 +95,7 @@ export const Chessrepeat = () => {
 
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -106,14 +108,10 @@ export const Chessrepeat = () => {
       if (!activeEl) return;
 
       activeEl.scrollIntoView({
-        // behavior: 'smooth',
         block: 'nearest',
         inline: 'nearest',
       });
     };
-
-    // // Initial sync (in case active already exists)
-    // scrollActiveIntoView();
 
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -241,17 +239,13 @@ export const Chessrepeat = () => {
     const lastNode = nodeList.at(-1);
     const lastlastNode = nodeList.at(-2);
     if (!lastNode || !lastlastNode) return undefined;
-    // console.log('lastNode', lastNode, 'before that', lastlastNode);
 
     const fen = lastlastNode.data.fen;
     const setup = parseFen(fen);
     if (!setup.isOk) throw new Error('Invalid FEN: ' + fen);
 
     let pos = Chess.fromSetup(setup.value).unwrap();
-    // console.log('pos', pos);
     const move = parseSan(pos, lastNode.data.san);
-    // console.log('move', move);
-    // return [move.from, move.to];
     return chessgroundMove(move);
   };
 
@@ -329,206 +323,139 @@ export const Chessrepeat = () => {
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
-      <div id="root" className="w-full h-dvh min-h-0 flex flex-col bg-gray-200">
-        {/* HEADER (shared) */}
-        <div
-          id="header"
-          className="flex flex-wrap items-end justify-start text-3xl mb-3 gap-20 gap-y-2 px-4 sm:px-6 lg:px-10"
-        >
-          <div className="flex items-end shrink-0">
-            <img src="logo.png" alt="Logo" className="h-12 w-12 mr-2" />
+      <div className="app-root">
+        {/* HEADER */}
+        <div id="header">
+          <div className="logo-wrap">
+            <img src="logo.png" alt="Logo" />
             <span>chess</span>
-            <span className="text-stone-600">repeat</span>
+            <span className="accent">repeat</span>
           </div>
 
-            {/* Discord */}
-            <a
-              href="https://discord.gg/xhjra9W6Bh"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Join our Discord"
-              className="flex items-end gap-1 text-base hover:text-black transition"
-            >
-              <span>join discord</span>
-              <SiDiscord className="w-5 h-5" />
-            </a>
+          <a
+            href="https://discord.gg/xhjra9W6Bh"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Join our Discord"
+            className="header-link"
+          >
+            <span>join discord</span>
+            <SiDiscord />
+          </a>
 
-            {/* GitHub */}
-            <a
-              href="https://github.com/jacokyle01/chessrepeat"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="View on GitHub"
-              className="flex items-end gap-1 text-base hover:text-black transition"
-            >
-              <span>view github</span>
-              <SiGithub className="w-5 h-5" />
-            </a>
+          <a
+            href="https://github.com/jacokyle01/chessrepeat"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on GitHub"
+            className="header-link"
+          >
+            <span>view github</span>
+            <SiGithub />
+          </a>
 
-            {/* Bug report */}
-            <a
-              href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
-              title="Report a Bug"
-              className="flex items-end gap-1 text-base hover:text-black transition"
-            >
-              <span>report bug</span>
-              <Bug className="w-5 h-5" />
-            </a>
+          <a
+            href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
+            title="Report a Bug"
+            className="header-link"
+          >
+            <span>report bug</span>
+            <Bug />
+          </a>
         </div>
 
         {showingAddToRepertoireMenu && (
           <>
-            <div
-              className="fixed inset-0 bg-black/50 z-10"
-              onClick={() => setShowingAddToRepertoireMenu(false)}
-            />
+            <div className="modal-backdrop" onClick={() => setShowingAddToRepertoireMenu(false)} />
             <AddToRepertoireModal />
           </>
         )}
 
-        {/* ========================= */}
-        {/* MOBILE LAYOUT (<md)       */}
-        {/* Header already shown above */}
-        {/* Board -> Tip/Explorer -> Tree -> Repertoire */}
-        {/* ========================= */}
-        <div className="md:hidden flex-1 min-h-0 overflow-auto px-4 pb-4 space-y-4">
-          {/* Board + controls + comment */}
-          <div className="bg-white/70 rounded-xl border border-gray-300 overflow-hidden">
-            <div className="p-2">
-              <div id="board-wrap" className="bg-white p-1 rounded-lg" ref={containerRef}>
-                <Chessground
-                  orientation={chapter?.trainAs || 'white'}
-                  fen={selectedNode?.data.fen || initial}
-                  turnColor={turn}
-                  lastMove={lastMove}
-                  movable={{
-                    free: false,
-                    color: turn,
-                    dests: calculateDests(),
-                    events: { after: onAfterMove },
-                  }}
-                  drawable={{ autoShapes: createShapes() }}
-                />
-                {pendingPromo && (
-                  <PromotionOverlay
-                    dest={pendingPromo.to}
-                    color={promotionColorFromFen(pendingPromo.fenBefore)}
-                    orientation={chapter?.trainAs || 'white'}
-                    onCancel={closePromo}
-                    onPick={(role: PromoRole) => {
-                      const { fenBefore, from, to, meta } = pendingPromo;
-                      closePromo();
-                      const san = chessgroundToSan(fenBefore, from, to, role);
-                      finishMove(san, meta, to);
-                    }}
-                  />
-                )}
+        {/* MAIN LAYOUT — single DOM, CSS handles mobile vs desktop */}
+        <div className="app-main">
+          {/* BOARD */}
+          <div className="area-board" id="board-wrap" ref={containerRef}>
+            <Chessground
+              orientation={chapter?.trainAs || 'white'}
+              fen={selectedNode?.data.fen || initial}
+              turnColor={turn}
+              lastMove={lastMove}
+              movable={{
+                free: false,
+                color: turn,
+                dests: calculateDests(),
+                events: { after: onAfterMove },
+              }}
+              drawable={{ autoShapes: createShapes() }}
+            />
+            {pendingPromo && (
+              <PromotionOverlay
+                dest={pendingPromo.to}
+                color={promotionColorFromFen(pendingPromo.fenBefore)}
+                orientation={chapter?.trainAs || 'white'}
+                onCancel={closePromo}
+                onPick={(role: PromoRole) => {
+                  const { fenBefore, from, to, meta } = pendingPromo;
+                  closePromo();
+                  const san = chessgroundToSan(fenBefore, from, to, role);
+                  finishMove(san, meta, to);
+                }}
+              />
+            )}
+          </div>
+
+          {/* CONTROLS */}
+          <div className="area-controls">
+            <Controls />
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="settings-btn"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <FolderCog2Icon size={22} />
+            </button>
+          </div>
+
+          {settingsOpen && (
+            <>
+              <div className="modal-backdrop" style={{ zIndex: 40 }} onClick={() => setSettingsOpen(false)} />
+              <SettingsModal setSettingsOpen={setSettingsOpen} />
+            </>
+          )}
+
+          {/* USER TIP / EXPLORER */}
+          <div className="area-usertip">
+            <UserTip />
+          </div>
+
+          {/* PGN TREE */}
+          <div className="area-pgn" ref={movesContainerRef}>
+            <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
+              <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
+                <NetworkIcon />
               </div>
+              <span className="text-gray-800 font-semibold text-xl">Chapter</span>
             </div>
-
-            <div className="border-t border-gray-200 p-2">
-              <Controls />
-            </div>
-
-            <div className="border-t border-gray-200 p-2">
-              <CommentBox />
-            </div>
-          </div>
-
-          {/* UserTip / Explorer (comes BEFORE tree on mobile) */}
-          <div className="bg-white/70 rounded-xl border border-gray-300 overflow-hidden">
-            <div className="p-2">{trainingMethod == 'edit' ? <Explorer /> : <UserTip />}</div>
-          </div>
-
-          {/* PGN Tree */}
-          <div
-            className="bg-white/70 rounded-xl border border-gray-300 overflow-hidden"
-            ref={movesContainerRef}
-          >
-            <div className="p-2">
+            <div className="pgn-tree-scroll">
               <PgnTree setActiveMoveId={setActiveMoveId} />
             </div>
-            <div className="border-t border-gray-200 p-2">
+            <div className="pgn-controls-bar">
               <PgnControls />
             </div>
           </div>
 
-          {/* Repertoire wrap LAST on mobile */}
-          <div className="bg-white/70 rounded-xl border border-gray-300 overflow-hidden">
-            <div className="p-2">
-              <Repertoire />
-            </div>
-
-            <div className="border-t border-gray-200 p-2">
-              <RepertoireActions />
-            </div>
-
-            <div className="border-t border-gray-200 p-2">
-              <Schedule />
-            </div>
-          </div>
-        </div>
-
-        {/* ========================= */}
-        {/* DESKTOP LAYOUT (md+)      */}
-        {/* Your existing layout      */}
-        {/* ========================= */}
-        <div className="hidden md:flex justify-between items-start w-full px-10 gap-5 flex-1 min-h-0 overflow-hidden">
-          <div className="repertoire-wrap flex flex-col w-1/3 h-full min-h-0 overflow-hidden flex-1">
+          {/* REPERTOIRE */}
+          <div className="area-repertoire">
             <Repertoire />
             <RepertoireActions />
             <Schedule />
           </div>
-
-          <div className="game-wrap flex flex-col items-between flex-1 h-dvh min-h-0 overflow-hidden">
-            <div id="board-wrap" className="bg-white p-1" ref={containerRef}>
-              <Chessground
-                orientation={chapter?.trainAs || 'white'}
-                fen={selectedNode?.data.fen || initial}
-                turnColor={turn}
-                lastMove={lastMove}
-                movable={{
-                  free: false,
-                  color: turn,
-                  dests: calculateDests(),
-                  events: { after: onAfterMove },
-                }}
-                drawable={{ autoShapes: createShapes() }}
-              />
-              {pendingPromo && (
-                <PromotionOverlay
-                  dest={pendingPromo.to}
-                  color={promotionColorFromFen(pendingPromo.fenBefore)}
-                  orientation={chapter?.trainAs || 'white'}
-                  onCancel={closePromo}
-                  onPick={(role: PromoRole) => {
-                    const { fenBefore, from, to, meta } = pendingPromo;
-                    closePromo();
-                    const san = chessgroundToSan(fenBefore, from, to, role);
-                    finishMove(san, meta, to);
-                  }}
-                />
-              )}
-            </div>
-
-            <Controls />
-            <CommentBox />
-          </div>
-
-          <div className="tree-wrap flex flex-col flex-1 h-full w-1/3 min-h-0 overflow-hidden">
-            <div
-              className="pgn-context rounded-xl border border-gray-300 overflow-hidden flex-1 min-h-0"
-              ref={movesContainerRef}
-            >
-              <PgnTree setActiveMoveId={setActiveMoveId} />
-              {trainingMethod == 'edit' ? <Explorer /> : <UserTip />}
-            </div>
-            <PgnControls />
-          </div>
         </div>
       </div>
 
-      {/* +time overlay unchanged */}
+      {/* +time overlay */}
       {box && trainingMethod === 'recall' && (
         <div
           style={{
