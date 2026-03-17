@@ -101,37 +101,37 @@ const Fail = () => {
 
   return (
     <div className="bg-white py-5 flex flex-col items-center rounded-md border border-gray-300">
-        <div className="flex flex-row justify-center items-center w-full space-x-5 pb-5">
-          <div className="text-red-500 text-7xl font-bold">✗</div>
-          <div id="failure">
-            <h2 className="font-bold text-2xl text-gray-800">{`${lastGuess} is incorrect`}</h2>
-            <p className="text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</p>
-          </div>
+      <div className="flex flex-row justify-center items-center w-full space-x-5 pb-5">
+        <div className="text-red-500 text-7xl font-bold">✗</div>
+        <div id="failure">
+          <h2 className="font-bold text-2xl text-gray-800">{`${lastGuess} is incorrect`}</h2>
+          <p className="text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</p>
         </div>
+      </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-row items-center justify-center gap-2 w-full px-4">
-          <button
-            className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
-            onClick={onContinue}
-          >
-            CONTINUE
-          </button>
+      {/* Action buttons */}
+      <div className="flex flex-row items-center justify-center gap-2 w-full px-4">
+        <button
+          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+          onClick={onContinue}
+        >
+          CONTINUE
+        </button>
 
-          <button
-            className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
-            onClick={() => setUserTip('recall')}
-          >
-            UNDO GUESS
-          </button>
+        <button
+          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+          onClick={() => setUserTip('recall')}
+        >
+          UNDO GUESS
+        </button>
 
-          <button
-            className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
-            onClick={() => onMarkAlternative(lastGuess)}
-          >
-            ADD <span className="text-black">{lastGuess}</span> TO MOVES
-          </button>
-        </div>
+        <button
+          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+          onClick={() => onMarkAlternative(lastGuess)}
+        >
+          ADD <span className="text-black">{lastGuess}</span> TO MOVES
+        </button>
+      </div>
     </div>
   );
 };
@@ -195,8 +195,9 @@ export const UserTip = () => {
   const repertoire = useTrainerStore((s) => s.repertoire);
   const trainingMethod = useTrainerStore((s) => s.trainingMethod);
 
-  if (repertoire.length == 0) return <EmptyRepertoire />;
   if (!trainingMethod) return <Unselected />;
+  if (trainingMethod == 'edit') return;
+  if (repertoire.length == 0) return <EmptyRepertoire />;
 
   // TODO repertoireIndex should be correct, so user have a repertoire selected
 

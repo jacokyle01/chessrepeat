@@ -99,6 +99,8 @@ export const Chessrepeat = () => {
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
 
+
+  //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
     const container = movesContainerRef.current;
     if (!container) return;

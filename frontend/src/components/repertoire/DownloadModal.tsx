@@ -63,7 +63,9 @@ const DownloadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="px-5 pb-5 space-y-5">
           {/* Scope */}
           <fieldset>
-            <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Scope</legend>
+            <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+              Scope
+            </legend>
             <div className="grid grid-cols-2 gap-2">
               <ScopeOption
                 label="Repertoire"
@@ -84,7 +86,9 @@ const DownloadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           {/* Format */}
           <fieldset>
-            <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Format</legend>
+            <legend className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+              Format
+            </legend>
             <div className="grid grid-cols-2 gap-2">
               <FormatOption
                 label="JSON"
@@ -107,9 +111,10 @@ const DownloadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             type="button"
             disabled={!canDownload}
             className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition
-              ${canDownload
-                ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98]'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              ${
+                canDownload
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98]'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
           >
             <DownloadIcon className="w-4 h-4" />
@@ -133,9 +138,10 @@ const ScopeOption: React.FC<{
     onClick={onClick}
     disabled={disabled}
     className={`text-left px-3 py-2.5 rounded-lg border-2 transition text-sm
-      ${selected
-        ? 'border-blue-500 bg-blue-50 text-blue-900'
-        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+      ${
+        selected
+          ? 'border-blue-500 bg-blue-50 text-blue-900'
+          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
       }
       ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
   >
@@ -154,9 +160,10 @@ const FormatOption: React.FC<{
     type="button"
     onClick={onClick}
     className={`text-left px-3 py-2.5 rounded-lg border-2 transition text-sm cursor-pointer
-      ${selected
-        ? 'border-blue-500 bg-blue-50 text-blue-900'
-        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+      ${
+        selected
+          ? 'border-blue-500 bg-blue-50 text-blue-900'
+          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
       }`}
   >
     <div className="font-semibold">{label}</div>
@@ -174,17 +181,14 @@ const RepertoireActions: React.FC = () => {
 
   return (
     <>
-      <div
-        id="repertoire-actions"
-        className="my-2 shrink-0 flex items-center justify-start gap-2"
-      >
+      <div id="repertoire-actions" className="my-2 shrink-0 flex items-center justify-start gap-2">
         <button
           onClick={() => setShowingAddToRepertoireMenu(true)}
           className={`
             h-11 inline-flex items-center justify-center gap-2
-            rounded-md px-3 font-semibold
+            rounded-md px-3
             hover:shadow transition active:scale-[0.98] whitespace-nowrap
-            border border-gray-300 bg-white
+            border border-gray-300 bg-white 
             ${isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}
           `}
         >
@@ -194,7 +198,7 @@ const RepertoireActions: React.FC = () => {
 
         <button
           onClick={() => setIsDownloadOpen(true)}
-          className="h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 font-semibold hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
+          className="h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
         >
           <BookDownIcon className="h-5 w-5" />
           <span>Download</span>

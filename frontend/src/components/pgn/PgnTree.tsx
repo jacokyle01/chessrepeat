@@ -10,7 +10,7 @@ import { useAppContextMenu } from './ContextMenuProvider';
 
 import { ContextMenuProvider } from './ContextMenuProvider';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TrainableNode } from '../../types/training';
 import { getNodeList, nodeAtPath, hasBranching } from '../../util/tree';
 export interface Opts {
@@ -129,9 +129,8 @@ const contextMenuItems = (path: string, san: string) => {
 };
 
 const MAX_LEN_MAINLINE_COMMENT = 300;
-const MAX_LEN_INLINE_COMMENT = 200; 
-const MAX_BRANCH_DEPTH = 5; //TODO can conditionally shrink this on mobile? 
-
+const MAX_LEN_INLINE_COMMENT = 200;
+const MAX_BRANCH_DEPTH = 5; //TODO can conditionally shrink this on mobile?
 
 // COMMENTS
 
@@ -217,7 +216,9 @@ export function RenderMainlineCommentsOf({
 
   const colorClass = withColor ? (node.data.ply % 2 === 0 ? ' black' : ' white') : '';
 
-  return <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={MAX_LEN_MAINLINE_COMMENT} />;
+  return (
+    <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={MAX_LEN_MAINLINE_COMMENT} />
+  );
 }
 
 // END COMMENTS
@@ -561,9 +562,49 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
   return <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />;
 }
 
+function ChildMoveButtons() {
+  const jump = useTrainerStore((s) => s.jump);
+  const selectedPath = useTrainerStore((s) => s.selectedPath);
+  const repertoire = useTrainerStore.getState().repertoire;
+  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+  const chapter = repertoire[repertoireIndex];
+  if (!chapter) return null;
+
+  const node = selectedPath ? nodeAtPath(chapter.root, selectedPath) : chapter.root;
+  if (!node || node.children.length <= 1) return null;
+
+  return (
+    <div className="shrink-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 px-2 py-1.5">
+      <div className="flex flex-wrap gap-1.5 justify-start">
+        {node.children.map((child) => (
+          <button
+            key={child.data.id}
+            className="px-2.5 py-1 text-sm font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition shadow-sm basis-[calc(50%-0.1875rem)]"
+            onClick={() => jump(selectedPath + child.data.id)}
+          >
+            {renderIndex(child.data.ply, true)} {child.data.san}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 //TODO function should be part of state
 export default function PgnTree({ setActiveMoveId }) {
   const jump = useTrainerStore((s) => s.jump);
+  const trainingMethod = useTrainerStore((s) => s.trainingMethod);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (trainingMethod == 'edit') return;
+    const scrollContainer = scrollRef.current?.closest('.pgn-tree-scroll');
+    if (scrollContainer) {
+      requestAnimationFrame(() => {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      });
+    }
+  }, [trainingMethod]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     // Only handle left click or touch
@@ -608,10 +649,11 @@ export default function PgnTree({ setActiveMoveId }) {
   // const blackStarts = (root.data.ply & 1) === 1;
   return (
     <ContextMenuProvider>
-      <div className="bg-gray-100">
+      <div className="relative h-full flex flex-col bg-gray-100">
         <div
+          ref={scrollRef}
           onMouseDown={handleMouseDown}
-          className="tview2 tview2-column repertoire-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white"
+          className="tview2 tview2-column repertoire-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white flex-1 min-h-0"
         >
           {root.data.comment && (
             <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
@@ -627,6 +669,7 @@ export default function PgnTree({ setActiveMoveId }) {
           {blackStarts && <EmptyMove />} */}
           <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
         </div>
+        <ChildMoveButtons />
       </div>
     </ContextMenuProvider>
   );
