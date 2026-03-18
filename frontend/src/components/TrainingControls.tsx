@@ -70,8 +70,8 @@ const Controls = () => {
           transition-all duration-200
           ${
             method === 'learn'
-              ? 'bg-white text-blue-600 shadow-md ring-1 ring-blue-300'
-              : 'text-slate-500 hover:text-blue-600 hover:bg-slate-200'
+              ? 'bg-white text-sky-400 shadow-md ring-1 ring-sky-300'
+              : 'text-slate-500 hover:text-sky-400 hover:bg-slate-200'
           }
           ${
             method === 'unselected' && name === 'Example Repertoire'
@@ -96,14 +96,15 @@ const Controls = () => {
           transition-all duration-200
           ${
             method === 'recall'
-              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-indigo-300'
-              : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-200'
+              ? 'bg-white text-blue-600 shadow-md ring-1 ring-blue-300'
+              : 'text-slate-500 hover:text-blue-600 hover:bg-slate-200'
           }
         `}
       >
         <History size={18} />
         Recall
       </button>
+
     </div>
   </div>
 );

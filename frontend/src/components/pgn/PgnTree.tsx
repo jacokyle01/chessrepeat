@@ -10,7 +10,7 @@ import { useAppContextMenu } from './ContextMenuProvider';
 
 import { ContextMenuProvider } from './ContextMenuProvider';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TrainableNode } from '../../types/training';
 import { getNodeList, nodeAtPath, hasBranching } from '../../util/tree';
 export interface Opts {
@@ -158,14 +158,20 @@ function RenderComment({
   path: string;
   maxLength: number;
 }) {
-  const [expanded, setExpanded] = React.useState(false); //TODO can we do this with a class instead? OPTIMIZATION
+  const [expanded, setExpanded] = useState(false); //TODO can we do this with a class instead? OPTIMIZATION
+  const selectedPath = useTrainerStore.getState().selectedPath;
   const truncated = truncateComment(comment, maxLength, ctx);
   const isTruncated = truncated.length < comment.length;
 
   const displayText = isTruncated && !expanded ? truncated : comment;
+  const isCommentOfActiveMove = path === selectedPath;
+  const selectedClass = isCommentOfActiveMove ? 'text-blue-700 bg-blue-50 rounded shadow-inner ring-1 ring-blue-200' : ''
 
   return (
-    <span className="comment inline-block text-gray-500 mx-2 break-words">
+    <span
+      className={`comment inline-block text-gray-500 mx-2 break-words px-2 ${selectedClass}`}
+      style={isCommentOfActiveMove ? { maskImage: 'linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent)' } : undefined}
+    >
       {displayText}
       {isTruncated && (
         <span
@@ -286,9 +292,9 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
 
 function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   const { showMenu, contextSelectedPath } = useAppContextMenu();
-
+  
   const path = opts.parentPath + node.data.id;
-
+  
   const { repertoire, repertoireIndex } = useTrainerStore.getState();
   const chapter = repertoire[repertoireIndex];
   if (!chapter) return;
@@ -574,7 +580,7 @@ function ChildMoveButtons() {
   if (!node || node.children.length <= 1) return null;
 
   return (
-    <div className="shrink-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 px-2 py-1.5">
+    <div className="shrink-0 bg-white border-t border-gray-200 px-2 py-1.5">
       <div className="flex flex-wrap gap-1.5 justify-start">
         {node.children.map((child) => (
           <button
@@ -598,10 +604,9 @@ export default function PgnTree({ setActiveMoveId }) {
 
   useEffect(() => {
     if (trainingMethod == 'edit') return;
-    const scrollContainer = scrollRef.current?.closest('.pgn-tree-scroll');
-    if (scrollContainer) {
+    if (scrollRef.current) {
       requestAnimationFrame(() => {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        scrollRef.current!.scrollTop = scrollRef.current!.scrollHeight;
       });
     }
   }, [trainingMethod]);

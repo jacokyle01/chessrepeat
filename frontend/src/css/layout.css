@@ -227,6 +227,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    contain: content;
   }
 
   /* cap usertip/comment so they don't steal height from the board row */

@@ -68,13 +68,13 @@ export const ChapterRow = ({ entry, index, id }) => {
           </h3>
 
           {entry.unseenCount > 0 && (
-            <button className="font-roboto text-sm font-medium text-blue-700 bg-blue-500/20 rounded-md px-2 font-black mr-2 flex-shrink-0">
+            <button className="font-roboto text-sm font-medium bg-sky-400/60 rounded-md px-2 font-black mr-2 flex-shrink-0">
               Learn {entry.unseenCount}
             </button>
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="font-roboto text-sm font-medium text-sky-600 bg-sky-400/20 rounded-md px-2 font-black mr-2 flex-shrink-0">
+            <button className="font-roboto text-sm font-medium bg-blue-600/60 rounded-md px-2 font-black mr-2 flex-shrink-0">
               Recall {entry.lastDueCount}
             </button>
           )}

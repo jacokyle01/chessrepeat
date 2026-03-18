@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Chessground } from './components/Chessground';
-import Controls from './components/Controls';
+import Controls from './components/TrainingControls';
 
 import { useEffect, useRef } from 'react';
 import Repertoire from './components/repertoire/Repertoire';
@@ -409,15 +409,18 @@ export const Chessrepeat = () => {
           {/* CONTROLS */}
           <div className="area-controls">
             <Controls />
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="settings-btn"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <FolderCog2Icon size={22} />
-            </button>
+            <div className="inline-flex rounded-b-xl bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+                  transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                aria-label="Settings"
+                title="Settings"
+              >
+                <FolderCog2Icon size={18} />
+              </button>
+            </div>
           </div>
 
           {settingsOpen && (
