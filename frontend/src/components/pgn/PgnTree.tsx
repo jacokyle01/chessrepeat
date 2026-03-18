@@ -265,7 +265,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? 'bg-blue-600/50 active' : '';
+  const activeClass = path === selectedPath ? 'bg-blue-500 rounded-md active' : '';
 
   const { repertoire, repertoireIndex } = useTrainerStore.getState();
   const chapter = repertoire[repertoireIndex];
@@ -280,7 +280,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
       data-path={path}
       className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
         leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold
-        hover:bg-blue-400 hover:rounded-md select-none cursor-pointer
+        hover:bg-sky-400 hover:rounded-md select-none cursor-pointer
         text-gray-700
         ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''} `}
       onContextMenu={(e) => showMenu(e, items, path)}
@@ -313,7 +313,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   // const classes = nodeClasses(ctx, node, path);
 
   const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'bg-blue-600/50 rounded-md active' : '';
+  const activeClass = path == selectedPath ? 'bg-blue-500 rounded-md active' : '';
 
   return (
     <span
@@ -321,7 +321,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
       className={`move variation inline-block max-w-full align-top
   whitespace-normal break-words
   px-[7.9px] pr-[4.74px]
-  hover:bg-blue-200 hover:rounded-md select-none cursor-pointer ${activeClass}
+  hover:bg-sky-400 hover:rounded-md select-none cursor-pointer ${activeClass}
   text-gray-700
   `}
       onContextMenu={(e) => showMenu(e, items, path)}

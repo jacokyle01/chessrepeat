@@ -21,7 +21,7 @@ export interface NodeSearch {
 
 export const DEFAULT_NODE_SEARCH: NodeSearch = {
   algorithm: 'dfs',
-  limit: 1000,
+  limit: 30,
 };
 
 //TODO trainAsColor, depth, only first child
