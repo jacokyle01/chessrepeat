@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTrainerStore } from '../state/state';
 import {
   BookOpenIcon,
@@ -190,13 +191,65 @@ const Unselected = () => {
   );
 };
 
+const EditComment = () => {
+  const selectedNode = useTrainerStore((s) => s.selectedNode);
+  const selectedPath = useTrainerStore((s) => s.selectedPath);
+  const setCommentAt = useTrainerStore((s) => s.setCommentAt);
+
+  const savedComment = selectedNode?.data?.comment ?? '';
+  const [draft, setDraft] = useState(savedComment);
+
+  useEffect(() => {
+    setDraft(selectedNode?.data?.comment ?? '');
+  }, [selectedPath, selectedNode?.data?.comment]);
+
+  const isDirty = draft !== savedComment;
+
+  const handleSave = () => {
+    if (selectedPath !== undefined) {
+      setCommentAt(draft, selectedPath);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-gray-300 rounded-md p-4">
+      <label className="block text-sm font-semibold text-gray-700 mb-1">Comment</label>
+      <textarea
+        className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+        rows={3}
+        value={draft}
+        placeholder="~no comment~"
+        onChange={(e) => setDraft(e.target.value)}
+      />
+      <div className="flex items-center justify-between mt-2 h-6">
+        <span
+          className={`text-xs text-amber-600 transition-opacity duration-150 ${isDirty ? 'opacity-100' : 'opacity-0'}`}
+        >
+          Unsaved changes
+        </span>
+        <button
+          className={`text-sm font-semibold px-3 py-1 rounded transition ${
+            isDirty
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+          disabled={!isDirty}
+          onClick={handleSave}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const UserTip = () => {
   const userTip = useTrainerStore((s) => s.userTip);
   const repertoire = useTrainerStore((s) => s.repertoire);
   const trainingMethod = useTrainerStore((s) => s.trainingMethod);
 
   if (!trainingMethod) return <Unselected />;
-  if (trainingMethod == 'edit') return;
+  if (trainingMethod == 'edit') return <EditComment />;
   if (repertoire.length == 0) return <EmptyRepertoire />;
 
   // TODO repertoireIndex should be correct, so user have a repertoire selected
