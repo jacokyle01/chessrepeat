@@ -658,7 +658,7 @@ export default function PgnTree({ setActiveMoveId }) {
         <div
           ref={scrollRef}
           onMouseDown={handleMouseDown}
-          className="tview2 tview2-column repertoire-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white flex-1 min-h-0"
+          className="tview2 tview2-column repertoire-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white min-h-0"
         >
           {root.data.comment && (
             <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
