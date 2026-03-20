@@ -86,7 +86,7 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
     },
     nodeCount,
     enabledCount,
-    unseenCount: nodeCount, //TODO have the option to mark all nodes as already seen
+    unseenCount: enabledCount, //TODO have the option to mark all nodes as already seen
     lastDueCount: 0, //TODO
   };
 };

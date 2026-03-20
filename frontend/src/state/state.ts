@@ -414,6 +414,7 @@ export const useTrainerStore = create<TrainerState>()(
         const targetNode = trainableContext?.targetMove;
         if (!chapter || !targetNode) return;
         targetNode.data.training = createCard();
+        chapter.unseenCount--;
         await persistChapter(chapter);
       },
 
