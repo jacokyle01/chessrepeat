@@ -57,21 +57,29 @@ const PgnControls = () => {
     }
   };
 
-  const first = (): void => jump(root);
+  const first = (): void => jump('');
   const prev = (): void => jump(init(selectedPath));
+
+  const atStart = selectedPath === '';
+  const atEnd = trainingMethod === 'edit'
+    ? !selectedNode?.children?.[0]
+    : selectedPath.length >= trainingPath.length;
+
+  const btnClass = (disabled: boolean) =>
+    `px-1 rounded-md ${disabled ? 'bg-gray-100 text-gray-300 cursor-default' : 'bg-gray-200 text-gray-700'}`;
 
   return (
     <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto">
-      <button onClick={first} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+      <button onClick={first} disabled={atStart} className={btnClass(atStart)}>
         {<ArrowLeftToLineIcon size={30} />}
       </button>
-      <button onClick={prev} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+      <button onClick={prev} disabled={atStart} className={btnClass(atStart)}>
         {<MoveLeftIcon size={30} />}
       </button>
-      <button onClick={next} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+      <button onClick={next} disabled={atEnd} className={btnClass(atEnd)}>
         {<MoveRightIcon size={30} />}
       </button>
-      <button onClick={last} className="bg-gray-200 text-gray-700 px-1 rounded-md">
+      <button onClick={last} disabled={atEnd} className={btnClass(atEnd)}>
         {<ArrowRightToLineIcon size={30} />}
       </button>
     </div>
