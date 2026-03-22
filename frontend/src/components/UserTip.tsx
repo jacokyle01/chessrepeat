@@ -59,7 +59,7 @@ const Empty = () => {
   const method = useTrainerStore.getState().trainingMethod;
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-1">
+    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-1 rounded-md">
       <div className="w-12 h-12 flex items-center justify-center">
         <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
           <XIcon width={25} height={25} />
@@ -191,6 +191,7 @@ const Unselected = () => {
   );
 };
 
+//TODO factor this out of userTip? 
 const EditComment = () => {
   const selectedNode = useTrainerStore((s) => s.selectedNode);
   const selectedPath = useTrainerStore((s) => s.selectedPath);

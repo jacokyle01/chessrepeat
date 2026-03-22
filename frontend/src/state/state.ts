@@ -533,6 +533,7 @@ export const useTrainerStore = create<TrainerState>()(
         await persistChapter(chapter);
       },
 
+      //TODO separate state action for makeMove, addMove ?
       makeMove: async (san: string) => {
         const { selectedNode, repertoire, repertoireIndex, selectedPath, trainingMethod } = get();
         const chapter = repertoire[repertoireIndex];
@@ -540,6 +541,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         const fen = selectedNode.data.fen;
 
+        // if adding new move
         if (!selectedNode.children.map((_) => _.data.san).includes(san)) {
           const [pos] = positionFromFen(fen);
           const move = parseSan(pos, san);
@@ -563,6 +565,11 @@ export const useTrainerStore = create<TrainerState>()(
           };
 
           // console.log('NEW NODE', newNode);
+
+          //update chapter metadata
+          chapter.enabledCount += newNode.data.enabled ? 1 : 0;
+          chapter.nodeCount++;
+          chapter.unseenCount += newNode.data.enabled ? 1 : 0;
 
           selectedNode.children.push(newNode);
           //TODO abstraction here...

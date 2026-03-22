@@ -7,6 +7,7 @@ import { downloadTextFile, repertoireAsJson } from '../../util/io';
 type DownloadScope = 'repertoire' | 'chapter';
 type ExportFormat = 'json' | 'pgn';
 
+//TODO refactor into modal
 const DownloadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const repertoire = useTrainerStore((state) => state.repertoire);
   const repertoireIndex = useTrainerStore((state) => state.repertoireIndex);

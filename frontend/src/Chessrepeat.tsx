@@ -14,19 +14,28 @@ import { DrawShape } from 'chessground/draw';
 import { Key, MoveMetadata } from 'chessground/types';
 import { useTrainerStore } from './state/state';
 import { UserTip } from './components/UserTip';
-import Schedule from './components/Schedule';
+import Schedule from './components/MemorySchedule';
 import AddToRepertoireModal from './components/modals/AddToRepertoireModal';
-import RepertoireActions from './components/repertoire/DownloadModal';
+import RepertoireActions from './components/repertoire/RepertoireActions';
 import PgnControls from './components/pgn/PgnControls';
 import PgnTree from './components/pgn/PgnTree';
-import { parseFen } from 'chessops/fen';
+import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
 import { CommentBox } from './components/CommentBox';
-import { CopyFen } from './components/CopyFen';
 import { SiDiscord, SiGithub } from 'react-icons/si';
-import { BookOpenIcon, Bug, FolderCog2Icon, Mail, NetworkIcon, User, UserX } from 'lucide-react';
+import {
+  BookOpenIcon,
+  Bug,
+  ClipboardCheck,
+  ClipboardCopy,
+  FolderCog2Icon,
+  Mail,
+  NetworkIcon,
+  User,
+  UserX,
+} from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
 import {
   calcTarget,
@@ -96,9 +105,9 @@ export const Chessrepeat = () => {
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fenCopied, setFenCopied] = useState(false);
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
-
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
@@ -408,7 +417,9 @@ export const Chessrepeat = () => {
 
           {/* CONTROLS */}
           <div className="area-controls">
-            <Controls />
+            <div className="flex items-start gap-1">
+              <Controls />
+            </div>
             <div className="inline-flex rounded-b-xl bg-white p-1">
               <button
                 type="button"
@@ -442,6 +453,32 @@ export const Chessrepeat = () => {
                 <NetworkIcon />
               </div>
               <span className="text-gray-800 font-semibold text-xl">Chapter</span>
+              {/* copy icon */}
+              <div className="inline-flex p-1 ml-auto bg-gray-200 rounded-md">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
+                    if (!fen) return;
+                    await navigator.clipboard.writeText(fen);
+                    setFenCopied(true);
+                    setTimeout(() => setFenCopied(false), 1200);
+                  }}
+                  className={`
+                    text-sm font-semibold
+                    transition-all duration-200 hover:text-green-400
+                    ${
+                      fenCopied
+                        ? 'bg-white text-green-600 ring-1 ring-green-300'
+                        : 'hover:text-slate-800 hover:bg-slate-200'
+                    }
+                  `}
+                  aria-label="Copy FEN"
+                  title="Copy FEN"
+                >
+                  {fenCopied ? <ClipboardCheck size={18} /> : <ClipboardCopy size={18} />}
+                </button>
+              </div>
             </div>
             <div className="pgn-tree-scroll">
               <PgnTree setActiveMoveId={setActiveMoveId} />
