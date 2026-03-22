@@ -11,7 +11,6 @@ import {
   XIcon,
 } from 'lucide-react';
 
-const isWhite = true;
 const Recall = () => {
   const { repertoire, repertoireIndex } = useTrainerStore();
   const chapter = repertoire[repertoireIndex];
@@ -36,8 +35,10 @@ const Recall = () => {
 };
 
 const Learn = () => {
-  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
   const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
+  const { repertoire, repertoireIndex } = useTrainerStore();
+  const chapter = repertoire[repertoireIndex];
+  const isWhite = chapter.trainAs == 'white';
 
   return (
     <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3 rounded-md">
@@ -191,7 +192,7 @@ const Unselected = () => {
   );
 };
 
-//TODO factor this out of userTip? 
+//TODO factor this out of userTip?
 const EditComment = () => {
   const selectedNode = useTrainerStore((s) => s.selectedNode);
   const selectedPath = useTrainerStore((s) => s.selectedPath);
