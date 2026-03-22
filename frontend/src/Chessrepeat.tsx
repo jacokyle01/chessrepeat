@@ -92,16 +92,6 @@ export const Chessrepeat = () => {
     hydrateRepertoireFromIDB();
   }, []);
 
-  // hydrate token
-  const hydrate = useAuthStore((s) => s.hydrateFromStorage);
-
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
-
-  const user = useAuthStore((s) => s.user);
-  const isAuthed = useAuthStore((s) => s.isAuthenticated());
-
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -348,7 +338,7 @@ export const Chessrepeat = () => {
             target="_blank"
             rel="noopener noreferrer"
             title="Join our Discord"
-            className="header-link"
+          className="header-link"
           >
             <span>join discord</span>
             <SiDiscord />

@@ -20,7 +20,7 @@
 #header {
   display: flex;
   flex-wrap: nowrap;
-  align-items: center;
+  align-items: baseline;
   justify-content: flex-start;
   font-size: 1.875rem;
   margin-bottom: 0.75rem;
@@ -33,7 +33,7 @@
 
 #header > .logo-wrap {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   flex-shrink: 0;
 }
 
@@ -41,6 +41,8 @@
   height: 3rem;
   width: 3rem;
   margin-right: 0.5rem;
+  position: relative;
+  top: 0.4rem;
 }
 
 #header > .logo-wrap .accent {
