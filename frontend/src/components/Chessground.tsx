@@ -4,6 +4,7 @@ import type { Config } from 'chessground/config';
 import { useEffect, useRef, useState } from 'react';
 
 export function Chessground(props: Config & { setBoardFen?: (fen: string) => void }) {
+  console.log("PROPS", props);
   const [api, setApi] = useState<Api | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,7 +58,7 @@ export function Chessground(props: Config & { setBoardFen?: (fen: string) => voi
 
   return (
     <div
-      className="alpha blue"
+      className="merida blue"
       style={{
         aspectRatio: 1,
         width: '100%',
