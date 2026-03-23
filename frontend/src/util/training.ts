@@ -185,7 +185,7 @@ export function computeNextTrainableNode(
     //push child nodes
     //TODO guarantee non-full
     // TODO check math to ensure that max is followed appropriately
-    if (entry.layer < limit * 2) {
+    if (entry.layer < (limit * 2) - 1) { 
       // TODO ?
       for (const child of pos.children) {
         const DequeEntry: DequeEntry = {

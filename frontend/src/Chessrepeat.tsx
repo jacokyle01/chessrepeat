@@ -51,6 +51,7 @@ import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import { useAuthStore } from './state/auth';
 import './css/layout.css';
+import { Debug } from './components/Debug';
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -134,9 +135,6 @@ export const Chessrepeat = () => {
 
   const [pendingPromo, setPendingPromo] = useState<PendingPromotion | null>(null);
 
-  // TODO dont store this directly. .
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-
   const closePromo = () => setPendingPromo(null);
 
   //TODO move to state.ts
@@ -191,6 +189,7 @@ export const Chessrepeat = () => {
     if (trainingMethod != 'edit' && !isAtLast) return new Map();
     // don't allow moves immediately after recall fail
     // if (userTip == 'fail') return new Map();
+    // TODO fix. this is supposed to be just the move we're looking to see, e.x. for learning or correcting on fail
     if ((trainingMethod == 'learn' || userTip == 'fail') && isAtLast) {
       const uci = targetDest();
       return toDestMap(uci[0], uci[1]);
@@ -324,6 +323,7 @@ export const Chessrepeat = () => {
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
+      <Debug />
       <div className="app-root">
         {/* HEADER */}
         <div id="header">
@@ -372,7 +372,6 @@ export const Chessrepeat = () => {
           </>
         )}
 
-        {/* MAIN LAYOUT — single DOM, CSS handles mobile vs desktop */}
         <div className="app-main">
           {/* BOARD */}
           <div className="area-board" id="board-wrap" ref={containerRef}>

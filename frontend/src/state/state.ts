@@ -658,6 +658,7 @@ export const useTrainerStore = create<TrainerState>()(
         trainingConfig: state.searchConfig,
         // (optional) store last selection stuff if you want:
         selectedPath: state.selectedPath,
+        searchConfig: state.searchConfig
       }),
 
       // ✅ After small state is rehydrated, load chapters from IDB into memory

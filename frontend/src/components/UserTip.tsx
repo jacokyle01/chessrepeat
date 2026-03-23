@@ -100,7 +100,9 @@ const Fail = () => {
   };
 
   const setUserTip = useTrainerStore((s) => s.setUserTip);
-
+  const { repertoire, repertoireIndex } = useTrainerStore();
+  const chapter = repertoire[repertoireIndex];
+  const isWhite = chapter.trainAs == 'white';
   return (
     <div className="bg-white py-5 flex flex-col items-center rounded-md border border-gray-300">
       <div className="flex flex-row justify-center items-center w-full space-x-5 pb-5">
