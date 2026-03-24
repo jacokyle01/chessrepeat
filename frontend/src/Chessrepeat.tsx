@@ -323,7 +323,7 @@ export const Chessrepeat = () => {
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
-      <Debug />
+      {/* <Debug /> */}
       <div className="app-root">
         {/* HEADER */}
         <div id="header">
