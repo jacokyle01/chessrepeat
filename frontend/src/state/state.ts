@@ -22,9 +22,13 @@ import { colorFromPly, positionFromFen } from '../util/chess';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
-import { annotatePgn, rootFromPgn } from '../util/io';
+import { annotatePgn, chapterFromPgn, rootFromPgn } from '../util/io';
 import { createCard, review } from '../util/srs';
 import { Color } from 'chessops';
+
+const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter of a chessrepeat repertoire. You can add your own chapter by clicking "Add to Repertoire" and selecting a PGN (game file) to import. Then, you can train your own openings with spaced repetition! Click "Learn" to see positions for the first time, then click "Recall" to train them after increasingly long intervals of time.
+Spaced repetition can help you memorize new openings more efficiently and effectively than other techniques.
+Enjoy! } 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# *`;
 
 interface TrainerState {
   /* UI Flags */
@@ -275,10 +279,16 @@ export const useTrainerStore = create<TrainerState>()(
 
       // try to load from IDB on refresh
       hydrateRepertoireFromIDB: async () => {
-        const { repertoire } = get();
+        const { repertoire, addNewChapter } = get();
         if (repertoire.length > 0) return;
         const ids = await readChapterIds();
-        if (!ids.length) return;
+
+        if (!ids.length) {
+          // Seed example repertoire for new users
+          const exampleChapter = chapterFromPgn(EXAMPLE_PGN, 'white', 'Example Repertoire');
+          await addNewChapter(exampleChapter);
+          return;
+        }
 
         const chapters: Chapter[] = [];
         for (const cid of ids) {

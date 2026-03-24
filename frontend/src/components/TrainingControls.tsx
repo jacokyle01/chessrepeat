@@ -74,8 +74,8 @@ const Controls = () => {
               : 'text-slate-500 hover:text-sky-400 hover:bg-slate-200'
           }
           ${
-            method === 'unselected' && name === 'Example Repertoire'
-              ? 'animate-pulse'
+            !method && name === 'Example Repertoire'
+              ? 'animate-ring-pulse'
               : ''
           }
         `}
