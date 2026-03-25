@@ -6,7 +6,6 @@ import { Config as CbConfig } from 'chessground/config';
 import {
   Chapter,
   DEFAULT_NODE_SEARCH,
-  LiveChapterData,
   NodeSearch,
   TrainableContext,
   TrainableNode,
@@ -194,9 +193,6 @@ export const useTrainerStore = create<TrainerState>()(
 
       trainableContext: undefined,
       setTrainableContext: (t) => set({ trainableContext: t }),
-
-      liveChapterData: null,
-      setLiveChapterData: (val: LiveChapterData) => set({ liveChapterData: val }),
 
       selectedPath: '',
       setSelectedPath: (path) => set({ selectedPath: path }),
@@ -462,15 +458,15 @@ export const useTrainerStore = create<TrainerState>()(
 
       //TODO need to edit live state
       disableLine: async (path: string) => {
-        const { repertoire, repertoireIndex, liveChapterData } = get();
+        const { repertoire, repertoireIndex } = get();
         const chapter = repertoire[repertoireIndex];
         const root = chapter?.root;
         if (!chapter || !root) return;
 
         updateRecursive(root, path, (node) => {
           if (node.data.enabled) {
-            liveChapterData.enabledCount--;
-            
+            chapter.enabledCount--; //todo need to save?
+
             node.data.enabled = false;
           }
         });
@@ -480,7 +476,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       enableLine: async (path: string) => {
-        const { repertoire, repertoireIndex, liveChapterData } = get();
+        const { repertoire, repertoireIndex } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
         const trainAs = chapter.trainAs;
@@ -490,7 +486,7 @@ export const useTrainerStore = create<TrainerState>()(
 
           // your existing logic: only enable moves for the side being trained
           if (trainAs === color && !node.data.enabled) {
-            liveChapterData.enabledCount++;
+            chapter.enabledCount++;
             node.data.enabled = true;
           }
         });
@@ -539,7 +535,6 @@ export const useTrainerStore = create<TrainerState>()(
 
           //update chapter metadata
           chapter.enabledCount += newNode.data.enabled ? 1 : 0;
-          chapter.nodeCount++;
           chapter.unseenCount += newNode.data.enabled ? 1 : 0;
 
           selectedNode.children.push(newNode);
@@ -609,7 +604,6 @@ export const useTrainerStore = create<TrainerState>()(
 
         // //TODO can we make this part of merge?
         let enabledCount = 0;
-        let nodeCount = 0;
         let unseenCount = 0;
         forEachNode(chapter.root, (node) => {
           if (node.data.enabled) {
@@ -619,7 +613,6 @@ export const useTrainerStore = create<TrainerState>()(
         });
 
         chapter.enabledCount = enabledCount;
-        chapter.nodeCount = nodeCount;
         chapter.unseenCount = unseenCount;
 
         // touch only this chapter so UI updates (no set({ repertoire }) on whole array reference)

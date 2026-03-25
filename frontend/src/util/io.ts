@@ -44,7 +44,6 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
   const context = trainingContext(asColor || 'white');
 
   let moves = parsePgn(rawPgn)[0].moves;
-  let nodeCount = 0;
   let enabledCount = 0;
   moves = transform(moves, context, (context, data) => {
     const move = parseSan(context.pos, data.san);
@@ -55,7 +54,6 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
     // idCount++;/
 
     // add training types to each node
-    nodeCount++;
     if (context.trainable) enabledCount++;
     return {
       ...data,

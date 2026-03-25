@@ -99,7 +99,6 @@ export interface Chapter {
   id: string;
   trainAs: Color;
   root: TrainableNode;
-  nodeCount: number;
   enabledCount: number;
   unseenCount: number;
   lastDueCount: number;
@@ -109,12 +108,6 @@ export interface Chapter {
   Additional chapter data for selected chapter, 
   computed upon selecting chapter. 
 */
-// TODO better type hierarchy here?
-export interface LiveChapterData {
-  nodeCount: number;
-  enabledCount: number;
-  dueTimes: number[]; // epochs
-}
 //TODO different data structure for a chapter thats currently selected?
 
 /*
