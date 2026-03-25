@@ -48,7 +48,6 @@ export const ChapterRow = ({ entry, index, id }) => {
             <EditChapterModal
               chapterIndex={index}
               onClose={() => setEditOpen(false)}
-              onSetAllSeen={() => console.log('set all seen')}
             />
           </div>
         </div>
