@@ -95,6 +95,7 @@ export const pathContext: PathContext = {
 // TODO
 // need to edit n2's ids to avoid duplicate
 export function merge(n1: TrainableNode, n2: TrainableNode): void {
+  console.log(n1, n2)
   // merge n2 comments into n1, if exists
   n1.data.comment == n1.data.comment + (n2.data.comment ? ' | ' + n2.data.comment : '');
   n2.children.forEach(function (c) {

@@ -21,7 +21,7 @@ import { computeDueCounts, computeNextTrainableNode, merge } from '../util/train
 import { colorFromPly, positionFromFen } from '../util/chess';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
-import { makeFen } from 'chessops/fen';
+import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
 import { annotatePgn, chapterFromPgn, rootFromPgn } from '../util/io';
 import { createCard, review } from '../util/srs';
 import { Color } from 'chessops';
@@ -88,8 +88,6 @@ interface TrainerState {
   setCommentAt: (comment: string, path: string) => Promise<void>;
   updateDueCounts: () => void;
   setNextTrainablePosition: () => void;
-  // succeed: () => number | null;
-  // fail: () => void;
   learn: () => void;
   train: (correct: boolean) => number;
   guess: (san: string) => TrainingOutcome;
@@ -440,44 +438,6 @@ export const useTrainerStore = create<TrainerState>()(
         targetNode.data.training = review(targetNode.data.training, correct);
         void persistChapter(chapter);
         return Math.trunc((targetNode.data.training.dueAt - Date.now()) / 1000);
-        // let timeToAdd = 0;
-
-        // switch (trainingMethod) {
-        //   case 'recall': {
-        //     let groupIndex = parseInt(targetNode.data.training.group + '');
-        //     chapter.bucketEntries[groupIndex]--;
-
-        //     switch (trainingConfig!.promotion) {
-        //       case 'most':
-        //         groupIndex = trainingConfig!.buckets!.length - 1;
-        //         break;
-        //       case 'next':
-        //         groupIndex = Math.min(groupIndex + 1, trainingConfig!.buckets!.length - 1);
-        //         break;
-        //     }
-
-        //     chapter.bucketEntries[groupIndex]++;
-        //     timeToAdd = trainingConfig!.buckets![groupIndex];
-        //     targetNode.data.training.group = groupIndex;
-        //     break;
-        //   }
-
-        //   case 'learn': {
-        //     targetNode.data.training.seen = true;
-        //     timeToAdd = trainingConfig!.buckets![0];
-        //     targetNode.data.training.group = 0;
-        //     chapter.bucketEntries[0]++;
-        //     break;
-        //   }
-        // }
-
-        // const dueAt = currentTime() + timeToAdd;
-        // targetNode.data.training.dueAt = dueAt;
-
-        // // local-first persist
-        // await persistChapter(get(), repertoireIndex);
-
-        // return timeToAdd;
       },
 
       guess: (san: string): TrainingOutcome => {
@@ -510,6 +470,7 @@ export const useTrainerStore = create<TrainerState>()(
         updateRecursive(root, path, (node) => {
           if (node.data.enabled) {
             liveChapterData.enabledCount--;
+            
             node.data.enabled = false;
           }
         });
@@ -629,15 +590,31 @@ export const useTrainerStore = create<TrainerState>()(
         if (!chapter) return;
 
         const importedPgnRoot = annotatePgn(newPgn, chapter.trainAs);
-        merge(chapter.root, importedPgnRoot);
-        // //TODO can we make this part of merge?
+        console.log(importedPgnRoot, newPgn);
 
+        const importRoot = {
+          data: {
+            comment: '',
+            fen: INITIAL_BOARD_FEN,
+            id: '',
+            ply: 0,
+            san: '',
+            enabled: false,
+            training: null,
+          },
+          children: importedPgnRoot.children,
+        };
+
+        merge(chapter.root, importRoot);
+
+        // //TODO can we make this part of merge?
         let enabledCount = 0;
         let nodeCount = 0;
         let unseenCount = 0;
         forEachNode(chapter.root, (node) => {
-          if (node.data.enabled) enabledCount++;
-          nodeCount++;
+          if (node.data.enabled) {
+            enabledCount++;
+          }
           if (!node.data.training) unseenCount++;
         });
 
@@ -668,7 +645,7 @@ export const useTrainerStore = create<TrainerState>()(
         trainingConfig: state.searchConfig,
         // (optional) store last selection stuff if you want:
         selectedPath: state.selectedPath,
-        searchConfig: state.searchConfig
+        searchConfig: state.searchConfig,
       }),
 
       // ✅ After small state is rehydrated, load chapters from IDB into memory

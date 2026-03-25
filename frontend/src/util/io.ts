@@ -1,5 +1,5 @@
 import { Game, Node, parsePgn, PgnNodeData, transform } from 'chessops/pgn';
-import { Chapter, Color, TrainableNode, TrainingConfig } from '../types/training';
+import { Chapter, Color, TrainableNode, TrainingConfig, TrainingData } from '../types/training';
 import { pgnFromChapter, trainingContext } from './training';
 import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
@@ -92,11 +92,11 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
 };
 
 //TODO should be combined with function above
-export const annotatePgn = (rawPgn: string, asColor: Color) => {
+// can return more values
+export const annotatePgn = (rawPgn: string, asColor: Color): Node<TrainingData> => {
   const context = trainingContext(asColor || 'white');
 
-  let moves = parsePgn(rawPgn)[0].moves;
-  moves = transform(moves, context, (context, data) => {
+  return transform(parsePgn(rawPgn)[0].moves, context, (context, data) => {
     const move = parseSan(context.pos, data.san);
     // assume the move is playable
     context.pos.play(move!);
@@ -115,7 +115,6 @@ export const annotatePgn = (rawPgn: string, asColor: Color) => {
       enabled: !context.trainable,
     };
   });
-  return moves;
 };
 
 // export const rootFromPgn = (
