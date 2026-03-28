@@ -54,7 +54,7 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
     // idCount++;/
 
     // add training types to each node
-    if (context.trainable) enabledCount++;
+    if (!context.trainable) enabledCount++;
     return {
       ...data,
       id: scalachessCharPair(move),

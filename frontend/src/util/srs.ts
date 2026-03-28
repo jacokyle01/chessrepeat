@@ -20,7 +20,7 @@ export const defaultSrsConfig: SrsConfig = {
   request_retention: 0.9,
   maximum_interval: 36500,
   enable_fuzz: true,
-  enable_short_term: true,
+  enable_short_term: false,
 };
 
 let _scheduler: FSRS = fsrs(generatorParameters(defaultSrsConfig));

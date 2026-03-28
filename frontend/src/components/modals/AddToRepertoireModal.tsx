@@ -169,7 +169,7 @@ const AddToRepertoireModal: React.FC = () => {
               tab === 'json' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            JSON backup
+            JSON
           </button>
         </div>
       </div>
