@@ -164,8 +164,8 @@ export function computeNextTrainableNode(
       switch (method) {
         case 'recall': //recall if due
           //TODO remove some pos._ fields
-          console.log("training", pos.data.training?.dueAt)
-          if (pos.data.training && pos.data.training.dueAt <= Date.now()) {
+          console.log("training", pos.data.training?.due)
+          if (pos.data.training && new Date(pos.data.training.due).getTime() <= Date.now()) {
             return {
               startingPath: entry.pathToHere,
               targetMove: entry.targetNode,
@@ -217,7 +217,7 @@ export function computeDueCounts(root: TrainableNode, buckets: number[]): number
     const d = node.data;
     if (!d.enabled || !d.training) return;
 
-    const secondsTilDue = d.training.dueAt - time;
+    const secondsTilDue = new Date(d.training.due).getTime() - time;
     if (secondsTilDue <= 0) {
       counts[0]++;
       return;

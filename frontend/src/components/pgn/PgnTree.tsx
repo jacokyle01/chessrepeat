@@ -39,12 +39,105 @@ import {
   MessageSquarePlus,
   ChevronsRightLeftIcon,
   EllipsisIcon,
+  ChevronDown,
+  CalendarClockIcon,
+  ChartBarBig,
+  ChartBarBigIcon,
 } from 'lucide-react';
+import type { Card } from 'ts-fsrs';
+import type { TrainingData } from '../../types/training';
 
-const contextMenuItems = (path: string, san: string) => {
+function formatDueIn(card: Card): string {
+  const nowMs = Date.now();
+  const dueMs = new Date(card.due).getTime();
+  const diffMs = dueMs - nowMs;
+
+  if (diffMs <= 0) return 'now';
+
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return '<1m';
+  if (mins < 60) return `${mins}m`;
+
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ${mins % 60}m`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo`;
+
+  const years = Math.floor(days / 365);
+  return `${years}y`;
+}
+
+function RepsBar({ reps, lapses }: { reps: number; lapses: number }) {
+  const total = reps + lapses;
+  if (total === 0) return null;
+  const successPct = (reps / total) * 100;
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="h-2 flex-1 rounded-full overflow-hidden flex bg-gray-200" style={{ minWidth: 48 }}>
+        <div className="bg-emerald-500 h-full" style={{ width: `${successPct}%` }} />
+        <div className="bg-red-400 h-full" style={{ width: `${100 - successPct}%` }} />
+      </div>
+      <span className="text-[10px] text-gray-400 tabular-nums whitespace-nowrap">
+        {reps}/{total}
+      </span>
+    </div>
+  );
+}
+
+function CardStateSection({ card }: { card: Card }) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  return (
+    <div className="px-3 py-2">
+      <div className="flex flex-col gap-1.5 text-xs">
+        <div className="flex items-center gap-1.5">
+          <CalendarClockIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <span className="text-gray-500">due in</span>
+          <span className="text-gray-900 font-medium">{formatDueIn(card)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <ChartBarBigIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <span className="text-gray-500 shrink-0">success rate</span>
+          <span className="flex-1">
+            <RepsBar reps={card.reps} lapses={card.lapses} />
+          </span>
+        </div>
+      </div>
+      <button
+        type="button"
+        className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 transition select-none"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowAdvanced(!showAdvanced);
+        }}
+      >
+        <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+        Advanced
+      </button>
+      {showAdvanced && (
+        <div className="flex gap-3 text-xs mt-1">
+          <span className="text-gray-400">
+            stability <span className="text-gray-700 font-medium">{card.stability.toFixed(2)}d</span>
+          </span>
+          <span className="text-gray-400">
+            difficulty <span className="text-gray-700 font-medium">{card.difficulty.toFixed(2)}</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const contextMenuItems = (path: string, data: TrainingData) => {
   const deleteLine = useTrainerStore((s) => s.deleteLine);
   const disableLine = useTrainerStore((s) => s.disableLine);
   const enableLine = useTrainerStore((s) => s.enableLine);
+  const { training, san, enabled } = data;
 
   return [
     // Header
@@ -52,74 +145,67 @@ const contextMenuItems = (path: string, san: string) => {
       label: san,
       disabled: true,
       template: (item: any) => (
-        <div className="px-3 py-2 font-semibold text-gray-800 select-none truncate">{item.label}</div>
+        <div className="px-3 py-2 font-semibold text-gray-800 select-none truncate flex gap-2">
+          <span>{item.label}</span>
+          <span>•</span>
+          <span>{enabled ? 'enabled' : 'disabled'}</span>
+        </div>
       ),
     },
 
     { separator: true },
 
-    // ✅ Line actions row: Delete + Enable/Disable grouped and responsive
+    // Card state (only if trained)
+    ...(training
+      ? [
+          {
+            template: () => <CardStateSection card={training} />,
+          },
+          { separator: true },
+        ]
+      : []),
+
+    // Line actions from here
     {
       template: () => (
         <div className="px-3 py-2">
-          <div className="text-xs font-medium text-gray-500 mb-2 select-none">Line actions</div>
-
-          <div className="flex flex-col flex-wrap gap-2">
-            {/* Delete */}
+          <div className="text-xs font-medium text-gray-500 mb-1.5 select-none">Line actions from here</div>
+          <div className="flex gap-1">
             <button
               type="button"
-              className="
-                inline-flex items-center gap-2
-                rounded-md border border-gray-200 bg-white
-                px-2.5 py-1.5 text-sm text-gray-900
-                hover:bg-gray-50 active:bg-gray-100
-              "
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 hover:bg-gray-50 active:bg-gray-100"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 deleteLine(path);
               }}
             >
-              <Trash2 className="w-4 h-4 text-gray-600" />
-              <span className="whitespace-nowrap">Delete from here</span>
+              <Trash2 className="w-3.5 h-3.5 text-gray-500" />
+              Delete
             </button>
-
-            {/* Disable */}
             <button
               type="button"
-              className="
-                inline-flex items-center gap-2
-                rounded-md border border-gray-200 bg-gray-50
-                px-2.5 py-1.5 text-sm text-gray-800
-                hover:bg-gray-100 active:bg-gray-200
-              "
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-800 hover:bg-gray-100 active:bg-gray-200"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 disableLine(path);
               }}
             >
-              <Ban className="w-4 h-4 text-gray-600" />
-              <span className="whitespace-nowrap">Disable</span>
+              <Ban className="w-3.5 h-3.5 text-gray-500" />
+              Disable
             </button>
-
-            {/* Enable */}
             <button
               type="button"
-              className="
-                inline-flex items-center gap-2
-                rounded-md bg-blue-600
-                px-2.5 py-1.5 text-sm text-white
-                hover:bg-blue-700 active:bg-blue-800
-              "
+              className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 active:bg-blue-800"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 enableLine(path);
               }}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="whitespace-nowrap">Enable</span>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Enable
             </button>
           </div>
         </div>
@@ -282,7 +368,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
 
-  const items = contextMenuItems(path, nodeFromPath.data.san);
+  const items = contextMenuItems(path, nodeFromPath.data);
 
   return (
     <div
@@ -309,7 +395,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   if (!chapter) return;
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
-  const items = contextMenuItems(path, nodeFromPath.data.san);
+  const items = contextMenuItems(path, nodeFromPath.data);
   const withIndex = opts.withIndex || node.data.ply % 2 === 1;
   const content = (
     <>

@@ -1,7 +1,7 @@
 // TODO "core" folder or something for main spaced repetition logic and types
 import { Color, Position } from 'chessops';
 import { ChildNode, PgnNodeData } from 'chessops/pgn';
-import { CardState } from '../util/srs';
+import { Card } from 'ts-fsrs';
 
 export type TrainingOutcome = 'success' | 'alternate' | 'failure';
 export type TrainingMethod = 'learn' | 'recall' | 'edit' | null;
@@ -82,7 +82,7 @@ export interface TrainingData {
   san: string;
   comment: string;
   enabled: boolean;
-  training: CardState | null; //TODO better type here? // null if unseen
+  training: Card | null; // null if unseen
 }
 
 export interface RootData {}

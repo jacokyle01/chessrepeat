@@ -82,7 +82,6 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
       },
       children: moves.children,
     },
-    nodeCount,
     enabledCount,
     unseenCount: enabledCount, //TODO have the option to mark all nodes as already seen
     lastDueCount: 0, //TODO

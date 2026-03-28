@@ -22,7 +22,7 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
 import { annotatePgn, chapterFromPgn, rootFromPgn } from '../util/io';
-import { createCard, review } from '../util/srs';
+import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig } from '../util/srs';
 import { Color } from 'chessops';
 
 const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter of a chessrepeat repertoire. You can add your own chapter by clicking "Add to Repertoire" and selecting a PGN (game file) to import. Then, you can train your own openings with spaced repetition! Click "Learn" to see positions for the first time, then click "Recall" to train them after increasingly long intervals of time.
@@ -73,6 +73,9 @@ interface TrainerState {
   /* Library config */
   searchConfig: NodeSearch;
   setSearchConfig: (config: NodeSearch) => void;
+
+  srsConfig: SrsConfig;
+  setSrsConfig: (config: SrsConfig) => void;
 
   cbConfig: CbConfig;
   setCbConfig: (cfg: CbConfig) => void;
@@ -217,6 +220,12 @@ export const useTrainerStore = create<TrainerState>()(
 
       searchConfig: DEFAULT_NODE_SEARCH,
       setSearchConfig: (cfg) => set({ searchConfig: cfg }),
+
+      srsConfig: defaultSrsConfig,
+      setSrsConfig: (config) => {
+        updateScheduler(config);
+        set({ srsConfig: config });
+      },
 
       cbConfig: {},
       setCbConfig: (cfg) => set({ cbConfig: cfg }),
@@ -373,7 +382,7 @@ export const useTrainerStore = create<TrainerState>()(
           // only enabled, seen nodes
           if (!d.enabled || !d.training) return;
 
-          const msTilDue = d.training.dueAt - Date.now();
+          const msTilDue = new Date(d.training.due).getTime() - Date.now();
           if (msTilDue < 0) {
             countDueNow++;
           }
@@ -431,9 +440,9 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = repertoire[repertoireIndex];
         if (!chapter || !targetNode) return null;
 
-        targetNode.data.training = review(targetNode.data.training, correct);
+        targetNode.data.training = reviewCard(targetNode.data.training, correct);
         void persistChapter(chapter);
-        return Math.trunc((targetNode.data.training.dueAt - Date.now()) / 1000);
+        return Math.trunc((new Date(targetNode.data.training.due).getTime() - Date.now()) / 1000);
       },
 
       guess: (san: string): TrainingOutcome => {
@@ -636,15 +645,16 @@ export const useTrainerStore = create<TrainerState>()(
       partialize: (state) => ({
         repertoireIndex: state.repertoireIndex,
         trainingConfig: state.searchConfig,
-        // (optional) store last selection stuff if you want:
         selectedPath: state.selectedPath,
         searchConfig: state.searchConfig,
+        srsConfig: state.srsConfig,
       }),
 
       // ✅ After small state is rehydrated, load chapters from IDB into memory
       onRehydrateStorage: () => {
         return async (state, err) => {
           if (err || !state) return;
+          updateScheduler(state.srsConfig);
           await state.hydrateRepertoireFromIDB();
         };
       },
