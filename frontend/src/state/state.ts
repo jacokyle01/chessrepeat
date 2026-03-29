@@ -313,23 +313,25 @@ export const useTrainerStore = create<TrainerState>()(
 
       //TODO network actions for delete
       deleteLine: async (path) => {
-        const { repertoire, repertoireIndex, selectedPath, jump } = get();
+        const { repertoire, repertoireIndex, selectedPath, jump, updateDueCounts } = get();
         const chapter = repertoire[repertoireIndex];
-        const root = chapter?.root;
-        if (!root) return;
-
+        const root = chapter.root;
         const node = nodeAtPath(root, path);
         if (!node) return;
 
         // count number of enabled moves we're deleted
         let deleteCount = 0;
+        let unseenCount = 0;
         forEachNode(node, (node) => {
           if (node.data.enabled) deleteCount++;
+          if (node.data.enabled && !node.data.training) unseenCount++;
         });
 
         deleteNodeAt(root, path);
 
         chapter.enabledCount -= deleteCount;
+        chapter.unseenCount -= unseenCount;
+        updateDueCounts();
 
         // IMPORTANT: do NOT set({ repertoire }) anymore.
         // Instead, touch just this chapter in-memory to re-render,

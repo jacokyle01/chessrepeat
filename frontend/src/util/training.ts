@@ -164,7 +164,6 @@ export function computeNextTrainableNode(
       switch (method) {
         case 'recall': //recall if due
           //TODO remove some pos._ fields
-          console.log("training", pos.data.training?.due)
           if (pos.data.training && new Date(pos.data.training.due).getTime() <= Date.now()) {
             return {
               startingPath: entry.pathToHere,
