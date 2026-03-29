@@ -94,9 +94,9 @@
   grid-template-areas:
     'board'
     'controls'
+    'pgn'
     'usertip'
     'comment'
-    'pgn'
     'repertoire';
 }
 
