@@ -39,6 +39,7 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
         <h2>Training Settings</h2>
         <p>Configure spaced repetition and display preferences.</p>
       </div>
+        <Divider label="Next move" />
 
       <div className="settings-body">
         <ToggleGroup
@@ -69,7 +70,7 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
           </div>
         </div>
 
-        <Divider label="FSRS" />
+        <Divider label="Memory algorithm" />
 
         <div className="settings-field">
           <label>Target recall ({Math.round(srsDraft.request_retention * 100)}%)</label>

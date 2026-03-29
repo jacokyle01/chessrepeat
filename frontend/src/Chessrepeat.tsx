@@ -93,6 +93,8 @@ export const Chessrepeat = () => {
     hydrateRepertoireFromIDB();
   }, []);
 
+  const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
+
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -325,7 +327,6 @@ export const Chessrepeat = () => {
     <MantineProvider>
       {/* <Debug /> */}
       <div className="app-root">
-        {/* HEADER */}
         <div id="header">
           <div className="logo-wrap">
             <img src="logo.png" alt="Logo" />
@@ -437,44 +438,51 @@ export const Chessrepeat = () => {
 
           {/* PGN TREE */}
           <div className="area-pgn" ref={movesContainerRef}>
-            <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
-              <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
-                <NetworkIcon />
+            {/* Header + tree: hidden on mobile during learn/recall */}
+            <div className={isTraining ? 'hidden md:block' : ''}>
+              <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
+                <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
+                  <NetworkIcon />
+                </div>
+                <span className="text-gray-800 font-semibold text-xl">Chapter</span>
+                {/* copy icon */}
+                <div className="inline-flex p-1 ml-auto bg-gray-200 rounded-md">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
+                      if (!fen) return;
+                      await navigator.clipboard.writeText(fen);
+                      setFenCopied(true);
+                      setTimeout(() => setFenCopied(false), 1200);
+                    }}
+                    className={`
+                      text-sm font-semibold
+                      transition-all duration-200 hover:text-green-400
+                      ${
+                        fenCopied
+                          ? 'bg-white text-green-600 ring-1 ring-green-300'
+                          : 'hover:text-slate-800 hover:bg-slate-200'
+                      }
+                    `}
+                    aria-label="Copy FEN"
+                    title="Copy FEN"
+                  >
+                    {fenCopied ? <ClipboardCheck size={18} /> : <ClipboardCopy size={18} />}
+                  </button>
+                </div>
               </div>
-              <span className="text-gray-800 font-semibold text-xl">Chapter</span>
-              {/* copy icon */}
-              <div className="inline-flex p-1 ml-auto bg-gray-200 rounded-md">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
-                    if (!fen) return;
-                    await navigator.clipboard.writeText(fen);
-                    setFenCopied(true);
-                    setTimeout(() => setFenCopied(false), 1200);
-                  }}
-                  className={`
-                    text-sm font-semibold
-                    transition-all duration-200 hover:text-green-400
-                    ${
-                      fenCopied
-                        ? 'bg-white text-green-600 ring-1 ring-green-300'
-                        : 'hover:text-slate-800 hover:bg-slate-200'
-                    }
-                  `}
-                  aria-label="Copy FEN"
-                  title="Copy FEN"
-                >
-                  {fenCopied ? <ClipboardCheck size={18} /> : <ClipboardCopy size={18} />}
-                </button>
+              <div className="pgn-tree-scroll">
+                <PgnTree setActiveMoveId={setActiveMoveId} />
               </div>
             </div>
-            <div className="pgn-tree-scroll">
-              <PgnTree setActiveMoveId={setActiveMoveId} />
-            </div>
-            <div className="pgn-controls-bar">
-              <PgnControls />
-            </div>
+            {/* Controls + comment: mobile only during learn/recall */}
+            {isTraining && (
+              <div className="pgn-controls-bar md:hidden">
+                <PgnControls />
+                <CommentBox />
+              </div>
+            )}
           </div>
 
           {/* REPERTOIRE */}
