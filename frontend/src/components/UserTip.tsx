@@ -19,15 +19,15 @@ const Recall = () => {
 
   return (
     <div className="bg-white justify-center border border-gray-300 rounded-md">
-      <div className="flex items-center justify-center py-12 px-6 gap-3">
-        <div className="w-12 h-12 flex items-center justify-center">
-          <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
-            <HistoryIcon width={35} height={35} />
+      <div className="flex items-center justify-center py-3 md:py-12 px-4 md:px-6 gap-2 md:gap-3">
+        <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
+          <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
+            <HistoryIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />
           </div>
         </div>
         <div>
-          <h1 className="font-bold text-2xl text-gray-800">Play the move</h1>
-          <h2 className="text-lg text-gray-600">{`What does ${isWhite ? 'White' : 'Black'} play here?`}</h2>
+          <h1 className="font-bold text-base md:text-2xl text-gray-800">Play the move</h1>
+          <h2 className="text-sm md:text-lg text-gray-600">{`What does ${isWhite ? 'White' : 'Black'} play here?`}</h2>
         </div>
       </div>
     </div>
@@ -41,15 +41,15 @@ const Learn = () => {
   const isWhite = chapter.trainAs == 'white';
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3 rounded-md">
-      <div className="w-12 h-12 flex items-center justify-center">
-        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
-          <GraduationCapIcon width={35} height={35} />
+    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-2 md:gap-3 rounded-md">
+      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
+        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
+          <GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />
         </div>
       </div>
       <div>
-        <h1 className="font-bold text-2xl text-gray-800">Play the move</h1>
-        <h2 className="text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</h2>
+        <h1 className="font-bold text-base md:text-2xl text-gray-800">Play the move</h1>
+        <h2 className="text-sm md:text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</h2>
       </div>
     </div>
   );
@@ -60,15 +60,15 @@ const Empty = () => {
   const method = useTrainerStore.getState().trainingMethod;
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-1 rounded-md">
-      <div className="w-12 h-12 flex items-center justify-center">
-        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
-          <XIcon width={25} height={25} />
+    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-1 md:gap-3 rounded-md">
+      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
+        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
+          <XIcon className="w-5 h-5 md:w-[25px] md:h-[25px]" />
         </div>
       </div>
       <div>
-        <h1 className="font-bold text-xl text-gray-600">{`No more moves to ${method}`}</h1>
-        <h2 className="text-md text-gray-600">Try switching the training mode or modifying settings</h2>
+        <h1 className="font-bold text-sm md:text-xl text-gray-600">{`No more moves to ${method}`}</h1>
+        <h2 className="text-xs md:text-md text-gray-600">Try switching the training mode or modifying settings</h2>
       </div>
     </div>
   );
@@ -104,36 +104,36 @@ const Fail = () => {
   const chapter = repertoire[repertoireIndex];
   const isWhite = chapter.trainAs == 'white';
   return (
-    <div className="bg-white py-5 flex flex-col items-center rounded-md border border-gray-300">
-      <div className="flex flex-row justify-center items-center w-full space-x-5 pb-5">
-        <div className="text-red-500 text-7xl font-bold">✗</div>
+    <div className="bg-white py-2 md:py-5 flex flex-col items-center rounded-md border border-gray-300">
+      <div className="flex flex-row justify-center items-center w-full space-x-3 md:space-x-5 pb-2 md:pb-5">
+        <div className="text-red-500 text-4xl md:text-7xl font-bold">✗</div>
         <div id="failure">
-          <h2 className="font-bold text-2xl text-gray-800">{`${lastGuess} is incorrect`}</h2>
-          <p className="text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</p>
+          <h2 className="font-bold text-base md:text-2xl text-gray-800">{`${lastGuess} is incorrect`}</h2>
+          <p className="text-sm md:text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</p>
         </div>
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-row items-center justify-center gap-2 w-full px-4">
+      <div className="flex flex-row items-center justify-center gap-1 md:gap-2 w-full px-2 md:px-4">
         <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
           onClick={onContinue}
         >
           CONTINUE
         </button>
 
         <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
           onClick={() => setUserTip('recall')}
         >
-          UNDO GUESS
+          UNDO
         </button>
 
         <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-sm whitespace-nowrap"
+          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
           onClick={() => onMarkAlternative(lastGuess)}
         >
-          ADD <span className="text-black">{lastGuess}</span> TO MOVES
+          ADD <span className="text-black">{lastGuess}</span>
         </button>
       </div>
     </div>
@@ -144,13 +144,13 @@ const Alternate = () => {
   const lastGuess = useTrainerStore.getState().lastGuess;
 
   return (
-    <div id="recall" className="border-t-2">
-      <div className="bg-white py-10 shadow-md flex flex-col items-center">
-        <div className="flex flex-row justify-center items-center w-full space-x-5">
-          <LucideRepeat2 size={48} color={'gold'} />
-          <div id="failure">
-            <h2 className="font-bold text-2xl text-amber-400">{`${lastGuess} is an alternate move`}</h2>
-            <p className="text-lg text-gray-600">Try playing a different move</p>
+    <div className="border-t-2">
+      <div className="bg-white py-3 md:py-10 shadow-md flex flex-col items-center">
+        <div className="flex flex-row justify-center items-center w-full space-x-3 md:space-x-5">
+          <LucideRepeat2 className="w-8 h-8 md:w-12 md:h-12" color={'gold'} />
+          <div>
+            <h2 className="font-bold text-base md:text-2xl text-amber-400">{`${lastGuess} is an alternate move`}</h2>
+            <p className="text-sm md:text-lg text-gray-600">Try playing a different move</p>
           </div>
         </div>
       </div>
@@ -162,15 +162,15 @@ const EmptyRepertoire = () => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3">
-      <div className="w-12 h-12 flex items-center justify-center">
-        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
-          <GraduationCapIcon width={35} height={35} />
+    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-2 md:gap-3">
+      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
+        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
+          <GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />
         </div>
       </div>
       <div>
-        <h1 className="font-bold text-2xl text-gray-800">Repertoire is empty</h1>
-        <h2 className="text-lg text-gray-600">Click "Add to Repertoire" to get started!</h2>
+        <h1 className="font-bold text-base md:text-2xl text-gray-800">Repertoire is empty</h1>
+        <h2 className="text-sm md:text-lg text-gray-600">Click "Add to Repertoire" to get started!</h2>
       </div>
     </div>
   );
@@ -180,15 +180,15 @@ const Unselected = () => {
   // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
 
   return (
-    <div className="bg-white flex items-center justify-center py-12 border border-gray-300 gap-3">
-      <div className="w-12 h-12 flex items-center justify-center">
-        <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-2 rounded-md">
-          <MousePointer width={35} height={35} />
+    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-2 md:gap-3">
+      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
+        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
+          <MousePointer className="w-5 h-5 md:w-[35px] md:h-[35px]" />
         </div>
       </div>
       <div>
-        <h1 className="font-bold text-2xl text-gray-800">No training mode selected</h1>
-        <h2 className="text-md text-gray-600">Click Learn or Recall to start training</h2>
+        <h1 className="font-bold text-base md:text-2xl text-gray-800">No training mode selected</h1>
+        <h2 className="text-xs md:text-md text-gray-600">Click Learn or Recall to start training</h2>
       </div>
     </div>
   );
