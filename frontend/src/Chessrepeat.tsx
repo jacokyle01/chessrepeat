@@ -487,7 +487,11 @@ export const Chessrepeat = () => {
 
           {/* REPERTOIRE */}
           <div className="area-repertoire">
-            <Repertoire />
+            {/* Desktop: full inline repertoire */}
+            <div className="hidden md:flex flex-col flex-1 min-h-0">
+              <Repertoire />
+            </div>
+            {/* Mobile: repertoire as modal trigger */}
             <RepertoireActions />
             <Schedule />
           </div>

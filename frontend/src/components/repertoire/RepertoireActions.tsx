@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { BookDownIcon, BookPlus, DownloadIcon, XIcon } from 'lucide-react';
+import { BookDownIcon, BookOpenIcon, BookPlus, DownloadIcon, XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import { pgnFromChapter, pgnFromRepertoire } from '../../util/training';
 import { downloadTextFile, repertoireAsJson } from '../../util/io';
+import Repertoire from './Repertoire';
 
 type DownloadScope = 'repertoire' | 'chapter';
 type ExportFormat = 'json' | 'pgn';
@@ -179,22 +180,32 @@ const RepertoireActions: React.FC = () => {
   const isHighlighted = repertoire.length === 0;
 
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [isRepertoireOpen, setIsRepertoireOpen] = useState(false);
 
   return (
     <>
       <div id="repertoire-actions" className="my-2 shrink-0 flex items-center justify-start gap-2">
+        {/* Mobile-only: My Repertoire modal trigger */}
+        <button
+          onClick={() => setIsRepertoireOpen(true)}
+          className="md:hidden h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
+        >
+          <BookOpenIcon className="h-5 w-5" />
+          <span>Repertoire</span>
+        </button>
+
         <button
           onClick={() => setShowingAddToRepertoireMenu(true)}
           className={`
             h-11 inline-flex items-center justify-center gap-2
             rounded-md px-3
             hover:shadow transition active:scale-[0.98] whitespace-nowrap
-            border border-gray-300 bg-white 
+            border border-gray-300 bg-white
             ${isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}
           `}
         >
           <BookPlus className="h-5 w-5" />
-          <span>Add to Repertoire</span>
+          <span>Add</span>
         </button>
 
         <button
@@ -205,6 +216,33 @@ const RepertoireActions: React.FC = () => {
           <span>Download</span>
         </button>
       </div>
+
+      {/* Mobile repertoire modal */}
+      {isRepertoireOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-end justify-center md:hidden"
+          onClick={() => setIsRepertoireOpen(false)}
+        >
+          <div
+            className="bg-gray-100 rounded-t-xl shadow-2xl w-full max-h-[75vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
+              <span className="font-semibold text-gray-800">My Repertoire</span>
+              <button
+                type="button"
+                onClick={() => setIsRepertoireOpen(false)}
+                className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+              >
+                <XIcon size={18} />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-4">
+              <Repertoire />
+            </div>
+          </div>
+        </div>
+      )}
 
       {isDownloadOpen && <DownloadModal onClose={() => setIsDownloadOpen(false)} />}
     </>
