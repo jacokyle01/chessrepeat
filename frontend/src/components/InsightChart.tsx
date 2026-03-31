@@ -1,3 +1,6 @@
+//TODO use a library for this? 
+
+
 import React, { useMemo, useState } from 'react';
 import { useTrainerStore } from '../state/state';
 import { AlarmCheckIcon } from 'lucide-react';
@@ -151,7 +154,7 @@ const InsightHeatCalendar: React.FC = () => {
       </div>
 
       {/* Scrollable container for small screens */}
-      <div>
+      <div style={{ overflowX: 'auto' }}>
         <div style={{ position: 'relative', width: LABEL_W + gridW, minWidth: 'fit-content' }}>
           {/* Month labels */}
           <div style={{ marginLeft: LABEL_W, height: MONTH_H, position: 'relative' }}>

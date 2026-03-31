@@ -339,7 +339,7 @@ export const Chessrepeat = () => {
             target="_blank"
             rel="noopener noreferrer"
             title="Join our Discord"
-          className="header-link"
+            className="header-link"
           >
             <span>join discord</span>
             <SiDiscord />
@@ -439,7 +439,7 @@ export const Chessrepeat = () => {
           {/* PGN TREE */}
           <div className="area-pgn" ref={movesContainerRef}>
             {/* Header + tree: hidden on mobile during learn/recall */}
-            <div className={isTraining ? 'hidden md:block' : ''}>
+            <div className={`flex flex-col min-h-0 flex-1 overflow-hidden ${isTraining ? 'hidden md:flex' : ''}`}>
               <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
                 <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
                   <NetworkIcon />
@@ -477,12 +477,10 @@ export const Chessrepeat = () => {
               </div>
             </div>
             {/* Controls + comment: mobile only during learn/recall */}
-            {isTraining && (
-              <div className="pgn-controls-bar md:hidden">
-                <PgnControls />
-                <CommentBox />
-              </div>
-            )}
+            <div className="pgn-controls-bar">
+              <PgnControls />
+              <CommentBox />
+            </div>
           </div>
 
           {/* REPERTOIRE */}

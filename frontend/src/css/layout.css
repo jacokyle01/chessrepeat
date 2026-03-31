@@ -25,6 +25,7 @@
   font-size: 1.875rem;
   gap: 0.75em;
   white-space: nowrap;
+  overflow: hidden;
   container-name: header-bar;
   container-type: inline-size;
 }
@@ -84,7 +85,8 @@
   min-height: 0;
   display: grid;
   gap: 0.75rem;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* ---------- MOBILE (default): single column, all rows auto ---------- */
@@ -94,30 +96,36 @@
   grid-template-areas:
     'board'
     'controls'
-    'usertip'
     'pgn'
+    'usertip'
     'comment'
     'repertoire';
 }
 
-/* grid area assignments */
+/* grid area assignments – min-width:0 lets children shrink inside 1fr columns */
 .area-board {
   grid-area: board;
+  min-width: 0;
 }
 .area-controls {
   grid-area: controls;
+  min-width: 0;
 }
 .area-usertip {
   grid-area: usertip;
+  min-width: 0;
 }
 .area-comment {
   grid-area: comment;
+  min-width: 0;
 }
 .area-pgn {
   grid-area: pgn;
+  min-width: 0;
 }
 .area-repertoire {
   grid-area: repertoire;
+  min-width: 0;
 }
 
 /* board wrapper */
@@ -166,18 +174,14 @@
 .area-pgn {
   display: flex;
   flex-direction: column;
-  overflow: visible;
   background: #fff;
   border-radius: 0.75rem;
   border: 1px solid #d1d5db;
 }
 
 .pgn-tree-scroll {
-}
-
-.pgn-controls-bar {
-  border-top: 1px solid #e5e7eb;
-  padding: 0.5rem;
+  max-height: 30vh;
+  overflow-y: auto;
 }
 
 /* repertoire panel */
@@ -225,8 +229,8 @@
   .pgn-tree-scroll {
     flex: 1;
     min-height: 0;
+    max-height: none;
     overflow-y: auto;
-    contain: content;
   }
 
   /* cap usertip/comment so they don't steal height from the board row */

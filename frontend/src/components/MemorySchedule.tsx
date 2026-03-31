@@ -17,8 +17,8 @@ const Schedule: React.FC = () => {
         id="chart-wrap"
         className="
           px-2
-          overflow-hidden
-          h-[180px]   /* <- tune this once */
+          overflow-x-auto overflow-y-hidden
+          h-[180px]
         "
       >
         <InsightChart />
