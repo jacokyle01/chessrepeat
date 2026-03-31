@@ -5,6 +5,7 @@ import {
   HistoryIcon,
   Lightbulb,
   LucideRepeat2,
+  MessageSquarePlus,
   MousePointer,
   Repeat2,
   XIcon,
@@ -194,7 +195,7 @@ const Unselected = () => {
 };
 
 //TODO factor this out of userTip?
-const EditComment = () => {
+const EditCommentInline = () => {
   const selectedNode = useTrainerStore((s) => s.selectedNode);
   const selectedPath = useTrainerStore((s) => s.selectedPath);
   const setCommentAt = useTrainerStore((s) => s.setCommentAt);
@@ -243,6 +244,50 @@ const EditComment = () => {
         </button>
       </div>
     </div>
+  );
+};
+
+const EditComment = () => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const selectedNode = useTrainerStore((s) => s.selectedNode);
+  const currentComment = selectedNode?.data?.comment ?? '';
+
+  return (
+    <>
+      {/* Desktop: inline editor */}
+      <div className="hidden md:block">
+        <EditCommentInline />
+      </div>
+      {/* Mobile: button to open modal */}
+      <div className="md:hidden">
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 border border-gray-300 bg-white hover:shadow transition active:scale-[0.98]"
+        >
+          <div className="bg-gray-200 rounded p-1">
+            <MessageSquarePlus className="h-4 w-4 text-black" />
+          </div>
+          <span className="text-sm truncate">
+            {currentComment ? currentComment : 'Add comment'}
+          </span>
+        </button>
+      </div>
+      {/* Mobile modal */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center md:hidden"
+          onClick={() => setModalOpen(false)}
+        >
+          <div
+            className="mx-4 w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <EditCommentInline />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

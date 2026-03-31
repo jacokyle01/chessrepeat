@@ -478,7 +478,6 @@ export const Chessrepeat = () => {
             {/* Controls + comment: mobile only during learn/recall */}
             <div className="pgn-controls-bar">
               <PgnControls />
-              <CommentBox />
             </div>
           </div>
 
