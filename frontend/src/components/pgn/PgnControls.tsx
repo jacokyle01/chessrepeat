@@ -69,7 +69,7 @@ const PgnControls = () => {
     `px-1 rounded-md ${disabled ? 'bg-gray-100 text-gray-300 cursor-default' : 'bg-gray-200 text-gray-700'}`;
 
   return (
-    <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto">
+    <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto py-2">
       <button onClick={first} disabled={atStart} className={btnClass(atStart)}>
         {<ArrowLeftToLineIcon size={30} />}
       </button>

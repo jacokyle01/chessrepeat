@@ -26,7 +26,6 @@ import { formatTime } from './util/time';
 import { CommentBox } from './components/CommentBox';
 import { SiDiscord, SiGithub } from 'react-icons/si';
 import {
-  BookOpenIcon,
   Bug,
   ClipboardCheck,
   ClipboardCopy,

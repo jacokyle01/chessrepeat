@@ -92,13 +92,13 @@
 /* ---------- MOBILE (default): single column, all rows auto ---------- */
 .app-main {
   grid-template-columns: 1fr;
-  grid-template-rows: repeat(6, auto);
+  gap: 0.25rem;
+  grid-template-rows: repeat(5, auto);
   grid-template-areas:
     'board'
     'controls'
     'pgn'
     'usertip'
-    'comment'
     'repertoire';
 }
 

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTrainerStore } from '../state/state';
 import {
-  BookOpenIcon,
   GraduationCapIcon,
   HistoryIcon,
   Lightbulb,

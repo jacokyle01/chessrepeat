@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookDownIcon, BookOpenIcon, BookPlus, DownloadIcon, XIcon } from 'lucide-react';
+import { BookDownIcon, BookOpenIcon, BookPlus, CircleArrowOutUpRightIcon, DownloadIcon, SquareArrowOutUpRightIcon, XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../state/state';
 import { pgnFromChapter, pgnFromRepertoire } from '../../util/training';
 import { downloadTextFile, repertoireAsJson } from '../../util/io';
@@ -190,9 +190,10 @@ const RepertoireActions: React.FC = () => {
           onClick={() => setIsRepertoireOpen(true)}
           className="md:hidden h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
         >
-          <BookOpenIcon className="h-5 w-5" />
-          <span>Repertoire</span>
+          <div className="bg-gray-200 rounded p-1"><SquareArrowOutUpRightIcon className="h-4 w-4 text-black" /></div>
+          <span>View Repertoire</span>
         </button>
+        <div className="md:hidden flex-1" />
 
         <button
           onClick={() => setShowingAddToRepertoireMenu(true)}
@@ -204,7 +205,7 @@ const RepertoireActions: React.FC = () => {
             ${isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}
           `}
         >
-          <BookPlus className="h-5 w-5" />
+          <div className="bg-gray-200 rounded p-1"><BookPlus className="h-4 w-4 text-black" /></div>
           <span>Add</span>
         </button>
 
@@ -212,7 +213,7 @@ const RepertoireActions: React.FC = () => {
           onClick={() => setIsDownloadOpen(true)}
           className="h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
         >
-          <BookDownIcon className="h-5 w-5" />
+          <div className="bg-gray-200 rounded p-1"><BookDownIcon className="h-4 w-4 text-black" /></div>
           <span>Download</span>
         </button>
       </div>
@@ -220,26 +221,14 @@ const RepertoireActions: React.FC = () => {
       {/* Mobile repertoire modal */}
       {isRepertoireOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-end justify-center md:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center md:hidden"
           onClick={() => setIsRepertoireOpen(false)}
         >
           <div
-            className="bg-gray-100 rounded-t-xl shadow-2xl w-full max-h-[75vh] flex flex-col overflow-hidden"
+            className="bg-white rounded-xl shadow-2xl mx-4 w-full max-h-[75vh] flex flex-col overflow-hidden border border-gray-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
-              <span className="font-semibold text-gray-800">My Repertoire</span>
-              <button
-                type="button"
-                onClick={() => setIsRepertoireOpen(false)}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-4">
-              <Repertoire />
-            </div>
+            <Repertoire />
           </div>
         </div>
       )}
