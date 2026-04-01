@@ -52,6 +52,19 @@ import { useAuthStore } from './state/auth';
 import './css/layout.css';
 import { Debug } from './components/Debug';
 
+//TODO we should use chessops library to get promotion role instead of regex.. 
+// unclear if trainingContext stores enough state to get promotion role dynamically 
+// can optionally store promotion target in trainingContext as its calculated in getNextTrainablePosition..?
+// most drastically, can refactor what is stored in targetPath!
+
+function promoRoleFromSan(san?: string): PromoRole | undefined {
+  if (!san) return undefined;
+  const m = san.match(/=([QRBN])/);
+  if (!m) return undefined;
+  const map: Record<string, PromoRole> = { Q: 'queen', R: 'rook', B: 'bishop', N: 'knight' };
+  return map[m[1]];
+}
+
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
   move: new Audio('/sound/public_sound_standard_Move.mp3'),
@@ -324,7 +337,7 @@ export const Chessrepeat = () => {
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
-      {/* <Debug /> */}
+      <Debug />
       <div className="app-root">
         <div id="header">
           <div className="logo-wrap">
@@ -394,6 +407,11 @@ export const Chessrepeat = () => {
                 color={promotionColorFromFen(pendingPromo.fenBefore)}
                 orientation={chapter?.trainAs || 'white'}
                 onCancel={closePromo}
+                requiredRole={
+                  trainingMethod === 'learn'
+                    ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
+                    : undefined
+                }
                 onPick={(role: PromoRole) => {
                   const { fenBefore, from, to, meta } = pendingPromo;
                   closePromo();

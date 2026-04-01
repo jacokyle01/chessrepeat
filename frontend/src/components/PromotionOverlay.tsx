@@ -9,8 +9,9 @@ export function PromotionOverlay(props: {
   color: 'white' | 'black';
   onPick: (r: PromoRole) => void;
   onCancel: () => void;
+  requiredRole?: PromoRole;
 }) {
-  const { color, onPick, onCancel } = props;
+  const { color, onPick, onCancel, requiredRole } = props;
 
   return (
     <div
@@ -25,19 +26,30 @@ export function PromotionOverlay(props: {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="grid grid-cols-4 gap-2">
-            {ROLES.map((role) => (
-              <button
-                key={role}
-                className="relative rounded-lg bg-black/5 hover:bg-black/10 transition"
-                style={{
-                  width: 56,
-                  height: 56,
-                }}
-                onClick={() => onPick(role)}
-              >
-                <piece className={`${role} ${color} absolute inset-0`} style={{ backgroundSize: 'contain' }} />
-              </button>
-            ))}
+            {ROLES.map((role) => {
+              const isRequired = requiredRole === role;
+              const isDisabled = requiredRole != null && !isRequired;
+              return (
+                <button
+                  key={role}
+                  disabled={isDisabled}
+                  className={`relative rounded-lg transition ${
+                    isRequired
+                      ? 'bg-blue-200 ring-2 ring-blue-400'
+                      : isDisabled
+                        ? 'bg-black/5 opacity-30 cursor-not-allowed'
+                        : 'bg-black/5 hover:bg-black/10'
+                  }`}
+                  style={{
+                    width: 56,
+                    height: 56,
+                  }}
+                  onClick={() => onPick(role)}
+                >
+                  <piece className={`${role} ${color} absolute inset-0`} style={{ backgroundSize: 'contain' }} />
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
