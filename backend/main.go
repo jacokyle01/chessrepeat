@@ -7,26 +7,22 @@ import "os"
 import "database/sql"
 import "github.com/go-sql-driver/mysql"
 
-
 func connectDb() *sql.DB {
-  var db *sql.DB
-
   fmt.Println("fetching config...")
 
   dbuser := os.Getenv("DBUSER")
   dbpass := os.Getenv("DBPASS")
-  fmt.Println("dbuser:", dbuser)
-  fmt.Println("dbpass:", dbpass)
 
   cfg := mysql.NewConfig()
   cfg.User = dbuser
   cfg.Passwd = dbpass
-  cfg.Net = "tcp"
-  cfg.Addr = "127.0.0.1:3306"
+  cfg.Net = "unix"
+  cfg.Addr = "/tmp/mysql.sock"
   cfg.DBName = "chessrepeat"
 
   fmt.Println("setting up connection...")
 
+  var db *sql.DB
   var err error
   db, err = sql.Open("mysql", cfg.FormatDSN())
   if err != nil {
@@ -35,7 +31,6 @@ func connectDb() *sql.DB {
 
   fmt.Println("testing connection...")
 
-  // TODO(ben): ping no work
   pingErr := db.Ping()
   if pingErr != nil {
     log.Fatal(pingErr)
@@ -62,6 +57,7 @@ func main() {
   })
 
   fmt.Println("server ready to serve! http://localhost:8080")
+
   log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
