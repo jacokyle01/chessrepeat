@@ -1,0 +1,22 @@
+info:
+  name: POST /repertoire/{id}
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8080/repertoire/deeb0eb6-1e9d-4490-a73b-486cea58cd78
+  body:
+    type: json
+    data: |-
+      {
+        "name": "MAGNUS SECRET GOD STRATEGIES",
+        "trainAs": "white"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

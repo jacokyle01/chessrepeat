@@ -8,6 +8,11 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "engines": {
+    "pnpm": "9999.9999.9999",
+    "node": "23.0.0",
+    "npm": "10.9.0"
+  },
   "devDependencies": {
     "@types/chess.js": "^0.13.7",
     "@types/node": "^22.5.2",
