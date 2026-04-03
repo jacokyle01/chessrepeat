@@ -7,6 +7,7 @@ import {
   LucideRepeat2,
   MessageSquarePlus,
   MousePointer,
+  PencilIcon,
   Repeat2,
   XIcon,
 } from 'lucide-react';
@@ -266,7 +267,7 @@ const EditComment = () => {
           className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 border border-gray-300 bg-white hover:shadow transition active:scale-[0.98]"
         >
           <div className="bg-gray-200 rounded p-1">
-            <MessageSquarePlus className="h-4 w-4 text-black" />
+            <PencilIcon className="h-4 w-4 text-black" />
           </div>
           <span className="text-sm truncate">
             {currentComment ? currentComment : 'Add comment'}

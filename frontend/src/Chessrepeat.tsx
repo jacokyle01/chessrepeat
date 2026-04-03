@@ -23,7 +23,6 @@ import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
-import { CommentBox } from './components/CommentBox';
 import { SiDiscord, SiGithub } from 'react-icons/si';
 import {
   Bug,
