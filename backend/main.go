@@ -3,9 +3,53 @@ package main
 import "net/http"
 import "log"
 import "fmt"
+import "os"
+import "database/sql"
+import "github.com/go-sql-driver/mysql"
+
+
+func connectDb() *sql.DB {
+  var db *sql.DB
+
+  fmt.Println("fetching config...")
+
+  dbuser := os.Getenv("DBUSER")
+  dbpass := os.Getenv("DBPASS")
+  fmt.Println("dbuser:", dbuser)
+  fmt.Println("dbpass:", dbpass)
+
+  cfg := mysql.NewConfig()
+  cfg.User = dbuser
+  cfg.Passwd = dbpass
+  cfg.Net = "tcp"
+  cfg.Addr = "127.0.0.1:3306"
+  cfg.DBName = "chessrepeat"
+
+  fmt.Println("setting up connection...")
+
+  var err error
+  db, err = sql.Open("mysql", cfg.FormatDSN())
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  fmt.Println("testing connection...")
+
+  // TODO(ben): ping no work
+  pingErr := db.Ping()
+  if pingErr != nil {
+    log.Fatal(pingErr)
+  }
+
+  fmt.Println("connected to database!")
+
+  return db;
+}
 
 func main() {
   fmt.Println("starting server...")
+
+  var _ = connectDb();
 
   http.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
     if (r.Method == "GET") {
