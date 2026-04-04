@@ -57,7 +57,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-  
+
 	log.Println("starting server...")
 
 	var db = connectDb()
