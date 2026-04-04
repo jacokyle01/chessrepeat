@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS moves;
 CREATE TABLE moves (
   repertoire_id UUID,
   move_id UUID,
-  prev_moves TEXT(65535),
+  prev_moves TEXT(65535) NOT NULL,
   san VARCHAR(8) NOT NULL,
   PRIMARY KEY (`repertoire_id`, `move_id`)
 );

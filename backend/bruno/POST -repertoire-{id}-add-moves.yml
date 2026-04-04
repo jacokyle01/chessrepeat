@@ -1,0 +1,32 @@
+info:
+  name: POST /repertoire/{id}/add-moves
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:8080/repertoire/deeb0eb6-1e9d-4490-a73b-486cea58cd72/add-moves
+  body:
+    type: json
+    data: |-
+      {
+        "moves": [
+          {
+            "prevMoves": "",
+            "id": "8192f0b5-b234-419e-9be6-f27d67bafee9",
+            "san": "d4"
+          },
+          {
+            "prevMoves": "",
+            "id": "9152f0b5-b234-439e-9be6-f27d67bafee9",
+            "san": "e4"
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

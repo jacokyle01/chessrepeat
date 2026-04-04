@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: http://localhost:8080/repertoire/deeb0eb6-1e9d-4490-a73b-486cea58cd72
+  url: http://localhost:8080/repertoire/ddeb0eb6-1e9d-4490-a83b-486cea58cd72
   body:
     type: json
     data: |-
