@@ -1,0 +1,21 @@
+info:
+  name: POST /publish
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:8080/publish
+  body:
+    type: json
+    data: |-
+      {
+        "message": "hello world"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

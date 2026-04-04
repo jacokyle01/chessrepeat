@@ -1,0 +1,11 @@
+info:
+  name: WS /subscribe
+  type: websocket
+  seq: 6
+
+websocket:
+  url: localhost:8000/subscribe
+  message:
+    type: json
+    data: "{}"
+  auth: inherit

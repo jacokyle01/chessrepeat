@@ -61,7 +61,9 @@ func main() {
 	log.Println("starting server...")
 
 	var db = connectDb()
+	cs := newChatServer()
 
+	
 	http.HandleFunc("/repertoire/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			unparsedId := r.PathValue("id")
@@ -155,7 +157,11 @@ func main() {
 		}
 	})
 
+	http.Handle("/subscribe", cs)
+	http.Handle("/publish", cs)
+
 	log.Println("server ready to serve! http://localhost:8080")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+	
 }
