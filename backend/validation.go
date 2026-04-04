@@ -32,7 +32,7 @@ func parseRepertoireFromRequest(r *http.Request) (repertoireJson, error) {
 	if err != nil {
 		return repertoire, err
 	}
-	repertoire.RepertoireId = id.String();
+	repertoire.RepertoireId = id.String()
 
 	if !isValidName(repertoire.Name) {
 		return repertoire, errors.New("invalid Name")
@@ -42,4 +42,3 @@ func parseRepertoireFromRequest(r *http.Request) (repertoireJson, error) {
 	}
 	return repertoire, err
 }
-

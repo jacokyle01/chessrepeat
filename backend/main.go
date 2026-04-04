@@ -21,8 +21,8 @@ func main() {
 
 			log.Println("fetching repertoire for id:", id)
 
-			repertoire, err := fetchRepertoire(db, id);
-			if (err != nil) {
+			repertoire, err := fetchRepertoire(db, id)
+			if err != nil {
 				if err == sql.ErrNoRows {
 					log.Println("no repertoire found for id:", id, err)
 					w.WriteHeader(http.StatusNotFound)

@@ -84,4 +84,3 @@ func createRepertoire(db *sql.DB, repertoire repertoireJson) (repertoireJson, er
 	stmt.Close()
 	return repertoire, err
 }
-
