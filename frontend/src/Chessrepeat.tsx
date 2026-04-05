@@ -48,6 +48,7 @@ import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import { useAuthStore } from './state/auth';
+import { GoogleLoginButton } from './components/GoogleLoginButton';
 import './css/layout.css';
 import { Debug } from './components/Debug';
 
@@ -101,10 +102,16 @@ export const Chessrepeat = () => {
     setWebSocket,
   } = useTrainerStore();
 
+  const authUser = useAuthStore((s) => s.user);
+  const setAuthFromIdToken = useAuthStore((s) => s.setAuthFromIdToken);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const hydrateAuthFromStorage = useAuthStore((s) => s.hydrateFromStorage);
+
   // hydrate repertoire from IDB
   useEffect(() => {
     console.log('test');
     hydrateRepertoireFromIDB();
+    hydrateAuthFromStorage();
   }, []);
 
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
@@ -357,8 +364,8 @@ export const Chessrepeat = () => {
     <MantineProvider>
       {/* <Debug /> */}
       <div className="app-root">
-        <div id="header">
-          <div className="logo-wrap">
+        <div id="header" className='flex items-end pb-1'>
+          <div className="logo-wrap flex items-end">
             <img src="logo.png" alt="Logo" />
             <span>chess</span>
             <span className="accent">repeat</span>
@@ -394,6 +401,31 @@ export const Chessrepeat = () => {
             <span>report bug</span>
             <Bug />
           </a>
+
+          {authUser ? (
+            <a
+              type="button"
+              onClick={clearAuth}
+              title={`Sign out ${authUser.name ?? authUser.email ?? ''}`.trim()}
+              className='header-link'
+            >
+              {authUser.picture ? (
+                <span className='flex items-end gap-2'>
+                  <img
+                    src={authUser.picture}
+                    alt={authUser.name ?? 'profile'}
+                    referrerPolicy="no-referrer"
+                    className="h-7 w-7 rounded-md"
+                  />
+                  <span className='text-sm'>{authUser.name ?? 'Unnamed'}</span>
+                </span>
+              ) : (
+                <User />
+              )}
+            </a>
+          ) : (
+            <GoogleLoginButton onToken={setAuthFromIdToken} />
+          )}
         </div>
 
         {showingAddToRepertoireMenu && (
