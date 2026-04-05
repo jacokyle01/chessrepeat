@@ -1,0 +1,32 @@
+info:
+  name: POST /publish
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:8080/publish
+  body:
+    type: json
+    data: |-
+      {
+        "type": "move_created",
+        "chapterId": "abc123",
+        "parentId": "root",
+        "move": {
+          "id": "move1",
+          "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+          "ply": 1,
+          "san": "e4",
+          "comment": "",
+          "enabled": true,
+          "training": null
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
