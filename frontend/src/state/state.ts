@@ -14,7 +14,7 @@ import {
   TrainingOutcome,
 } from '../types/training';
 import { ChildNode } from 'chessops/pgn';
-import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, updateRecursive } from '../util/tree';
+import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, updateAt, updateRecursive } from '../util/tree';
 import { contains, init } from '../util/path';
 import { computeDueCounts, computeNextTrainableNode, merge } from '../util/training';
 import { colorFromPly, positionFromFen } from '../util/chess';
@@ -80,11 +80,15 @@ interface TrainerState {
   cbConfig: CbConfig;
   setCbConfig: (cfg: CbConfig) => void;
 
+  socket: WebSocket;
+  setWebSocket: (ws: WebSocket) => void;
+
   // NEW: hydrate chapters from IDB after persist rehydrates small state
   hydrateRepertoireFromIDB: () => Promise<void>;
 
   jump: (path: string) => void;
   makeMove: (san: string) => Promise<void>;
+  addMove: (path: string, node: TrainableNode) => Promise<void>;
 
   clearChapterContext: () => void;
   setCommentAt: (comment: string, path: string) => Promise<void>;
@@ -229,6 +233,9 @@ export const useTrainerStore = create<TrainerState>()(
 
       cbConfig: {},
       setCbConfig: (cfg) => set({ cbConfig: cfg }),
+
+      socket: null,
+      setWebSocket: (ws) => set({ socket: ws }),
 
       // ---- inside create(...) actions ----
       renameChapter: async (chapterIndex: number, newName: string) => {
@@ -512,6 +519,29 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       //TODO separate state action for makeMove, addMove ?
+
+      /*
+        Intended for receiving moves over websockets
+        TODO: we can implement a "follow" option that can set the path to whatever was just added
+      */
+      addMove: async (path: string, node: TrainableNode) => {
+        const { repertoire, repertoireIndex, trainingMethod } = get();
+        const chapter = repertoire[repertoireIndex];
+        if (!chapter) return;
+        const root = chapter.root;
+        //TODO test for existing
+        updateAt(root, path, (parent: TrainableNode) => parent.children.push(node));
+
+        if (node.data.enabled) chapter.enabledCount++;
+        if (!node.data.training) chapter.unseenCount++;
+        set({repertoire}) // we have to do this to trigger a state update
+        await persistChapter(chapter);
+      },
+
+      /*
+        Make move via UI 
+        Send move over via POST for now 
+      */
       makeMove: async (san: string) => {
         const { selectedNode, repertoire, repertoireIndex, selectedPath, trainingMethod } = get();
         const chapter = repertoire[repertoireIndex];
@@ -551,6 +581,17 @@ export const useTrainerStore = create<TrainerState>()(
           selectedNode.children.push(newNode);
           //TODO abstraction here...
           //TODO iff logged in ...
+          //TODO put network actions somewhere 
+          void fetch('http://localhost:8080/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'move_created',
+              chapterId: chapter.id,
+              path: selectedPath,
+              move: newNode.data,
+            }),
+          });
         }
 
         //TODO separate "play move" state action?

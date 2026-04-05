@@ -15,6 +15,38 @@ import (
 	"github.com/coder/websocket/wsjson"
 )
 
+// same as frontend
+type TrainingData struct {
+	ID       string    `json:"id"`
+	FEN      string    `json:"fen"`
+	Ply      int       `json:"ply"`
+	SAN      string    `json:"san"`
+	Comment  string    `json:"comment"`
+	Enabled  bool      `json:"enabled"`
+	Training *CardData `json:"training"` // null if unseen
+}
+
+// same as frontend from ts fsrs lib
+type CardData struct {
+	Due           string  `json:"due"`
+	Stability     float64 `json:"stability"`
+	Difficulty    float64 `json:"difficulty"`
+	ElapsedDays   int     `json:"elapsed_days"`
+	ScheduledDays int     `json:"scheduled_days"`
+	Reps          int     `json:"reps"`
+	Lapses        int     `json:"lapses"`
+	State         int     `json:"state"`
+	LastReview    string  `json:"last_review"`
+}
+
+// MoveEvent is the WebSocket message envelope for move creation events.
+type MoveEvent struct {
+	Type      string       `json:"type"`      // "move_created"
+	ChapterID string       `json:"chapterId"` // websocket connections will be per-repertoire, need to know which chapter
+	Move      TrainingData `json:"move"`
+	Path      string       `json:"path"`
+}
+
 // chatServer enables broadcasting to a set of subscribers.
 type chatServer struct {
 	// subscriberMessageBuffer controls the max number
@@ -23,7 +55,6 @@ type chatServer struct {
 	//
 	// Defaults to 16.
 	subscriberMessageBuffer int
-
 
 	// logf controls where logs are sent.
 	// Defaults to log.Printf.
@@ -41,7 +72,7 @@ func newChatServer() *chatServer {
 	cs := &chatServer{
 		subscriberMessageBuffer: 16,
 		logf:                    log.Printf,
-		subscribers:             make(map[*subscriber]struct{}), 
+		subscribers:             make(map[*subscriber]struct{}),
 	}
 	cs.serveMux.Handle("/", http.FileServer(http.Dir(".")))
 	cs.serveMux.HandleFunc("/subscribe", cs.subscribeHandler)
@@ -52,7 +83,7 @@ func newChatServer() *chatServer {
 
 // subscriber represents a subscriber.
 type subscriber struct {
-	msgs      chan []byte
+	msgs chan []byte
 }
 
 func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +100,6 @@ func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
 
 // subscribe subscribes the given WebSocket to all broadcast messages.
 // It creates a subscriber with a buffered msgs chan to give some room to slower
@@ -89,7 +119,9 @@ func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request) error {
 	cs.addSubscriber(s)
 	defer cs.deleteSubscriber(s)
 
-	c2, err := websocket.Accept(w, r, nil)
+	c2, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: []string{"localhost:5173"},
+	})
 	if err != nil {
 		return err
 	}
@@ -117,20 +149,30 @@ func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
-// publishHandler reads a message from the request body and publishes it to all subscribers.
+// publishHandler reads a MoveEvent from the request body and publishes it to all subscribers.
 func (cs *chatServer) publishHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
 	body := http.MaxBytesReader(w, r.Body, 8192)
-	msg, err := io.ReadAll(body)
+	raw, err := io.ReadAll(body)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
 		return
 	}
 
-	cs.publish(msg)
+	var event MoveEvent
+	if err := json.Unmarshal(raw, &event); err != nil {
+		http.Error(w, "invalid move event JSON", http.StatusBadRequest)
+		return
+	}
+	if event.Type != "move_created" {
+		http.Error(w, "unsupported event type", http.StatusBadRequest)
+		return
+	}
+
+	cs.publish(raw)
 
 	w.WriteHeader(http.StatusAccepted)
 }

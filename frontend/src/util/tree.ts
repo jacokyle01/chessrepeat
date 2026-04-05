@@ -44,6 +44,19 @@ export function collect(
   return nodes;
 }
 
+export function updateAt(
+  root: TrainableNode,
+  path: string,
+  update: (node) => void,
+): TrainableNode | undefined {
+  const node = nodeAtPathOrNull(root, path);
+  if (node) {
+    update(node);
+    return node;
+  }
+  return;
+}
+
 export function updateRecursive(
   root: TrainableNode,
   path: string,
@@ -90,5 +103,4 @@ export function hasBranching(node: TrainableNode, depth: number): boolean {
   return hasBranching(node.children[0], depth - 1);
 }
 
-const parentNode = (root: TrainableNode, path: string): TrainableNode =>
-  nodeAtPath(root, init(path));
+const parentNode = (root: TrainableNode, path: string): TrainableNode => nodeAtPath(root, init(path));

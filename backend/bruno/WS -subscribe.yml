@@ -4,7 +4,7 @@ info:
   seq: 6
 
 websocket:
-  url: localhost:8000/subscribe
+  url: localhost:8080/subscribe
   message:
     type: json
     data: "{}"

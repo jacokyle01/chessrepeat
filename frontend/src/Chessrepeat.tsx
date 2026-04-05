@@ -51,8 +51,8 @@ import { useAuthStore } from './state/auth';
 import './css/layout.css';
 import { Debug } from './components/Debug';
 
-//TODO we should use chessops library to get promotion role instead of regex.. 
-// unclear if trainingContext stores enough state to get promotion role dynamically 
+//TODO we should use chessops library to get promotion role instead of regex..
+// unclear if trainingContext stores enough state to get promotion role dynamically
 // can optionally store promotion target in trainingContext as its calculated in getNextTrainablePosition..?
 // most drastically, can refactor what is stored in targetPath!
 
@@ -96,6 +96,9 @@ export const Chessrepeat = () => {
     guess,
     makeMove,
     hydrateRepertoireFromIDB,
+    addMove,
+
+    setWebSocket,
   } = useTrainerStore();
 
   // hydrate repertoire from IDB
@@ -112,6 +115,22 @@ export const Chessrepeat = () => {
   const [fenCopied, setFenCopied] = useState(false);
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
+
+  /*
+    Create websocket to send and receive moves
+
+  */
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8080/subscribe');
+    setWebSocket(ws);
+    ws.onopen = () => console.log('ws live');
+    ws.onmessage = (event) => {
+      const payload = JSON.parse(event.data);
+      if (payload.type !== 'move_created') return;
+      addMove(payload.path, { data: payload.move, children: [] });
+    };
+    return () => ws.close();
+  }, []);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
@@ -455,7 +474,9 @@ export const Chessrepeat = () => {
           {/* PGN TREE */}
           <div className="area-pgn" ref={movesContainerRef}>
             {/* Header + tree: hidden on mobile during learn/recall */}
-            <div className={`flex flex-col min-h-0 flex-1 overflow-hidden ${isTraining ? 'hidden md:flex' : ''}`}>
+            <div
+              className={`flex flex-col min-h-0 flex-1 overflow-hidden ${isTraining ? 'hidden md:flex' : ''}`}
+            >
               <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
                 <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
                   <NetworkIcon />
