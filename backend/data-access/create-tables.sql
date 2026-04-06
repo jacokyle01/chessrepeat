@@ -15,14 +15,6 @@ CREATE TABLE user (
     picture VARCHAR(512)
 );
 
-CREATE TABLE move (
-    move_id CHAR(36),
-    prev_moves TEXT,
-    repertoire_id CHAR(36),
-    san VARCHAR(8) NOT NULL,
-    PRIMARY KEY (repertoire_id, move_id)
-);
-
 -- each user one and only one repertoire
 
 CREATE TABLE repertoire (
@@ -52,4 +44,14 @@ CREATE TABLE chapter (
     FOREIGN KEY (repertoire_id) REFERENCES repertoire (repertoire_id) ON DELETE CASCADE
     -- TODO revisions field? or something for conflicts
     -- TODO moves field
+);
+
+CREATE TABLE move (
+    move_id CHAR(36), -- TODO maybe this is not needed?
+    chapter_id CHAR(36) NOT NULL,
+    prev_moves TEXT,
+    san VARCHAR(8) NOT NULL,
+    PRIMARY KEY (chapter_id, move_id),
+    FOREIGN KEY (chapter_id) REFERENCES chapter (chapter_id) ON DELETE CASCADE
+    -- TODO more fields; see socket.go
 );
