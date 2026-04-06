@@ -84,3 +84,49 @@ func createRepertoire(db *sql.DB, repertoire repertoireJson) (repertoireJson, er
 	stmt.Close()
 	return repertoire, err
 }
+
+type userJson struct {
+	TokenID string `json:"tokenId"`
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Picture string `json:"picture"`
+}
+
+type loginResponse struct {
+	User       userJson         `json:"user"`
+	Repertoire *repertoireJson  `json:"repertoire"`
+}
+
+func upsertUser(db *sql.DB, user userJson) error {
+	_, err := db.Exec(
+		`INSERT INTO user (token_id, name, email, picture)
+		 VALUES (?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE name=VALUES(name), email=VALUES(email), picture=VALUES(picture)`,
+		user.TokenID, user.Name, user.Email, user.Picture,
+	)
+	return err
+}
+
+func fetchRepertoireByUser(db *sql.DB, tokenID string) (*repertoireJson, error) {
+	row := db.QueryRow("SELECT repertoire_id, name, train_as FROM repertoire WHERE user_id=?", tokenID)
+	var repertoire repertoireJson
+	err := row.Scan(&repertoire.RepertoireId, &repertoire.Name, &repertoire.TrainAs)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return &repertoire, err
+}
+
+func createRepertoireForUser(db *sql.DB, tokenID string) (repertoireJson, error) {
+	id := uuid.New().String()
+	repertoire := repertoireJson{
+		RepertoireId: id,
+		Name:         "My Repertoire",
+		TrainAs:      "white",
+	}
+	_, err := db.Exec(
+		"INSERT INTO repertoire(repertoire_id, name, train_as, user_id) VALUES (?, ?, ?, ?)",
+		repertoire.RepertoireId, repertoire.Name, repertoire.TrainAs, tokenID,
+	)
+	return repertoire, err
+}

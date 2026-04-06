@@ -2,8 +2,10 @@ package main
 
 import "net/http"
 import "encoding/json"
+import "encoding/base64"
 import "log"
 import "database/sql"
+import "strings"
 
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -76,6 +78,91 @@ func main() {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})
+
+	/*
+		upsert user, repertoire table
+
+		assumptions:
+			- the user doesn't have a local repertoire that they want to add.
+				this will just create an empty repertoire for them
+
+	*/
+	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		var body struct {
+			IDToken string `json:"idToken"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IDToken == "" {
+			http.Error(w, "missing idToken", http.StatusBadRequest)
+			return
+		}
+
+		// decode JWT payload (no verification for now)
+		parts := strings.Split(body.IDToken, ".")
+		if len(parts) != 3 {
+			http.Error(w, "malformed token", http.StatusBadRequest)
+			return
+		}
+		payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+		if err != nil {
+			http.Error(w, "malformed token payload", http.StatusBadRequest)
+			return
+		}
+
+		var claims struct {
+			Sub     string `json:"sub"`
+			Name    string `json:"name"`
+			Email   string `json:"email"`
+			Picture string `json:"picture"`
+		}
+		if err := json.Unmarshal(payload, &claims); err != nil || claims.Sub == "" {
+			http.Error(w, "invalid token claims", http.StatusBadRequest)
+			return
+		}
+
+		user := userJson{
+			TokenID: claims.Sub,
+			Name:    claims.Name,
+			Email:   claims.Email,
+			Picture: claims.Picture,
+		}
+
+		if err := upsertUser(db, user); err != nil {
+			log.Println("failed to upsert user:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		repertoire, err := fetchRepertoireByUser(db, user.TokenID)
+		if err != nil {
+			log.Println("failed to fetch repertoire:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// new user — create a default repertoire
+		if repertoire == nil {
+			newRep, err := createRepertoireForUser(db, user.TokenID)
+			if err != nil {
+				log.Println("failed to create repertoire:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			repertoire = &newRep
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(loginResponse{
+			User:       user,
+			Repertoire: repertoire,
+		})
+	})
+
+
 
 	http.Handle("/subscribe", cs)
 	http.Handle("/publish", cs)

@@ -12,9 +12,24 @@ export function GoogleLoginButton({ onToken }: { onToken: (idToken: string) => v
     // @ts-ignore
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: (resp: any) => {
-        // resp.credential is the ID token (JWT)
-        onToken(resp.credential);
+      callback: async (resp: any) => {
+        const idToken: string = resp.credential;
+
+        // hit backend login endpoint to upsert user + repertoire
+        try {
+          const res = await fetch('http://localhost:8080/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          });
+          if (!res.ok) {
+            console.error('login failed', res.status, await res.text());
+          }
+        } catch (err) {
+          console.error('login request failed', err);
+        }
+
+        onToken(idToken);
       },
     });
 
