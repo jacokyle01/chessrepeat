@@ -293,7 +293,7 @@ export const useTrainerStore = create<TrainerState>()(
         if (repertoire.length > 0) return;
         const ids = await readChapterIds();
 
-        if (!ids.length) {
+        if (!ids.length && false) {
           // Seed example repertoire for new users
           const exampleChapter = chapterFromPgn(EXAMPLE_PGN, 'white', 'Example Repertoire');
           await addNewChapter(exampleChapter);
