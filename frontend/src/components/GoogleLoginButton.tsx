@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '../state/auth';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -24,6 +25,11 @@ export function GoogleLoginButton({ onToken }: { onToken: (idToken: string) => v
           });
           if (!res.ok) {
             console.error('login failed', res.status, await res.text());
+          } else {
+            const data = await res.json();
+            if (data.repertoire?.id) {
+              useAuthStore.getState().setRepertoireId(data.repertoire.id);
+            }
           }
         } catch (err) {
           console.error('login request failed', err);

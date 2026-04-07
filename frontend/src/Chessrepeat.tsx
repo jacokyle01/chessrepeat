@@ -98,6 +98,7 @@ export const Chessrepeat = () => {
     makeMove,
     hydrateRepertoireFromIDB,
     addMove,
+    addNewChapterLocally,
 
     setWebSocket,
   } = useTrainerStore();
@@ -133,8 +134,21 @@ export const Chessrepeat = () => {
     ws.onopen = () => console.log('ws live');
     ws.onmessage = (event) => {
       const payload = JSON.parse(event.data);
-      if (payload.type !== 'move_created') return;
-      addMove(payload.path, { data: payload.move, children: [] });
+      if (payload.type === 'move_created') {
+        addMove(payload.path, { data: payload.move, children: [] });
+      } else if (payload.type === 'chapter_created') {
+        // received from another user — add chapter locally
+        // the chapter comes as metadata only; create a minimal Chapter object
+        addNewChapterLocally({
+          id: payload.chapterId,
+          name: payload.name,
+          trainAs: payload.trainAs,
+          root: { data: { id: '', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', ply: 0, san: '', comment: '', enabled: false, training: null }, children: [] },
+          enabledCount: 0,
+          unseenCount: 0,
+          lastDueCount: 0,
+        });
+      }
     };
     return () => ws.close();
   }, []);

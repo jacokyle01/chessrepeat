@@ -24,6 +24,7 @@ import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
 import { annotatePgn, chapterFromPgn, rootFromPgn } from '../util/io';
 import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig } from '../util/srs';
 import { Color } from 'chessops';
+import { postChapter } from '../services/postChapter';
 
 const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter of a chessrepeat repertoire. You can add your own chapter by clicking "Add to Repertoire" and selecting a PGN (game file) to import. Then, you can train your own openings with spaced repetition! Click "Learn" to see positions for the first time, then click "Recall" to train them after increasingly long intervals of time.
 Spaced repetition can help you memorize new openings more efficiently and effectively than other techniques.
@@ -103,6 +104,7 @@ interface TrainerState {
   deleteLine: (path: string) => Promise<void>;
   enableLine: (path: string) => Promise<void>;
   addNewChapter: (chapter: Chapter) => Promise<void>;
+  addNewChapterLocally: (chapter: Chapter) => Promise<void>;
   importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
 
   renameChapter: (index: number, name: string) => void;
@@ -606,7 +608,14 @@ export const useTrainerStore = create<TrainerState>()(
       },
       // TODO should network actions be in state?
 
+
       addNewChapter: async (chapter: Chapter) => {
+        const { addNewChapterLocally } = get();
+        await addNewChapterLocally(chapter);
+        void postChapter(chapter);
+      },
+
+      addNewChapterLocally: async (chapter: Chapter) => {
         const { repertoire } = get();
         const ids = await readChapterIds();
         if (ids.includes(chapter.id)) return; // don't write duplicates

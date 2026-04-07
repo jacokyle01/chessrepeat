@@ -10,10 +10,13 @@ export type AuthUser = {
 type AuthState = {
   idToken: string | null;
   user: AuthUser | null;
+  repertoireId: string | null; // TODO what are ways to identify this user's resources from others? 
+                               // create user id on account creation?
 
   isAuthenticated: () => boolean;
 
   setAuthFromIdToken: (idToken: string) => void;
+  setRepertoireId: (id: string) => void;
   clearAuth: () => void;
 
   hydrateFromStorage: () => void;
@@ -38,9 +41,12 @@ function decodeJwtPayload(token: string): any | null {
   }
 }
 
+const REPERTOIRE_KEY = "chessrepeat_repertoire_id";
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   idToken: null,
   user: null,
+  repertoireId: null,
 
   isAuthenticated: () => !!get().idToken && !!get().user,
 
@@ -64,9 +70,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ idToken, user });
   },
 
+  setRepertoireId: (id: string) => {
+    localStorage.setItem(REPERTOIRE_KEY, id);
+    set({ repertoireId: id });
+  },
+
   clearAuth: () => {
     localStorage.removeItem(TOKEN_KEY);
-    set({ idToken: null, user: null });
+    localStorage.removeItem(REPERTOIRE_KEY);
+    set({ idToken: null, user: null, repertoireId: null });
     // Optional: prevent auto-select
     // @ts-ignore
     window.google?.accounts?.id?.disableAutoSelect?.();
@@ -76,5 +88,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const tok = localStorage.getItem(TOKEN_KEY);
     if (!tok) return;
     get().setAuthFromIdToken(tok);
+    const repId = localStorage.getItem(REPERTOIRE_KEY);
+    if (repId) set({ repertoireId: repId });
   },
 }));

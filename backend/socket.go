@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -17,7 +18,7 @@ import (
 
 // same as frontend
 type TrainingData struct {
-	ID       string    `json:"id"`
+	ID       string    `json:"id"` // this is NOT really an ID in the sense that it's being used. TODO
 	FEN      string    `json:"fen"`
 	Ply      int       `json:"ply"`
 	SAN      string    `json:"san"`
@@ -47,6 +48,15 @@ type MoveEvent struct {
 	Path      string       `json:"path"`
 }
 
+// ChapterEvent is the WebSocket message envelope for chapter creation events.
+type ChapterEvent struct {
+	Type         string  `json:"type"`         // "chapter_created"
+	ChapterID    string  `json:"chapterId"`
+	RepertoireID string  `json:"repertoireId"`
+	Name         string  `json:"name"`
+	TrainAs      string  `json:"trainAs"`
+}
+
 // chatServer enables broadcasting to a set of subscribers.
 type chatServer struct {
 	// subscriberMessageBuffer controls the max number
@@ -55,6 +65,9 @@ type chatServer struct {
 	//
 	// Defaults to 16.
 	subscriberMessageBuffer int
+
+	// db is the database connection for persisting moves.
+	db *sql.DB
 
 	// logf controls where logs are sent.
 	// Defaults to log.Printf.
@@ -68,15 +81,17 @@ type chatServer struct {
 }
 
 // newChatServer constructs a chatServer with the defaults.
-func newChatServer() *chatServer {
+func newChatServer(db *sql.DB) *chatServer {
 	cs := &chatServer{
 		subscriberMessageBuffer: 16,
+		db:                      db,
 		logf:                    log.Printf,
 		subscribers:             make(map[*subscriber]struct{}),
 	}
 	cs.serveMux.Handle("/", http.FileServer(http.Dir(".")))
 	cs.serveMux.HandleFunc("/subscribe", cs.subscribeHandler)
 	cs.serveMux.HandleFunc("/publish", cs.publishHandler)
+	cs.serveMux.HandleFunc("/chapter", cs.addChapterHandler)
 
 	return cs
 }
@@ -169,6 +184,47 @@ func (cs *chatServer) publishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if event.Type != "move_created" {
 		http.Error(w, "unsupported event type", http.StatusBadRequest)
+		return
+	}
+
+	// persist move to database
+	if err := createMove(cs.db, event); err != nil {
+		cs.logf("failed to persist move: %v", err)
+		http.Error(w, "failed to save move", http.StatusInternalServerError)
+		return
+	}
+
+	cs.publish(raw)
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (cs *chatServer) addChapterHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
+	body := http.MaxBytesReader(w, r.Body, 1024*1024)
+	raw, err := io.ReadAll(body)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	var event ChapterEvent
+	if err := json.Unmarshal(raw, &event); err != nil {
+		http.Error(w, "invalid chapter event JSON", http.StatusBadRequest)
+		return
+	}
+	if event.Type != "chapter_created" {
+		http.Error(w, "unsupported event type", http.StatusBadRequest)
+		return
+	}
+
+	if err := createChapter(cs.db, event); err != nil {
+		cs.logf("failed to persist chapter: %v", err)
+		http.Error(w, "failed to save chapter", http.StatusInternalServerError)
 		return
 	}
 

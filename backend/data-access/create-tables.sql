@@ -23,7 +23,7 @@ CREATE TABLE repertoire (
     description TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users (token_id) ON DELETE CASCADE
+    FOREIGN KEY (owner_id) REFERENCES user (token_id) ON DELETE CASCADE
 );
 
 CREATE TABLE repertoire_member (
@@ -34,8 +34,8 @@ CREATE TABLE repertoire_member (
     granted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (repertoire_id, user_id),
     FOREIGN KEY (repertoire_id) REFERENCES repertoire (repertoire_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users (token_id) ON DELETE CASCADE,
-    FOREIGN KEY (granted_by) REFERENCES users (token_id)
+    FOREIGN KEY (user_id) REFERENCES user (token_id) ON DELETE CASCADE,
+    FOREIGN KEY (granted_by) REFERENCES user (token_id)
 );
 
 CREATE TABLE chapter (

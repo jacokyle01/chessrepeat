@@ -9,8 +9,8 @@ import "github.com/joho/godotenv"
 
 type repertoireJson struct {
 	RepertoireId string `json:"id"`
-	Name         string `json:"name"`
-	TrainAs      string `json:"trainAs"`
+	OwnerID      string `json:"ownerId"`
+	Description  string `json:"description"`
 }
 
 func connectDb() *sql.DB {
@@ -55,34 +55,34 @@ func connectDb() *sql.DB {
 }
 
 func fetchRepertoire(db *sql.DB, id uuid.UUID) (repertoireJson, error) {
-	row := db.QueryRow("SELECT * FROM repertoire WHERE repertoire_id=?", id)
+	row := db.QueryRow("SELECT repertoire_id, owner_id, description FROM repertoire WHERE repertoire_id=?", id)
 	var repertoire repertoireJson
-	err := row.Scan(&repertoire.RepertoireId, &repertoire.Name, &repertoire.TrainAs)
+	err := row.Scan(&repertoire.RepertoireId, &repertoire.OwnerID, &repertoire.Description)
 	return repertoire, err
 }
 
 func createRepertoire(db *sql.DB, repertoire repertoireJson) (repertoireJson, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		return repertoire, err
-	}
-	stmt, err := tx.Prepare("INSERT INTO repertoire(repertoire_id, name, train_as) VALUES (?, ?, ?)")
-	if err != nil {
-		tx.Rollback()
-		return repertoire, err
-	}
-	_, err = stmt.Exec(repertoire.RepertoireId, repertoire.Name, repertoire.TrainAs)
-	if err != nil {
-		tx.Rollback()
-		return repertoire, err
-	}
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return repertoire, err
-	}
-	stmt.Close()
+	_, err := db.Exec(
+		"INSERT INTO repertoire(repertoire_id, owner_id, description) VALUES (?, ?, ?)",
+		repertoire.RepertoireId, repertoire.OwnerID, repertoire.Description,
+	)
 	return repertoire, err
+}
+
+func createChapter(db *sql.DB, event ChapterEvent) error {
+	_, err := db.Exec(
+		`INSERT INTO chapter (chapter_id, repertoire_id) VALUES (?, ?)`,
+		event.ChapterID, event.RepertoireID,
+	)
+	return err
+}
+
+func createMove(db *sql.DB, event MoveEvent) error {
+	_, err := db.Exec(
+		`INSERT INTO move (move_id, chapter_id, prev_moves, san) VALUES (?, ?, ?, ?)`,
+		event.Move.ID, event.ChapterID, event.Path, event.Move.SAN,
+	)
+	return err
 }
 
 type userJson struct {
@@ -108,9 +108,9 @@ func upsertUser(db *sql.DB, user userJson) error {
 }
 
 func fetchRepertoireByUser(db *sql.DB, tokenID string) (*repertoireJson, error) {
-	row := db.QueryRow("SELECT repertoire_id, name, train_as FROM repertoire WHERE user_id=?", tokenID)
+	row := db.QueryRow("SELECT repertoire_id, owner_id, description FROM repertoire WHERE owner_id=?", tokenID)
 	var repertoire repertoireJson
-	err := row.Scan(&repertoire.RepertoireId, &repertoire.Name, &repertoire.TrainAs)
+	err := row.Scan(&repertoire.RepertoireId, &repertoire.OwnerID, &repertoire.Description)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -121,12 +121,12 @@ func createRepertoireForUser(db *sql.DB, tokenID string) (repertoireJson, error)
 	id := uuid.New().String()
 	repertoire := repertoireJson{
 		RepertoireId: id,
-		Name:         "My Repertoire",
-		TrainAs:      "white",
+		OwnerID:      tokenID,
+		Description:  "",
 	}
 	_, err := db.Exec(
-		"INSERT INTO repertoire(repertoire_id, name, train_as, user_id) VALUES (?, ?, ?, ?)",
-		repertoire.RepertoireId, repertoire.Name, repertoire.TrainAs, tokenID,
+		"INSERT INTO repertoire(repertoire_id, owner_id, description) VALUES (?, ?, ?)",
+		repertoire.RepertoireId, repertoire.OwnerID, repertoire.Description,
 	)
 	return repertoire, err
 }

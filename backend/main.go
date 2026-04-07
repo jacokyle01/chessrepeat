@@ -24,7 +24,8 @@ func main() {
 	log.Println("starting server...")
 
 	var db = connectDb()
-	cs := newChatServer()
+	// chatserver needs db as parameter since we perform db operations during websocket connections
+	cs := newChatServer(db)
 
 	
 	http.HandleFunc("/repertoire/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +85,7 @@ func main() {
 
 		assumptions:
 			- the user doesn't have a local repertoire that they want to add.
-				this will just create an empty repertoire for them
+				so this will just create an empty repertoire for them
 
 	*/
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
@@ -166,6 +167,7 @@ func main() {
 
 	http.Handle("/subscribe", cs)
 	http.Handle("/publish", cs)
+	http.Handle("/chapter", cs)
 
 	log.Println("server ready to serve! http://localhost:8080")
 
