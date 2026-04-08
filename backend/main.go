@@ -4,8 +4,9 @@ import "net/http"
 import "encoding/json"
 import "encoding/base64"
 import "log"
-import "database/sql"
 import "strings"
+
+import "go.mongodb.org/mongo-driver/v2/mongo"
 
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -30,9 +31,8 @@ func main() {
 	
 	http.HandleFunc("/repertoire/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			var id, err = parseIdFromRequest(r)
-			if err != nil {
-				log.Println("invalid repertoire:", err)
+			id := r.PathValue("id")
+			if id == "" {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -41,7 +41,7 @@ func main() {
 
 			repertoire, err := fetchRepertoire(db, id)
 			if err != nil {
-				if err == sql.ErrNoRows {
+				if err == mongo.ErrNoDocuments {
 					log.Println("no repertoire found for id:", id, err)
 					w.WriteHeader(http.StatusNotFound)
 					return
@@ -57,16 +57,17 @@ func main() {
 
 			w.WriteHeader(http.StatusOK)
 		} else if r.Method == "POST" {
-			var repertoire, err = parseRepertoireFromRequest(r)
-			if err != nil {
+			var repertoire repertoireJson
+			if err := json.NewDecoder(r.Body).Decode(&repertoire); err != nil {
 				log.Println("invalid repertoire:", err)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			repertoire.RepertoireId = r.PathValue("id")
 
 			log.Println("creating repertoire:", repertoire)
 
-			repertoire, err = createRepertoire(db, repertoire)
+			repertoire, err := createRepertoire(db, repertoire)
 			if err != nil {
 				log.Println("database error when creating repertoire:", repertoire, err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -164,6 +165,30 @@ func main() {
 	})
 
 
+
+	http.HandleFunc("/chapter/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		id := r.PathValue("id")
+		if id == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		tree, err := readChapterAsTree(db, id)
+		if err != nil {
+			log.Println("failed to read chapter:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if tree == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tree)
+	})
 
 	http.Handle("/subscribe", cs)
 	http.Handle("/publish", cs)

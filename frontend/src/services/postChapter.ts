@@ -18,6 +18,7 @@ export async function postChapter(chapter: Chapter) {
       repertoireId,
       name: chapter.name,
       trainAs: chapter.trainAs,
+      root: chapter.root
     }),
   });
 

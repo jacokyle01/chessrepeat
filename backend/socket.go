@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -50,11 +49,12 @@ type MoveEvent struct {
 
 // ChapterEvent is the WebSocket message envelope for chapter creation events.
 type ChapterEvent struct {
-	Type         string  `json:"type"`         // "chapter_created"
-	ChapterID    string  `json:"chapterId"`
-	RepertoireID string  `json:"repertoireId"`
-	Name         string  `json:"name"`
-	TrainAs      string  `json:"trainAs"`
+	Type         string           `json:"type"`         // "chapter_created"
+	ChapterID    string           `json:"chapterId"`
+	RepertoireID string           `json:"repertoireId"`
+	Name         string           `json:"name"`
+	TrainAs      string           `json:"trainAs"`
+	Root         ChapterTreeNode  `json:"root"`
 }
 
 // chatServer enables broadcasting to a set of subscribers.
@@ -67,7 +67,7 @@ type chatServer struct {
 	subscriberMessageBuffer int
 
 	// db is the database connection for persisting moves.
-	db *sql.DB
+	db *DB
 
 	// logf controls where logs are sent.
 	// Defaults to log.Printf.
@@ -81,7 +81,7 @@ type chatServer struct {
 }
 
 // newChatServer constructs a chatServer with the defaults.
-func newChatServer(db *sql.DB) *chatServer {
+func newChatServer(db *DB) *chatServer {
 	cs := &chatServer{
 		subscriberMessageBuffer: 16,
 		db:                      db,
@@ -188,7 +188,7 @@ func (cs *chatServer) publishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// persist move to database
-	if err := createMove(cs.db, event); err != nil {
+	if err := addMoveToChapter(cs.db, event); err != nil {
 		cs.logf("failed to persist move: %v", err)
 		http.Error(w, "failed to save move", http.StatusInternalServerError)
 		return
