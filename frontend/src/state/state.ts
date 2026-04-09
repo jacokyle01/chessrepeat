@@ -536,7 +536,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         if (node.data.enabled) chapter.enabledCount++;
         if (!node.data.training) chapter.unseenCount++;
-        set({repertoire}) // we have to do this to trigger a state update
+        set({ repertoire }); // we have to do this to trigger a state update
         await persistChapter(chapter);
       },
 
@@ -583,7 +583,18 @@ export const useTrainerStore = create<TrainerState>()(
           selectedNode.children.push(newNode);
           //TODO abstraction here...
           //TODO iff logged in ...
-          //TODO put network actions somewhere 
+          //TODO put network actions somewhere
+          //TODO why void?
+
+          console.log(
+            JSON.stringify({
+              type: 'move_created',
+              chapterId: chapter.id,
+              path: selectedPath,
+              move: newNode.data,
+            }),
+          );
+
           void fetch('http://localhost:8080/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -607,7 +618,6 @@ export const useTrainerStore = create<TrainerState>()(
         await persistChapter(chapter);
       },
       // TODO should network actions be in state?
-
 
       addNewChapter: async (chapter: Chapter) => {
         const { addNewChapterLocally } = get();
