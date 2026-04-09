@@ -212,6 +212,11 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
         )}
       </div>
 
+      {/* UUID */}
+      <div className="px-6 py-2">
+        <span className="text-xs text-gray-400 font-mono">uuid:{chapter.uuid}</span>
+      </div>
+
       {/* Delete */}
       <div className="px-6 p-2 border-t border-gray-200 ">
         {!confirmDelete ? (
