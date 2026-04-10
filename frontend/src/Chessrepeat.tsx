@@ -140,7 +140,7 @@ export const Chessrepeat = () => {
         // received from another user — add chapter locally
         // the chapter comes as metadata only; create a minimal Chapter object
         addNewChapterLocally({
-          id: payload.chapterId,
+          uuid: payload.chapterId,
           name: payload.name,
           trainAs: payload.trainAs,
           root: { data: { id: '', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', ply: 0, san: '', comment: '', enabled: false, training: null }, children: [] },

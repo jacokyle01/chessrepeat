@@ -14,7 +14,7 @@ export async function postChapter(chapter: Chapter) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       type: 'chapter_created',
-      chapterId: chapter.id,
+      chapterId: chapter.uuid,
       repertoireId,
       name: chapter.name,
       trainAs: chapter.trainAs,

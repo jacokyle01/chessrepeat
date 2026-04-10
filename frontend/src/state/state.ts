@@ -155,12 +155,12 @@ const indexedDBStorage: StateStorage = {
 
 // Helper: persist one chapter by index (in-memory -> IDB) and ensure id list is updated
 async function persistChapter(chapter: Chapter) {
-  await writeChapter(chapter.id, chapter);
+  await writeChapter(chapter.uuid, chapter);
 
   // if new chapter, insert into id list
   const ids = await readChapterIds();
-  if (!ids.includes(chapter.id)) {
-    await writeChapterIds([...ids, chapter.id]);
+  if (!ids.includes(chapter.uuid)) {
+    await writeChapterIds([...ids, chapter.uuid]);
   }
 }
 
@@ -245,7 +245,7 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = repertoire[chapterIndex];
         if (!chapter) return;
 
-        const cid = chapter.id;
+        const cid = chapter.uuid;
 
         // update in-memory (touch only that chapter)
         set((state) => {
@@ -263,7 +263,7 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = repertoire[chapterIndex];
         if (!chapter) return;
 
-        const cid = chapter.id;
+        const cid = chapter.uuid;
 
         const nextRepertoire = repertoire.slice();
         nextRepertoire.splice(chapterIndex, 1);
@@ -285,7 +285,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         await deleteChapter(cid);
 
-        const ids = nextRepertoire.map((c) => c.id);
+        const ids = nextRepertoire.map((c) => c.uuid);
         await writeChapterIds(ids);
       },
 
@@ -589,7 +589,7 @@ export const useTrainerStore = create<TrainerState>()(
           console.log(
             JSON.stringify({
               type: 'move_created',
-              chapterId: chapter.id,
+              chapterId: chapter.uuid,
               path: selectedPath,
               move: newNode.data,
             }),
@@ -600,7 +600,7 @@ export const useTrainerStore = create<TrainerState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               type: 'move_created',
-              chapterId: chapter.id,
+              chapterId: chapter.uuid,
               path: selectedPath,
               move: newNode.data,
             }),
@@ -628,7 +628,7 @@ export const useTrainerStore = create<TrainerState>()(
       addNewChapterLocally: async (chapter: Chapter) => {
         const { repertoire } = get();
         const ids = await readChapterIds();
-        if (ids.includes(chapter.id)) return; // don't write duplicates
+        if (ids.includes(chapter.uuid)) return; // don't write duplicates
 
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
@@ -644,7 +644,7 @@ export const useTrainerStore = create<TrainerState>()(
         set({ repertoire: newRepertoire });
 
         // add to indexedDB
-        const cid = chapter.id;
+        const cid = chapter.uuid;
         await writeChapter(cid, chapter);
         writeChapterIds([...ids, cid]);
       },

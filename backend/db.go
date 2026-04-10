@@ -38,7 +38,7 @@ type loginResponse struct {
 // Moves is a flat map keyed by id-path (concatenation of each ancestor's
 // TrainingData.ID from root to that node).  The root node lives at key "".
 type ChapterDoc struct {
-	ChapterID    string                  `json:"chapterId"    bson:"_id"`
+	UUID         string                  `json:"uuid"         bson:"_id"`
 	RepertoireID string                  `json:"repertoireId" bson:"repertoire_id"`
 	Name         string                  `json:"name"         bson:"name"`
 	TrainAs      string                  `json:"trainAs"      bson:"train_as"`
@@ -53,7 +53,7 @@ type ChapterTreeNode struct {
 
 // ChapterTreeResponse is the JSON sent to clients when reading a chapter.
 type ChapterTreeResponse struct {
-	ChapterID    string          `json:"chapterId"`
+	UUID         string          `json:"uuid"`
 	RepertoireID string          `json:"repertoireId"`
 	Name         string          `json:"name"`
 	TrainAs      string          `json:"trainAs"`
@@ -171,7 +171,7 @@ func flattenTree(root ChapterTreeNode) map[string]TrainingData {
 // createChapter flattens the incoming move tree and inserts the chapter document.
 func createChapter(db *DB, event ChapterEvent) error {
 	doc := ChapterDoc{
-		ChapterID:    event.ChapterID,
+		UUID:         event.ChapterID,
 		RepertoireID: event.RepertoireID,
 		Name:         event.Name,
 		TrainAs:      event.TrainAs,
@@ -184,15 +184,24 @@ func createChapter(db *DB, event ChapterEvent) error {
 
 // addMoveToChapter adds a single move to a chapter's flattened move map.
 // The key is the move's path (parent path + move ID).
+// TODO shouldn't have to read entire chapter to put move in there. 
+// different data structure for moves? 
 func addMoveToChapter(db *DB, event MoveEvent) error {
 	coll := db.db.Collection("chapters")
 	movePath := event.Path + event.Move.ID
-	fieldKey := "moves." + movePath
-	_, err := coll.UpdateByID(
-		context.TODO(),
-		event.ChapterID,
-		bson.M{"$set": bson.M{fieldKey: event.Move}},
-	)
+
+	var doc ChapterDoc
+	err := coll.FindOne(context.TODO(), bson.M{"_id": event.ChapterID}).Decode(&doc)
+	if err != nil {
+		return err
+	}
+
+	if doc.Moves == nil {
+		doc.Moves = make(map[string]TrainingData)
+	}
+	doc.Moves[movePath] = event.Move
+
+	_, err = coll.ReplaceOne(context.TODO(), bson.M{"_id": event.ChapterID}, doc)
 	return err
 }
 
@@ -223,7 +232,7 @@ func readChapterAsTree(db *DB, chapterID string) (*ChapterTreeResponse, error) {
 	root := buildTree(doc.Moves)
 
 	return &ChapterTreeResponse{
-		ChapterID:    doc.ChapterID,
+		UUID:         doc.UUID,
 		RepertoireID: doc.RepertoireID,
 		Name:         doc.Name,
 		TrainAs:      doc.TrainAs,

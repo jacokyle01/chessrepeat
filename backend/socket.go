@@ -50,7 +50,7 @@ type MoveEvent struct {
 // ChapterEvent is the WebSocket message envelope for chapter creation events.
 type ChapterEvent struct {
 	Type         string           `json:"type"`         // "chapter_created"
-	ChapterID    string           `json:"chapterId"`
+	ChapterID    string           `json:"chapterId"`		// TODO uuid? 
 	RepertoireID string           `json:"repertoireId"`
 	Name         string           `json:"name"`
 	TrainAs      string           `json:"trainAs"`

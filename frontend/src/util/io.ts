@@ -69,7 +69,7 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
   return {
     name,
     trainAs: asColor,
-    id: crypto.randomUUID(),
+    uuid: crypto.randomUUID(),
     root: {
       data: {
         comment: '',
