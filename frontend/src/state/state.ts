@@ -89,7 +89,7 @@ interface TrainerState {
 
   jump: (path: string) => void;
   makeMove: (san: string) => Promise<void>;
-  addMove: (path: string, node: TrainableNode) => Promise<void>;
+  addMove: (chapterId: string, path: string, node: TrainableNode) => Promise<void>;
 
   clearChapterContext: () => void;
   setCommentAt: (comment: string, path: string) => Promise<void>;
@@ -124,18 +124,23 @@ const KEYS = {
 };
 
 async function writeChapterIds(ids: string[]) {
+  return;
   await set(KEYS.chapterIds, ids);
 }
 async function readChapterIds(): Promise<string[]> {
+  return;
   return (await get(KEYS.chapterIds)) ?? [];
 }
 async function writeChapter(cid: string, chapter: Chapter) {
+  return;
   await set(KEYS.chapter(cid), chapter);
 }
 async function readChapter(cid: string): Promise<Chapter | null> {
+  return;
   return (await get(KEYS.chapter(cid))) ?? null;
 }
 async function deleteChapter(cid: string) {
+  return;
   await del(KEYS.chapter(cid));
 }
 
@@ -155,24 +160,24 @@ const indexedDBStorage: StateStorage = {
 
 // Helper: persist one chapter by index (in-memory -> IDB) and ensure id list is updated
 async function persistChapter(chapter: Chapter) {
-  await writeChapter(chapter.uuid, chapter);
+  // await writeChapter(chapter.uuid, chapter);
 
-  // if new chapter, insert into id list
-  const ids = await readChapterIds();
-  if (!ids.includes(chapter.uuid)) {
-    await writeChapterIds([...ids, chapter.uuid]);
-  }
+  // // if new chapter, insert into id list
+  // const ids = await readChapterIds();
+  // if (!ids.includes(chapter.uuid)) {
+  //   await writeChapterIds([...ids, chapter.uuid]);
+  // }
 }
 
 // Helper: persist all chapters (used by setRepertoire)
 async function persistAllChapters(repertoire: Chapter[]) {
-  const ids: string[] = [];
-  for (const ch of repertoire) {
-    const cid = ch.id;
-    ids.push(cid);
-    await writeChapter(cid, ch);
-  }
-  await writeChapterIds(ids);
+  // const ids: string[] = [];
+  // for (const ch of repertoire) {
+  //   const cid = ch.id;
+  //   ids.push(cid);
+  //   await writeChapter(cid, ch);
+  // }
+  // await writeChapterIds(ids);
 }
 
 export const useTrainerStore = create<TrainerState>()(
@@ -286,7 +291,7 @@ export const useTrainerStore = create<TrainerState>()(
         await deleteChapter(cid);
 
         const ids = nextRepertoire.map((c) => c.uuid);
-        await writeChapterIds(ids);
+        // await writeChapterIds(ids);
       },
 
       // try to load from IDB on refresh
@@ -523,13 +528,18 @@ export const useTrainerStore = create<TrainerState>()(
       //TODO separate state action for makeMove, addMove ?
 
       /*
-        Intended for receiving moves over websockets
+        Intended for receiving moves over websockets.
+        The chapter is looked up by id so the move lands in the correct
+        chapter regardless of what the user currently has selected.
         TODO: we can implement a "follow" option that can set the path to whatever was just added
       */
-      addMove: async (path: string, node: TrainableNode) => {
-        const { repertoire, repertoireIndex, trainingMethod } = get();
-        const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
+      addMove: async (chapterId: string, path: string, node: TrainableNode) => {
+        const { repertoire } = get();
+        const chapter = repertoire.find((c) => c.uuid === chapterId);
+        if (!chapter) {
+          console.warn('addMove: no chapter found for id', chapterId);
+          return;
+        }
         const root = chapter.root;
         //TODO test for existing
         updateAt(root, path, (parent: TrainableNode) => parent.children.push(node));
@@ -586,25 +596,22 @@ export const useTrainerStore = create<TrainerState>()(
           //TODO put network actions somewhere
           //TODO why void?
 
-          console.log(
-            JSON.stringify({
-              type: 'move_created',
-              chapterId: chapter.uuid,
-              path: selectedPath,
-              move: newNode.data,
-            }),
-          );
-
-          void fetch('http://localhost:8080/publish', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'move_created',
-              chapterId: chapter.uuid,
-              path: selectedPath,
-              move: newNode.data,
-            }),
-          });
+          // send the move over the WebSocket so the server can persist it
+          // and broadcast to other clients. the connection is authenticated
+          // by the session cookie at handshake time.
+          const { socket } = get();
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(
+              JSON.stringify({
+                type: 'move_created',
+                chapterId: chapter.uuid,
+                path: selectedPath,
+                move: newNode.data,
+              }),
+            );
+          } else {
+            console.warn('socket not open; move not broadcast');
+          }
         }
 
         //TODO separate "play move" state action?
@@ -627,8 +634,8 @@ export const useTrainerStore = create<TrainerState>()(
 
       addNewChapterLocally: async (chapter: Chapter) => {
         const { repertoire } = get();
-        const ids = await readChapterIds();
-        if (ids.includes(chapter.uuid)) return; // don't write duplicates
+        // const ids = await readChapterIds();
+        // if (ids.includes(chapter.uuid)) return; // don't write duplicates
 
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
@@ -646,7 +653,7 @@ export const useTrainerStore = create<TrainerState>()(
         // add to indexedDB
         const cid = chapter.uuid;
         await writeChapter(cid, chapter);
-        writeChapterIds([...ids, cid]);
+        // writeChapterIds([...ids, cid]);
       },
 
       //TODO namespace
@@ -705,19 +712,19 @@ export const useTrainerStore = create<TrainerState>()(
 
       // ✅ CRITICAL: do NOT persist repertoire anymore (it lives as per-chapter blobs)
       partialize: (state) => ({
-        repertoireIndex: state.repertoireIndex,
-        trainingConfig: state.searchConfig,
-        selectedPath: state.selectedPath,
-        searchConfig: state.searchConfig,
-        srsConfig: state.srsConfig,
+        // repertoireIndex: state.repertoireIndex,
+        // trainingConfig: state.searchConfig,
+        // selectedPath: state.selectedPath,
+        // searchConfig: state.searchConfig,
+        // srsConfig: state.srsConfig,
       }),
 
       // ✅ After small state is rehydrated, load chapters from IDB into memory
       onRehydrateStorage: () => {
         return async (state, err) => {
-          if (err || !state) return;
-          updateScheduler(state.srsConfig);
-          await state.hydrateRepertoireFromIDB();
+          // if (err || !state) return;
+          // updateScheduler(state.srsConfig);
+          // await state.hydrateRepertoireFromIDB();
         };
       },
     },

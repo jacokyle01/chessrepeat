@@ -1,7 +1,10 @@
 import type { Chapter } from '../types/training';
 import { useAuthStore } from '../state/auth';
+import { useTrainerStore } from '../state/state';
 
-// TODO make websocket operation 
+// Sends a chapter_created message over the WebSocket. The server matches
+// the `type` field to its create-chapter action, persists, and broadcasts
+// to other subscribers of the repertoire.
 export async function postChapter(chapter: Chapter) {
   const { user, repertoireId } = useAuthStore.getState();
   if (!user?.sub || !repertoireId) {
@@ -9,20 +12,20 @@ export async function postChapter(chapter: Chapter) {
     return;
   }
 
-  const res = await fetch('http://localhost:8080/chapter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  const { socket } = useTrainerStore.getState();
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    console.error('postChapter: websocket not open');
+    return;
+  }
+
+  socket.send(
+    JSON.stringify({
       type: 'chapter_created',
       chapterId: chapter.uuid,
       repertoireId,
       name: chapter.name,
       trainAs: chapter.trainAs,
-      root: chapter.root
+      root: chapter.root,
     }),
-  });
-
-  if (!res.ok) {
-    console.error('postChapter failed', res.status, await res.text());
-  }
+  );
 }

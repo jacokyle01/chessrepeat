@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"log"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -90,15 +88,16 @@ func newChatServer(db *DB) *chatServer {
 	}
 	cs.serveMux.Handle("/", http.FileServer(http.Dir(".")))
 	cs.serveMux.HandleFunc("/subscribe", cs.subscribeHandler)
-	cs.serveMux.HandleFunc("/publish", cs.publishHandler)
-	cs.serveMux.HandleFunc("/chapter", cs.addChapterHandler)
 
 	return cs
 }
 
 // subscriber represents a subscriber.
+// userID is pinned at handshake time from the session cookie, so every
+// message that travels through this connection can be attributed to a user.
 type subscriber struct {
-	msgs chan []byte
+	msgs   chan []byte
+	userID string
 }
 
 func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
@@ -125,37 +124,61 @@ func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 // It uses CloseRead to keep reading from the connection to process control
 // messages and cancel the context if the connection drops.
 func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request) error {
-	var mu sync.Mutex
-	var c *websocket.Conn
-	var closed bool
+	// authenticate the connection from the session cookie before upgrading.
+	// we pin the user id to the subscriber so every message broadcast over
+	// this connection is attributable to a known user.
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		http.Error(w, "missing session", http.StatusUnauthorized)
+		return err
+	}
+	sess, err := fetchSession(cs.db, cookie.Value)
+	if err != nil {
+		http.Error(w, "session lookup failed", http.StatusInternalServerError)
+		return err
+	}
+	if sess == nil {
+		http.Error(w, "invalid or expired session", http.StatusUnauthorized)
+		return errors.New("invalid or expired session")
+	}
+
 	s := &subscriber{
-		msgs: make(chan []byte, cs.subscriberMessageBuffer),
+		msgs:   make(chan []byte, cs.subscriberMessageBuffer),
+		userID: sess.UserID,
 	}
 	cs.addSubscriber(s)
 	defer cs.deleteSubscriber(s)
 
-	c2, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: []string{"localhost:5173"},
 	})
 	if err != nil {
 		return err
 	}
-	mu.Lock()
-	if closed {
-		mu.Unlock()
-		return net.ErrClosed
-	}
-	c = c2
-	mu.Unlock()
 	defer c.CloseNow()
 
-	ctx := c.CloseRead(context.Background())
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
 
+	// reader goroutine: pulls messages off the socket and dispatches them.
+	// when the client disconnects (or sends garbage), cancel() trips the
+	// writer loop below so we tear the connection down cleanly.
+	go func() {
+		defer cancel()
+		for {
+			_, data, err := c.Read(ctx)
+			if err != nil {
+				return
+			}
+			cs.handleWSMessage(s, data)
+		}
+	}()
+
+	// writer loop: forwards broadcast messages to this subscriber.
 	for {
 		select {
 		case msg := <-s.msgs:
-			err := writeTimeout(ctx, time.Second*5, c, msg)
-			if err != nil {
+			if err := writeTimeout(ctx, time.Second*5, c, msg); err != nil {
 				return err
 			}
 		case <-ctx.Done():
@@ -164,82 +187,58 @@ func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
-// publishHandler reads a MoveEvent from the request body and publishes it to all subscribers.
-func (cs *chatServer) publishHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
+// handleWSMessage matches the `type` field of an incoming WebSocket message
+// to a server action. New ops are added by extending the switch.
+func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
+	var env struct {
+		Type string `json:"type"`
 	}
-	body := http.MaxBytesReader(w, r.Body, 8192)
-	raw, err := io.ReadAll(body)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
-		return
-	}
-
-	var event MoveEvent
-	if err := json.Unmarshal(raw, &event); err != nil {
-		http.Error(w, "invalid move event JSON", http.StatusBadRequest)
-		return
-	}
-	if event.Type != "move_created" {
-		http.Error(w, "unsupported event type", http.StatusBadRequest)
+	if err := json.Unmarshal(raw, &env); err != nil {
+		cs.logf("invalid ws message from user %s: %v", s.userID, err)
 		return
 	}
 
-	// persist move to database
-	if err := addMoveToChapter(cs.db, event); err != nil {
-		cs.logf("failed to persist move: %v", err)
-		http.Error(w, "failed to save move", http.StatusInternalServerError)
-		return
+	switch env.Type {
+	case "move_created":
+		var event MoveEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			cs.logf("invalid move_created from user %s: %v", s.userID, err)
+			return
+		}
+		if err := addMoveToChapter(cs.db, event); err != nil {
+			cs.logf("persist move (user %s): %v", s.userID, err)
+			return
+		}
+		cs.publish(raw, s)
+
+	case "chapter_created":
+		var event ChapterEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			cs.logf("invalid chapter_created from user %s: %v", s.userID, err)
+			return
+		}
+		if err := createChapter(cs.db, event); err != nil {
+			cs.logf("persist chapter (user %s): %v", s.userID, err)
+			return
+		}
+		cs.publish(raw, s)
+
+	default:
+		cs.logf("unknown ws op %q from user %s", env.Type, s.userID)
 	}
-
-	cs.publish(raw)
-
-	w.WriteHeader(http.StatusAccepted)
 }
 
-func (cs *chatServer) addChapterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-
-	body := http.MaxBytesReader(w, r.Body, 1024*1024)
-	raw, err := io.ReadAll(body)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
-		return
-	}
-
-	var event ChapterEvent
-	if err := json.Unmarshal(raw, &event); err != nil {
-		http.Error(w, "invalid chapter event JSON", http.StatusBadRequest)
-		return
-	}
-	if event.Type != "chapter_created" {
-		http.Error(w, "unsupported event type", http.StatusBadRequest)
-		return
-	}
-
-	if err := createChapter(cs.db, event); err != nil {
-		cs.logf("failed to persist chapter: %v", err)
-		http.Error(w, "failed to save chapter", http.StatusInternalServerError)
-		return
-	}
-
-	cs.publish(raw)
-
-	w.WriteHeader(http.StatusAccepted)
-}
-
-// publish sends a message to all subscribers.
+// publish sends a message to all subscribers except the sender.
 // It never blocks and drops messages to slow subscribers.
-func (cs *chatServer) publish(msg []byte) {
+// Pass sender == nil to broadcast to everyone (e.g. server-originated events).
+func (cs *chatServer) publish(msg []byte, sender *subscriber) {
 	cs.subscribersMu.Lock()
 	defer cs.subscribersMu.Unlock()
 
 	for s := range cs.subscribers {
+		if s == sender {
+			continue
+		}
 		select {
 		case s.msgs <- msg:
 		default:

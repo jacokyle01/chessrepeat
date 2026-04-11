@@ -104,16 +104,84 @@ export const Chessrepeat = () => {
   } = useTrainerStore();
 
   const authUser = useAuthStore((s) => s.user);
-  const setAuthFromIdToken = useAuthStore((s) => s.setAuthFromIdToken);
+  const repertoireId = useAuthStore((s) => s.repertoireId);
+  const setUser = useAuthStore((s) => s.setUser);
+  const setRepertoireId = useAuthStore((s) => s.setRepertoireId);
   const clearAuth = useAuthStore((s) => s.clearAuth);
-  const hydrateAuthFromStorage = useAuthStore((s) => s.hydrateFromStorage);
 
-  // hydrate repertoire from IDB
+  // auto-login: ask the backend who we are using the session cookie.
+  // if it answers, hydrate the auth store; if not, the GoogleLoginButton
+  // shows up and the user signs in normally.
+  //TODO better pattern for this? if not convert to hoook. 
+  //TODO server should also return repertoire
+
+  //combine into auth hook? or find better pattern to handle requests / data we need from server 
   useEffect(() => {
-    console.log('test');
-    hydrateRepertoireFromIDB();
-    hydrateAuthFromStorage();
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('http://localhost:8080/me', {
+          credentials: 'include',
+        });
+        if (cancelled) return;
+        if (!res.ok) return;
+        const data = await res.json();
+        setUser({
+          sub: data.user.tokenId,
+          name: data.user.name,
+          email: data.user.email,
+          picture: data.user.picture,
+        });
+        if (data.repertoire?.id) {
+          setRepertoireId(data.repertoire.id);
+        }
+      } catch (err) {
+        console.warn('auto-login failed', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // once we know which repertoire is ours, fetch it (and its chapters)
+  // over plain HTTP and hand the result to the trainer store. fires after
+  // both auto-login (/me) and explicit Google login since both end with a
+  // setRepertoireId call.
+  //TODO useEffect should be on session ? we don't need repertoireId, 
+  // just need session cookie 
+  useEffect(() => {
+    if (!repertoireId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`http://localhost:8080/repertoire/${repertoireId}`, {
+          credentials: 'include',
+        });
+        if (cancelled) return;
+        if (!res.ok) {
+          console.error('failed to load repertoire', res.status);
+          return;
+        }
+        const data = await res.json();
+        const chapters = (data.chapters ?? []).map((c: any) => ({
+          uuid: c.uuid,
+          name: c.name,
+          trainAs: c.trainAs,
+          root: c.root,
+          enabledCount: 0,
+          unseenCount: 0,
+          lastDueCount: 0,
+        }));
+        void setRepertoire(chapters);
+      } catch (err) {
+        console.error('repertoire fetch failed', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [repertoireId]);
 
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
 
@@ -125,17 +193,22 @@ export const Chessrepeat = () => {
   const movesContainerRef = useRef<HTMLDivElement>(null);
 
   /*
-    Create websocket to send and receive moves
-
+    Create websocket to send and receive moves.
+    Only open once we have an authenticated user — the backend rejects
+    unauthenticated handshakes (401), and the session cookie is what
+    identifies the connection.
   */
+
+  // handle incoming websocket
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8080/subscribe');
+    if (!authUser) return;
+    const ws = new WebSocket('ws://localhost:8080/subscribe'); //todo should be room-indexed 
     setWebSocket(ws);
     ws.onopen = () => console.log('ws live');
     ws.onmessage = (event) => {
       const payload = JSON.parse(event.data);
       if (payload.type === 'move_created') {
-        addMove(payload.path, { data: payload.move, children: [] });
+        addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
       } else if (payload.type === 'chapter_created') {
         // received from another user — add chapter locally
         // the chapter comes as metadata only; create a minimal Chapter object
@@ -151,7 +224,7 @@ export const Chessrepeat = () => {
       }
     };
     return () => ws.close();
-  }, []);
+  }, [authUser]);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
@@ -438,7 +511,7 @@ export const Chessrepeat = () => {
               )}
             </a>
           ) : (
-            <GoogleLoginButton onToken={setAuthFromIdToken} />
+            <GoogleLoginButton />
           )}
         </div>
 

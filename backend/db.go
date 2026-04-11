@@ -34,6 +34,14 @@ type loginResponse struct {
 	Repertoire *repertoireJson `json:"repertoire"`
 }
 
+// sessionDoc is a server-side authenticated session record.
+type sessionDoc struct {
+	SessionID string    `bson:"_id"        json:"sessionId"`
+	UserID    string    `bson:"user_id"    json:"userId"`
+	CreatedAt time.Time `bson:"created_at" json:"createdAt"`
+	ExpiresAt time.Time `bson:"expires_at" json:"expiresAt"`
+}
+
 // ChapterDoc is the MongoDB document for a chapter.
 // Moves is a flat map keyed by id-path (concatenation of each ancestor's
 // TrainingData.ID from root to that node).  The root node lives at key "".
@@ -105,6 +113,48 @@ func connectDb() *DB {
 	}
 }
 
+// ── sessions ──
+
+// createSession issues a new session for the given user and persists it.
+//TODO what if we already have a sesison
+func createSession(db *DB, userID string) (sessionDoc, error) {
+	id, err := newSessionID()
+	if err != nil {
+		return sessionDoc{}, err
+	}
+	now := time.Now().UTC()
+	sess := sessionDoc{
+		SessionID: id,
+		UserID:    userID,
+		CreatedAt: now,
+		ExpiresAt: now.Add(30 * 24 * time.Hour),
+	}
+	coll := db.db.Collection("sessions")
+	if _, err := coll.InsertOne(context.TODO(), sess); err != nil {
+		return sessionDoc{}, err
+	}
+	return sess, nil
+}
+
+// fetchSession returns the session for the given id if it exists and has not
+// expired. A nil session with nil error means "not found or expired".
+//TODO session invalidation? 
+func fetchSession(db *DB, sessionID string) (*sessionDoc, error) {
+	coll := db.db.Collection("sessions")
+	var sess sessionDoc
+	err := coll.FindOne(context.TODO(), bson.M{"_id": sessionID}).Decode(&sess)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if time.Now().UTC().After(sess.ExpiresAt) {
+		return nil, nil
+	}
+	return &sess, nil
+}
+
 // ── users ──
 
 func upsertUser(db *DB, user userJson) error {
@@ -112,6 +162,19 @@ func upsertUser(db *DB, user userJson) error {
 	opts := options.Replace().SetUpsert(true)
 	_, err := coll.ReplaceOne(context.TODO(), bson.M{"_id": user.TokenID}, user, opts)
 	return err
+}
+
+func fetchUser(db *DB, tokenID string) (*userJson, error) {
+	coll := db.db.Collection("users")
+	var user userJson
+	err := coll.FindOne(context.TODO(), bson.M{"_id": tokenID}).Decode(&user)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 // ── repertoires ──
@@ -203,6 +266,36 @@ func addMoveToChapter(db *DB, event MoveEvent) error {
 
 	_, err = coll.ReplaceOne(context.TODO(), bson.M{"_id": event.ChapterID}, doc)
 	return err
+}
+
+// fetchChaptersByRepertoire returns every chapter belonging to a repertoire,
+// each rebuilt as a tree response ready to send to a client.
+func fetchChaptersByRepertoire(db *DB, repertoireID string) ([]ChapterTreeResponse, error) {
+	coll := db.db.Collection("chapters")
+	cursor, err := coll.Find(context.TODO(), bson.M{"repertoire_id": repertoireID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
+
+	chapters := make([]ChapterTreeResponse, 0)
+	for cursor.Next(context.TODO()) {
+		var doc ChapterDoc
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		chapters = append(chapters, ChapterTreeResponse{
+			UUID:         doc.UUID,
+			RepertoireID: doc.RepertoireID,
+			Name:         doc.Name,
+			TrainAs:      doc.TrainAs,
+			Root:         buildTree(doc.Moves),
+		})
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	return chapters, nil
 }
 
 // readChapter fetches the raw chapter document.

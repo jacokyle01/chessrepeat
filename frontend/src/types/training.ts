@@ -96,7 +96,7 @@ export type TrainingRoot<T> = {
 
 export interface Chapter {
   name: string;
-  uuid: string;
+  uuid: string; //TODO should be simple id like abEdfgA   
   trainAs: Color;
   root: TrainableNode;
   enabledCount: number;

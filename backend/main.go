@@ -2,9 +2,7 @@ package main
 
 import "net/http"
 import "encoding/json"
-import "encoding/base64"
 import "log"
-import "strings"
 
 import "go.mongodb.org/mongo-driver/v2/mongo"
 
@@ -13,6 +11,8 @@ func withCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		// required for the browser to send / receive the session cookie cross-origin
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -20,6 +20,10 @@ func withCORS(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// sessionCookieName is the name of the HTTP-only cookie that carries the
+// opaque session id on every request from the browser.
+const sessionCookieName = "chessrepeat_session"
 
 func main() {
 	log.Println("starting server...")
@@ -31,6 +35,23 @@ func main() {
 	
 	http.HandleFunc("/repertoire/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
+			// require an authenticated session — no anonymous reads
+			cookie, err := r.Cookie(sessionCookieName)
+			if err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			sess, err := fetchSession(db, cookie.Value)
+			if err != nil {
+				log.Println("session lookup failed:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if sess == nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
 			id := r.PathValue("id")
 			if id == "" {
 				w.WriteHeader(http.StatusBadRequest)
@@ -45,17 +66,29 @@ func main() {
 					log.Println("no repertoire found for id:", id, err)
 					w.WriteHeader(http.StatusNotFound)
 					return
-				} else {
-					log.Println("database error when fetching id:", id, err)
-					w.WriteHeader(http.StatusInternalServerError)
-					return
 				}
+				log.Println("database error when fetching id:", id, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			chapters, err := fetchChaptersByRepertoire(db, id)
+			if err != nil {
+				log.Println("failed to fetch chapters for repertoire:", id, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			resp := struct {
+				Repertoire repertoireJson        `json:"repertoire"`
+				Chapters   []ChapterTreeResponse `json:"chapters"`
+			}{
+				Repertoire: repertoire,
+				Chapters:   chapters,
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(repertoire)
-
-			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(resp)
 		} else if r.Method == "POST" {
 			var repertoire repertoireJson
 			if err := json.NewDecoder(r.Body).Decode(&repertoire); err != nil {
@@ -103,26 +136,12 @@ func main() {
 			return
 		}
 
-		// decode JWT payload (no verification for now)
-		parts := strings.Split(body.IDToken, ".")
-		if len(parts) != 3 {
-			http.Error(w, "malformed token", http.StatusBadRequest)
-			return
-		}
-		payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+		// verify the Google ID token: signature, issuer, expiry, audience
+		// we are trading this for a session 
+		claims, err := verifyGoogleIDToken(r.Context(), body.IDToken)
 		if err != nil {
-			http.Error(w, "malformed token payload", http.StatusBadRequest)
-			return
-		}
-
-		var claims struct {
-			Sub     string `json:"sub"`
-			Name    string `json:"name"`
-			Email   string `json:"email"`
-			Picture string `json:"picture"`
-		}
-		if err := json.Unmarshal(payload, &claims); err != nil || claims.Sub == "" {
-			http.Error(w, "invalid token claims", http.StatusBadRequest)
+			log.Println("google id token verification failed:", err)
+			http.Error(w, "invalid id token", http.StatusUnauthorized)
 			return
 		}
 
@@ -157,6 +176,27 @@ func main() {
 			repertoire = &newRep
 		}
 
+		// establish an authenticated session bound to the verified user
+		//TODO what if we already have a session for this user in DB?
+		sess, err := createSession(db, user.TokenID)
+		if err != nil {
+			log.Println("failed to create session:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// set the session as an HTTP-only cookie. the browser will attach this
+		// on subsequent fetches and on the WebSocket handshake, letting us
+		// identify the user on every request without JS ever touching the id.
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionCookieName,
+			Value:    sess.SessionID,
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Expires:  sess.ExpiresAt,
+		})
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(loginResponse{
 			User:       user,
@@ -165,6 +205,55 @@ func main() {
 	})
 
 
+
+	/*
+		auto-login endpoint: validates the session cookie and returns the
+		user + repertoire so the frontend can re-establish the auth state on
+		page load without prompting the user to sign in again.
+	*/
+	http.HandleFunc("/me", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		cookie, err := r.Cookie(sessionCookieName)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		//TODO in memory cache for sessions 
+		sess, err := fetchSession(db, cookie.Value)
+		if err != nil {
+			log.Println("session lookup failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if sess == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		user, err := fetchUser(db, sess.UserID)
+		if err != nil {
+			log.Println("user lookup failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if user == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		repertoire, err := fetchRepertoireByUser(db, sess.UserID)
+		if err != nil {
+			log.Println("repertoire lookup failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(loginResponse{
+			User:       *user,
+			Repertoire: repertoire,
+		})
+	})
 
 	http.HandleFunc("/chapter/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
@@ -191,8 +280,6 @@ func main() {
 	})
 
 	http.Handle("/subscribe", cs)
-	http.Handle("/publish", cs)
-	http.Handle("/chapter", cs)
 
 	log.Println("server ready to serve! http://localhost:8080")
 

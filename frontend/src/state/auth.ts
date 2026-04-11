@@ -8,87 +8,30 @@ export type AuthUser = {
 };
 
 type AuthState = {
-  idToken: string | null;
   user: AuthUser | null;
-  repertoireId: string | null; // TODO what are ways to identify this user's resources from others? 
-                               // create user id on account creation?
+  repertoireId: string | null;
 
   isAuthenticated: () => boolean;
 
-  setAuthFromIdToken: (idToken: string) => void;
+  setUser: (user: AuthUser | null) => void;
   setRepertoireId: (id: string) => void;
   clearAuth: () => void;
-
-  hydrateFromStorage: () => void;
 };
 
-const TOKEN_KEY = "chessrepeat_id_token";
-
-function decodeJwtPayload(token: string): any | null {
-  try {
-    const payloadB64 = token.split(".")[1];
-    // base64url -> base64
-    const b64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(
-      atob(b64)
-        .split("")
-        .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
-        .join("")
-    );
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
-const REPERTOIRE_KEY = "chessrepeat_repertoire_id";
-
 export const useAuthStore = create<AuthState>((set, get) => ({
-  idToken: null,
   user: null,
   repertoireId: null,
 
-  isAuthenticated: () => !!get().idToken && !!get().user,
+  isAuthenticated: () => !!get().user,
 
-  setAuthFromIdToken: (idToken: string) => {
-    const payload = decodeJwtPayload(idToken);
-    if (!payload?.sub) {
-      // token malformed
-      set({ idToken: null, user: null });
-      localStorage.removeItem(TOKEN_KEY);
-      return;
-    }
+  setUser: (user) => set({ user }),
 
-    const user: AuthUser = {
-      sub: payload.sub,
-      name: payload.name,
-      email: payload.email,
-      picture: payload.picture,
-    };
-
-    localStorage.setItem(TOKEN_KEY, idToken);
-    set({ idToken, user });
-  },
-
-  setRepertoireId: (id: string) => {
-    localStorage.setItem(REPERTOIRE_KEY, id);
-    set({ repertoireId: id });
-  },
+  setRepertoireId: (id: string) => set({ repertoireId: id }),
 
   clearAuth: () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REPERTOIRE_KEY);
-    set({ idToken: null, user: null, repertoireId: null });
+    set({ user: null, repertoireId: null });
     // Optional: prevent auto-select
     // @ts-ignore
     window.google?.accounts?.id?.disableAutoSelect?.();
-  },
-
-  hydrateFromStorage: () => {
-    const tok = localStorage.getItem(TOKEN_KEY);
-    if (!tok) return;
-    get().setAuthFromIdToken(tok);
-    const repId = localStorage.getItem(REPERTOIRE_KEY);
-    if (repId) set({ repertoireId: repId });
   },
 }));

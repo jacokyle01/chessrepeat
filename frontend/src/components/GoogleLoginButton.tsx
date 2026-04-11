@@ -3,7 +3,7 @@ import { useAuthStore } from '../state/auth';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-export function GoogleLoginButton({ onToken }: { onToken: (idToken: string) => void }) {
+export function GoogleLoginButton() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -16,31 +16,39 @@ export function GoogleLoginButton({ onToken }: { onToken: (idToken: string) => v
       callback: async (resp: any) => {
         const idToken: string = resp.credential;
 
-        // hit backend login endpoint to upsert user + repertoire
+        // hit backend login endpoint to upsert user + repertoire.
+        // credentials: 'include' is required so the browser stores the
+        // session cookie that the server returns in Set-Cookie.
         try {
           const res = await fetch('http://localhost:8080/login', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken }),
           });
           if (!res.ok) {
             console.error('login failed', res.status, await res.text());
-          } else {
-            const data = await res.json();
-            if (data.repertoire?.id) {
-              useAuthStore.getState().setRepertoireId(data.repertoire.id);
-            }
+            return;
+          }
+          const data = await res.json();
+          const auth = useAuthStore.getState();
+          auth.setUser({
+            sub: data.user.tokenId,
+            name: data.user.name,
+            email: data.user.email,
+            picture: data.user.picture,
+          });
+          if (data.repertoire?.id) {
+            auth.setRepertoireId(data.repertoire.id);
           }
         } catch (err) {
           console.error('login request failed', err);
         }
-
-        onToken(idToken);
       },
     });
 
     setReady(true);
-  }, [onToken]);
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
