@@ -39,7 +39,14 @@ export function GoogleLoginButton() {
             picture: data.user.picture,
           });
           if (data.repertoire?.id) {
-            auth.setRepertoireId(data.repertoire.id);
+            // if URL is at root (no shared repertoire link), drop the
+            // user into their own repertoire and reflect that in the URL.
+            // otherwise leave the active (shared) repertoire alone.
+            const seg = window.location.pathname.replace(/^\/+|\/+$/g, '');
+            if (!seg) {
+              auth.setRepertoireId(data.repertoire.id);
+              window.history.pushState(null, '', `/${data.repertoire.id}`);
+            }
           }
         } catch (err) {
           console.error('login request failed', err);

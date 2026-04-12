@@ -109,14 +109,26 @@ export const Chessrepeat = () => {
   const setRepertoireId = useAuthStore((s) => s.setRepertoireId);
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
-  // auto-login: ask the backend who we are using the session cookie.
-  // if it answers, hydrate the auth store; if not, the GoogleLoginButton
-  // shows up and the user signs in normally.
-  //TODO better pattern for this? if not convert to hoook. 
-  //TODO server should also return repertoire
-
-  //combine into auth hook? or find better pattern to handle requests / data we need from server 
+  // auto-login + URL-based repertoire routing.
+  //
+  // The URL path's first segment (e.g. /abc-123) names the repertoire to load,
+  // so anyone with the link can collaborate on that repertoire (permissions
+  // come later). If we land on "/" we fall back to the user's own repertoire
+  // returned by /me and push that id into the URL so it can be shared.
+  //
+  // Also wires up popstate so browser back/forward navigates between
+  // repertoires without a full reload.
   useEffect(() => {
+    const idFromPath = () => {
+      const seg = window.location.pathname.replace(/^\/+|\/+$/g, '');
+      return seg || null;
+    };
+
+    // adopt whatever's already in the URL before /me resolves so the
+    // repertoire fetch + ws connect can race ahead.
+    const initialId = idFromPath();
+    if (initialId) setRepertoireId(initialId);
+
     let cancelled = false;
     (async () => {
       try {
@@ -132,15 +144,26 @@ export const Chessrepeat = () => {
           email: data.user.email,
           picture: data.user.picture,
         });
-        if (data.repertoire?.id) {
+        // if URL is at root, default to the user's own repertoire and
+        // reflect it in the URL so it can be shared.
+        if (!idFromPath() && data.repertoire?.id) {
           setRepertoireId(data.repertoire.id);
+          window.history.replaceState(null, '', `/${data.repertoire.id}`);
         }
       } catch (err) {
         console.warn('auto-login failed', err);
       }
     })();
+
+    const onPopState = () => {
+      const id = idFromPath();
+      if (id) setRepertoireId(id);
+    };
+    window.addEventListener('popstate', onPopState);
+
     return () => {
       cancelled = true;
+      window.removeEventListener('popstate', onPopState);
     };
   }, []);
 
@@ -150,6 +173,8 @@ export const Chessrepeat = () => {
   // setRepertoireId call.
   //TODO useEffect should be on session ? we don't need repertoireId, 
   // just need session cookie 
+
+  // repertoireId is now the source of truth for if we've changed to some other user's repertoire
   useEffect(() => {
     if (!repertoireId) return;
     let cancelled = false;
