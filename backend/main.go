@@ -99,7 +99,6 @@ func main() {
 			repertoire.RepertoireId = r.PathValue("id")
 
 			log.Println("creating repertoire:", repertoire)
-
 			repertoire, err := createRepertoire(db, repertoire)
 			if err != nil {
 				log.Println("database error when creating repertoire:", repertoire, err)
@@ -279,7 +278,9 @@ func main() {
 		json.NewEncoder(w).Encode(tree)
 	})
 
-	http.Handle("/subscribe", cs)
+	// WebSocket endpoint, scoped per repertoire. Each repertoire id maps
+	// to its own "room" of connected subscribers on the backend.
+	http.HandleFunc("/subscribe/{repertoireId}", cs.subscribeHandler)
 
 	log.Println("server ready to serve! http://localhost:8080")
 

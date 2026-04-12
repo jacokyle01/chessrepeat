@@ -55,7 +55,8 @@ type ChapterEvent struct {
 	Root         ChapterTreeNode  `json:"root"`
 }
 
-// chatServer enables broadcasting to a set of subscribers.
+// chatServer maintains per-repertoire "rooms" of subscribers and fans out
+// messages within each room.
 type chatServer struct {
 	// subscriberMessageBuffer controls the max number
 	// of messages that can be queued for a subscriber
@@ -71,37 +72,44 @@ type chatServer struct {
 	// Defaults to log.Printf.
 	logf func(f string, v ...any)
 
-	// serveMux routes the various endpoints to the appropriate handler.
-	serveMux http.ServeMux
+	// mu protects both the rooms map and each room's subscriber set.
+	mu    sync.Mutex
+	rooms map[string]*room
+}
 
-	subscribersMu sync.Mutex
-	subscribers   map[*subscriber]struct{}
+// room is a set of subscribers listening to events for one repertoire.
+type room struct {
+	id          string
+	subscribers map[*subscriber]struct{}
 }
 
 // newChatServer constructs a chatServer with the defaults.
 func newChatServer(db *DB) *chatServer {
-	cs := &chatServer{
+	return &chatServer{
 		subscriberMessageBuffer: 16,
 		db:                      db,
 		logf:                    log.Printf,
-		subscribers:             make(map[*subscriber]struct{}),
+		rooms:                   make(map[string]*room),
 	}
-	cs.serveMux.Handle("/", http.FileServer(http.Dir(".")))
-	cs.serveMux.HandleFunc("/subscribe", cs.subscribeHandler)
-
-	return cs
 }
 
-// subscriber represents a subscriber.
-// userID is pinned at handshake time from the session cookie, so every
-// message that travels through this connection can be attributed to a user.
+// subscriber represents a subscriber. userID is pinned from the session
+// cookie at handshake time, so every message the connection produces is
+// attributable to a user. room is the repertoire room this subscriber
+// belongs to for its entire lifetime.
 type subscriber struct {
 	msgs   chan []byte
 	userID string
+	room   *room
 }
 
 func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
-	err := cs.subscribe(w, r)
+	repertoireID := r.PathValue("repertoireId")
+	if repertoireID == "" {
+		http.Error(w, "missing repertoireId", http.StatusBadRequest)
+		return
+	}
+	err := cs.subscribe(w, r, repertoireID)
 	if errors.Is(err, context.Canceled) {
 		return
 	}
@@ -123,7 +131,7 @@ func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 //
 // It uses CloseRead to keep reading from the connection to process control
 // messages and cancel the context if the connection drops.
-func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request) error {
+func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request, repertoireID string) error {
 	// authenticate the connection from the session cookie before upgrading.
 	// we pin the user id to the subscriber so every message broadcast over
 	// this connection is attributable to a known user.
@@ -146,8 +154,8 @@ func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request) error {
 		msgs:   make(chan []byte, cs.subscriberMessageBuffer),
 		userID: sess.UserID,
 	}
-	cs.addSubscriber(s)
-	defer cs.deleteSubscriber(s)
+	cs.join(repertoireID, s)
+	defer cs.leave(s)
 
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: []string{"localhost:5173"},
@@ -209,7 +217,7 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 			cs.logf("persist move (user %s): %v", s.userID, err)
 			return
 		}
-		cs.publish(raw, s)
+		cs.publishRoom(s.room, raw, s)
 
 	case "chapter_created":
 		var event ChapterEvent
@@ -221,50 +229,73 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 			cs.logf("persist chapter (user %s): %v", s.userID, err)
 			return
 		}
-		cs.publish(raw, s)
+		cs.publishRoom(s.room, raw, s)
 
 	default:
 		cs.logf("unknown ws op %q from user %s", env.Type, s.userID)
 	}
 }
 
-// publish sends a message to all subscribers except the sender.
-// It never blocks and drops messages to slow subscribers.
-// Pass sender == nil to broadcast to everyone (e.g. server-originated events).
-func (cs *chatServer) publish(msg []byte, sender *subscriber) {
-	cs.subscribersMu.Lock()
-	defer cs.subscribersMu.Unlock()
+// join adds the subscriber to the named repertoire room, creating the room
+// on first use. Pins s.room so publishRoom can find the peers later without
+// another lookup.
+func (cs *chatServer) join(repertoireID string, s *subscriber) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
 
-	for s := range cs.subscribers {
+	r, ok := cs.rooms[repertoireID]
+	if !ok {
+		r = &room{
+			id:          repertoireID,
+			subscribers: make(map[*subscriber]struct{}),
+		}
+		cs.rooms[repertoireID] = r
+		cs.logf("created room for repertoire %s", repertoireID)
+	}
+	r.subscribers[s] = struct{}{}
+	s.room = r
+}
+
+// leave removes the subscriber from its room and deletes the room entirely
+// if it becomes empty so the map doesn't grow unbounded over time.
+func (cs *chatServer) leave(s *subscriber) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	r := s.room
+	if r == nil {
+		return
+	}
+	delete(r.subscribers, s)
+	if len(r.subscribers) == 0 {
+		delete(cs.rooms, r.id)
+		cs.logf("destroyed empty room %s", r.id)
+	}
+}
+
+// publishRoom fans a message out to every subscriber in the given room
+// except the sender. Non-blocking: slow subscribers get evicted.
+// Pass sender == nil to broadcast to every member of the room.
+func (cs *chatServer) publishRoom(r *room, msg []byte, sender *subscriber) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	for s := range r.subscribers {
 		if s == sender {
 			continue
 		}
 		select {
 		case s.msgs <- msg:
 		default:
-			go cs.deleteSubscriber(s)
+			// Drop the slow subscriber. Can't call leave here (holds the
+			// same mutex); schedule it on a goroutine instead.
+			go cs.leave(s)
 		}
 	}
-}
-
-func (cs *chatServer) addSubscriber(s *subscriber) {
-	cs.subscribersMu.Lock()
-	cs.subscribers[s] = struct{}{}
-	cs.subscribersMu.Unlock()
-}
-
-func (cs *chatServer) deleteSubscriber(s *subscriber) {
-	cs.subscribersMu.Lock()
-	delete(cs.subscribers, s)
-	cs.subscribersMu.Unlock()
 }
 
 func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg []byte) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	return wsjson.Write(ctx, c, json.RawMessage(msg))
-}
-
-func (cs *chatServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cs.serveMux.ServeHTTP(w, r)
 }

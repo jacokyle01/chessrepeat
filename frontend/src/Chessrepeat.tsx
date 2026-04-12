@@ -201,8 +201,10 @@ export const Chessrepeat = () => {
 
   // handle incoming websocket
   useEffect(() => {
-    if (!authUser) return;
-    const ws = new WebSocket('ws://localhost:8080/subscribe'); //todo should be room-indexed 
+    if (!authUser || !repertoireId) return;
+    // each repertoire has its own room on the backend keyed by this id,
+    // so events only fan out to collaborators on the same repertoire.
+    const ws = new WebSocket(`ws://localhost:8080/subscribe/${repertoireId}`);
     setWebSocket(ws);
     ws.onopen = () => console.log('ws live');
     ws.onmessage = (event) => {
@@ -224,7 +226,7 @@ export const Chessrepeat = () => {
       }
     };
     return () => ws.close();
-  }, [authUser]);
+  }, [authUser, repertoireId]);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
