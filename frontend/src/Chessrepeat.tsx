@@ -100,6 +100,8 @@ export const Chessrepeat = () => {
     addMove,
     addNewChapterLocally,
     deleteNodeRemote,
+    disableNodeRemote,
+    enableNodeRemote,
 
     setWebSocket,
   } = useTrainerStore();
@@ -239,6 +241,10 @@ export const Chessrepeat = () => {
         addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
       } else if (payload.type === 'node_deleted') {
         deleteNodeRemote(payload.chapterId, payload.path);
+      } else if (payload.type === 'node_disabled') {
+        disableNodeRemote(payload.chapterId, payload.path);
+      } else if (payload.type === 'node_enabled') {
+        enableNodeRemote(payload.chapterId, payload.path);
       } else if (payload.type === 'chapter_created') {
         // received from another user — add chapter locally
         // the chapter comes as metadata only; create a minimal Chapter object

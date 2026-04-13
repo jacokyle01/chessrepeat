@@ -290,6 +290,29 @@ func deleteNodeFromChapter(db *DB, event NodeDeleteEvent) error {
 	return err
 }
 
+// setEnabledRecursive sets the Enabled field on a node and all its descendants
+// in the chapter's flat move map.  "Descendants" are entries whose key starts
+// with the target path.
+func setEnabledRecursive(db *DB, chapterID string, path string, enabled bool) error {
+	coll := db.db.Collection("chapters")
+
+	var doc ChapterDoc
+	err := coll.FindOne(context.TODO(), bson.M{"_id": chapterID}).Decode(&doc)
+	if err != nil {
+		return err
+	}
+
+	for key, move := range doc.Moves {
+		if key == path || (len(key) > len(path) && key[:len(path)] == path) {
+			move.Enabled = enabled
+			doc.Moves[key] = move
+		}
+	}
+
+	_, err = coll.ReplaceOne(context.TODO(), bson.M{"_id": chapterID}, doc)
+	return err
+}
+
 // fetchChaptersByRepertoire returns every chapter belonging to a repertoire,
 // each rebuilt as a tree response ready to send to a client.
 func fetchChaptersByRepertoire(db *DB, repertoireID string) ([]ChapterTreeResponse, error) {

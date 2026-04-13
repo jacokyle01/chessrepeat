@@ -52,6 +52,13 @@ type NodeDeleteEvent struct {
 	Path      string `json:"path"`
 }
 
+// NodeToggleEvent is the WebSocket message envelope for enable/disable events.
+type NodeToggleEvent struct {
+	Type      string `json:"type"`      // "node_enabled" or "node_disabled"
+	ChapterID string `json:"chapterId"`
+	Path      string `json:"path"`
+}
+
 // ChapterEvent is the WebSocket message envelope for chapter creation events.
 type ChapterEvent struct {
 	Type         string           `json:"type"`         // "chapter_created"
@@ -234,6 +241,30 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 		}
 		if err := deleteNodeFromChapter(cs.db, event); err != nil {
 			cs.logf("delete node (user %s): %v", s.userID, err)
+			return
+		}
+		cs.publishRoom(s.room, raw, s)
+
+	case "node_disabled":
+		var event NodeToggleEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			cs.logf("invalid node_disabled from user %s: %v", s.userID, err)
+			return
+		}
+		if err := setEnabledRecursive(cs.db, event.ChapterID, event.Path, false); err != nil {
+			cs.logf("disable node (user %s): %v", s.userID, err)
+			return
+		}
+		cs.publishRoom(s.room, raw, s)
+
+	case "node_enabled":
+		var event NodeToggleEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			cs.logf("invalid node_enabled from user %s: %v", s.userID, err)
+			return
+		}
+		if err := setEnabledRecursive(cs.db, event.ChapterID, event.Path, true); err != nil {
+			cs.logf("enable node (user %s): %v", s.userID, err)
 			return
 		}
 		cs.publishRoom(s.room, raw, s)

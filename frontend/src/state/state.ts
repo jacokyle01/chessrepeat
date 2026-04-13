@@ -104,6 +104,8 @@ interface TrainerState {
   deleteLine: (path: string) => Promise<void>;
   enableLine: (path: string) => Promise<void>;
   deleteNodeRemote: (chapterId: string, path: string) => void;
+  disableNodeRemote: (chapterId: string, path: string) => void;
+  enableNodeRemote: (chapterId: string, path: string) => void;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   addNewChapterLocally: (chapter: Chapter) => Promise<void>;
   importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
@@ -489,27 +491,34 @@ export const useTrainerStore = create<TrainerState>()(
         return possibleMoves.includes(san) ? (target.data.san === san ? 'success' : 'alternate') : 'failure';
       },
 
-      //TODO need to edit live state
       disableLine: async (path: string) => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, repertoireIndex, socket } = get();
         const chapter = repertoire[repertoireIndex];
         const root = chapter?.root;
         if (!chapter || !root) return;
 
         updateRecursive(root, path, (node) => {
           if (node.data.enabled) {
-            chapter.enabledCount--; //todo need to save?
-
+            chapter.enabledCount--;
             node.data.enabled = false;
           }
         });
 
-        // local-first persist
+        set((state) => {
+          const next = state.repertoire.slice();
+          next[repertoireIndex] = { ...next[repertoireIndex] };
+          return { repertoire: next };
+        });
+
         await persistChapter(chapter);
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'node_disabled', chapterId: chapter.uuid, path }));
+        }
       },
 
       enableLine: async (path: string) => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, repertoireIndex, socket } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
         const trainAs = chapter.trainAs;
@@ -517,7 +526,6 @@ export const useTrainerStore = create<TrainerState>()(
         updateRecursive(chapter.root, path, (node) => {
           const color: Color = colorFromPly(node.data.ply);
 
-          // your existing logic: only enable moves for the side being trained
           if (trainAs === color && !node.data.enabled) {
             chapter.enabledCount++;
             node.data.enabled = true;
@@ -531,6 +539,10 @@ export const useTrainerStore = create<TrainerState>()(
         });
 
         await persistChapter(chapter);
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'node_enabled', chapterId: chapter.uuid, path }));
+        }
       },
 
       //TODO separate state action for makeMove, addMove ?
@@ -588,6 +600,48 @@ export const useTrainerStore = create<TrainerState>()(
 
         // if we were viewing a node inside the deleted subtree, jump to the parent
         if (contains(selectedPath, path)) jump(init(path));
+      },
+
+      disableNodeRemote: (chapterId: string, path: string) => {
+        const { repertoire } = get();
+        const chapter = repertoire.find((c) => c.uuid === chapterId);
+        if (!chapter) return;
+
+        updateRecursive(chapter.root, path, (node) => {
+          if (node.data.enabled) {
+            chapter.enabledCount--;
+            node.data.enabled = false;
+          }
+        });
+
+        set((state) => {
+          const next = state.repertoire.slice();
+          const idx = next.findIndex((c) => c.uuid === chapterId);
+          if (idx !== -1) next[idx] = { ...next[idx] };
+          return { repertoire: next };
+        });
+      },
+
+      enableNodeRemote: (chapterId: string, path: string) => {
+        const { repertoire } = get();
+        const chapter = repertoire.find((c) => c.uuid === chapterId);
+        if (!chapter) return;
+        const trainAs = chapter.trainAs;
+
+        updateRecursive(chapter.root, path, (node) => {
+          const color: Color = colorFromPly(node.data.ply);
+          if (trainAs === color && !node.data.enabled) {
+            chapter.enabledCount++;
+            node.data.enabled = true;
+          }
+        });
+
+        set((state) => {
+          const next = state.repertoire.slice();
+          const idx = next.findIndex((c) => c.uuid === chapterId);
+          if (idx !== -1) next[idx] = { ...next[idx] };
+          return { repertoire: next };
+        });
       },
 
       /*
