@@ -99,6 +99,7 @@ export const Chessrepeat = () => {
     hydrateRepertoireFromIDB,
     addMove,
     addNewChapterLocally,
+    deleteNodeRemote,
 
     setWebSocket,
   } = useTrainerStore();
@@ -236,6 +237,8 @@ export const Chessrepeat = () => {
       const payload = JSON.parse(event.data);
       if (payload.type === 'move_created') {
         addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
+      } else if (payload.type === 'node_deleted') {
+        deleteNodeRemote(payload.chapterId, payload.path);
       } else if (payload.type === 'chapter_created') {
         // received from another user — add chapter locally
         // the chapter comes as metadata only; create a minimal Chapter object

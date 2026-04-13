@@ -45,6 +45,13 @@ type MoveEvent struct {
 	Path      string       `json:"path"`
 }
 
+// NodeDeleteEvent is the WebSocket message envelope for node deletion events.
+type NodeDeleteEvent struct {
+	Type      string `json:"type"`      // "node_deleted"
+	ChapterID string `json:"chapterId"`
+	Path      string `json:"path"`
+}
+
 // ChapterEvent is the WebSocket message envelope for chapter creation events.
 type ChapterEvent struct {
 	Type         string           `json:"type"`         // "chapter_created"
@@ -215,6 +222,18 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 		}
 		if err := addMoveToChapter(cs.db, event); err != nil {
 			cs.logf("persist move (user %s): %v", s.userID, err)
+			return
+		}
+		cs.publishRoom(s.room, raw, s)
+
+	case "node_deleted":
+		var event NodeDeleteEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			cs.logf("invalid node_deleted from user %s: %v", s.userID, err)
+			return
+		}
+		if err := deleteNodeFromChapter(cs.db, event); err != nil {
+			cs.logf("delete node (user %s): %v", s.userID, err)
 			return
 		}
 		cs.publishRoom(s.room, raw, s)

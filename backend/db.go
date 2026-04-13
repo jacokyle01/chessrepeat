@@ -268,6 +268,28 @@ func addMoveToChapter(db *DB, event MoveEvent) error {
 	return err
 }
 
+// deleteNodeFromChapter removes a node and all its descendants from a chapter's
+// flat move map.  A descendant is any key that starts with the target path.
+func deleteNodeFromChapter(db *DB, event NodeDeleteEvent) error {
+	coll := db.db.Collection("chapters")
+
+	var doc ChapterDoc
+	err := coll.FindOne(context.TODO(), bson.M{"_id": event.ChapterID}).Decode(&doc)
+	if err != nil {
+		return err
+	}
+
+	// delete the node at `path` and every descendant whose key has `path` as a prefix
+	for key := range doc.Moves {
+		if key == event.Path || (len(key) > len(event.Path) && key[:len(event.Path)] == event.Path) {
+			delete(doc.Moves, key)
+		}
+	}
+
+	_, err = coll.ReplaceOne(context.TODO(), bson.M{"_id": event.ChapterID}, doc)
+	return err
+}
+
 // fetchChaptersByRepertoire returns every chapter belonging to a repertoire,
 // each rebuilt as a tree response ready to send to a client.
 func fetchChaptersByRepertoire(db *DB, repertoireID string) ([]ChapterTreeResponse, error) {

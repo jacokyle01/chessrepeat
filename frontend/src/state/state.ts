@@ -103,6 +103,7 @@ interface TrainerState {
   disableLine: (path: string) => Promise<void>;
   deleteLine: (path: string) => Promise<void>;
   enableLine: (path: string) => Promise<void>;
+  deleteNodeRemote: (chapterId: string, path: string) => void;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   addNewChapterLocally: (chapter: Chapter) => Promise<void>;
   importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
@@ -325,15 +326,14 @@ export const useTrainerStore = create<TrainerState>()(
         set({ selectedPath: path, selectedNode: nodeList.at(-1) });
       },
 
-      //TODO network actions for delete
       deleteLine: async (path) => {
-        const { repertoire, repertoireIndex, selectedPath, jump, updateDueCounts } = get();
+        const { repertoire, repertoireIndex, selectedPath, jump, updateDueCounts, socket } = get();
         const chapter = repertoire[repertoireIndex];
         const root = chapter.root;
         const node = nodeAtPath(root, path);
         if (!node) return;
 
-        // count number of enabled moves we're deleted
+        // count number of enabled moves we're deleting
         let deleteCount = 0;
         let unseenCount = 0;
         forEachNode(node, (node) => {
@@ -347,16 +347,24 @@ export const useTrainerStore = create<TrainerState>()(
         chapter.unseenCount -= unseenCount;
         updateDueCounts();
 
-        // IMPORTANT: do NOT set({ repertoire }) anymore.
-        // Instead, touch just this chapter in-memory to re-render,
-        // and persist only this chapter to IDB.
         set((state) => {
           const next = state.repertoire.slice();
-          next[repertoireIndex] = { ...next[repertoireIndex] }; // shallow touch
+          next[repertoireIndex] = { ...next[repertoireIndex] };
           return { repertoire: next };
         });
 
         await persistChapter(chapter);
+
+        // broadcast the deletion to other clients
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(
+            JSON.stringify({
+              type: 'node_deleted',
+              chapterId: chapter.uuid,
+              path,
+            }),
+          );
+        }
 
         if (contains(selectedPath, path)) jump(init(path));
         else jump(path);
@@ -550,9 +558,41 @@ export const useTrainerStore = create<TrainerState>()(
         await persistChapter(chapter);
       },
 
+      // handle a node_deleted event received from another client via websocket
+      deleteNodeRemote: (chapterId: string, path: string) => {
+        const { repertoire, selectedPath, jump, updateDueCounts } = get();
+        const chapter = repertoire.find((c) => c.uuid === chapterId);
+        if (!chapter) return;
+
+        const node = nodeAtPath(chapter.root, path);
+        if (!node) return;
+
+        let deleteCount = 0;
+        let unseenCount = 0;
+        forEachNode(node, (n) => {
+          if (n.data.enabled) deleteCount++;
+          if (n.data.enabled && !n.data.training) unseenCount++;
+        });
+
+        deleteNodeAt(chapter.root, path);
+        chapter.enabledCount -= deleteCount;
+        chapter.unseenCount -= unseenCount;
+        updateDueCounts();
+
+        set((state) => {
+          const next = state.repertoire.slice();
+          const idx = next.findIndex((c) => c.uuid === chapterId);
+          if (idx !== -1) next[idx] = { ...next[idx] };
+          return { repertoire: next };
+        });
+
+        // if we were viewing a node inside the deleted subtree, jump to the parent
+        if (contains(selectedPath, path)) jump(init(path));
+      },
+
       /*
-        Make move via UI 
-        Send move over via POST for now 
+        Make move via UI
+        Send move over via POST for now
       */
       makeMove: async (san: string) => {
         const { selectedNode, repertoire, repertoireIndex, selectedPath, trainingMethod } = get();
