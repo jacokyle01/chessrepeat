@@ -268,6 +268,31 @@ func addMoveToChapter(db *DB, event MoveEvent) error {
 	return err
 }
 
+// updateTrainingState sets a single user's training card on a specific node.
+func updateTrainingState(db *DB, event TrainingUpdatedEvent) error {
+	coll := db.db.Collection("chapters")
+
+	var doc ChapterDoc
+	err := coll.FindOne(context.TODO(), bson.M{"_id": event.ChapterID}).Decode(&doc)
+	if err != nil {
+		return err
+	}
+
+	move, ok := doc.Moves[event.Path]
+	if !ok {
+		return nil // node not found, nothing to update
+	}
+
+	if move.Training == nil {
+		move.Training = make(map[string]*CardData)
+	}
+	move.Training[event.UserSub] = &event.Card
+	doc.Moves[event.Path] = move
+
+	_, err = coll.ReplaceOne(context.TODO(), bson.M{"_id": event.ChapterID}, doc)
+	return err
+}
+
 // deleteNodeFromChapter removes a node and all its descendants from a chapter's
 // flat move map.  A descendant is any key that starts with the target path.
 func deleteNodeFromChapter(db *DB, event NodeDeleteEvent) error {

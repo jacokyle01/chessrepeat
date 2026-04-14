@@ -13,15 +13,16 @@ import (
 	"github.com/coder/websocket/wsjson"
 )
 
-// same as frontend
+// same as frontend — training is keyed by user sub so each collaborator
+// has independent spaced-repetition state on the same move.
 type TrainingData struct {
-	ID       string    `json:"id"` // this is NOT really an ID in the sense that it's being used. TODO
-	FEN      string    `json:"fen"`
-	Ply      int       `json:"ply"`
-	SAN      string    `json:"san"`
-	Comment  string    `json:"comment"`
-	Enabled  bool      `json:"enabled"`
-	Training *CardData `json:"training"` // null if unseen
+	ID       string               `json:"id"` // this is NOT really an ID in the sense that it's being used. TODO
+	FEN      string               `json:"fen"`
+	Ply      int                  `json:"ply"`
+	SAN      string               `json:"san"`
+	Comment  string               `json:"comment"`
+	Enabled  bool                 `json:"enabled"`
+	Training map[string]*CardData `json:"training"` // keyed by user sub; empty/nil if unseen
 }
 
 // same as frontend from ts fsrs lib
@@ -50,6 +51,15 @@ type NodeDeleteEvent struct {
 	Type      string `json:"type"`      // "node_deleted"
 	ChapterID string `json:"chapterId"`
 	Path      string `json:"path"`
+}
+
+// TrainingUpdatedEvent is the WebSocket message envelope for training state changes (learn/recall).
+type TrainingUpdatedEvent struct {
+	Type      string   `json:"type"`      // "training_updated"
+	ChapterID string   `json:"chapterId"`
+	Path      string   `json:"path"`      // path to the node (parent path, not including node id)
+	UserSub   string   `json:"userSub"`   // which user's training state changed
+	Card      CardData `json:"card"`      // the updated card
 }
 
 // NodeToggleEvent is the WebSocket message envelope for enable/disable events.
@@ -107,14 +117,27 @@ func newChatServer(db *DB) *chatServer {
 	}
 }
 
+// PeerInfo is the public identity of a connected user, sent in crowd/join/leave messages.
+type PeerInfo struct {
+	UserID  string `json:"userId"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+}
+
 // subscriber represents a subscriber. userID is pinned from the session
 // cookie at handshake time, so every message the connection produces is
 // attributable to a user. room is the repertoire room this subscriber
 // belongs to for its entire lifetime.
 type subscriber struct {
-	msgs   chan []byte
-	userID string
-	room   *room
+	msgs    chan []byte
+	userID  string
+	name    string
+	picture string
+	room    *room
+}
+
+func (s *subscriber) peerInfo() PeerInfo {
+	return PeerInfo{UserID: s.userID, Name: s.name, Picture: s.picture}
 }
 
 func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
@@ -164,9 +187,22 @@ func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request, repertoi
 		return errors.New("invalid or expired session")
 	}
 
+	// look up user profile so we can broadcast name/picture to peers
+	user, err := fetchUser(cs.db, sess.UserID)
+	if err != nil {
+		http.Error(w, "user lookup failed", http.StatusInternalServerError)
+		return err
+	}
+	if user == nil {
+		http.Error(w, "user not found", http.StatusUnauthorized)
+		return errors.New("user not found")
+	}
+
 	s := &subscriber{
-		msgs:   make(chan []byte, cs.subscriberMessageBuffer),
-		userID: sess.UserID,
+		msgs:    make(chan []byte, cs.subscriberMessageBuffer),
+		userID:  sess.UserID,
+		name:    user.Name,
+		picture: user.Picture,
 	}
 	cs.join(repertoireID, s)
 	defer cs.leave(s)
@@ -233,6 +269,18 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 		}
 		cs.publishRoom(s.room, raw, s)
 
+	case "training_updated":
+		var event TrainingUpdatedEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			cs.logf("invalid training_updated from user %s: %v", s.userID, err)
+			return
+		}
+		if err := updateTrainingState(cs.db, event); err != nil {
+			cs.logf("update training (user %s): %v", s.userID, err)
+			return
+		}
+		cs.publishRoom(s.room, raw, s)
+
 	case "node_deleted":
 		var event NodeDeleteEvent
 		if err := json.Unmarshal(raw, &event); err != nil {
@@ -288,7 +336,8 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 
 // join adds the subscriber to the named repertoire room, creating the room
 // on first use. Pins s.room so publishRoom can find the peers later without
-// another lookup.
+// another lookup. Sends a "crowd" snapshot to the joiner and broadcasts
+// "user_joined" to existing members.
 func (cs *chatServer) join(repertoireID string, s *subscriber) {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
@@ -302,12 +351,45 @@ func (cs *chatServer) join(repertoireID string, s *subscriber) {
 		cs.rooms[repertoireID] = r
 		cs.logf("created room for repertoire %s", repertoireID)
 	}
+
+	// collect current peers *before* adding the new subscriber
+	peers := make([]PeerInfo, 0, len(r.subscribers))
+	for peer := range r.subscribers {
+		peers = append(peers, peer.peerInfo())
+	}
+
+	// add the new subscriber
 	r.subscribers[s] = struct{}{}
 	s.room = r
+
+	// send crowd snapshot (including the joiner themselves) to the new subscriber
+	crowd, _ := json.Marshal(struct {
+		Type  string     `json:"type"`
+		Users []PeerInfo `json:"users"`
+	}{Type: "crowd", Users: append(peers, s.peerInfo())})
+	select {
+	case s.msgs <- crowd:
+	default:
+	}
+
+	// broadcast user_joined to existing subscribers (not the joiner)
+	joined, _ := json.Marshal(struct {
+		Type string   `json:"type"`
+		User PeerInfo `json:"user"`
+	}{Type: "user_joined", User: s.peerInfo()})
+	for peer := range r.subscribers {
+		if peer == s {
+			continue
+		}
+		select {
+		case peer.msgs <- joined:
+		default:
+		}
+	}
 }
 
-// leave removes the subscriber from its room and deletes the room entirely
-// if it becomes empty so the map doesn't grow unbounded over time.
+// leave removes the subscriber from its room, broadcasts "user_left" to
+// remaining members, and deletes the room if it becomes empty.
 func (cs *chatServer) leave(s *subscriber) {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
@@ -320,6 +402,19 @@ func (cs *chatServer) leave(s *subscriber) {
 	if len(r.subscribers) == 0 {
 		delete(cs.rooms, r.id)
 		cs.logf("destroyed empty room %s", r.id)
+		return
+	}
+
+	// broadcast user_left to remaining subscribers
+	left, _ := json.Marshal(struct {
+		Type string   `json:"type"`
+		User PeerInfo `json:"user"`
+	}{Type: "user_left", User: s.peerInfo()})
+	for peer := range r.subscribers {
+		select {
+		case peer.msgs <- left:
+		default:
+		}
 	}
 }
 

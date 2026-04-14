@@ -61,7 +61,7 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
       fen: makeFen(context.pos.toSetup()),
       comment: data.comments?.join('|') || '', //TODO should handle multi comments ..
       ply: context.ply,
-      training: null,
+      training: {},
       enabled: !context.trainable,
     };
   });
@@ -78,7 +78,7 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
         ply: 0,
         san: '',
         enabled: false,
-        training: null,
+        training: {},
       },
       children: moves.children,
     },
@@ -108,7 +108,7 @@ export const annotatePgn = (rawPgn: string, asColor: Color): Node<TrainingData> 
       fen: makeFen(context.pos.toSetup()),
       comment: data.comments?.join('|') || '', //TODO should handle multi comments ..
       ply: context.ply,
-      training: null,
+      training: {},
       enabled: !context.trainable,
     };
   });
@@ -134,7 +134,7 @@ export const annotatePgn = (rawPgn: string, asColor: Color): Node<TrainingData> 
 //       san: '',
 //       //TODO shortcut for disabled
 //       enabled: false,
-//       training: null,
+//       training: {},
 //     },
 //     children: moves.children,
 //   };

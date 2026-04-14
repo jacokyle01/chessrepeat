@@ -46,6 +46,8 @@ import {
 } from 'lucide-react';
 import type { Card } from 'ts-fsrs';
 import type { TrainingData } from '../../types/training';
+import { useAuthStore } from '../../state/auth';
+import { userCard } from '../../util/userCard';
 
 function formatDueIn(card: Card): string {
   const nowMs = Date.now();
@@ -133,11 +135,56 @@ function CardStateSection({ card }: { card: Card }) {
   );
 }
 
+function OtherUsersTraining({ entries }: { entries: [string, Card][] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="px-3 py-1">
+      <button
+        type="button"
+        className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 transition select-none"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setExpanded(!expanded);
+        }}
+      >
+        <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        {entries.length} other {entries.length === 1 ? 'user' : 'users'} trained
+      </button>
+      {expanded && (
+        <div className="mt-1.5 flex flex-col gap-2">
+          {entries.map(([sub, card]) => (
+            <div key={sub} className="border-l-2 border-gray-200 pl-2">
+              <div className="text-[10px] text-gray-400 truncate mb-0.5" title={sub}>
+                {sub.slice(0, 12)}...
+              </div>
+              <div className="flex flex-col gap-1 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <CalendarClockIcon className="w-3 h-3 text-gray-400 shrink-0" />
+                  <span className="text-gray-500">due in</span>
+                  <span className="text-gray-900 font-medium">{formatDueIn(card)}</span>
+                </div>
+                <RepsBar reps={card.reps} lapses={card.lapses} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const contextMenuItems = (path: string, data: TrainingData) => {
   const deleteLine = useTrainerStore((s) => s.deleteLine);
   const disableLine = useTrainerStore((s) => s.disableLine);
   const enableLine = useTrainerStore((s) => s.enableLine);
   const { training, san, enabled } = data;
+  const myCard = userCard(data);
+
+  // other users who have trained this move (excluding the current user)
+  const mySub = useAuthStore.getState().user?.sub;
+  const otherEntries = Object.entries(training ?? {}).filter(([sub]) => sub !== mySub);
 
   return [
     // Header
@@ -155,11 +202,21 @@ const contextMenuItems = (path: string, data: TrainingData) => {
 
     { separator: true },
 
-    // Card state (only if trained)
-    ...(training
+    // Card state for current user
+    ...(myCard
       ? [
           {
-            template: () => <CardStateSection card={training} />,
+            template: () => <CardStateSection card={myCard} />,
+          },
+          { separator: true },
+        ]
+      : []),
+
+    // Other users' training state (collapsible)
+    ...(otherEntries.length > 0
+      ? [
+          {
+            template: () => <OtherUsersTraining entries={otherEntries} />,
           },
           { separator: true },
         ]

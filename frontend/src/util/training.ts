@@ -19,6 +19,7 @@ import { downloadTextFile } from './io';
 import { defaultHeaders, makePgn, Node, PgnNodeData, startingPosition, transform } from 'chessops/pgn';
 import { scalachessCharPair } from 'chessops/compat';
 import { Color } from 'chessops';
+import { userCard } from './userCard';
 
 export const trainingContext = (color: Color): TrainingContext => {
   return {
@@ -161,10 +162,10 @@ export function computeNextTrainableNode(
 
     //test if match
     if (pos.data.enabled) {
+      const card = userCard(pos.data);
       switch (method) {
         case 'recall': //recall if due
-          //TODO remove some pos._ fields
-          if (pos.data.training && new Date(pos.data.training.due).getTime() <= Date.now()) {
+          if (card && new Date(card.due).getTime() <= Date.now()) {
             return {
               startingPath: entry.pathToHere,
               targetMove: entry.targetNode,
@@ -172,7 +173,7 @@ export function computeNextTrainableNode(
           }
           break;
         case 'learn': //learn if unseen
-          if (!pos.data.training) {
+          if (!card) {
             return {
               startingPath: entry.pathToHere,
               targetMove: entry.targetNode,
@@ -214,9 +215,11 @@ export function computeDueCounts(root: TrainableNode, buckets: number[]): number
 
   forEachNode(root, (node) => {
     const d = node.data;
-    if (!d.enabled || !d.training) return;
+    if (!d.enabled) return;
+    const card = userCard(d);
+    if (!card) return;
 
-    const secondsTilDue = new Date(d.training.due).getTime() - time;
+    const secondsTilDue = new Date(card.due).getTime() - time;
     if (secondsTilDue <= 0) {
       counts[0]++;
       return;

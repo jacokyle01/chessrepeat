@@ -22,9 +22,24 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
 import { annotatePgn, chapterFromPgn, rootFromPgn } from '../util/io';
-import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig } from '../util/srs';
+import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig, type Card } from '../util/srs';
 import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
+import { useAuthStore } from './auth';
+
+export type Peer = {
+  userId: string;
+  name: string;
+  picture: string;
+};
+
+/** Get the current user's sub from the auth store. */
+function currentUserSub(): string | null {
+  return useAuthStore.getState().user?.sub ?? null;
+}
+
+import { userCard } from '../util/userCard';
+export { userCard };
 
 const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter of a chessrepeat repertoire. You can add your own chapter by clicking "Add to Repertoire" and selecting a PGN (game file) to import. Then, you can train your own openings with spaced repetition! Click "Learn" to see positions for the first time, then click "Recall" to train them after increasingly long intervals of time.
 Spaced repetition can help you memorize new openings more efficiently and effectively than other techniques.
@@ -84,6 +99,11 @@ interface TrainerState {
   socket: WebSocket;
   setWebSocket: (ws: WebSocket) => void;
 
+  connectedUsers: Peer[];
+  setConnectedUsers: (users: Peer[]) => void;
+  addConnectedUser: (user: Peer) => void;
+  removeConnectedUser: (userId: string) => void;
+
   // NEW: hydrate chapters from IDB after persist rehydrates small state
   hydrateRepertoireFromIDB: () => Promise<void>;
 
@@ -106,6 +126,7 @@ interface TrainerState {
   deleteNodeRemote: (chapterId: string, path: string) => void;
   disableNodeRemote: (chapterId: string, path: string) => void;
   enableNodeRemote: (chapterId: string, path: string) => void;
+  updateTrainingRemote: (chapterId: string, path: string, userSub: string, card: Card) => void;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   addNewChapterLocally: (chapter: Chapter) => Promise<void>;
   importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
@@ -247,6 +268,17 @@ export const useTrainerStore = create<TrainerState>()(
       socket: null,
       setWebSocket: (ws) => set({ socket: ws }),
 
+      connectedUsers: [],
+      setConnectedUsers: (users) => set({ connectedUsers: users }),
+      addConnectedUser: (user) => set((state) => ({
+        connectedUsers: state.connectedUsers.some((u) => u.userId === user.userId)
+          ? state.connectedUsers
+          : [...state.connectedUsers, user],
+      })),
+      removeConnectedUser: (userId) => set((state) => ({
+        connectedUsers: state.connectedUsers.filter((u) => u.userId !== userId),
+      })),
+
       // ---- inside create(...) actions ----
       renameChapter: async (chapterIndex: number, newName: string) => {
         const { repertoire } = get();
@@ -340,7 +372,7 @@ export const useTrainerStore = create<TrainerState>()(
         let unseenCount = 0;
         forEachNode(node, (node) => {
           if (node.data.enabled) deleteCount++;
-          if (node.data.enabled && !node.data.training) unseenCount++;
+          if (node.data.enabled && !userCard(node.data)) unseenCount++;
         });
 
         deleteNodeAt(root, path);
@@ -398,17 +430,19 @@ export const useTrainerStore = create<TrainerState>()(
       // get milliseconds til due for each node
       updateDueCounts: () => {
         const { repertoire, repertoireIndex } = get();
+        const sub = currentUserSub();
         const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
+        if (!chapter || !sub) return;
 
         let dueSummary = [];
         let countDueNow = 0;
         forEachNode(chapter.root, (node) => {
           const d = node.data;
-          // only enabled, seen nodes
-          if (!d.enabled || !d.training) return;
+          if (!d.enabled) return;
+          const card = userCard(d, sub);
+          if (!card) return;
 
-          const msTilDue = new Date(d.training.due).getTime() - Date.now();
+          const msTilDue = new Date(card.due).getTime() - Date.now();
           if (msTilDue < 0) {
             countDueNow++;
           }
@@ -447,28 +481,55 @@ export const useTrainerStore = create<TrainerState>()(
         seeing a node for the first time
       */
       learn: async () => {
-        const { repertoire, repertoireIndex, trainableContext } = get();
-        // console.log('REP', repertoire);
+        const { repertoire, repertoireIndex, trainableContext, socket } = get();
+        const sub = currentUserSub();
         const chapter = repertoire[repertoireIndex];
         const targetNode = trainableContext?.targetMove;
-        if (!chapter || !targetNode) return;
-        targetNode.data.training = createCard();
+        if (!chapter || !targetNode || !sub) return;
+        const card = createCard();
+        if (!targetNode.data.training) targetNode.data.training = {};
+        targetNode.data.training[sub] = card;
         chapter.unseenCount--;
         await persistChapter(chapter);
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: 'training_updated',
+            chapterId: chapter.uuid,
+            path: trainableContext.startingPath,
+            userSub: sub,
+            card,
+          }));
+        }
       },
 
       /*
         Update node's card based on the result of a training
       */
       train: (correct: boolean) => {
-        const { repertoire, repertoireIndex, trainableContext } = get();
+        const { repertoire, repertoireIndex, trainableContext, socket } = get();
+        const sub = currentUserSub();
         const targetNode = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
-        if (!chapter || !targetNode) return null;
+        if (!chapter || !targetNode || !sub) return null;
 
-        targetNode.data.training = reviewCard(targetNode.data.training, correct);
+        const oldCard = userCard(targetNode.data, sub);
+        if (!oldCard) return null;
+        const card = reviewCard(oldCard, correct);
+        targetNode.data.training[sub] = card;
         void persistChapter(chapter);
-        return Math.trunc((new Date(targetNode.data.training.due).getTime() - Date.now()) / 1000);
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: 'training_updated',
+            chapterId: chapter.uuid,
+            path: trainableContext.startingPath,
+            userSub: sub,
+            card,
+          }));
+        }
+
+        return Math.trunc((new Date(card.due).getTime() - Date.now()) / 1000);
       },
 
       guess: (san: string): TrainingOutcome => {
@@ -565,7 +626,7 @@ export const useTrainerStore = create<TrainerState>()(
         updateAt(root, path, (parent: TrainableNode) => parent.children.push(node));
 
         if (node.data.enabled) chapter.enabledCount++;
-        if (!node.data.training) chapter.unseenCount++;
+        if (!userCard(node.data)) chapter.unseenCount++;
         set({ repertoire }); // we have to do this to trigger a state update
         await persistChapter(chapter);
       },
@@ -583,7 +644,7 @@ export const useTrainerStore = create<TrainerState>()(
         let unseenCount = 0;
         forEachNode(node, (n) => {
           if (n.data.enabled) deleteCount++;
-          if (n.data.enabled && !n.data.training) unseenCount++;
+          if (n.data.enabled && !userCard(n.data)) unseenCount++;
         });
 
         deleteNodeAt(chapter.root, path);
@@ -644,6 +705,26 @@ export const useTrainerStore = create<TrainerState>()(
         });
       },
 
+      // handle a training_updated event received from another client
+      updateTrainingRemote: (chapterId: string, path: string, userSub: string, card: Card) => {
+        const { repertoire } = get();
+        const chapter = repertoire.find((c) => c.uuid === chapterId);
+        if (!chapter) return;
+
+        const node = nodeAtPath(chapter.root, path);
+        if (!node) return;
+
+        if (!node.data.training) node.data.training = {};
+        node.data.training[userSub] = card;
+
+        set((state) => {
+          const next = state.repertoire.slice();
+          const idx = next.findIndex((c) => c.uuid === chapterId);
+          if (idx !== -1) next[idx] = { ...next[idx] };
+          return { repertoire: next };
+        });
+      },
+
       /*
         Make move via UI
         Send move over via POST for now
@@ -667,7 +748,7 @@ export const useTrainerStore = create<TrainerState>()(
           //TODO factor out makeMove ??
           const newNode: TrainableNode = {
             data: {
-              training: null,
+              training: {},
               enabled: !disabled, //TODO
               ply: selectedNode.data.ply + 1,
               id: scalachessCharPair(move),
@@ -781,7 +862,7 @@ export const useTrainerStore = create<TrainerState>()(
           if (node.data.enabled) {
             enabledCount++;
           }
-          if (!node.data.training) unseenCount++;
+          if (!userCard(node.data)) unseenCount++;
         });
 
         chapter.enabledCount = enabledCount;

@@ -29,6 +29,7 @@ import {
   ClipboardCheck,
   ClipboardCopy,
   FolderCog2Icon,
+  LogOut,
   Mail,
   NetworkIcon,
   User,
@@ -102,10 +103,15 @@ export const Chessrepeat = () => {
     deleteNodeRemote,
     disableNodeRemote,
     enableNodeRemote,
+    updateTrainingRemote,
 
     setWebSocket,
+    setConnectedUsers,
+    addConnectedUser,
+    removeConnectedUser,
   } = useTrainerStore();
 
+  const connectedUsers = useTrainerStore((s) => s.connectedUsers);
   const authUser = useAuthStore((s) => s.user);
   const repertoireId = useAuthStore((s) => s.repertoireId);
   const setUser = useAuthStore((s) => s.setUser);
@@ -237,29 +243,48 @@ export const Chessrepeat = () => {
     ws.onopen = () => console.log('ws live');
     ws.onmessage = (event) => {
       const payload = JSON.parse(event.data);
-      if (payload.type === 'move_created') {
-        addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
-      } else if (payload.type === 'node_deleted') {
-        deleteNodeRemote(payload.chapterId, payload.path);
-      } else if (payload.type === 'node_disabled') {
-        disableNodeRemote(payload.chapterId, payload.path);
-      } else if (payload.type === 'node_enabled') {
-        enableNodeRemote(payload.chapterId, payload.path);
-      } else if (payload.type === 'chapter_created') {
-        // received from another user — add chapter locally
-        // the chapter comes as metadata only; create a minimal Chapter object
-        addNewChapterLocally({
-          uuid: payload.chapterId,
-          name: payload.name,
-          trainAs: payload.trainAs,
-          root: { data: { id: '', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', ply: 0, san: '', comment: '', enabled: false, training: null }, children: [] },
-          enabledCount: 0,
-          unseenCount: 0,
-          lastDueCount: 0,
-        });
+      switch (payload.type) {
+        case 'crowd':
+          setConnectedUsers(payload.users);
+          break;
+        case 'user_joined':
+          addConnectedUser(payload.user);
+          break;
+        case 'user_left':
+          removeConnectedUser(payload.user.userId);
+          break;
+        case 'move_created':
+          addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
+          break;
+        case 'node_deleted':
+          deleteNodeRemote(payload.chapterId, payload.path);
+          break;
+        case 'node_disabled':
+          disableNodeRemote(payload.chapterId, payload.path);
+          break;
+        case 'node_enabled':
+          enableNodeRemote(payload.chapterId, payload.path);
+          break;
+        case 'training_updated':
+          updateTrainingRemote(payload.chapterId, payload.path, payload.userSub, payload.card);
+          break;
+        case 'chapter_created':
+          addNewChapterLocally({
+            uuid: payload.chapterId,
+            name: payload.name,
+            trainAs: payload.trainAs,
+            root: { data: { id: '', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', ply: 0, san: '', comment: '', enabled: false, training: {} }, children: [] },
+            enabledCount: 0,
+            unseenCount: 0,
+            lastDueCount: 0,
+          });
+          break;
       }
     };
-    return () => ws.close();
+    return () => {
+      ws.close();
+      setConnectedUsers([]);
+    };
   }, [authUser, repertoireId]);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
@@ -525,30 +550,53 @@ export const Chessrepeat = () => {
             <Bug />
           </a>
 
-          {authUser ? (
-            <a
-              type="button"
-              onClick={clearAuth}
-              title={`Sign out ${authUser.name ?? authUser.email ?? ''}`.trim()}
-              className='header-link'
-            >
-              {authUser.picture ? (
-                <span className='flex items-end gap-2'>
-                  <img
-                    src={authUser.picture}
-                    alt={authUser.name ?? 'profile'}
-                    referrerPolicy="no-referrer"
-                    className="h-7 w-7 rounded-md"
-                  />
-                  <span className='text-sm'>{authUser.name ?? 'Unnamed'}</span>
+          <div className="ml-auto flex items-end gap-3">
+            {/* Other connected users */}
+            {connectedUsers.filter((u) => u.userId !== authUser?.sub).length > 0 && (
+              <div className="flex items-end -space-x-1.5">
+                {connectedUsers
+                  .filter((u) => u.userId !== authUser?.sub)
+                  .map((u) => (
+                    <img
+                      key={u.userId}
+                      src={u.picture}
+                      alt={u.name}
+                      title={u.name}
+                      referrerPolicy="no-referrer"
+                      className="h-6 w-6 rounded-full ring-2 ring-white"
+                    />
+                  ))}
+              </div>
+            )}
+
+            {authUser ? (
+              <>
+                <span className="flex items-end gap-2">
+                  {authUser.picture ? (
+                    <img
+                      src={authUser.picture}
+                      alt={authUser.name ?? 'profile'}
+                      referrerPolicy="no-referrer"
+                      className="h-7 w-7 rounded-md"
+                    />
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
+                  <span className="text-sm">{authUser.name ?? 'Unnamed'}</span>
                 </span>
-              ) : (
-                <User />
-              )}
-            </a>
-          ) : (
-            <GoogleLoginButton />
-          )}
+                <button
+                  type="button"
+                  onClick={clearAuth}
+                  title="Sign out"
+                  className="header-link"
+                >
+                  <LogOut />
+                </button>
+              </>
+            ) : (
+              <GoogleLoginButton />
+            )}
+          </div>
         </div>
 
         {showingAddToRepertoireMenu && (

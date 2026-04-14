@@ -75,6 +75,8 @@ export interface PgnNodeData {
 //TODO is id the same id we are looking for?
 // there is scalachessid too...
 
+// training is keyed by user subject (sub) so each collaborator has
+// independent spaced-repetition state on the same move.
 export interface TrainingData {
   id: string;
   fen: string;
@@ -82,7 +84,7 @@ export interface TrainingData {
   san: string;
   comment: string;
   enabled: boolean;
-  training: Card | null; // null if unseen
+  training: Record<string, Card>; // keyed by user sub; empty object if unseen by anyone
 }
 
 export interface RootData {}
