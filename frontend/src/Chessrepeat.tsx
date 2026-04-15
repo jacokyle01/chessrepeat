@@ -234,6 +234,7 @@ export const Chessrepeat = () => {
   */
 
   // handle incoming websocket
+  //TODO hook herE? 
   useEffect(() => {
     if (!authUser || !repertoireId) return;
     // each repertoire has its own room on the backend keyed by this id,
@@ -274,8 +275,8 @@ export const Chessrepeat = () => {
             name: payload.name,
             trainAs: payload.trainAs,
             root: { data: { id: '', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', ply: 0, san: '', comment: '', enabled: false, training: {} }, children: [] },
-            enabledCount: 0,
-            unseenCount: 0,
+            enabledCount: payload.enabledCount,
+            unseenCount: payload.enabledCount,
             lastDueCount: 0,
           });
           break;

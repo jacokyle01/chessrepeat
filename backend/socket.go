@@ -72,11 +72,13 @@ type NodeToggleEvent struct {
 // ChapterEvent is the WebSocket message envelope for chapter creation events.
 type ChapterEvent struct {
 	Type         string           `json:"type"`         // "chapter_created"
-	ChapterID    string           `json:"chapterId"`		// TODO uuid? 
+	ChapterID    string           `json:"chapterId"`		// TODO uuid? //TODO create server-side??
 	RepertoireID string           `json:"repertoireId"`
 	Name         string           `json:"name"`
 	TrainAs      string           `json:"trainAs"`
 	Root         ChapterTreeNode  `json:"root"`
+	EnabledCount int							`json:"enabledCount"`
+	UnseenCount	 int						  `json:"unseenCount"`
 }
 
 // chatServer maintains per-repertoire "rooms" of subscribers and fans out

@@ -18,6 +18,7 @@ export async function postChapter(chapter: Chapter) {
     return;
   }
 
+  //TODO just send full chapter? 
   socket.send(
     JSON.stringify({
       type: 'chapter_created',
@@ -26,6 +27,8 @@ export async function postChapter(chapter: Chapter) {
       name: chapter.name,
       trainAs: chapter.trainAs,
       root: chapter.root,
+      enabledCount: chapter.enabledCount,
+      unseenCount: chapter.unseenCount,
     }),
   );
 }

@@ -46,25 +46,30 @@ type sessionDoc struct {
 // Moves is a flat map keyed by id-path (concatenation of each ancestor's
 // TrainingData.ID from root to that node).  The root node lives at key "".
 type ChapterDoc struct {
-	UUID         string                  `json:"uuid"         bson:"_id"`
-	RepertoireID string                  `json:"repertoireId" bson:"repertoire_id"`
-	Name         string                  `json:"name"         bson:"name"`
-	TrainAs      string                  `json:"trainAs"      bson:"train_as"`
+	UUID         string                  `json:"uuid"          bson:"_id"`
+	RepertoireID string                  `json:"repertoireId"  bson:"repertoire_id"`
+	Name         string                  `json:"name"          bson:"name"`
+	TrainAs      string                  `json:"trainAs"       bson:"train_as"`
+	EnabledCount int                     `json:"enabledCount" bson:"enabled_count"`
+	UnseenCount  int                     `json:"unseenCount"  bson:"unseen_count"`
 	Moves        map[string]TrainingData `json:"moves"        bson:"moves"`
 }
 
 // ChapterTreeNode is used when rebuilding the tree from the flat map.
 type ChapterTreeNode struct {
-	Data     TrainingData       `json:"data"`
-	Children []ChapterTreeNode  `json:"children"`
+	Data     TrainingData      `json:"data"`
+	Children []ChapterTreeNode `json:"children"`
 }
 
 // ChapterTreeResponse is the JSON sent to clients when reading a chapter.
+//TODO does this need to be duplicated? 
 type ChapterTreeResponse struct {
 	UUID         string          `json:"uuid"`
 	RepertoireID string          `json:"repertoireId"`
 	Name         string          `json:"name"`
 	TrainAs      string          `json:"trainAs"`
+	EnabledCount int					 `json:"enabledCount"`
+	UnseenCount  int					 `json:"unseenCount"`
 	Root         ChapterTreeNode `json:"root"`
 }
 
@@ -116,7 +121,7 @@ func connectDb() *DB {
 // ── sessions ──
 
 // createSession issues a new session for the given user and persists it.
-//TODO what if we already have a sesison
+// TODO what if we already have a sesison
 func createSession(db *DB, userID string) (sessionDoc, error) {
 	id, err := newSessionID()
 	if err != nil {
@@ -138,7 +143,7 @@ func createSession(db *DB, userID string) (sessionDoc, error) {
 
 // fetchSession returns the session for the given id if it exists and has not
 // expired. A nil session with nil error means "not found or expired".
-//TODO session invalidation? 
+// TODO session invalidation?
 func fetchSession(db *DB, sessionID string) (*sessionDoc, error) {
 	coll := db.db.Collection("sessions")
 	var sess sessionDoc
@@ -238,7 +243,9 @@ func createChapter(db *DB, event ChapterEvent) error {
 		RepertoireID: event.RepertoireID,
 		Name:         event.Name,
 		TrainAs:      event.TrainAs,
-		Moves:        flattenTree(event.Root),
+		EnabledCount: event.EnabledCount,
+		UnseenCount: event.UnseenCount,
+		Moves: flattenTree(event.Root),
 	}
 	coll := db.db.Collection("chapters")
 	_, err := coll.InsertOne(context.TODO(), doc)
@@ -247,8 +254,8 @@ func createChapter(db *DB, event ChapterEvent) error {
 
 // addMoveToChapter adds a single move to a chapter's flattened move map.
 // The key is the move's path (parent path + move ID).
-// TODO shouldn't have to read entire chapter to put move in there. 
-// different data structure for moves? 
+// TODO shouldn't have to read entire chapter to put move in there.
+// different data structure for moves?
 func addMoveToChapter(db *DB, event MoveEvent) error {
 	coll := db.db.Collection("chapters")
 	movePath := event.Path + event.Move.ID
@@ -359,6 +366,8 @@ func fetchChaptersByRepertoire(db *DB, repertoireID string) ([]ChapterTreeRespon
 			RepertoireID: doc.RepertoireID,
 			Name:         doc.Name,
 			TrainAs:      doc.TrainAs,
+			UnseenCount: doc.UnseenCount,
+			EnabledCount: doc.EnabledCount,
 			Root:         buildTree(doc.Moves),
 		})
 	}
@@ -386,6 +395,7 @@ func readChapter(db *DB, chapterID string) (*ChapterDoc, error) {
 // Each key in the Moves map is an id-path: the concatenation of each node's
 // TrainingData.ID from root to that node.  Since each ID is a fixed-length
 // 2-char string (from scalachessCharPair), the parent of path P is P[:len(P)-2].
+//TODO should include "flat" 
 func readChapterAsTree(db *DB, chapterID string) (*ChapterTreeResponse, error) {
 	doc, err := readChapter(db, chapterID)
 	if err != nil || doc == nil {
@@ -399,6 +409,8 @@ func readChapterAsTree(db *DB, chapterID string) (*ChapterTreeResponse, error) {
 		RepertoireID: doc.RepertoireID,
 		Name:         doc.Name,
 		TrainAs:      doc.TrainAs,
+		UnseenCount: doc.UnseenCount,
+		EnabledCount: doc.EnabledCount,
 		Root:         root,
 	}, nil
 }
