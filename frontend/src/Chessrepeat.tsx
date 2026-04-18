@@ -29,6 +29,7 @@ import {
   ClipboardCheck,
   ClipboardCopy,
   FolderCog2Icon,
+  LogIn,
   LogOut,
   Mail,
   NetworkIcon,
@@ -49,9 +50,10 @@ import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import { useAuthStore } from './state/auth';
-import { GoogleLoginButton } from './components/GoogleLoginButton';
+import { GoogleLoginButton, applyLoginResponse } from './components/GoogleLoginButton';
 import './css/layout.css';
 import { Debug } from './components/Debug';
+import { MigrationModal } from './components/modals/MigrationModal';
 
 //TODO we should use chessops library to get promotion role instead of regex..
 // unclear if trainingContext stores enough state to get promotion role dynamically
@@ -138,18 +140,33 @@ export const Chessrepeat = () => {
     const initialId = idFromPath();
     if (initialId) setRepertoireId(initialId);
 
+    // The real session cookie is HttpOnly, but the backend also sets a
+    // JS-readable hint cookie at login. If it's absent we know we're not
+    // logged in and can skip the /me round-trip entirely.
+    const hasSessionHint = document.cookie
+      .split('; ')
+      .some((c) => c.startsWith('chessrepeat_has_session='));
+
     let cancelled = false;
     (async () => {
+      if (!hasSessionHint) {
+        await hydrateRepertoireFromIDB();
+        return;
+      }
       try {
         const res = await fetch('http://localhost:8080/me', {
           credentials: 'include',
         });
         if (cancelled) return;
-        if (!res.ok) return;
+        if (!res.ok) {
+          // Not authenticated — enter playground mode, hydrate from IDB
+          await hydrateRepertoireFromIDB();
+          return;
+        }
         const data = await res.json();
         setUser({
           sub: data.user.tokenId,
-          name: data.user.name,
+          username: data.user.username,
           email: data.user.email,
           picture: data.user.picture,
         });
@@ -161,6 +178,8 @@ export const Chessrepeat = () => {
         }
       } catch (err) {
         console.warn('auto-login failed', err);
+        // Network error — fall back to playground mode
+        if (!cancelled) await hydrateRepertoireFromIDB();
       }
     })();
 
@@ -223,6 +242,13 @@ export const Chessrepeat = () => {
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fenCopied, setFenCopied] = useState(false);
+  const [showMigration, setShowMigration] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [pendingSignup, setPendingSignup] = useState<{
+    idToken: string;
+    hasPlaygroundData: boolean;
+  } | null>(null);
+  const [pendingUsername, setPendingUsername] = useState('');
 
   const movesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -561,8 +587,8 @@ export const Chessrepeat = () => {
                     <img
                       key={u.userId}
                       src={u.picture}
-                      alt={u.name}
-                      title={u.name}
+                      alt={u.username}
+                      title={u.username}
                       referrerPolicy="no-referrer"
                       className="h-6 w-6 rounded-full ring-2 ring-white"
                     />
@@ -576,14 +602,14 @@ export const Chessrepeat = () => {
                   {authUser.picture ? (
                     <img
                       src={authUser.picture}
-                      alt={authUser.name ?? 'profile'}
+                      alt={authUser.username ?? 'profile'}
                       referrerPolicy="no-referrer"
                       className="h-7 w-7 rounded-md"
                     />
                   ) : (
                     <User className="h-5 w-5" />
                   )}
-                  <span className="text-sm">{authUser.name ?? 'Unnamed'}</span>
+                  <span className="text-sm">{authUser.username ?? 'Unnamed'}</span>
                 </span>
                 <button
                   type="button"
@@ -595,10 +621,119 @@ export const Chessrepeat = () => {
                 </button>
               </>
             ) : (
-              <GoogleLoginButton />
+              <button
+                type="button"
+                onClick={() => setSignupOpen(true)}
+                className="header-link"
+                title="Sign up"
+              >
+                <span>sign in</span>
+                <LogIn />
+              </button>
             )}
           </div>
         </div>
+
+        {signupOpen && (
+          <>
+            <div
+              className="modal-backdrop"
+              style={{ zIndex: 50 }}
+              onClick={() => {
+                setSignupOpen(false);
+                setPendingSignup(null);
+                setPendingUsername('');
+              }}
+            />
+            <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+              <div className="bg-white rounded-xl shadow-lg p-6 w-96 pointer-events-auto relative">
+                <button
+                  onClick={() => {
+                    setSignupOpen(false);
+                    setPendingSignup(null);
+                    setPendingUsername('');
+                  }}
+                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+                >
+                  &times;
+                </button>
+                {pendingSignup ? (
+                  <>
+                    <h2 className="text-lg font-semibold mb-2">Pick a username</h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      This will be your URL handle (chessrepeat.com/@/your-username).
+                    </p>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const username = pendingUsername.trim();
+                        if (!username) return;
+                        try {
+                          const res = await fetch('http://localhost:8080/login', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ idToken: pendingSignup.idToken, username }),
+                          });
+                          if (!res.ok) {
+                            console.error('signup failed', res.status, await res.text());
+                            return;
+                          }
+                          const data = await res.json();
+                          await applyLoginResponse(
+                            data,
+                            pendingSignup.hasPlaygroundData,
+                            () => { setSignupOpen(false); setShowMigration(true); },
+                          );
+                          setPendingSignup(null);
+                          setPendingUsername('');
+                          if (!pendingSignup.hasPlaygroundData) setSignupOpen(false);
+                        } catch (err) {
+                          console.error('signup request failed', err);
+                        }
+                      }}
+                    >
+                      <input
+                        type="text"
+                        autoFocus
+                        value={pendingUsername}
+                        onChange={(e) => setPendingUsername(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-sm"
+                        placeholder="username"
+                      />
+                      <button
+                        type="submit"
+                        className="w-full bg-slate-800 text-white text-sm font-semibold py-2 rounded hover:bg-slate-700"
+                      >
+                        Continue
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-lg font-semibold mb-2">Sign up</h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Your playground repertoire will be migrated to your account after signing in.
+                    </p>
+                    <GoogleLoginButton
+                      onPlaygroundMigration={() => { setSignupOpen(false); setShowMigration(true); }}
+                      onNeedsUsername={(idToken, hasPlaygroundData) =>
+                        setPendingSignup({ idToken, hasPlaygroundData })
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {showMigration && (
+          <>
+            <div className="modal-backdrop" style={{ zIndex: 50 }} />
+            <MigrationModal onClose={() => setShowMigration(false)} />
+          </>
+        )}
 
         {showingAddToRepertoireMenu && (
           <>

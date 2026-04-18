@@ -23,10 +23,10 @@ type repertoireJson struct {
 }
 
 type userJson struct {
-	TokenID string `json:"tokenId" bson:"_id"`
-	Name    string `json:"name"    bson:"name"`
-	Email   string `json:"email"   bson:"email"`
-	Picture string `json:"picture" bson:"picture"`
+	TokenID  string `json:"tokenId"            bson:"_id"`
+	Username string `json:"username,omitempty" bson:"username,omitempty"`
+	Email    string `json:"email"              bson:"email"`
+	Picture  string `json:"picture"            bson:"picture"`
 }
 
 type loginResponse struct {
@@ -158,6 +158,12 @@ func fetchSession(db *DB, sessionID string) (*sessionDoc, error) {
 		return nil, nil
 	}
 	return &sess, nil
+}
+
+func deleteSession(db *DB, sessionID string) error {
+	coll := db.db.Collection("sessions")
+	_, err := coll.DeleteOne(context.TODO(), bson.M{"_id": sessionID})
+	return err
 }
 
 // ── users ──

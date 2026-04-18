@@ -121,9 +121,9 @@ func newChatServer(db *DB) *chatServer {
 
 // PeerInfo is the public identity of a connected user, sent in crowd/join/leave messages.
 type PeerInfo struct {
-	UserID  string `json:"userId"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
+	UserID   string `json:"userId"`
+	Username string `json:"username"`
+	Picture  string `json:"picture"`
 }
 
 // subscriber represents a subscriber. userID is pinned from the session
@@ -131,15 +131,15 @@ type PeerInfo struct {
 // attributable to a user. room is the repertoire room this subscriber
 // belongs to for its entire lifetime.
 type subscriber struct {
-	msgs    chan []byte
-	userID  string
-	name    string
-	picture string
-	room    *room
+	msgs     chan []byte
+	userID   string
+	username string
+	picture  string
+	room     *room
 }
 
 func (s *subscriber) peerInfo() PeerInfo {
-	return PeerInfo{UserID: s.userID, Name: s.name, Picture: s.picture}
+	return PeerInfo{UserID: s.userID, Username: s.username, Picture: s.picture}
 }
 
 func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
@@ -201,10 +201,10 @@ func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request, repertoi
 	}
 
 	s := &subscriber{
-		msgs:    make(chan []byte, cs.subscriberMessageBuffer),
-		userID:  sess.UserID,
-		name:    user.Name,
-		picture: user.Picture,
+		msgs:     make(chan []byte, cs.subscriberMessageBuffer),
+		userID:   sess.UserID,
+		username: user.Username,
+		picture:  user.Picture,
 	}
 	cs.join(repertoireID, s)
 	defer cs.leave(s)

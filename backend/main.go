@@ -25,6 +25,11 @@ func withCORS(next http.Handler) http.Handler {
 // opaque session id on every request from the browser.
 const sessionCookieName = "chessrepeat_session"
 
+// sessionHintCookieName is a non-HttpOnly companion cookie so the frontend
+// can cheaply tell whether a session exists without probing /me. It carries
+// no secret — just a flag — so exposing it to JS is safe.
+const sessionHintCookieName = "chessrepeat_has_session"
+
 func main() {
 	log.Println("starting server...")
 
@@ -128,7 +133,8 @@ func main() {
 		}
 
 		var body struct {
-			IDToken string `json:"idToken"`
+			IDToken  string `json:"idToken"`
+			Username string `json:"username"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IDToken == "" {
 			http.Error(w, "missing idToken", http.StatusBadRequest)
@@ -136,7 +142,7 @@ func main() {
 		}
 
 		// verify the Google ID token: signature, issuer, expiry, audience
-		// we are trading this for a session 
+		// we are trading this for a session
 		claims, err := verifyGoogleIDToken(r.Context(), body.IDToken)
 		if err != nil {
 			log.Println("google id token verification failed:", err)
@@ -144,11 +150,31 @@ func main() {
 			return
 		}
 
+		// first-time signups must pick a username. if the user doesn't exist
+		// yet and no username came in the request, bail early without writing
+		// anything — the frontend will prompt and re-submit with a username.
+		existing, err := fetchUser(db, claims.Sub)
+		if err != nil {
+			log.Println("failed to look up user:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		// reject first log-in attempt if username is missing 
+		if existing == nil && body.Username == "" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{"needsUsername": true})
+			return
+		}
+
 		user := userJson{
 			TokenID: claims.Sub,
-			Name:    claims.Name,
 			Email:   claims.Email,
 			Picture: claims.Picture,
+		}
+		if existing != nil {
+			user.Username = existing.Username
+		} else {
+			user.Username = body.Username
 		}
 
 		if err := upsertUser(db, user); err != nil {
@@ -195,6 +221,14 @@ func main() {
 			SameSite: http.SameSiteLaxMode,
 			Expires:  sess.ExpiresAt,
 		})
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionHintCookieName,
+			Value:    "1",
+			Path:     "/",
+			HttpOnly: false,
+			SameSite: http.SameSiteLaxMode,
+			Expires:  sess.ExpiresAt,
+		})
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(loginResponse{
@@ -204,6 +238,37 @@ func main() {
 	})
 
 
+
+	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		cookie, err := r.Cookie(sessionCookieName)
+		if err == nil {
+			if err := deleteSession(db, cookie.Value); err != nil {
+				log.Println("failed to delete session:", err)
+			}
+		}
+		// expire the cookie immediately
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionCookieName,
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   -1,
+		})
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionHintCookieName,
+			Value:    "",
+			Path:     "/",
+			HttpOnly: false,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   -1,
+		})
+		w.WriteHeader(http.StatusOK)
+	})
 
 	/*
 		auto-login endpoint: validates the session cookie and returns the

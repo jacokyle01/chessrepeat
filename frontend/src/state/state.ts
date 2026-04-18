@@ -25,17 +25,22 @@ import { annotatePgn, chapterFromPgn, rootFromPgn } from '../util/io';
 import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig, type Card } from '../util/srs';
 import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
-import { useAuthStore } from './auth';
+import { PLAYGROUND_SUB, useAuthStore } from './auth';
 
 export type Peer = {
   userId: string;
-  name: string;
+  username: string;
   picture: string;
 };
 
-/** Get the current user's sub from the auth store. */
+/** Get the current user's sub from the auth store, falling back to playground sub. */
 function currentUserSub(): string | null {
-  return useAuthStore.getState().user?.sub ?? null;
+  const auth = useAuthStore.getState();
+  return auth.user?.sub ?? (auth.isPlayground() ? PLAYGROUND_SUB : null);
+}
+
+function isPlayground(): boolean {
+  return useAuthStore.getState().isPlayground();
 }
 
 import { userCard } from '../util/userCard';
@@ -148,23 +153,18 @@ const KEYS = {
 };
 
 async function writeChapterIds(ids: string[]) {
-  return;
   await set(KEYS.chapterIds, ids);
 }
 async function readChapterIds(): Promise<string[]> {
-  return;
   return (await get(KEYS.chapterIds)) ?? [];
 }
 async function writeChapter(cid: string, chapter: Chapter) {
-  return;
   await set(KEYS.chapter(cid), chapter);
 }
 async function readChapter(cid: string): Promise<Chapter | null> {
-  return;
   return (await get(KEYS.chapter(cid))) ?? null;
 }
-async function deleteChapter(cid: string) {
-  return;
+async function deleteChapterIDB(cid: string) {
   await del(KEYS.chapter(cid));
 }
 
@@ -182,26 +182,46 @@ const indexedDBStorage: StateStorage = {
   },
 };
 
-// Helper: persist one chapter by index (in-memory -> IDB) and ensure id list is updated
+// Helper: persist one chapter to IDB (playground mode only)
 async function persistChapter(chapter: Chapter) {
-  // await writeChapter(chapter.uuid, chapter);
+  if (!isPlayground()) return;
+  await writeChapter(chapter.uuid, chapter);
 
-  // // if new chapter, insert into id list
-  // const ids = await readChapterIds();
-  // if (!ids.includes(chapter.uuid)) {
-  //   await writeChapterIds([...ids, chapter.uuid]);
-  // }
+  const ids = await readChapterIds();
+  if (!ids.includes(chapter.uuid)) {
+    await writeChapterIds([...ids, chapter.uuid]);
+  }
 }
 
-// Helper: persist all chapters (used by setRepertoire)
+// Helper: persist all chapters to IDB (playground mode only)
 async function persistAllChapters(repertoire: Chapter[]) {
-  // const ids: string[] = [];
-  // for (const ch of repertoire) {
-  //   const cid = ch.id;
-  //   ids.push(cid);
-  //   await writeChapter(cid, ch);
-  // }
-  // await writeChapterIds(ids);
+  if (!isPlayground()) return;
+  const ids: string[] = [];
+  for (const ch of repertoire) {
+    ids.push(ch.uuid);
+    await writeChapter(ch.uuid, ch);
+  }
+  await writeChapterIds(ids);
+}
+
+/** Clear all playground data from IDB. */
+export async function clearPlaygroundIDB() {
+  const ids = await readChapterIds();
+  for (const cid of ids) {
+    await deleteChapterIDB(cid);
+  }
+  await writeChapterIds([]);
+}
+
+/** Load playground chapters from IDB (for migration). */
+export async function loadPlaygroundChapters(): Promise<Chapter[]> {
+  const ids = await readChapterIds();
+  const chapters: Chapter[] = [];
+  for (const cid of ids) {
+    const ch = await readChapter(cid);
+    if (ch) chapters.push(ch);
+  }
+  return chapters;
 }
 
 export const useTrainerStore = create<TrainerState>()(
@@ -323,22 +343,22 @@ export const useTrainerStore = create<TrainerState>()(
           userTip: 'empty',
         });
 
-        await deleteChapter(cid);
+        await deleteChapterIDB(cid);
 
         const ids = nextRepertoire.map((c) => c.uuid);
-        // await writeChapterIds(ids);
+        await writeChapterIds(ids);
       },
 
-      // try to load from IDB on refresh
+      // Load playground chapters from IDB on refresh (playground mode only)
       hydrateRepertoireFromIDB: async () => {
-        const { repertoire, addNewChapter } = get();
+        const { repertoire, addNewChapterLocally } = get();
         if (repertoire.length > 0) return;
         const ids = await readChapterIds();
 
-        if (!ids.length && false) {
-          // Seed example repertoire for new users
+        if (!ids.length) {
+          // Seed example repertoire for new playground users
           const exampleChapter = chapterFromPgn(EXAMPLE_PGN, 'white', 'Example Repertoire');
-          await addNewChapter(exampleChapter);
+          await addNewChapterLocally(exampleChapter);
           return;
         }
 
@@ -348,7 +368,6 @@ export const useTrainerStore = create<TrainerState>()(
           if (ch) chapters.push(ch);
         }
 
-        // hydrate in-memory
         set({ repertoire: chapters });
       },
 
@@ -389,8 +408,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         await persistChapter(chapter);
 
-        // broadcast the deletion to other clients
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(
             JSON.stringify({
               type: 'node_deleted',
@@ -492,7 +510,7 @@ export const useTrainerStore = create<TrainerState>()(
         chapter.unseenCount--;
         await persistChapter(chapter);
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: 'training_updated',
             chapterId: chapter.uuid,
@@ -519,7 +537,7 @@ export const useTrainerStore = create<TrainerState>()(
         targetNode.data.training[sub] = card;
         void persistChapter(chapter);
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: 'training_updated',
             chapterId: chapter.uuid,
@@ -573,7 +591,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         await persistChapter(chapter);
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'node_disabled', chapterId: chapter.uuid, path }));
         }
       },
@@ -601,7 +619,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         await persistChapter(chapter);
 
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'node_enabled', chapterId: chapter.uuid, path }));
         }
       },
@@ -771,21 +789,22 @@ export const useTrainerStore = create<TrainerState>()(
           //TODO put network actions somewhere
           //TODO why void?
 
-          // send the move over the WebSocket so the server can persist it
-          // and broadcast to other clients. the connection is authenticated
-          // by the session cookie at handshake time.
-          const { socket } = get();
-          if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(
-              JSON.stringify({
-                type: 'move_created',
-                chapterId: chapter.uuid,
-                path: selectedPath,
-                move: newNode.data,
-              }),
-            );
+          if (isPlayground()) {
+            await persistChapter(chapter);
           } else {
-            console.warn('socket not open; move not broadcast');
+            const { socket } = get();
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.send(
+                JSON.stringify({
+                  type: 'move_created',
+                  chapterId: chapter.uuid,
+                  path: selectedPath,
+                  move: newNode.data,
+                }),
+              );
+            } else {
+              console.warn('socket not open; move not broadcast');
+            }
           }
         }
 
@@ -804,13 +823,13 @@ export const useTrainerStore = create<TrainerState>()(
       addNewChapter: async (chapter: Chapter) => {
         const { addNewChapterLocally } = get();
         await addNewChapterLocally(chapter);
-        void postChapter(chapter);
+        if (!isPlayground()) {
+          void postChapter(chapter);
+        }
       },
 
       addNewChapterLocally: async (chapter: Chapter) => {
         const { repertoire } = get();
-        // const ids = await readChapterIds();
-        // if (ids.includes(chapter.uuid)) return; // don't write duplicates
 
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
@@ -822,13 +841,16 @@ export const useTrainerStore = create<TrainerState>()(
             break;
         }
 
-        // update memory
         set({ repertoire: newRepertoire });
 
-        // add to indexedDB
-        const cid = chapter.uuid;
-        await writeChapter(cid, chapter);
-        // writeChapterIds([...ids, cid]);
+        if (isPlayground()) {
+          const cid = chapter.uuid;
+          await writeChapter(cid, chapter);
+          const ids = await readChapterIds();
+          if (!ids.includes(cid)) {
+            await writeChapterIds([...ids, cid]);
+          }
+        }
       },
 
       //TODO namespace
@@ -894,12 +916,14 @@ export const useTrainerStore = create<TrainerState>()(
         // srsConfig: state.srsConfig,
       }),
 
-      // ✅ After small state is rehydrated, load chapters from IDB into memory
       onRehydrateStorage: () => {
         return async (state, err) => {
-          // if (err || !state) return;
-          // updateScheduler(state.srsConfig);
-          // await state.hydrateRepertoireFromIDB();
+          if (err || !state) return;
+          // In playground mode, hydrate chapters from IDB on page load.
+          // When authenticated, chapters come from the server instead.
+          if (isPlayground()) {
+            await state.hydrateRepertoireFromIDB();
+          }
         };
       },
     },

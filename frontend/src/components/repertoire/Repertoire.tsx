@@ -1,6 +1,6 @@
 //TODO repertoire and repertoire section in same file
 
-import { CloudAlert, FileCog, FileDown, SettingsIcon } from 'lucide-react';
+import { CloudAlert, FileCog, FileDown, LucideCloud, LucideCloudOff, LucideCloudUpload, SettingsIcon } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../state/state';
 import { Modal } from '../modals/Modal';
@@ -8,6 +8,7 @@ import EditChapterModal from '../modals/EditChapterModal';
 import React, { Dispatch, SetStateAction, useState } from 'react';
 import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
 import { Chapter } from '../../types/training';
+import { useAuthStore } from '../../state/auth';
 
 export const ChapterRow = ({ entry, index, id }) => {
   // console.log('chapter ID should be visible', id);
@@ -98,6 +99,7 @@ const Repertoire: React.FC = () => {
   const blackEntries: Chapter[] = [];
 
   const repertoire = useTrainerStore().repertoire;
+  const isAuth = useAuthStore().isAuthenticated(); // TODO don't use auth state to keep track of network connection
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);
@@ -112,6 +114,7 @@ const Repertoire: React.FC = () => {
           <BookOpenIcon />
         </div>
         <span className="text-gray-800 font-semibold text-xl">My Repertoire</span>
+        {isAuth ? <span className='text-green-600'><LucideCloudUpload/></span> : <span className='text-red-600'><LucideCloudOff/></span>}
       </div>
 
       {/* ONLY THIS SCROLLS */}

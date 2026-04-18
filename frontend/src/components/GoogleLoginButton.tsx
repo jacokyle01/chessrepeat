@@ -1,9 +1,39 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../state/auth';
+import { loadPlaygroundChapters } from '../state/state';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-export function GoogleLoginButton() {
+interface Props {
+  onPlaygroundMigration?: () => void;
+  onNeedsUsername?: (idToken: string, hasPlaygroundData: boolean) => void;
+}
+
+export async function applyLoginResponse(
+  data: any,
+  hasPlaygroundData: boolean,
+  onPlaygroundMigration?: () => void,
+) {
+  const auth = useAuthStore.getState();
+  auth.setUser({
+    sub: data.user.tokenId,
+    username: data.user.username,
+    email: data.user.email,
+    picture: data.user.picture,
+  });
+  if (data.repertoire?.id) {
+    const seg = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    if (!seg) {
+      auth.setRepertoireId(data.repertoire.id);
+      window.history.pushState(null, '', `/${data.repertoire.id}`);
+    }
+  }
+  if (hasPlaygroundData && onPlaygroundMigration) {
+    onPlaygroundMigration();
+  }
+}
+
+export function GoogleLoginButton({ onPlaygroundMigration, onNeedsUsername }: Props) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -16,9 +46,10 @@ export function GoogleLoginButton() {
       callback: async (resp: any) => {
         const idToken: string = resp.credential;
 
-        // hit backend login endpoint to upsert user + repertoire.
-        // credentials: 'include' is required so the browser stores the
-        // session cookie that the server returns in Set-Cookie.
+        // Check if there's playground data before login clears it
+        const playgroundChapters = await loadPlaygroundChapters();
+        const hasPlaygroundData = playgroundChapters.length > 0;
+
         try {
           const res = await fetch('http://localhost:8080/login', {
             method: 'POST',
@@ -31,23 +62,11 @@ export function GoogleLoginButton() {
             return;
           }
           const data = await res.json();
-          const auth = useAuthStore.getState();
-          auth.setUser({
-            sub: data.user.tokenId,
-            name: data.user.name,
-            email: data.user.email,
-            picture: data.user.picture,
-          });
-          if (data.repertoire?.id) {
-            // if URL is at root (no shared repertoire link), drop the
-            // user into their own repertoire and reflect that in the URL.
-            // otherwise leave the active (shared) repertoire alone.
-            const seg = window.location.pathname.replace(/^\/+|\/+$/g, '');
-            if (!seg) {
-              auth.setRepertoireId(data.repertoire.id);
-              window.history.pushState(null, '', `/${data.repertoire.id}`);
-            }
+          if (data.needsUsername) {
+            onNeedsUsername?.(idToken, hasPlaygroundData);
+            return;
           }
+          await applyLoginResponse(data, hasPlaygroundData, onPlaygroundMigration);
         } catch (err) {
           console.error('login request failed', err);
         }
