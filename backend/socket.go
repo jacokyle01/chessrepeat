@@ -143,12 +143,35 @@ func (s *subscriber) peerInfo() PeerInfo {
 }
 
 func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
-	repertoireID := r.PathValue("repertoireId")
-	if repertoireID == "" {
-		http.Error(w, "missing repertoireId", http.StatusBadRequest)
+	username := r.PathValue("username")
+	if username == "" {
+		http.Error(w, "missing username", http.StatusBadRequest)
 		return
 	}
-	err := cs.subscribe(w, r, repertoireID)
+
+	// resolve the username to the owning user's repertoire id — rooms are
+	// still keyed by repertoire id internally since that's what chapter
+	// events reference.
+	owner, err := fetchUserByUsername(cs.db, username)
+	if err != nil {
+		http.Error(w, "user lookup failed", http.StatusInternalServerError)
+		return
+	}
+	if owner == nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+	repertoire, err := fetchRepertoireByUser(cs.db, owner.TokenID)
+	if err != nil {
+		http.Error(w, "repertoire lookup failed", http.StatusInternalServerError)
+		return
+	}
+	if repertoire == nil {
+		http.Error(w, "repertoire not found", http.StatusNotFound)
+		return
+	}
+
+	err = cs.subscribe(w, r, repertoire.RepertoireId)
 	if errors.Is(err, context.Canceled) {
 		return
 	}

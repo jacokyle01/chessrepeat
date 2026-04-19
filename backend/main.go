@@ -319,6 +319,78 @@ func main() {
 		})
 	})
 
+	// resolve a username to that user's repertoire + chapters. This is what
+	// the frontend hits on /@/{username} page loads.
+	http.HandleFunc("/u/{username}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		cookie, err := r.Cookie(sessionCookieName)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		sess, err := fetchSession(db, cookie.Value)
+		if err != nil {
+			log.Println("session lookup failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if sess == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		
+		//TODO here, we can check if userID is authorized to view repertoire
+		// also have to check in realtime? 
+
+		username := r.PathValue("username")
+		if username == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		user, err := fetchUserByUsername(db, username)
+		if err != nil {
+			log.Println("user lookup by username failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if user == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		repertoire, err := fetchRepertoireByUser(db, user.TokenID)
+		if err != nil {
+			log.Println("failed to fetch repertoire for user:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if repertoire == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		chapters, err := fetchChaptersByRepertoire(db, repertoire.RepertoireId)
+		if err != nil {
+			log.Println("failed to fetch chapters:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		resp := struct {
+			Repertoire repertoireJson        `json:"repertoire"`
+			Chapters   []ChapterTreeResponse `json:"chapters"`
+		}{
+			Repertoire: *repertoire,
+			Chapters:   chapters,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+
 	http.HandleFunc("/chapter/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -343,9 +415,10 @@ func main() {
 		json.NewEncoder(w).Encode(tree)
 	})
 
-	// WebSocket endpoint, scoped per repertoire. Each repertoire id maps
-	// to its own "room" of connected subscribers on the backend.
-	http.HandleFunc("/subscribe/{repertoireId}", cs.subscribeHandler)
+	// WebSocket endpoint, scoped per user. Since each user owns exactly one
+	// repertoire, the username identifies the room. The handler resolves it
+	// to the owning user's repertoire id internally.
+	http.HandleFunc("/subscribe/{username}", cs.subscribeHandler)
 
 	log.Println("server ready to serve! http://localhost:8080")
 

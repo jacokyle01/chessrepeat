@@ -51,6 +51,7 @@ import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import { useAuthStore } from './state/auth';
 import { GoogleLoginButton, applyLoginResponse } from './components/GoogleLoginButton';
+import { useNavigate, useParams } from 'react-router-dom';
 import './css/layout.css';
 import { Debug } from './components/Debug';
 import { MigrationModal } from './components/modals/MigrationModal';
@@ -120,26 +121,15 @@ export const Chessrepeat = () => {
   const setRepertoireId = useAuthStore((s) => s.setRepertoireId);
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
-  // auto-login + URL-based repertoire routing.
-  //
-  // The URL path's first segment (e.g. /abc-123) names the repertoire to load,
-  // so anyone with the link can collaborate on that repertoire (permissions
-  // come later). If we land on "/" we fall back to the user's own repertoire
-  // returned by /me and push that id into the URL so it can be shared.
-  //
-  // Also wires up popstate so browser back/forward navigates between
-  // repertoires without a full reload.
+  const { username: viewedUsername } = useParams<{ username?: string }>();
+  const navigate = useNavigate();
+
+  // auto-login. The URL (/@/:username) is the source of truth for which
+  // repertoire to load — router handles that. This effect just resolves
+  // the session: hydrate auth state from /me, or fall back to IDB for
+  // anonymous/playground users. On successful /me with no username in the
+  // URL, redirect to the user's own /@/{username}.
   useEffect(() => {
-    const idFromPath = () => {
-      const seg = window.location.pathname.replace(/^\/+|\/+$/g, '');
-      return seg || null;
-    };
-
-    // adopt whatever's already in the URL before /me resolves so the
-    // repertoire fetch + ws connect can race ahead.
-    const initialId = idFromPath();
-    if (initialId) setRepertoireId(initialId);
-
     // The real session cookie is HttpOnly, but the backend also sets a
     // JS-readable hint cookie at login. If it's absent we know we're not
     // logged in and can skip the /me round-trip entirely.
@@ -170,11 +160,12 @@ export const Chessrepeat = () => {
           email: data.user.email,
           picture: data.user.picture,
         });
-        // if URL is at root, default to the user's own repertoire and
-        // reflect it in the URL so it can be shared.
-        if (!idFromPath() && data.repertoire?.id) {
-          setRepertoireId(data.repertoire.id);
-          window.history.replaceState(null, '', `/${data.repertoire.id}`);
+        // if URL isn't a /@/{username} route, default to the user's own
+        // repertoire so their link is shareable.
+
+        //TODO why is this here? 
+        if (!viewedUsername && data.user?.username) {
+          navigate(`/@/${data.user.username}`, { replace: true });
         }
       } catch (err) {
         console.warn('auto-login failed', err);
@@ -183,47 +174,38 @@ export const Chessrepeat = () => {
       }
     })();
 
-    const onPopState = () => {
-      const id = idFromPath();
-      if (id) setRepertoireId(id);
-    };
-    window.addEventListener('popstate', onPopState);
-
     return () => {
       cancelled = true;
-      window.removeEventListener('popstate', onPopState);
     };
   }, []);
 
-  // once we know which repertoire is ours, fetch it (and its chapters)
-  // over plain HTTP and hand the result to the trainer store. fires after
-  // both auto-login (/me) and explicit Google login since both end with a
-  // setRepertoireId call.
-  //TODO useEffect should be on session ? we don't need repertoireId, 
-  // just need session cookie 
+  // once we know which username we're viewing (from the URL), resolve it to
+  // the owner's repertoire + chapters. The repertoire id comes back here so
+  // postChapter can tag its WebSocket messages with the owning repertoire.
 
-  // repertoireId is now the source of truth for if we've changed to some other user's repertoire
+  // TODO can be hook 
   useEffect(() => {
-    if (!repertoireId) return;
+    if (!viewedUsername) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`http://localhost:8080/repertoire/${repertoireId}`, {
+        const res = await fetch(`http://localhost:8080/u/${viewedUsername}`, {
           credentials: 'include',
         });
         if (cancelled) return;
         if (!res.ok) {
-          console.error('failed to load repertoire', res.status);
+          console.error('failed to load user repertoire', res.status);
           return;
         }
         const data = await res.json();
+        if (data.repertoire?.id) setRepertoireId(data.repertoire.id);
         const chapters = (data.chapters ?? []).map((c: any) => ({
           uuid: c.uuid,
           name: c.name,
           trainAs: c.trainAs,
           root: c.root,
-          enabledCount: 0,
-          unseenCount: 0,
+          enabledCount: c.enabledCount,
+          unseenCount: c.unseenCount,
           lastDueCount: 0,
         }));
         void setRepertoire(chapters);
@@ -234,7 +216,7 @@ export const Chessrepeat = () => {
     return () => {
       cancelled = true;
     };
-  }, [repertoireId]);
+  }, [viewedUsername]);
 
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
 
@@ -260,12 +242,13 @@ export const Chessrepeat = () => {
   */
 
   // handle incoming websocket
-  //TODO hook herE? 
+  //TODO hook herE?
+  //TODO should be part of GET /@/{user}?
   useEffect(() => {
-    if (!authUser || !repertoireId) return;
-    // each repertoire has its own room on the backend keyed by this id,
-    // so events only fan out to collaborators on the same repertoire.
-    const ws = new WebSocket(`ws://localhost:8080/subscribe/${repertoireId}`);
+    if (!authUser || !viewedUsername) return;
+    // rooms are keyed per-owner since each user has exactly one repertoire;
+    // events fan out only to collaborators viewing the same username.
+    const ws = new WebSocket(`ws://localhost:8080/subscribe/${viewedUsername}`);
     setWebSocket(ws);
     ws.onopen = () => console.log('ws live');
     ws.onmessage = (event) => {
@@ -312,7 +295,7 @@ export const Chessrepeat = () => {
       ws.close();
       setConnectedUsers([]);
     };
-  }, [authUser, repertoireId]);
+  }, [authUser, viewedUsername]);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
@@ -683,6 +666,7 @@ export const Chessrepeat = () => {
                           await applyLoginResponse(
                             data,
                             pendingSignup.hasPlaygroundData,
+                            navigate,
                             () => { setSignupOpen(false); setShowMigration(true); },
                           );
                           setPendingSignup(null);

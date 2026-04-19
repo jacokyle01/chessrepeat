@@ -188,6 +188,19 @@ func fetchUser(db *DB, tokenID string) (*userJson, error) {
 	return &user, nil
 }
 
+func fetchUserByUsername(db *DB, username string) (*userJson, error) {
+	coll := db.db.Collection("users")
+	var user userJson
+	err := coll.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // ── repertoires ──
 
 func fetchRepertoire(db *DB, id string) (repertoireJson, error) {

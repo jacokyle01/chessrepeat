@@ -11,6 +11,8 @@ export type AuthUser = {
 
 type AuthState = {
   user: AuthUser | null;
+  // Derived from the fetched repertoire; used by postChapter and sent in
+  // chapter events so the server knows which repertoire a chapter belongs to.
   repertoireId: string | null;
 
   isAuthenticated: () => boolean;

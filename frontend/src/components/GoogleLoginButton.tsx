@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../state/auth';
 import { loadPlaygroundChapters } from '../state/state';
 
@@ -9,9 +10,14 @@ interface Props {
   onNeedsUsername?: (idToken: string, hasPlaygroundData: boolean) => void;
 }
 
+// Applies a successful /login response: updates the auth store and, if we're
+// not already viewing a /@/{username} route, navigates to the user's own.
+// Does not touch the URL itself beyond that — navigation is owned by the
+// router.
 export async function applyLoginResponse(
   data: any,
   hasPlaygroundData: boolean,
+  navigate: (path: string) => void,
   onPlaygroundMigration?: () => void,
 ) {
   const auth = useAuthStore.getState();
@@ -21,11 +27,10 @@ export async function applyLoginResponse(
     email: data.user.email,
     picture: data.user.picture,
   });
-  if (data.repertoire?.id) {
-    const seg = window.location.pathname.replace(/^\/+|\/+$/g, '');
-    if (!seg) {
-      auth.setRepertoireId(data.repertoire.id);
-      window.history.pushState(null, '', `/${data.repertoire.id}`);
+  if (data.user?.username) {
+    const atRoute = /^\/@\/[^/]+/.test(window.location.pathname);
+    if (!atRoute) {
+      navigate(`/@/${data.user.username}`);
     }
   }
   if (hasPlaygroundData && onPlaygroundMigration) {
@@ -35,6 +40,7 @@ export async function applyLoginResponse(
 
 export function GoogleLoginButton({ onPlaygroundMigration, onNeedsUsername }: Props) {
   const [ready, setReady] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // @ts-ignore
@@ -66,7 +72,7 @@ export function GoogleLoginButton({ onPlaygroundMigration, onNeedsUsername }: Pr
             onNeedsUsername?.(idToken, hasPlaygroundData);
             return;
           }
-          await applyLoginResponse(data, hasPlaygroundData, onPlaygroundMigration);
+          await applyLoginResponse(data, hasPlaygroundData, navigate, onPlaygroundMigration);
         } catch (err) {
           console.error('login request failed', err);
         }
