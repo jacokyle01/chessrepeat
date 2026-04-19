@@ -1,13 +1,12 @@
 import React from 'react';
 import Chessrepeat from './Chessrepeat';
-import Login from './Login';
-import { useAuthStore } from './store/auth';
+import { LoginModal } from './components/modals/LoginModal';
 
 const App: React.FC = () => {
-  const showLogin = useAuthStore((s) => s.showLogin);
   return (
     <main className="flex justify-center items-center h-screen">
-      {showLogin ? <Login /> : <Chessrepeat />}
+      <Chessrepeat />
+      <LoginModal />
     </main>
   );
 };

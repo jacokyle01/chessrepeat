@@ -1,20 +1,25 @@
 import { useState } from 'react';
-import { GoogleLoginButton, applyLoginResponse } from './components/GoogleLoginButton';
-import { Header } from './components/Header';
-import './css/layout.css';
+import { Modal } from './Modal';
+import { GoogleLoginButton, applyLoginResponse } from '../GoogleLoginButton';
+import { useAuthStore } from '../../store/auth';
 
-export default function Login() {
+export function LoginModal() {
+  const showLogin = useAuthStore((s) => s.showLogin);
+  const closeLogin = useAuthStore((s) => s.closeLogin);
+
   const [pendingSignup, setPendingSignup] = useState<{ idToken: string } | null>(null);
   const [pendingUsername, setPendingUsername] = useState('');
 
+  const dismiss = () => {
+    setPendingSignup(null);
+    setPendingUsername('');
+    closeLogin();
+  };
+
   return (
-    <div className="app-root">
-      <Header />
-      <div className="flex-1 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-6 w-96">
-          {pendingSignup ? (
+    <Modal open={showLogin} onClose={dismiss} title={pendingSignup ? 'Pick a username' : 'Sign in'}>
+      {pendingSignup ? (
         <>
-          <h1 className="text-lg font-semibold mb-2">Pick a username</h1>
           <p className="text-sm text-gray-600 mb-4">
             This will be your URL handle (chessrepeat.com/@/your-username).
           </p>
@@ -36,6 +41,8 @@ export default function Login() {
                 }
                 const data = await res.json();
                 applyLoginResponse(data);
+                setPendingSignup(null);
+                setPendingUsername('');
               } catch (err) {
                 console.error('signup request failed', err);
               }
@@ -58,19 +65,16 @@ export default function Login() {
           </form>
         </>
       ) : (
-            <div className="flex flex-col items-center">
-              <h1 className="text-lg font-semibold mb-4">Sign in</h1>
-              <GoogleLoginButton
-                onNeedsUsername={(idToken) => setPendingSignup({ idToken })}
-                onSuccess={(data) => applyLoginResponse(data)}
-              />
-              <p className="mt-4 text-xs text-gray-500 text-center">
-                First time signing in? You'll be prompted to pick a username.
-              </p>
-            </div>
-          )}
+        <div className="flex flex-col items-center">
+          <GoogleLoginButton
+            onNeedsUsername={(idToken) => setPendingSignup({ idToken })}
+            onSuccess={(data) => applyLoginResponse(data)}
+          />
+          <p className="mt-4 text-xs text-gray-500 text-center">
+            First time signing in? You'll be prompted to pick a username.
+          </p>
         </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 }
