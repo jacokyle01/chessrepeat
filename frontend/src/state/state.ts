@@ -204,26 +204,6 @@ async function persistAllChapters(repertoire: Chapter[]) {
   await writeChapterIds(ids);
 }
 
-/** Clear all playground data from IDB. */
-export async function clearPlaygroundIDB() {
-  const ids = await readChapterIds();
-  for (const cid of ids) {
-    await deleteChapterIDB(cid);
-  }
-  await writeChapterIds([]);
-}
-
-/** Load playground chapters from IDB (for migration). */
-export async function loadPlaygroundChapters(): Promise<Chapter[]> {
-  const ids = await readChapterIds();
-  const chapters: Chapter[] = [];
-  for (const cid of ids) {
-    const ch = await readChapter(cid);
-    if (ch) chapters.push(ch);
-  }
-  return chapters;
-}
-
 export const useTrainerStore = create<TrainerState>()(
   persist(
     (set, get) => ({

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../state/auth';
-import { loadPlaygroundChapters } from '../state/state';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 interface Props {
-  onPlaygroundMigration?: () => void;
-  onNeedsUsername?: (idToken: string, hasPlaygroundData: boolean) => void;
+  onNeedsUsername?: (idToken: string) => void;
+  // Override the post-login behaviour. When provided, the default
+  // applyLoginResponse call is skipped and the caller owns state + navigation.
+  onSuccess?: (data: any) => void | Promise<void>;
 }
 
 // Applies a successful /login response: updates the auth store and, if we're
@@ -16,9 +17,7 @@ interface Props {
 // router.
 export async function applyLoginResponse(
   data: any,
-  hasPlaygroundData: boolean,
   navigate: (path: string) => void,
-  onPlaygroundMigration?: () => void,
 ) {
   const auth = useAuthStore.getState();
   auth.setUser({
@@ -33,12 +32,9 @@ export async function applyLoginResponse(
       navigate(`/@/${data.user.username}`);
     }
   }
-  if (hasPlaygroundData && onPlaygroundMigration) {
-    onPlaygroundMigration();
-  }
 }
 
-export function GoogleLoginButton({ onPlaygroundMigration, onNeedsUsername }: Props) {
+export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
   const [ready, setReady] = useState(false);
   const navigate = useNavigate();
 
@@ -51,10 +47,6 @@ export function GoogleLoginButton({ onPlaygroundMigration, onNeedsUsername }: Pr
       client_id: GOOGLE_CLIENT_ID,
       callback: async (resp: any) => {
         const idToken: string = resp.credential;
-
-        // Check if there's playground data before login clears it
-        const playgroundChapters = await loadPlaygroundChapters();
-        const hasPlaygroundData = playgroundChapters.length > 0;
 
         try {
           const res = await fetch('http://localhost:8080/login', {
@@ -69,10 +61,14 @@ export function GoogleLoginButton({ onPlaygroundMigration, onNeedsUsername }: Pr
           }
           const data = await res.json();
           if (data.needsUsername) {
-            onNeedsUsername?.(idToken, hasPlaygroundData);
+            onNeedsUsername?.(idToken);
             return;
           }
-          await applyLoginResponse(data, hasPlaygroundData, navigate, onPlaygroundMigration);
+          if (onSuccess) {
+            await onSuccess(data);
+            return;
+          }
+          await applyLoginResponse(data, navigate);
         } catch (err) {
           console.error('login request failed', err);
         }

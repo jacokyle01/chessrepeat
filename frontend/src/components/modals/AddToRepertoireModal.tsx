@@ -3,6 +3,7 @@ import { CircleXIcon, UploadIcon, CheckCircle2, TreePalmIcon } from 'lucide-reac
 import { useTrainerStore } from '../../state/state';
 import { chapterFromPgn } from '../../util/io';
 import { Chapter } from '../../types/training';
+import { useAuthStore } from '../../state/auth';
 // import { importJSON } from '../../util/importJSON'; // <- assume this exists
 
 type ImportTab = 'pgn' | 'json';
@@ -25,6 +26,9 @@ const AddToRepertoireModal: React.FC = () => {
   const [jsonLoaded, setJsonLoaded] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isImportingJson, setIsImportingJson] = useState(false);
+
+  //TODO need single source of truth for if training locally / remote cxn 
+  const isLoggedIn = !useAuthStore().isPlayground();
 
   const resetJsonState = () => {
     setJsonText('');
@@ -246,6 +250,7 @@ const AddToRepertoireModal: React.FC = () => {
                 </label>
               </div>
             </div>
+            {!isLoggedIn && <span className='text-sm text-red-400'>Warning: You're not logged in — you'll only be able to train this chapter locally, while signed out. Sign in to save your work.</span>}
 
             <button
               type="submit"
@@ -292,6 +297,7 @@ const AddToRepertoireModal: React.FC = () => {
             </div>
 
             {jsonError ? <div className="mb-3 text-sm text-red-600">{jsonError}</div> : null}
+            {!isLoggedIn && <span className='text-sm text-red-400'>Warning: You're not logged in — you'll only be able to train this chapter locally, while signed out. Sign in to save your work.</span>}
 
             <div className="flex gap-2">
               <button

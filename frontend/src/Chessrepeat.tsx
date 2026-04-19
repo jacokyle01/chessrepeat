@@ -23,20 +23,14 @@ import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
-import { SiDiscord, SiGithub } from 'react-icons/si';
 import {
-  Bug,
   ClipboardCheck,
   ClipboardCopy,
   FolderCog2Icon,
-  LogIn,
-  LogOut,
-  Mail,
   NetworkIcon,
-  User,
-  UserX,
 } from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
+import { Header } from './components/Header';
 import {
   calcTarget,
   chessgroundToSan,
@@ -50,11 +44,9 @@ import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import { useAuthStore } from './state/auth';
-import { GoogleLoginButton, applyLoginResponse } from './components/GoogleLoginButton';
 import { useNavigate, useParams } from 'react-router-dom';
 import './css/layout.css';
 import { Debug } from './components/Debug';
-import { MigrationModal } from './components/modals/MigrationModal';
 
 //TODO we should use chessops library to get promotion role instead of regex..
 // unclear if trainingContext stores enough state to get promotion role dynamically
@@ -119,7 +111,6 @@ export const Chessrepeat = () => {
   const repertoireId = useAuthStore((s) => s.repertoireId);
   const setUser = useAuthStore((s) => s.setUser);
   const setRepertoireId = useAuthStore((s) => s.setRepertoireId);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
 
   const { username: viewedUsername } = useParams<{ username?: string }>();
   const navigate = useNavigate();
@@ -140,6 +131,13 @@ export const Chessrepeat = () => {
     let cancelled = false;
     (async () => {
       if (!hasSessionHint) {
+        // Viewing someone's repertoire requires auth; bounce to /login and
+        // preserve the intended destination so we can restore it on success.
+        if (viewedUsername) {
+          const returnTo = `/@/${viewedUsername}`;
+          navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
+          return;
+        }
         await hydrateRepertoireFromIDB();
         return;
       }
@@ -224,14 +222,6 @@ export const Chessrepeat = () => {
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fenCopied, setFenCopied] = useState(false);
-  const [showMigration, setShowMigration] = useState(false);
-  const [signupOpen, setSignupOpen] = useState(false);
-  const [pendingSignup, setPendingSignup] = useState<{
-    idToken: string;
-    hasPlaygroundData: boolean;
-  } | null>(null);
-  const [pendingUsername, setPendingUsername] = useState('');
-
   const movesContainerRef = useRef<HTMLDivElement>(null);
 
   /*
@@ -522,202 +512,7 @@ export const Chessrepeat = () => {
     <MantineProvider>
       {/* <Debug /> */}
       <div className="app-root">
-        <div id="header" className='flex items-end pb-1'>
-          <div className="logo-wrap flex items-end">
-            <img src="logo.png" alt="Logo" />
-            <span>chess</span>
-            <span className="accent">repeat</span>
-          </div>
-
-          <a
-            href="https://discord.gg/xhjra9W6Bh"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Join our Discord"
-            className="header-link"
-          >
-            <span>join discord</span>
-            <SiDiscord />
-          </a>
-
-          <a
-            href="https://github.com/jacokyle01/chessrepeat"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="View on GitHub"
-            className="header-link"
-          >
-            <span>view github</span>
-            <SiGithub />
-          </a>
-
-          <a
-            href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
-            title="Report a Bug"
-            className="header-link"
-          >
-            <span>report bug</span>
-            <Bug />
-          </a>
-
-          <div className="ml-auto flex items-end gap-3">
-            {/* Other connected users */}
-            {connectedUsers.filter((u) => u.userId !== authUser?.sub).length > 0 && (
-              <div className="flex items-end -space-x-1.5">
-                {connectedUsers
-                  .filter((u) => u.userId !== authUser?.sub)
-                  .map((u) => (
-                    <img
-                      key={u.userId}
-                      src={u.picture}
-                      alt={u.username}
-                      title={u.username}
-                      referrerPolicy="no-referrer"
-                      className="h-6 w-6 rounded-full ring-2 ring-white"
-                    />
-                  ))}
-              </div>
-            )}
-
-            {authUser ? (
-              <>
-                <span className="flex items-end gap-2">
-                  {authUser.picture ? (
-                    <img
-                      src={authUser.picture}
-                      alt={authUser.username ?? 'profile'}
-                      referrerPolicy="no-referrer"
-                      className="h-7 w-7 rounded-md"
-                    />
-                  ) : (
-                    <User className="h-5 w-5" />
-                  )}
-                  <span className="text-sm">{authUser.username ?? 'Unnamed'}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={clearAuth}
-                  title="Sign out"
-                  className="header-link"
-                >
-                  <LogOut />
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setSignupOpen(true)}
-                className="header-link"
-                title="Sign up"
-              >
-                <span>sign in</span>
-                <LogIn />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {signupOpen && (
-          <>
-            <div
-              className="modal-backdrop"
-              style={{ zIndex: 50 }}
-              onClick={() => {
-                setSignupOpen(false);
-                setPendingSignup(null);
-                setPendingUsername('');
-              }}
-            />
-            <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-              <div className="bg-white rounded-xl shadow-lg p-6 w-96 pointer-events-auto relative">
-                <button
-                  onClick={() => {
-                    setSignupOpen(false);
-                    setPendingSignup(null);
-                    setPendingUsername('');
-                  }}
-                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
-                >
-                  &times;
-                </button>
-                {pendingSignup ? (
-                  <>
-                    <h2 className="text-lg font-semibold mb-2">Pick a username</h2>
-                    <p className="text-sm text-gray-600 mb-4">
-                      This will be your URL handle (chessrepeat.com/@/your-username).
-                    </p>
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const username = pendingUsername.trim();
-                        if (!username) return;
-                        try {
-                          const res = await fetch('http://localhost:8080/login', {
-                            method: 'POST',
-                            credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ idToken: pendingSignup.idToken, username }),
-                          });
-                          if (!res.ok) {
-                            console.error('signup failed', res.status, await res.text());
-                            return;
-                          }
-                          const data = await res.json();
-                          await applyLoginResponse(
-                            data,
-                            pendingSignup.hasPlaygroundData,
-                            navigate,
-                            () => { setSignupOpen(false); setShowMigration(true); },
-                          );
-                          setPendingSignup(null);
-                          setPendingUsername('');
-                          if (!pendingSignup.hasPlaygroundData) setSignupOpen(false);
-                        } catch (err) {
-                          console.error('signup request failed', err);
-                        }
-                      }}
-                    >
-                      <input
-                        type="text"
-                        autoFocus
-                        value={pendingUsername}
-                        onChange={(e) => setPendingUsername(e.target.value)}
-                        className="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-sm"
-                        placeholder="username"
-                      />
-                      <button
-                        type="submit"
-                        className="w-full bg-slate-800 text-white text-sm font-semibold py-2 rounded hover:bg-slate-700"
-                      >
-                        Continue
-                      </button>
-                    </form>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-lg font-semibold mb-2">Sign up</h2>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Your playground repertoire will be migrated to your account after signing in.
-                    </p>
-                    <GoogleLoginButton
-                      onPlaygroundMigration={() => { setSignupOpen(false); setShowMigration(true); }}
-                      onNeedsUsername={(idToken, hasPlaygroundData) =>
-                        setPendingSignup({ idToken, hasPlaygroundData })
-                      }
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {showMigration && (
-          <>
-            <div className="modal-backdrop" style={{ zIndex: 50 }} />
-            <MigrationModal onClose={() => setShowMigration(false)} />
-          </>
-        )}
+        <Header connectedUsers={connectedUsers} />
 
         {showingAddToRepertoireMenu && (
           <>
