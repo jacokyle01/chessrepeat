@@ -25,14 +25,12 @@ type AuthState = {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  repertoireOwner: null,
   showLogin: false,
 
   isAuthenticated: () => !!get().user,
   isPlayground: () => !get().user,
 
   setUser: (user) => set({ user }),
-
 
   openLogin: () => set({ showLogin: true }),
   closeLogin: () => set({ showLogin: false }),

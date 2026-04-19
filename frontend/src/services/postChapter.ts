@@ -6,13 +6,12 @@ import { useTrainerStore } from '../store/state';
 // the owner from the subscriber's joined room, persists, and broadcasts
 // to other subscribers of the same room.
 export async function postChapter(chapter: Chapter) {
-  const { user, repertoireOwner } = useAuthStore.getState();
-  if (!user?.sub || !repertoireOwner) {
-    console.error('postChapter: not authenticated or no owner');
+  const { user } = useAuthStore.getState();
+  const { socket, repertoireAuthor } = useTrainerStore.getState();
+  if (!user?.sub || !repertoireAuthor) {
+    console.error('postChapter: not authenticated or no author');
     return;
   }
-
-  const { socket } = useTrainerStore.getState();
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     console.error('postChapter: websocket not open');
     return;

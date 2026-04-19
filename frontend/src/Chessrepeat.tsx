@@ -41,6 +41,7 @@ import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import './css/layout.css';
 import { Debug } from './components/Debug';
 import { useWebsocket } from './hooks/useWebsocket';
+import { useStartup } from './hooks/useStartup';
 
 //TODO we should use chessops library to get promotion role instead of regex..
 // unclear if trainingContext stores enough state to get promotion role dynamically
@@ -92,6 +93,7 @@ export const Chessrepeat = () => {
 
   // Bootstraps /repertoire, owns the WebSocket, and re-fetches on
   // repertoireOwner changes. Replaces the previous /me + URL-param flow.
+  useStartup();
   useWebsocket();
 
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';

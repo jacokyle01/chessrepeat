@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
+import { parseChapters } from '../util/chapters';
 
 /*
   Boot chessrepeat: 
@@ -56,14 +57,3 @@ export function useStartup() {
   }, []);
 }
 
-function parseChapters(raw: any[] | undefined | null) {
-  return (raw ?? []).map((c: any) => ({
-    uuid: c.uuid,
-    name: c.name,
-    trainAs: c.trainAs,
-    root: c.root,
-    enabledCount: c.enabledCount,
-    unseenCount: c.unseenCount,
-    lastDueCount: 0,
-  }));
-}

@@ -178,10 +178,20 @@ func main() {
 			Expires:  sess.ExpiresAt,
 		})
 
+		// mirror GET /repertoire's shape so the client can skip a follow-up
+		// round trip: one request hydrates user + chapters + opens session.
+		chapters, err := fetchChaptersByOwner(db, user.TokenID)
+		if err != nil {
+			log.Println("failed to fetch chapters:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
-			User userJson `json:"user"`
-		}{User: user})
+			User     userJson              `json:"user"`
+			Chapters []ChapterTreeResponse `json:"chapters"`
+		}{User: user, Chapters: chapters})
 	})
 
 	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {

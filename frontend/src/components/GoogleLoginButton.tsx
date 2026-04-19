@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/auth';
+import { useTrainerStore } from '../store/state';
+import { parseChapters } from '../util/chapters';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -10,17 +12,20 @@ interface Props {
   onSuccess?: (data: any) => void | Promise<void>;
 }
 
-// Applies a successful /login response: updates the auth store and closes
-// the login overlay. The caller can override via onSuccess.
+// Applies a successful /login response. The endpoint returns the same
+// {user, chapters} shape as GET /repertoire, so we hydrate auth, replace
+// the chapter list, and set repertoireAuthor (which triggers useWebsocket).
 export function applyLoginResponse(data: any) {
   const auth = useAuthStore.getState();
+  const trainer = useTrainerStore.getState();
   auth.setUser({
     sub: data.user.tokenId,
     username: data.user.username,
     email: data.user.email,
     picture: data.user.picture,
   });
-  if (data.user?.username) auth.setRepertoireOwner(data.user.username);
+  void trainer.setRepertoire(parseChapters(data.chapters));
+  if (data.user?.username) trainer.setRepertoireAuthor(data.user.username);
   auth.closeLogin();
 }
 
