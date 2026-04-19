@@ -12,7 +12,7 @@ import {
   Settings2,
   SquarePen,
 } from 'lucide-react';
-import { useTrainerStore } from '../state/state';
+import { useTrainerStore } from '../store/state';
 // import SettingsButton from './SettingsButton';
 // import { bookI, recallI, gearI } from './Icons'; // Update the path if necessary
 
@@ -36,15 +36,12 @@ const Controls = () => {
 
   //TODO difference between handleLearn and setting mode to learn?
   return (
-  <div className="flex justify-start items-start">
-    <div
-      id="training-controls"
-      className="inline-flex rounded-b-xl bg-white p-1"
-    >
-      {/* EDIT */}
-      <button
-        onClick={() => setTrainingMethod('edit')}
-        className={`
+    <div className="flex justify-start items-start">
+      <div id="training-controls" className="inline-flex rounded-b-xl bg-white p-1">
+        {/* EDIT */}
+        <button
+          onClick={() => setTrainingMethod('edit')}
+          className={`
           flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
           transition-all duration-200
           ${
@@ -53,19 +50,19 @@ const Controls = () => {
               : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200'
           }
         `}
-      >
-        <SquarePen size={18} />
-        Edit
-      </button>
+        >
+          <SquarePen size={18} />
+          Edit
+        </button>
 
-      {/* LEARN */}
-      <button
-        onClick={() => {
-          setTrainingMethod('learn');
-          setNextTrainable();
-          updateDueCounts();
-        }}
-        className={`
+        {/* LEARN */}
+        <button
+          onClick={() => {
+            setTrainingMethod('learn');
+            setNextTrainable();
+            updateDueCounts();
+          }}
+          className={`
           flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
           transition-all duration-200
           ${
@@ -73,25 +70,21 @@ const Controls = () => {
               ? 'bg-white text-sky-400 shadow-md ring-1 ring-sky-300'
               : 'text-slate-500 hover:text-sky-400 hover:bg-slate-200'
           }
-          ${
-            !method && name === 'Example Repertoire'
-              ? 'animate-ring-pulse'
-              : ''
-          }
+          ${!method && name === 'Example Repertoire' ? 'animate-ring-pulse' : ''}
         `}
-      >
-        <GraduationCap size={18} />
-        Learn
-      </button>
+        >
+          <GraduationCap size={18} />
+          Learn
+        </button>
 
-      {/* RECALL */}
-      <button
-        onClick={() => {
-          setTrainingMethod('recall');
-          setNextTrainable();
-          updateDueCounts();
-        }}
-        className={`
+        {/* RECALL */}
+        <button
+          onClick={() => {
+            setTrainingMethod('recall');
+            setNextTrainable();
+            updateDueCounts();
+          }}
+          className={`
           flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
           transition-all duration-200
           ${
@@ -100,15 +93,13 @@ const Controls = () => {
               : 'text-slate-500 hover:text-blue-600 hover:bg-slate-200'
           }
         `}
-      >
-        <History size={18} />
-        Recall
-      </button>
-
+        >
+          <History size={18} />
+          Recall
+        </button>
+      </div>
     </div>
-  </div>
-);
-
+  );
 };
 
 export default Controls;

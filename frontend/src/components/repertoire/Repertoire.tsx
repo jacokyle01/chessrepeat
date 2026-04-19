@@ -1,14 +1,22 @@
 //TODO repertoire and repertoire section in same file
 
-import { CloudAlert, FileCog, FileDown, LucideCloud, LucideCloudOff, LucideCloudUpload, SettingsIcon } from 'lucide-react';
+import {
+  CloudAlert,
+  FileCog,
+  FileDown,
+  LucideCloud,
+  LucideCloudOff,
+  LucideCloudUpload,
+  SettingsIcon,
+} from 'lucide-react';
 import { useStore } from 'zustand';
-import { useTrainerStore } from '../../state/state';
+import { useTrainerStore } from '../../store/state';
 import { Modal } from '../modals/Modal';
 import EditChapterModal from '../modals/EditChapterModal';
 import React, { Dispatch, SetStateAction, useState } from 'react';
 import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
 import { Chapter } from '../../types/training';
-import { useAuthStore } from '../../state/auth';
+import { useAuthStore } from '../../store/auth';
 
 export const ChapterRow = ({ entry, index, id }) => {
   // console.log('chapter ID should be visible', id);
@@ -46,10 +54,7 @@ export const ChapterRow = ({ entry, index, id }) => {
             className="z-50"
             onClick={(e) => e.stopPropagation()} // prevent closing when clicking modal
           >
-            <EditChapterModal
-              chapterIndex={index}
-              onClose={() => setEditOpen(false)}
-            />
+            <EditChapterModal chapterIndex={index} onClose={() => setEditOpen(false)} />
           </div>
         </div>
       )}
@@ -114,7 +119,15 @@ const Repertoire: React.FC = () => {
           <BookOpenIcon />
         </div>
         <span className="text-gray-800 font-semibold text-xl">My Repertoire</span>
-        {isAuth ? <span className='text-green-600'><LucideCloudUpload/></span> : <span className='text-red-600'><LucideCloudOff/></span>}
+        {isAuth ? (
+          <span className="text-green-600">
+            <LucideCloudUpload />
+          </span>
+        ) : (
+          <span className="text-red-600">
+            <LucideCloudOff />
+          </span>
+        )}
       </div>
 
       {/* ONLY THIS SCROLLS */}

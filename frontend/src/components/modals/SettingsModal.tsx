@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CircleXIcon } from 'lucide-react';
-import { useTrainerStore } from '../../state/state';
+import { useTrainerStore } from '../../store/state';
 import Divider from '../common/Divider';
 import ToggleGroup from '../common/ToggleGroup';
 import { NodeSearch } from '../../types/training';
@@ -39,7 +39,7 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
         <h2>Training Settings</h2>
         <p>Configure spaced repetition and display preferences.</p>
       </div>
-        <Divider label="Next move" />
+      <Divider label="Next move" />
 
       <div className="settings-body">
         <ToggleGroup
@@ -58,9 +58,7 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
             >
               -
             </button>
-            <span className="min-w-[2rem] text-center text-sm font-medium">
-              {draft.limit}
-            </span>
+            <span className="min-w-[2rem] text-center text-sm font-medium">{draft.limit}</span>
             <button
               className="px-2 py-0.5 rounded border border-gray-300 bg-white text-sm font-medium hover:bg-gray-100"
               onClick={() => setDraft({ ...draft, limit: draft.limit + 1 })}

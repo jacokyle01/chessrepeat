@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useTrainerStore } from '../state/state';
+import { useTrainerStore } from '../store/state';
 import {
   GraduationCapIcon,
   HistoryIcon,
@@ -69,7 +69,9 @@ const Empty = () => {
       </div>
       <div>
         <h1 className="font-bold text-sm md:text-xl text-gray-600">{`No more moves to ${method}`}</h1>
-        <h2 className="text-xs md:text-md text-gray-600">Try switching the training mode or modifying settings</h2>
+        <h2 className="text-xs md:text-md text-gray-600">
+          Try switching the training mode or modifying settings
+        </h2>
       </div>
     </div>
   );
@@ -269,9 +271,7 @@ const EditComment = () => {
           <div className="bg-gray-200 rounded p-1">
             <PencilIcon className="h-4 w-4 text-black" />
           </div>
-          <span className="text-sm truncate">
-            {currentComment ? currentComment : 'Add comment'}
-          </span>
+          <span className="text-sm truncate">{currentComment ? currentComment : 'Add comment'}</span>
         </button>
       </div>
       {/* Mobile modal */}
@@ -280,10 +280,7 @@ const EditComment = () => {
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center md:hidden"
           onClick={() => setModalOpen(false)}
         >
-          <div
-            className="mx-4 w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="mx-4 w-full" onClick={(e) => e.stopPropagation()}>
             <EditCommentInline />
           </div>
         </div>

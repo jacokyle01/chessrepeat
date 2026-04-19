@@ -1,24 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../state/auth';
+import { useAuthStore } from '../store/auth';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 interface Props {
   onNeedsUsername?: (idToken: string) => void;
   // Override the post-login behaviour. When provided, the default
-  // applyLoginResponse call is skipped and the caller owns state + navigation.
+  // applyLoginResponse call is skipped and the caller owns state transitions.
   onSuccess?: (data: any) => void | Promise<void>;
 }
 
-// Applies a successful /login response: updates the auth store and, if we're
-// not already viewing a /@/{username} route, navigates to the user's own.
-// Does not touch the URL itself beyond that — navigation is owned by the
-// router.
-export async function applyLoginResponse(
-  data: any,
-  navigate: (path: string) => void,
-) {
+// Applies a successful /login response: updates the auth store and closes
+// the login overlay. The caller can override via onSuccess.
+export function applyLoginResponse(data: any) {
   const auth = useAuthStore.getState();
   auth.setUser({
     sub: data.user.tokenId,
@@ -26,17 +20,12 @@ export async function applyLoginResponse(
     email: data.user.email,
     picture: data.user.picture,
   });
-  if (data.user?.username) {
-    const atRoute = /^\/@\/[^/]+/.test(window.location.pathname);
-    if (!atRoute) {
-      navigate(`/@/${data.user.username}`);
-    }
-  }
+  if (data.user?.username) auth.setRepertoireOwner(data.user.username);
+  auth.closeLogin();
 }
 
 export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
   const [ready, setReady] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // @ts-ignore
@@ -68,7 +57,7 @@ export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
             await onSuccess(data);
             return;
           }
-          await applyLoginResponse(data, navigate);
+          applyLoginResponse(data);
         } catch (err) {
           console.error('login request failed', err);
         }

@@ -7,7 +7,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -16,22 +15,14 @@ import (
 
 // ── document types ──
 
-type repertoireJson struct {
-	RepertoireId string `json:"id"          bson:"_id"`
-	OwnerID      string `json:"ownerId"     bson:"owner_id"`
-	Description  string `json:"description" bson:"description"`
-}
-
+// Each user owns exactly one repertoire, so we model the relationship by
+// making the user *be* the repertoire: chapters reference the user's
+// TokenID via `owner_id`. There is no separate repertoires collection.
 type userJson struct {
 	TokenID  string `json:"tokenId"            bson:"_id"`
 	Username string `json:"username,omitempty" bson:"username,omitempty"`
 	Email    string `json:"email"              bson:"email"`
 	Picture  string `json:"picture"            bson:"picture"`
-}
-
-type loginResponse struct {
-	User       userJson        `json:"user"`
-	Repertoire *repertoireJson `json:"repertoire"`
 }
 
 // sessionDoc is a server-side authenticated session record.
@@ -47,7 +38,7 @@ type sessionDoc struct {
 // TrainingData.ID from root to that node).  The root node lives at key "".
 type ChapterDoc struct {
 	UUID         string                  `json:"uuid"          bson:"_id"`
-	RepertoireID string                  `json:"repertoireId"  bson:"repertoire_id"`
+	OwnerID      string                  `json:"ownerId"       bson:"owner_id"`
 	Name         string                  `json:"name"          bson:"name"`
 	TrainAs      string                  `json:"trainAs"       bson:"train_as"`
 	EnabledCount int                     `json:"enabledCount" bson:"enabled_count"`
@@ -62,10 +53,10 @@ type ChapterTreeNode struct {
 }
 
 // ChapterTreeResponse is the JSON sent to clients when reading a chapter.
-//TODO does this need to be duplicated? 
+//TODO does this need to be duplicated?
 type ChapterTreeResponse struct {
 	UUID         string          `json:"uuid"`
-	RepertoireID string          `json:"repertoireId"`
+	OwnerID      string          `json:"ownerId"`
 	Name         string          `json:"name"`
 	TrainAs      string          `json:"trainAs"`
 	EnabledCount int					 `json:"enabledCount"`
@@ -201,43 +192,6 @@ func fetchUserByUsername(db *DB, username string) (*userJson, error) {
 	return &user, nil
 }
 
-// ── repertoires ──
-
-func fetchRepertoire(db *DB, id string) (repertoireJson, error) {
-	coll := db.db.Collection("repertoires")
-	var rep repertoireJson
-	err := coll.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&rep)
-	return rep, err
-}
-
-func fetchRepertoireByUser(db *DB, tokenID string) (*repertoireJson, error) {
-	coll := db.db.Collection("repertoires")
-	var rep repertoireJson
-	err := coll.FindOne(context.TODO(), bson.M{"owner_id": tokenID}).Decode(&rep)
-	if err == mongo.ErrNoDocuments {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &rep, nil
-}
-
-func createRepertoire(db *DB, rep repertoireJson) (repertoireJson, error) {
-	coll := db.db.Collection("repertoires")
-	_, err := coll.InsertOne(context.TODO(), rep)
-	return rep, err
-}
-
-func createRepertoireForUser(db *DB, tokenID string) (repertoireJson, error) {
-	rep := repertoireJson{
-		RepertoireId: uuid.New().String(),
-		OwnerID:      tokenID,
-		Description:  "",
-	}
-	return createRepertoire(db, rep)
-}
-
 // ── chapters ──
 
 // flattenTree walks a ChapterTreeNode tree and produces a flat path->TrainingData map.
@@ -259,7 +213,7 @@ func flattenTree(root ChapterTreeNode) map[string]TrainingData {
 func createChapter(db *DB, event ChapterEvent) error {
 	doc := ChapterDoc{
 		UUID:         event.ChapterID,
-		RepertoireID: event.RepertoireID,
+		OwnerID:      event.OwnerID,
 		Name:         event.Name,
 		TrainAs:      event.TrainAs,
 		EnabledCount: event.EnabledCount,
@@ -364,11 +318,11 @@ func setEnabledRecursive(db *DB, chapterID string, path string, enabled bool) er
 	return err
 }
 
-// fetchChaptersByRepertoire returns every chapter belonging to a repertoire,
+// fetchChaptersByOwner returns every chapter belonging to a user's repertoire,
 // each rebuilt as a tree response ready to send to a client.
-func fetchChaptersByRepertoire(db *DB, repertoireID string) ([]ChapterTreeResponse, error) {
+func fetchChaptersByOwner(db *DB, ownerID string) ([]ChapterTreeResponse, error) {
 	coll := db.db.Collection("chapters")
-	cursor, err := coll.Find(context.TODO(), bson.M{"repertoire_id": repertoireID})
+	cursor, err := coll.Find(context.TODO(), bson.M{"owner_id": ownerID})
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +336,7 @@ func fetchChaptersByRepertoire(db *DB, repertoireID string) ([]ChapterTreeRespon
 		}
 		chapters = append(chapters, ChapterTreeResponse{
 			UUID:         doc.UUID,
-			RepertoireID: doc.RepertoireID,
+			OwnerID:      doc.OwnerID,
 			Name:         doc.Name,
 			TrainAs:      doc.TrainAs,
 			UnseenCount: doc.UnseenCount,
@@ -425,7 +379,7 @@ func readChapterAsTree(db *DB, chapterID string) (*ChapterTreeResponse, error) {
 
 	return &ChapterTreeResponse{
 		UUID:         doc.UUID,
-		RepertoireID: doc.RepertoireID,
+		OwnerID:      doc.OwnerID,
 		Name:         doc.Name,
 		TrainAs:      doc.TrainAs,
 		UnseenCount: doc.UnseenCount,

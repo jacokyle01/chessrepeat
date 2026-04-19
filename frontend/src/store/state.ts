@@ -21,7 +21,7 @@ import { colorFromPly, positionFromFen } from '../util/chess';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
-import { annotatePgn, chapterFromPgn, rootFromPgn } from '../util/io';
+import { annotatePgn, chapterFromPgn } from '../util/io';
 import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig, type Card } from '../util/srs';
 import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
@@ -103,6 +103,10 @@ interface TrainerState {
 
   socket: WebSocket;
   setWebSocket: (ws: WebSocket) => void;
+
+  // whose repertoire are we looking at? `useWebsocket` watches this to automatically start a session
+  repertoireAuthor: string | null; 
+  setRepertoireAuthor: (author: string) => void;
 
   connectedUsers: Peer[];
   setConnectedUsers: (users: Peer[]) => void;
@@ -237,6 +241,9 @@ export const useTrainerStore = create<TrainerState>()(
 
       selectedNode: null,
       setSelectedNode: (node) => set({ selectedNode: node }),
+
+      repertoireAuthor: null,
+      setRepertoireAuthor: (author) => set ({repertoireAuthor: author}),
 
       showingHint: false,
       setShowingHint: (v) => set({ showingHint: v }),

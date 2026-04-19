@@ -1,4 +1,4 @@
-import { useTrainerStore } from '../state/state';
+import { useTrainerStore } from '../store/state';
 
 export const CommentBox = () => {
   const selectedNode = useTrainerStore((s) => s.selectedNode);

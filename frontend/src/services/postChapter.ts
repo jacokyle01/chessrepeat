@@ -1,14 +1,14 @@
 import type { Chapter } from '../types/training';
-import { useAuthStore } from '../state/auth';
-import { useTrainerStore } from '../state/state';
+import { useAuthStore } from '../store/auth';
+import { useTrainerStore } from '../store/state';
 
-// Sends a chapter_created message over the WebSocket. The server matches
-// the `type` field to its create-chapter action, persists, and broadcasts
-// to other subscribers of the repertoire.
+// Sends a chapter_created message over the WebSocket. The server stamps
+// the owner from the subscriber's joined room, persists, and broadcasts
+// to other subscribers of the same room.
 export async function postChapter(chapter: Chapter) {
-  const { user, repertoireId } = useAuthStore.getState();
-  if (!user?.sub || !repertoireId) {
-    console.error('postChapter: not authenticated or no repertoire');
+  const { user, repertoireOwner } = useAuthStore.getState();
+  if (!user?.sub || !repertoireOwner) {
+    console.error('postChapter: not authenticated or no owner');
     return;
   }
 
@@ -18,12 +18,11 @@ export async function postChapter(chapter: Chapter) {
     return;
   }
 
-  //TODO just send full chapter? 
+  //TODO just send full chapter?
   socket.send(
     JSON.stringify({
       type: 'chapter_created',
       chapterId: chapter.uuid,
-      repertoireId,
       name: chapter.name,
       trainAs: chapter.trainAs,
       root: chapter.root,

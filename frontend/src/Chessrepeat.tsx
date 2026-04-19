@@ -12,7 +12,7 @@ import { chessgroundMove } from 'chessops/compat';
 import { initial } from 'chessground/fen';
 import { DrawShape } from 'chessground/draw';
 import { Key, MoveMetadata } from 'chessground/types';
-import { useTrainerStore } from './state/state';
+import { useTrainerStore } from './store/state';
 import { UserTip } from './components/UserTip';
 import Schedule from './components/MemorySchedule';
 import AddToRepertoireModal from './components/modals/AddToRepertoireModal';
@@ -23,12 +23,7 @@ import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
-import {
-  ClipboardCheck,
-  ClipboardCopy,
-  FolderCog2Icon,
-  NetworkIcon,
-} from 'lucide-react';
+import { ClipboardCheck, ClipboardCopy, FolderCog2Icon, NetworkIcon } from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
 import { Header } from './components/Header';
 import {
@@ -43,10 +38,9 @@ import {
 import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
-import { useAuthStore } from './state/auth';
-import { useNavigate, useParams } from 'react-router-dom';
 import './css/layout.css';
 import { Debug } from './components/Debug';
+import { useWebsocket } from './hooks/useWebsocket';
 
 //TODO we should use chessops library to get promotion role instead of regex..
 // unclear if trainingContext stores enough state to get promotion role dynamically
@@ -92,129 +86,13 @@ export const Chessrepeat = () => {
 
     guess,
     makeMove,
-    hydrateRepertoireFromIDB,
-    addMove,
-    addNewChapterLocally,
-    deleteNodeRemote,
-    disableNodeRemote,
-    enableNodeRemote,
-    updateTrainingRemote,
-
-    setWebSocket,
-    setConnectedUsers,
-    addConnectedUser,
-    removeConnectedUser,
   } = useTrainerStore();
 
   const connectedUsers = useTrainerStore((s) => s.connectedUsers);
-  const authUser = useAuthStore((s) => s.user);
-  const repertoireId = useAuthStore((s) => s.repertoireId);
-  const setUser = useAuthStore((s) => s.setUser);
-  const setRepertoireId = useAuthStore((s) => s.setRepertoireId);
 
-  const { username: viewedUsername } = useParams<{ username?: string }>();
-  const navigate = useNavigate();
-
-  // auto-login. The URL (/@/:username) is the source of truth for which
-  // repertoire to load — router handles that. This effect just resolves
-  // the session: hydrate auth state from /me, or fall back to IDB for
-  // anonymous/playground users. On successful /me with no username in the
-  // URL, redirect to the user's own /@/{username}.
-  useEffect(() => {
-    // The real session cookie is HttpOnly, but the backend also sets a
-    // JS-readable hint cookie at login. If it's absent we know we're not
-    // logged in and can skip the /me round-trip entirely.
-    const hasSessionHint = document.cookie
-      .split('; ')
-      .some((c) => c.startsWith('chessrepeat_has_session='));
-
-    let cancelled = false;
-    (async () => {
-      if (!hasSessionHint) {
-        // Viewing someone's repertoire requires auth; bounce to /login and
-        // preserve the intended destination so we can restore it on success.
-        if (viewedUsername) {
-          const returnTo = `/@/${viewedUsername}`;
-          navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
-          return;
-        }
-        await hydrateRepertoireFromIDB();
-        return;
-      }
-      try {
-        const res = await fetch('http://localhost:8080/me', {
-          credentials: 'include',
-        });
-        if (cancelled) return;
-        if (!res.ok) {
-          // Not authenticated — enter playground mode, hydrate from IDB
-          await hydrateRepertoireFromIDB();
-          return;
-        }
-        const data = await res.json();
-        setUser({
-          sub: data.user.tokenId,
-          username: data.user.username,
-          email: data.user.email,
-          picture: data.user.picture,
-        });
-        // if URL isn't a /@/{username} route, default to the user's own
-        // repertoire so their link is shareable.
-
-        //TODO why is this here? 
-        if (!viewedUsername && data.user?.username) {
-          navigate(`/@/${data.user.username}`, { replace: true });
-        }
-      } catch (err) {
-        console.warn('auto-login failed', err);
-        // Network error — fall back to playground mode
-        if (!cancelled) await hydrateRepertoireFromIDB();
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // once we know which username we're viewing (from the URL), resolve it to
-  // the owner's repertoire + chapters. The repertoire id comes back here so
-  // postChapter can tag its WebSocket messages with the owning repertoire.
-
-  // TODO can be hook 
-  useEffect(() => {
-    if (!viewedUsername) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`http://localhost:8080/u/${viewedUsername}`, {
-          credentials: 'include',
-        });
-        if (cancelled) return;
-        if (!res.ok) {
-          console.error('failed to load user repertoire', res.status);
-          return;
-        }
-        const data = await res.json();
-        if (data.repertoire?.id) setRepertoireId(data.repertoire.id);
-        const chapters = (data.chapters ?? []).map((c: any) => ({
-          uuid: c.uuid,
-          name: c.name,
-          trainAs: c.trainAs,
-          root: c.root,
-          enabledCount: c.enabledCount,
-          unseenCount: c.unseenCount,
-          lastDueCount: 0,
-        }));
-        void setRepertoire(chapters);
-      } catch (err) {
-        console.error('repertoire fetch failed', err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [viewedUsername]);
+  // Bootstraps /repertoire, owns the WebSocket, and re-fetches on
+  // repertoireOwner changes. Replaces the previous /me + URL-param flow.
+  useWebsocket();
 
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
 
@@ -223,69 +101,6 @@ export const Chessrepeat = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fenCopied, setFenCopied] = useState(false);
   const movesContainerRef = useRef<HTMLDivElement>(null);
-
-  /*
-    Create websocket to send and receive moves.
-    Only open once we have an authenticated user — the backend rejects
-    unauthenticated handshakes (401), and the session cookie is what
-    identifies the connection.
-  */
-
-  // handle incoming websocket
-  //TODO hook herE?
-  //TODO should be part of GET /@/{user}?
-  useEffect(() => {
-    if (!authUser || !viewedUsername) return;
-    // rooms are keyed per-owner since each user has exactly one repertoire;
-    // events fan out only to collaborators viewing the same username.
-    const ws = new WebSocket(`ws://localhost:8080/subscribe/${viewedUsername}`);
-    setWebSocket(ws);
-    ws.onopen = () => console.log('ws live');
-    ws.onmessage = (event) => {
-      const payload = JSON.parse(event.data);
-      switch (payload.type) {
-        case 'crowd':
-          setConnectedUsers(payload.users);
-          break;
-        case 'user_joined':
-          addConnectedUser(payload.user);
-          break;
-        case 'user_left':
-          removeConnectedUser(payload.user.userId);
-          break;
-        case 'move_created':
-          addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
-          break;
-        case 'node_deleted':
-          deleteNodeRemote(payload.chapterId, payload.path);
-          break;
-        case 'node_disabled':
-          disableNodeRemote(payload.chapterId, payload.path);
-          break;
-        case 'node_enabled':
-          enableNodeRemote(payload.chapterId, payload.path);
-          break;
-        case 'training_updated':
-          updateTrainingRemote(payload.chapterId, payload.path, payload.userSub, payload.card);
-          break;
-        case 'chapter_created':
-          addNewChapterLocally({
-            uuid: payload.chapterId,
-            name: payload.name,
-            trainAs: payload.trainAs,
-            root: { data: { id: '', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', ply: 0, san: '', comment: '', enabled: false, training: {} }, children: [] },
-            enabledCount: payload.enabledCount,
-            unseenCount: payload.enabledCount,
-            lastDueCount: 0,
-          });
-          break;
-      }
-    };
-    return () => {
-      ws.close();
-      setConnectedUsers([]);
-    };
-  }, [authUser, viewedUsername]);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {

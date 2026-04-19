@@ -11,28 +11,31 @@ export type AuthUser = {
 
 type AuthState = {
   user: AuthUser | null;
-  // Derived from the fetched repertoire; used by postChapter and sent in
-  // chapter events so the server knows which repertoire a chapter belongs to.
-  repertoireId: string | null;
+  // Whether the login overlay is open. Replaces the old /login route.
+  showLogin: boolean;
 
   isAuthenticated: () => boolean;
   isPlayground: () => boolean;
 
   setUser: (user: AuthUser | null) => void;
-  setRepertoireId: (id: string) => void;
+  openLogin: () => void;
+  closeLogin: () => void;
   clearAuth: () => void;
 };
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  repertoireId: null,
+  repertoireOwner: null,
+  showLogin: false,
 
   isAuthenticated: () => !!get().user,
   isPlayground: () => !get().user,
 
   setUser: (user) => set({ user }),
 
-  setRepertoireId: (id: string) => set({ repertoireId: id }),
+
+  openLogin: () => set({ showLogin: true }),
+  closeLogin: () => set({ showLogin: false }),
 
   clearAuth: () => {
     // hit the backend to delete the session and expire the cookie
@@ -41,7 +44,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       credentials: 'include',
     }).catch((err) => console.warn('logout request failed', err));
 
-    set({ user: null, repertoireId: null });
+    set({ user: null });
     // @ts-ignore
     window.google?.accounts?.id?.disableAutoSelect?.();
   },

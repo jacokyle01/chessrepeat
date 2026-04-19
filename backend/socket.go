@@ -73,7 +73,7 @@ type NodeToggleEvent struct {
 type ChapterEvent struct {
 	Type         string           `json:"type"`         // "chapter_created"
 	ChapterID    string           `json:"chapterId"`		// TODO uuid? //TODO create server-side??
-	RepertoireID string           `json:"repertoireId"`
+	OwnerID      string           `json:"ownerId"`
 	Name         string           `json:"name"`
 	TrainAs      string           `json:"trainAs"`
 	Root         ChapterTreeNode  `json:"root"`
@@ -81,7 +81,7 @@ type ChapterEvent struct {
 	UnseenCount	 int						  `json:"unseenCount"`
 }
 
-// chatServer maintains per-repertoire "rooms" of subscribers and fans out
+// chatServer maintains per-owner "rooms" of subscribers and fans out
 // messages within each room.
 type chatServer struct {
 	// subscriberMessageBuffer controls the max number
@@ -103,7 +103,7 @@ type chatServer struct {
 	rooms map[string]*room
 }
 
-// room is a set of subscribers listening to events for one repertoire.
+// room is a set of subscribers listening to events for one owner's repertoire.
 type room struct {
 	id          string
 	subscribers map[*subscriber]struct{}
@@ -128,7 +128,7 @@ type PeerInfo struct {
 
 // subscriber represents a subscriber. userID is pinned from the session
 // cookie at handshake time, so every message the connection produces is
-// attributable to a user. room is the repertoire room this subscriber
+// attributable to a user. room is the owner room this subscriber
 // belongs to for its entire lifetime.
 type subscriber struct {
 	msgs     chan []byte
@@ -149,9 +149,8 @@ func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// resolve the username to the owning user's repertoire id — rooms are
-	// still keyed by repertoire id internally since that's what chapter
-	// events reference.
+	// resolve the username to the owning user's TokenID — rooms are keyed
+	// by owner TokenID since that's what chapter documents reference.
 	owner, err := fetchUserByUsername(cs.db, username)
 	if err != nil {
 		http.Error(w, "user lookup failed", http.StatusInternalServerError)
@@ -161,17 +160,8 @@ func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
 	}
-	repertoire, err := fetchRepertoireByUser(cs.db, owner.TokenID)
-	if err != nil {
-		http.Error(w, "repertoire lookup failed", http.StatusInternalServerError)
-		return
-	}
-	if repertoire == nil {
-		http.Error(w, "repertoire not found", http.StatusNotFound)
-		return
-	}
 
-	err = cs.subscribe(w, r, repertoire.RepertoireId)
+	err = cs.subscribe(w, r, owner.TokenID)
 	if errors.Is(err, context.Canceled) {
 		return
 	}
@@ -193,7 +183,7 @@ func (cs *chatServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 //
 // It uses CloseRead to keep reading from the connection to process control
 // messages and cancel the context if the connection drops.
-func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request, repertoireID string) error {
+func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request, ownerID string) error {
 	// authenticate the connection from the session cookie before upgrading.
 	// we pin the user id to the subscriber so every message broadcast over
 	// this connection is attributable to a known user.
@@ -229,7 +219,7 @@ func (cs *chatServer) subscribe(w http.ResponseWriter, r *http.Request, repertoi
 		username: user.Username,
 		picture:  user.Picture,
 	}
-	cs.join(repertoireID, s)
+	cs.join(ownerID, s)
 	defer cs.leave(s)
 
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
@@ -348,6 +338,8 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 			cs.logf("invalid chapter_created from user %s: %v", s.userID, err)
 			return
 		}
+		// stamp owner from the joined room rather than trusting the client
+		event.OwnerID = s.room.id
 		if err := createChapter(cs.db, event); err != nil {
 			cs.logf("persist chapter (user %s): %v", s.userID, err)
 			return
@@ -359,22 +351,22 @@ func (cs *chatServer) handleWSMessage(s *subscriber, raw []byte) {
 	}
 }
 
-// join adds the subscriber to the named repertoire room, creating the room
+// join adds the subscriber to the named owner room, creating the room
 // on first use. Pins s.room so publishRoom can find the peers later without
 // another lookup. Sends a "crowd" snapshot to the joiner and broadcasts
 // "user_joined" to existing members.
-func (cs *chatServer) join(repertoireID string, s *subscriber) {
+func (cs *chatServer) join(ownerID string, s *subscriber) {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
-	r, ok := cs.rooms[repertoireID]
+	r, ok := cs.rooms[ownerID]
 	if !ok {
 		r = &room{
-			id:          repertoireID,
+			id:          ownerID,
 			subscribers: make(map[*subscriber]struct{}),
 		}
-		cs.rooms[repertoireID] = r
-		cs.logf("created room for repertoire %s", repertoireID)
+		cs.rooms[ownerID] = r
+		cs.logf("created room for owner %s", ownerID)
 	}
 
 	// collect current peers *before* adding the new subscriber

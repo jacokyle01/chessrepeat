@@ -1,8 +1,7 @@
 import { SiDiscord, SiGithub } from 'react-icons/si';
 import { Bug, LogIn, LogOut, User } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../state/auth';
-import type { Peer } from '../state/state';
+import { useAuthStore } from '../store/auth';
+import type { Peer } from '../store/state';
 
 interface Props {
   // Other users currently connected to the same repertoire. Only meaningful
@@ -13,16 +12,11 @@ interface Props {
 export function Header({ connectedUsers }: Props) {
   const authUser = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const openLogin = useAuthStore((s) => s.openLogin);
+  const showLogin = useAuthStore((s) => s.showLogin);
 
   const peers = connectedUsers?.filter((u) => u.userId !== authUser?.sub) ?? [];
-  const showSignIn = location.pathname !== '/login';
-
-  const goToLogin = () => {
-    const returnTo = `${location.pathname}${location.search}`;
-    navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`);
-  };
+  const showSignIn = !showLogin;
 
   return (
     <div id="header" className="flex items-end pb-1">
@@ -94,26 +88,13 @@ export function Header({ connectedUsers }: Props) {
               )}
               <span className="text-sm">{authUser.username ?? 'Unnamed'}</span>
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                clearAuth();
-                navigate('/');
-              }}
-              title="Sign out"
-              className="header-link"
-            >
+            <button type="button" onClick={() => clearAuth()} title="Sign out" className="header-link">
               <LogOut />
             </button>
           </>
         ) : (
           showSignIn && (
-            <button
-              type="button"
-              onClick={goToLogin}
-              className="header-link"
-              title="Sign in"
-            >
+            <button type="button" onClick={openLogin} className="header-link" title="Sign in">
               <span>sign in</span>
               <LogIn />
             </button>

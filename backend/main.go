@@ -4,8 +4,6 @@ import "net/http"
 import "encoding/json"
 import "log"
 
-import "go.mongodb.org/mongo-driver/v2/mongo"
-
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
@@ -37,95 +35,63 @@ func main() {
 	// chatserver needs db as parameter since we perform db operations during websocket connections
 	cs := newChatServer(db)
 
-	
-	http.HandleFunc("/repertoire/{id}", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			// require an authenticated session — no anonymous reads
-			cookie, err := r.Cookie(sessionCookieName)
-			if err != nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-			sess, err := fetchSession(db, cookie.Value)
-			if err != nil {
-				log.Println("session lookup failed:", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			if sess == nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			id := r.PathValue("id")
-			if id == "" {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			log.Println("fetching repertoire for id:", id)
-
-			repertoire, err := fetchRepertoire(db, id)
-			if err != nil {
-				if err == mongo.ErrNoDocuments {
-					log.Println("no repertoire found for id:", id, err)
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-				log.Println("database error when fetching id:", id, err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			chapters, err := fetchChaptersByRepertoire(db, id)
-			if err != nil {
-				log.Println("failed to fetch chapters for repertoire:", id, err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			resp := struct {
-				Repertoire repertoireJson        `json:"repertoire"`
-				Chapters   []ChapterTreeResponse `json:"chapters"`
-			}{
-				Repertoire: repertoire,
-				Chapters:   chapters,
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
-		} else if r.Method == "POST" {
-			var repertoire repertoireJson
-			if err := json.NewDecoder(r.Body).Decode(&repertoire); err != nil {
-				log.Println("invalid repertoire:", err)
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			repertoire.RepertoireId = r.PathValue("id")
-
-			log.Println("creating repertoire:", repertoire)
-			repertoire, err := createRepertoire(db, repertoire)
-			if err != nil {
-				log.Println("database error when creating repertoire:", repertoire, err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(repertoire)
-		} else {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+	// GET /repertoire returns the caller's own repertoire (resolved from the
+	// session cookie). GET /repertoire?owner=<username> returns the named
+	// user's repertoire. The response shape is {user, chapters} — each user
+	// IS their repertoire, so the owner's profile doubles as repertoire metadata.
+	http.HandleFunc("GET /repertoire", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie(sessionCookieName)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
+		sess, err := fetchSession(db, cookie.Value)
+		if err != nil {
+			log.Println("session lookup failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if sess == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		var owner *userJson
+		if q := r.URL.Query().Get("owner"); q != "" {
+			owner, err = fetchUserByUsername(db, q)
+		} else {
+			owner, err = fetchUser(db, sess.UserID)
+		}
+		if err != nil {
+			log.Println("owner lookup failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if owner == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		chapters, err := fetchChaptersByOwner(db, owner.TokenID)
+		if err != nil {
+			log.Println("failed to fetch chapters:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		resp := struct {
+			User     userJson              `json:"user"`
+			Chapters []ChapterTreeResponse `json:"chapters"`
+		}{
+			User:     *owner,
+			Chapters: chapters,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	})
 
-	/*
-		upsert user, repertoire table
-
-		assumptions:
-			- the user doesn't have a local repertoire that they want to add.
-				so this will just create an empty repertoire for them
-
-	*/
+	// upsert user and open a session. Chapters are created on demand via the
+	// WebSocket chapter_created event; there is no separate repertoire row.
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -183,24 +149,6 @@ func main() {
 			return
 		}
 
-		repertoire, err := fetchRepertoireByUser(db, user.TokenID)
-		if err != nil {
-			log.Println("failed to fetch repertoire:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		// new user — create a default repertoire
-		if repertoire == nil {
-			newRep, err := createRepertoireForUser(db, user.TokenID)
-			if err != nil {
-				log.Println("failed to create repertoire:", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			repertoire = &newRep
-		}
-
 		// establish an authenticated session bound to the verified user
 		//TODO what if we already have a session for this user in DB?
 		sess, err := createSession(db, user.TokenID)
@@ -231,13 +179,10 @@ func main() {
 		})
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(loginResponse{
-			User:       user,
-			Repertoire: repertoire,
-		})
+		json.NewEncoder(w).Encode(struct {
+			User userJson `json:"user"`
+		}{User: user})
 	})
-
-
 
 	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -270,127 +215,6 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	/*
-		auto-login endpoint: validates the session cookie and returns the
-		user + repertoire so the frontend can re-establish the auth state on
-		page load without prompting the user to sign in again.
-	*/
-	http.HandleFunc("/me", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		cookie, err := r.Cookie(sessionCookieName)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		//TODO in memory cache for sessions 
-		sess, err := fetchSession(db, cookie.Value)
-		if err != nil {
-			log.Println("session lookup failed:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if sess == nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		user, err := fetchUser(db, sess.UserID)
-		if err != nil {
-			log.Println("user lookup failed:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if user == nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		repertoire, err := fetchRepertoireByUser(db, sess.UserID)
-		if err != nil {
-			log.Println("repertoire lookup failed:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(loginResponse{
-			User:       *user,
-			Repertoire: repertoire,
-		})
-	})
-
-	// resolve a username to that user's repertoire + chapters. This is what
-	// the frontend hits on /@/{username} page loads.
-	http.HandleFunc("/u/{username}", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		cookie, err := r.Cookie(sessionCookieName)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		sess, err := fetchSession(db, cookie.Value)
-		if err != nil {
-			log.Println("session lookup failed:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if sess == nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		
-		//TODO here, we can check if userID is authorized to view repertoire
-		// also have to check in realtime? 
-
-		username := r.PathValue("username")
-		if username == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		user, err := fetchUserByUsername(db, username)
-		if err != nil {
-			log.Println("user lookup by username failed:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if user == nil {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		repertoire, err := fetchRepertoireByUser(db, user.TokenID)
-		if err != nil {
-			log.Println("failed to fetch repertoire for user:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if repertoire == nil {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		chapters, err := fetchChaptersByRepertoire(db, repertoire.RepertoireId)
-		if err != nil {
-			log.Println("failed to fetch chapters:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		resp := struct {
-			Repertoire repertoireJson        `json:"repertoire"`
-			Chapters   []ChapterTreeResponse `json:"chapters"`
-		}{
-			Repertoire: *repertoire,
-			Chapters:   chapters,
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
-	})
-
 	http.HandleFunc("/chapter/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -415,9 +239,9 @@ func main() {
 		json.NewEncoder(w).Encode(tree)
 	})
 
-	// WebSocket endpoint, scoped per user. Since each user owns exactly one
-	// repertoire, the username identifies the room. The handler resolves it
-	// to the owning user's repertoire id internally.
+	// WebSocket endpoint, scoped per user. Since each user IS their
+	// repertoire, the username identifies the room. The handler resolves
+	// the username to the owning user's TokenID internally.
 	http.HandleFunc("/subscribe/{username}", cs.subscribeHandler)
 
 	log.Println("server ready to serve! http://localhost:8080")

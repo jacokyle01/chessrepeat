@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
-import { BookDownIcon, BookOpenIcon, BookPlus, CircleArrowOutUpRightIcon, DownloadIcon, SquareArrowOutUpRightIcon, XIcon } from 'lucide-react';
-import { useTrainerStore } from '../../state/state';
+import {
+  BookDownIcon,
+  BookOpenIcon,
+  BookPlus,
+  CircleArrowOutUpRightIcon,
+  DownloadIcon,
+  SquareArrowOutUpRightIcon,
+  XIcon,
+} from 'lucide-react';
+import { useTrainerStore } from '../../store/state';
 import { pgnFromChapter, pgnFromRepertoire } from '../../util/training';
 import { downloadTextFile, repertoireAsJson } from '../../util/io';
 import Repertoire from './Repertoire';
@@ -190,7 +198,9 @@ const RepertoireActions: React.FC = () => {
           onClick={() => setIsRepertoireOpen(true)}
           className="md:hidden h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
         >
-          <div className="bg-gray-200 rounded p-1"><SquareArrowOutUpRightIcon className="h-4 w-4 text-black" /></div>
+          <div className="bg-gray-200 rounded p-1">
+            <SquareArrowOutUpRightIcon className="h-4 w-4 text-black" />
+          </div>
           <span>View Repertoire</span>
         </button>
         <div className="md:hidden flex-1" />
@@ -205,7 +215,9 @@ const RepertoireActions: React.FC = () => {
             ${isHighlighted ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}
           `}
         >
-          <div className="bg-gray-200 rounded p-1"><BookPlus className="h-4 w-4 text-black" /></div>
+          <div className="bg-gray-200 rounded p-1">
+            <BookPlus className="h-4 w-4 text-black" />
+          </div>
           <span>Add</span>
         </button>
 
@@ -213,7 +225,9 @@ const RepertoireActions: React.FC = () => {
           onClick={() => setIsDownloadOpen(true)}
           className="h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
         >
-          <div className="bg-gray-200 rounded p-1"><BookDownIcon className="h-4 w-4 text-black" /></div>
+          <div className="bg-gray-200 rounded p-1">
+            <BookDownIcon className="h-4 w-4 text-black" />
+          </div>
           <span>Download</span>
         </button>
       </div>

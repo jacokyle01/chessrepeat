@@ -1,6 +1,6 @@
 import React, { createContext, useRef, useState, useContext, useMemo } from 'react';
 import { ContextMenu } from 'primereact/contextmenu';
-import { useTrainerStore } from '../../state/state';
+import { useTrainerStore } from '../../store/state';
 
 type MenuItem = {
   label: string;

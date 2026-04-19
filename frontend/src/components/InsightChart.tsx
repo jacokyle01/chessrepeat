@@ -1,8 +1,7 @@
-//TODO use a library for this? 
-
+//TODO use a library for this?
 
 import React, { useMemo, useState } from 'react';
-import { useTrainerStore } from '../state/state';
+import { useTrainerStore } from '../store/state';
 import { AlarmCheckIcon } from 'lucide-react';
 
 // ---- constants ----
@@ -242,7 +241,7 @@ const InsightHeatCalendar: React.FC = () => {
                 fontSize: 12,
                 opacity: 0.8,
                 height: 18,
-                paddingLeft: 30
+                paddingLeft: 30,
               }}
             >
               <strong>
@@ -267,9 +266,9 @@ const InsightHeatCalendar: React.FC = () => {
         </div>
       </div>
       <div className="pb-5 flex items-end gap-1">
-        <AlarmCheckIcon/>
-        <span className='font-semibold'>{dueNow}</span>
-        <span className='font-lg text-gray-600'>moves due now</span>
+        <AlarmCheckIcon />
+        <span className="font-semibold">{dueNow}</span>
+        <span className="font-lg text-gray-600">moves due now</span>
       </div>
     </div>
   );

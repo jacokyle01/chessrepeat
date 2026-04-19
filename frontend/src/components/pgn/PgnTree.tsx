@@ -3,7 +3,7 @@
 //TODO fix off-by-one bug with ply (compare w/ lichess)
 //TODO adjust scrollheight automatically when clicking a move
 //TODO fix formatting. use retroLine?
-import { useTrainerStore } from '../../state/state';
+import { useTrainerStore } from '../../store/state';
 import { useAppContextMenu } from './ContextMenuProvider';
 
 // import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
@@ -46,7 +46,7 @@ import {
 } from 'lucide-react';
 import type { Card } from 'ts-fsrs';
 import type { TrainingData } from '../../types/training';
-import { useAuthStore } from '../../state/auth';
+import { useAuthStore } from '../../store/auth';
 import { userCard } from '../../util/userCard';
 
 function formatDueIn(card: Card): string {

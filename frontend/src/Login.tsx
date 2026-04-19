@@ -1,42 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { GoogleLoginButton } from './components/GoogleLoginButton';
+import { GoogleLoginButton, applyLoginResponse } from './components/GoogleLoginButton';
 import { Header } from './components/Header';
-import { useAuthStore } from './state/auth';
 import './css/layout.css';
 
-// Reject absolute URLs and protocol-relative paths so a crafted ?returnTo=
-// can't turn /login into an open redirect.
-function safeReturnTo(raw: string | null): string {
-  if (!raw) return '/';
-  if (!raw.startsWith('/') || raw.startsWith('//')) return '/';
-  return raw;
-}
-
-function storeUserFromLoginResponse(data: any) {
-  useAuthStore.getState().setUser({
-    sub: data.user.tokenId,
-    username: data.user.username,
-    email: data.user.email,
-    picture: data.user.picture,
-  });
-}
-
 export default function Login() {
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const returnTo = safeReturnTo(params.get('returnTo'));
-
-  const [pendingSignup, setPendingSignup] = useState<{
-    idToken: string;
-    hasPlaygroundData: boolean;
-  } | null>(null);
+  const [pendingSignup, setPendingSignup] = useState<{ idToken: string } | null>(null);
   const [pendingUsername, setPendingUsername] = useState('');
-
-  const finish = (data: any) => {
-    storeUserFromLoginResponse(data);
-    navigate(returnTo, { replace: true });
-  };
 
   return (
     <div className="app-root">
@@ -66,7 +35,7 @@ export default function Login() {
                   return;
                 }
                 const data = await res.json();
-                finish(data);
+                applyLoginResponse(data);
               } catch (err) {
                 console.error('signup request failed', err);
               }
@@ -92,10 +61,8 @@ export default function Login() {
             <div className="flex flex-col items-center">
               <h1 className="text-lg font-semibold mb-4">Sign in</h1>
               <GoogleLoginButton
-                onNeedsUsername={(idToken, hasPlaygroundData) =>
-                  setPendingSignup({ idToken, hasPlaygroundData })
-                }
-                onSuccess={(data) => finish(data)}
+                onNeedsUsername={(idToken) => setPendingSignup({ idToken })}
+                onSuccess={(data) => applyLoginResponse(data)}
               />
               <p className="mt-4 text-xs text-gray-500 text-center">
                 First time signing in? You'll be prompted to pick a username.

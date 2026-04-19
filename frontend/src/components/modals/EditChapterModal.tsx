@@ -1,16 +1,13 @@
-import React, { useRef, useState } from "react";
-import { CircleXIcon, TrashIcon, UploadIcon, PencilIcon, CheckIcon, XIcon } from "lucide-react";
-import { useTrainerStore } from "../../state/state";
+import React, { useRef, useState } from 'react';
+import { CircleXIcon, TrashIcon, UploadIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-react';
+import { useTrainerStore } from '../../store/state';
 
 interface EditChapterModalProps {
   chapterIndex: number;
   onClose: () => void;
 }
 
-const EditChapterModal: React.FC<EditChapterModalProps> = ({
-  chapterIndex,
-  onClose,
-}) => {
+const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterIndex, onClose }) => {
   const repertoire = useTrainerStore((s) => s.repertoire);
   const renameChapter = useTrainerStore((s) => s.renameChapter);
   const deleteChapterAt = useTrainerStore((s) => s.deleteChapterAt);
@@ -19,10 +16,10 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
   const chapter = repertoire[chapterIndex];
 
   const [isRenaming, setIsRenaming] = useState(false);
-  const [draftName, setDraftName] = useState(chapter?.name || "");
+  const [draftName, setDraftName] = useState(chapter?.name || '');
   const [renameError, setRenameError] = useState<string | null>(null);
 
-  const [pgnText, setPgnText] = useState("");
+  const [pgnText, setPgnText] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -45,7 +42,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
   const commitRename = async () => {
     const next = draftName.trim();
     if (!next) {
-      setRenameError("Name cannot be empty.");
+      setRenameError('Name cannot be empty.');
       return;
     }
     if (next === chapter.name) {
@@ -58,13 +55,13 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
       await renameChapter(chapterIndex, next);
       setIsRenaming(false);
     } catch (err: any) {
-      setRenameError(err?.message ?? "Failed to rename chapter.");
+      setRenameError(err?.message ?? 'Failed to rename chapter.');
     }
   };
 
   const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") commitRename();
-    if (e.key === "Escape") cancelRename();
+    if (e.key === 'Enter') commitRename();
+    if (e.key === 'Escape') cancelRename();
   };
 
   const handleDelete = async () => {
@@ -75,17 +72,17 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
   const handleImport = async () => {
     const trimmed = pgnText.trim();
     if (!trimmed) {
-      setImportError("Paste a PGN first.");
+      setImportError('Paste a PGN first.');
       return;
     }
 
     setImportError(null);
     try {
       await importIntoChapter(chapterIndex, trimmed);
-      setPgnText("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPgnText('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err: any) {
-      setImportError(err?.message ?? "Failed to import PGN.");
+      setImportError(err?.message ?? 'Failed to import PGN.');
     }
   };
 
@@ -95,7 +92,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
 
     const reader = new FileReader();
     reader.onload = () => {
-      const text = String(reader.result ?? "");
+      const text = String(reader.result ?? '');
       setPgnText(text);
       setImportError(null);
     };
@@ -161,9 +158,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
             </button>
           </div>
         )}
-        {renameError && (
-          <div className="mt-2 text-sm text-red-600">{renameError}</div>
-        )}
+        {renameError && <div className="mt-2 text-sm text-red-600">{renameError}</div>}
       </div>
 
       {/* Import PGN section */}
@@ -177,7 +172,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
           rows={5}
           value={pgnText}
           onChange={(e) => setPgnText(e.target.value)}
-          placeholder={"Paste PGN here…\nex. 1. d4 d5 2. c4 c6"}
+          placeholder={'Paste PGN here…\nex. 1. d4 d5 2. c4 c6'}
           className="mt-3 w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800
                      focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition"
         />
@@ -198,8 +193,8 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-sm transition
               ${
                 pgnText.trim()
-                  ? "bg-blue-600 hover:bg-blue-700 text-white"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
           >
             <UploadIcon className="w-4 h-4" />
@@ -207,9 +202,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({
           </button>
         </div>
 
-        {importError && (
-          <div className="mt-2 text-sm text-red-600">{importError}</div>
-        )}
+        {importError && <div className="mt-2 text-sm text-red-600">{importError}</div>}
       </div>
 
       {/* UUID */}

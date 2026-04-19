@@ -1,6 +1,6 @@
 import { ClipboardCopy, ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
-import { useTrainerStore } from '../state/state';
+import { useTrainerStore } from '../store/state';
 
 export const CopyFen = () => {
   const selectedNode = useTrainerStore((s) => s.selectedNode);

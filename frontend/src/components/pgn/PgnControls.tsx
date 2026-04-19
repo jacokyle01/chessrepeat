@@ -14,7 +14,7 @@ import {
   MoveLeftIcon,
   MoveRightIcon,
 } from 'lucide-react';
-import { useTrainerStore } from '../../state/state';
+import { useTrainerStore } from '../../store/state';
 import { fromNodeList, init } from '../../util/path';
 const PgnControls = () => {
   const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
@@ -61,9 +61,8 @@ const PgnControls = () => {
   const prev = (): void => jump(init(selectedPath));
 
   const atStart = selectedPath === '';
-  const atEnd = trainingMethod === 'edit'
-    ? !selectedNode?.children?.[0]
-    : selectedPath.length >= trainingPath.length;
+  const atEnd =
+    trainingMethod === 'edit' ? !selectedNode?.children?.[0] : selectedPath.length >= trainingPath.length;
 
   const btnClass = (disabled: boolean) =>
     `px-1 rounded-md ${disabled ? 'bg-gray-100 text-gray-300 cursor-default' : 'bg-gray-200 text-gray-700'}`;

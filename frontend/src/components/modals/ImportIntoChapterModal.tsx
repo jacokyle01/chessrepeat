@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { CircleXIcon } from 'lucide-react';
-import { useTrainerStore } from '../../state/state';
+import { useTrainerStore } from '../../store/state';
 
 const ImportIntoChapterModal: React.FC = (chapterIndex: number) => {
   const setShowModal = useTrainerStore((s) => s.setShowingImportIntoChapterModal);
