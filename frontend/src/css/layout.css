@@ -30,6 +30,7 @@
 #header > .logo-wrap {
   display: flex;
   flex-shrink: 0;
+  font-family: 'Roboto Condensed', 'Roboto', sans-serif;
 }
 
 #header > .logo-wrap img {
@@ -113,6 +114,38 @@
 .area-usertip {
   grid-area: usertip;
   min-width: 0;
+  /* container-query unit (cqi) lets the tip headline scale with the tip's
+     available width, independent of the global breakpoint. */
+  container-type: inline-size;
+  container-name: usertip;
+}
+
+/* Internal padding for the tip card. These overrides win over any
+   Tailwind py-*/px-* because the selectors are more specific than a
+   single utility class. Keep everything style-related in CSS. */
+.area-usertip > div {
+  padding: 1rem 1.25rem;
+}
+
+@container usertip (min-width: 500px) {
+  .area-usertip > div {
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* allow the text block next to the tip icon to shrink below its content
+   width so the h1's nowrap + ellipsis can kick in. */
+.area-usertip div:has(> h1) {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+/* tip headline: single line, shrinks to fit with clamp() */
+.area-usertip h1 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(0.8rem, 5cqi, 1.5rem);
 }
 .area-comment {
   grid-area: comment;
@@ -140,6 +173,23 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-top: -0.75rem; /* cancel grid gap */
+  /* establish container so Edit/Learn/Recall scale with the board's width
+     (the controls row always spans the same column as the board). */
+  container-type: inline-size;
+  container-name: controls;
+}
+
+/* scale training-controls buttons with the board width via container queries.
+   id selector (#training-controls) outranks Tailwind utility classes. */
+#training-controls button {
+  font-size: clamp(0.7rem, 2.75cqi, 1.125rem);
+  padding: clamp(0.25rem, 1.25cqi, 0.5rem) clamp(0.5rem, 2.75cqi, 1rem);
+  gap: clamp(0.25rem, 1.25cqi, 0.5rem);
+}
+
+#training-controls button svg {
+  width: clamp(14px, 4.25cqi, 22px);
+  height: clamp(14px, 4.25cqi, 22px);
 }
 
 /* settings button: matches Controls pill style */
@@ -190,8 +240,71 @@
   overflow: visible;
 }
 
-/* ---------- DESKTOP (≥ 768px): three-column layout ---------- */
-@media (min-width: 768px) {
+/* when the repertoire card is narrow (e.g. 2-column middle layout),
+   collapse the "Learn"/"Recall" labels on each chapter row so only the
+   count remains. */
+#repertoire {
+  container-type: inline-size;
+  container-name: repertoire;
+}
+
+@container repertoire (max-width: 340px) {
+  .chapter-btn-label {
+    display: none;
+  }
+}
+
+/* ---------- MIDDLE (768px – 1023px): two-column layout ----------
+   Board + controls + tip stack on the left; the chapter (pgn) sits at
+   the top-right with the repertoire list below it. Memory schedule
+   lives inside .area-repertoire and naturally lands bottom-right. */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  #header {
+    padding: 0 1.5rem;
+  }
+
+  .app-main {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'board     pgn'
+      'controls  pgn'
+      'usertip   repertoire';
+    padding: 0 1.5rem 1rem;
+    gap: 0.75rem;
+    overflow: hidden;
+  }
+
+  .area-pgn {
+    grid-row: 1 / 3;
+    min-height: 0;
+    min-width: 0;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .area-repertoire {
+    grid-row: 3;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .area-usertip {
+    overflow: auto;
+    max-height: 200px;
+  }
+
+  .pgn-tree-scroll {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
+}
+
+/* ---------- DESKTOP (≥ 1024px): three-column layout ---------- */
+@media (min-width: 1024px) {
   #header {
     padding: 0 2.5rem;
   }

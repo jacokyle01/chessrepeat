@@ -40,7 +40,7 @@ function currentUserSub(): string | null {
 }
 
 function isPlayground(): boolean {
-  return useAuthStore.getState().isPlayground();
+  return !useAuthStore.getState().user;
 }
 
 import { userCard } from '../util/userCard';
@@ -779,6 +779,7 @@ export const useTrainerStore = create<TrainerState>()(
           if (isPlayground()) {
             await persistChapter(chapter);
           } else {
+            console.log("try send over socket")
             const { socket } = get();
             if (socket && socket.readyState === WebSocket.OPEN) {
               socket.send(

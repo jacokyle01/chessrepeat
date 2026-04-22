@@ -44,8 +44,8 @@ export function useStartup() {
           email: data.user.email,
           picture: data.user.picture,
         });
-        void setRepertoire(parseChapters(data.chapters));
         setRepertoireAuthor(data.user.username);
+        void setRepertoire(parseChapters(data.chapters));
       } catch (err) {
         console.warn('bootstrap /repertoire failed', err);
         if (!cancelled) await hydrateRepertoireFromIDB();

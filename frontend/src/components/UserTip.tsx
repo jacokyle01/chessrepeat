@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useTrainerStore } from '../store/state';
 import {
   GraduationCapIcon,
@@ -12,70 +12,31 @@ import {
   XIcon,
 } from 'lucide-react';
 
-const Recall = () => {
-  const { repertoire, repertoireIndex } = useTrainerStore();
-  const chapter = repertoire[repertoireIndex];
-  if (!chapter) return;
-  const isWhite = chapter.trainAs == 'white';
-
-  return (
-    <div className="bg-white justify-center border border-gray-300 rounded-md">
-      <div className="flex items-center justify-center py-3 md:py-12 px-4 md:px-6 gap-2 md:gap-3">
-        <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-          <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
-            <HistoryIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />
-          </div>
-        </div>
-        <div>
-          <h1 className="font-bold text-base md:text-2xl text-gray-800">Play the move</h1>
-          <h2 className="text-sm md:text-lg text-gray-600">{`What does ${isWhite ? 'White' : 'Black'} play here?`}</h2>
-        </div>
-      </div>
-    </div>
-  );
+type TipProps = {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
 };
 
-const Learn = () => {
-  const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
-  const { repertoire, repertoireIndex } = useTrainerStore();
-  const chapter = repertoire[repertoireIndex];
-  const isWhite = chapter.trainAs == 'white';
-
-  return (
-    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-2 md:gap-3 rounded-md">
-      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
-          <GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />
-        </div>
-      </div>
-      <div>
-        <h1 className="font-bold text-base md:text-2xl text-gray-800">Play the move</h1>
-        <h2 className="text-sm md:text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</h2>
-      </div>
+const Tip = ({
+  icon,
+  title,
+  description,
+  titleClassName = 'font-bold text-base md:text-2xl text-gray-800',
+  descriptionClassName = 'text-sm md:text-lg text-gray-600',
+}: TipProps) => (
+  <div className="bg-white flex items-center justify-center py-3 md:py-12 px-4 md:px-6 border border-gray-300 gap-2 md:gap-3 rounded-md my-auto">
+    <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
+      <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">{icon}</div>
     </div>
-  );
-};
-
-// nextTrainablePosition couldn't find any moves to train
-const Empty = () => {
-  const method = useTrainerStore.getState().trainingMethod;
-
-  return (
-    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-1 md:gap-3 rounded-md">
-      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
-          <XIcon className="w-5 h-5 md:w-[25px] md:h-[25px]" />
-        </div>
-      </div>
-      <div>
-        <h1 className="font-bold text-sm md:text-xl text-gray-600">{`No more moves to ${method}`}</h1>
-        <h2 className="text-xs md:text-md text-gray-600">
-          Try switching the training mode or modifying settings
-        </h2>
-      </div>
+    <div className="text-center">
+      <h1 className={titleClassName}>{title}</h1>
+      <h2 className={descriptionClassName}>{description}</h2>
     </div>
-  );
-};
+  </div>
+);
 
 const Fail = () => {
   const train = useTrainerStore((s) => s.train);
@@ -161,41 +122,22 @@ const Alternate = () => {
   );
 };
 
-const EmptyRepertoire = () => {
-  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
+const EmptyRepertoire = () => (
+  <Tip
+    icon={<GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+    title="Repertoire is empty"
+    description={'Click "Add to Repertoire" to get started!'}
+  />
+);
 
-  return (
-    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-2 md:gap-3">
-      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
-          <GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />
-        </div>
-      </div>
-      <div>
-        <h1 className="font-bold text-base md:text-2xl text-gray-800">Repertoire is empty</h1>
-        <h2 className="text-sm md:text-lg text-gray-600">Click "Add to Repertoire" to get started!</h2>
-      </div>
-    </div>
-  );
-};
-
-const Unselected = () => {
-  // const isWhite = useTrainerStore(s => s.chapter.trainAs === 'white');
-
-  return (
-    <div className="bg-white flex items-center justify-center py-3 md:py-12 border border-gray-300 gap-2 md:gap-3">
-      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">
-          <MousePointer className="w-5 h-5 md:w-[35px] md:h-[35px]" />
-        </div>
-      </div>
-      <div>
-        <h1 className="font-bold text-base md:text-2xl text-gray-800">No training mode selected</h1>
-        <h2 className="text-xs md:text-md text-gray-600">Click Learn or Recall to start training</h2>
-      </div>
-    </div>
-  );
-};
+const Unselected = () => (
+  <Tip
+    icon={<MousePointer className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+    title="No training mode selected"
+    description="Click Learn or Recall to start training"
+    descriptionClassName="text-xs md:text-md text-gray-600"
+  />
+);
 
 //TODO factor this out of userTip?
 const EditCommentInline = () => {
@@ -290,27 +232,53 @@ const EditComment = () => {
 };
 
 export const UserTip = () => {
-  const userTip = useTrainerStore((s) => s.userTip);
-  const repertoire = useTrainerStore((s) => s.repertoire);
-  const trainingMethod = useTrainerStore((s) => s.trainingMethod);
+  const { userTip, repertoire, repertoireIndex, trainingMethod, trainableContext, lastGuess } =
+    useTrainerStore();
 
+  if (repertoire.length == 0) return <EmptyRepertoire />;
   if (!trainingMethod) return <Unselected />;
   if (trainingMethod == 'edit') return <EditComment />;
-  if (repertoire.length == 0) return <EmptyRepertoire />;
 
-  // TODO repertoireIndex should be correct, so user have a repertoire selected
-
+  const chapter = repertoire[repertoireIndex];
+  const san = trainableContext?.targetMove?.data.san;
+  const isWhite = chapter.trainAs == 'white';
   switch (userTip) {
     case 'recall':
-      return <Recall />;
+      return (
+        <Tip
+          icon={<HistoryIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+          title="Play the move"
+          description={`What does ${isWhite ? 'White' : 'Black'} play here?`}
+        />
+      );
     case 'learn':
-      return <Learn />;
+      return (
+        <Tip
+          icon={<GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+          title="Play the move"
+          description={`${isWhite ? 'White' : 'Black'} plays ${san}`}
+        />
+      );
     case 'empty':
-      return <Empty />;
+      return (
+        <Tip
+          icon={<XIcon className="w-5 h-5 md:w-[25px] md:h-[25px]" />}
+          title={`No more moves to ${trainingMethod}`}
+          description="Try switching the training mode or modifying settings"
+          titleClassName="font-bold text-sm md:text-xl text-gray-600"
+          descriptionClassName="text-xs md:text-md text-gray-600"
+        />
+      );
+    case 'alternate':
+      return (
+        <Tip
+          icon={<LucideRepeat2 className="w-8 h-8 md:w-12 md:h-12" color={'gold'} />}
+          title={`${lastGuess} is an alternate move`}
+          description="Try playing a different move"
+        />
+      );
     case 'fail':
       return <Fail />;
-    case 'alternate':
-      return <Alternate />;
     default:
       return <div>Other</div>;
   }
