@@ -196,14 +196,14 @@ const RepertoireActions: React.FC = () => {
         {/* Mobile-only: My Repertoire modal trigger */}
         <button
           onClick={() => setIsRepertoireOpen(true)}
-          className="md:hidden h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
+          className="lg:hidden h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 hover:shadow transition active:scale-[0.98] whitespace-nowrap border border-gray-300 bg-white"
         >
           <div className="bg-gray-200 rounded p-1">
             <SquareArrowOutUpRightIcon className="h-4 w-4 text-black" />
           </div>
           <span>View Repertoire</span>
         </button>
-        <div className="md:hidden flex-1" />
+        <div className="lg:hidden flex-1" />
 
         <button
           onClick={() => setShowingAddToRepertoireMenu(true)}
@@ -235,7 +235,7 @@ const RepertoireActions: React.FC = () => {
       {/* Mobile repertoire modal */}
       {isRepertoireOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center md:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center lg:hidden"
           onClick={() => setIsRepertoireOpen(false)}
         >
           <div

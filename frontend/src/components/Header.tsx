@@ -20,7 +20,7 @@ export function Header({ connectedUsers }: Props) {
 
   return (
     <div id="header" className="flex items-end pb-1">
-      <div className="logo-wrap flex items-end">
+      <div className="logo-wrap">
         <span>chess</span>
         <span className="accent">repeat</span>
       </div>

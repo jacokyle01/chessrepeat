@@ -456,11 +456,11 @@ export const Chessrepeat = () => {
 
           {/* REPERTOIRE */}
           <div className="area-repertoire">
-            {/* Desktop: full inline repertoire */}
-            <div className="hidden md:flex flex-col flex-1 min-h-0">
+            {/* Desktop only: full inline repertoire */}
+            <div className="hidden lg:flex flex-col flex-1 min-h-0">
               <Repertoire />
             </div>
-            {/* Mobile: repertoire as modal trigger */}
+            {/* Mobile + medium: repertoire as modal trigger */}
             <RepertoireActions />
             <Schedule />
           </div>
