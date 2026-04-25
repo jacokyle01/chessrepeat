@@ -24,6 +24,7 @@ export function useStartup() {
     /* Don't try to log-in if session hint cookie is missing */
     (async () => {
       if (!hasSessionHint) {
+        // console.log("NO")
         await hydrateRepertoireFromIDB();
         return;
       }

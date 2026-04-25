@@ -338,6 +338,7 @@ export const useTrainerStore = create<TrainerState>()(
 
       // Load playground chapters from IDB on refresh (playground mode only)
       hydrateRepertoireFromIDB: async () => {
+        console.log("hydrate")
         const { repertoire, addNewChapterLocally } = get();
         if (repertoire.length > 0) return;
         const ids = await readChapterIds();
@@ -903,17 +904,19 @@ export const useTrainerStore = create<TrainerState>()(
         // searchConfig: state.searchConfig,
         // srsConfig: state.srsConfig,
       }),
-
-      onRehydrateStorage: () => {
-        return async (state, err) => {
-          if (err || !state) return;
-          // In playground mode, hydrate chapters from IDB on page load.
-          // When authenticated, chapters come from the server instead.
-          if (isPlayground()) {
-            await state.hydrateRepertoireFromIDB();
-          }
-        };
-      },
+      
+      //TODO don't need? handled but `useStartup()` hook.. 
+      // onRehydrateStorage: () => {
+      //   return async (state, err) => {
+      //     if (err || !state) return;
+      //     // In playground mode, hydrate chapters from IDB on page load.
+      //     // When authenticated, chapters come from the server instead.
+      //     if (isPlayground()) {
+      //       console.log("hydrate")
+      //       await state.hydrateRepertoireFromIDB();
+      //     }
+      //   };
+      // },
     },
   ),
 );

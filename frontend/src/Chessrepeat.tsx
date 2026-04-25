@@ -26,6 +26,16 @@ import { formatTime } from './util/time';
 import { ClipboardCheck, ClipboardCopy, FolderCog2Icon, NetworkIcon } from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
 import { Header } from './components/Header';
+import { CollaboratorsPanel } from './components/collaborators/CollaboratorsPanel';
+import {
+  addCollaborator as addCollaboratorService,
+  fetchIncomingCollaborators,
+  fetchOutgoingCollaborators,
+  removeCollaborator as removeCollaboratorService,
+  viewUserRepertoire,
+  type Collaborator,
+} from './services/collaborators';
+import { useAuthStore } from './store/auth';
 import {
   calcTarget,
   chessgroundToSan,
@@ -90,11 +100,61 @@ export const Chessrepeat = () => {
   } = useTrainerStore();
 
   const connectedUsers = useTrainerStore((s) => s.connectedUsers);
+  const authUsername = useAuthStore((s) => s.user?.username);
 
   // Bootstraps /repertoire, owns the WebSocket, and re-fetches on
   // repertoireOwner changes. Replaces the previous /me + URL-param flow.
   useStartup();
   useWebsocket();
+
+  const [collaboratorsOpen, setCollaboratorsOpen] = useState(false);
+  const [outgoingCollaborators, setOutgoingCollaborators] = useState<Collaborator[]>([]);
+  const [incomingCollaborators, setIncomingCollaborators] = useState<Collaborator[]>([]);
+
+  // Refresh both lists when signed in / on panel open.
+  useEffect(() => {
+    if (!authUsername) {
+      setOutgoingCollaborators([]);
+      setIncomingCollaborators([]);
+      return;
+    }
+    void (async () => {
+      const [outgoing, incoming] = await Promise.all([
+        fetchOutgoingCollaborators(),
+        fetchIncomingCollaborators(),
+      ]);
+      setOutgoingCollaborators(outgoing);
+      setIncomingCollaborators(incoming);
+    })();
+  }, [authUsername, collaboratorsOpen]);
+
+  const handleAddCollaborator = async (username: string) => {
+    const result = await addCollaboratorService(username);
+    if (result.ok && result.collaborator) {
+      setOutgoingCollaborators((prev) =>
+        prev.some((c) => c.username === result.collaborator!.username)
+          ? prev
+          : [result.collaborator!, ...prev],
+      );
+    }
+    return { ok: result.ok, error: result.error };
+  };
+
+  const handleRemoveCollaborator = async (username: string) => {
+    setOutgoingCollaborators((prev) => prev.filter((c) => c.username !== username));
+    await removeCollaboratorService(username);
+  };
+
+  const handleViewRepertoire = async (username: string) => {
+    setCollaboratorsOpen(false);
+    await viewUserRepertoire(username);
+  };
+
+  const handleViewMine = async () => {
+    if (!authUsername) return;
+    setCollaboratorsOpen(false);
+    await viewUserRepertoire(authUsername);
+  };
 
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
 
@@ -329,7 +389,11 @@ export const Chessrepeat = () => {
     <MantineProvider>
       {/* <Debug /> */}
       <div className="app-root">
-        <Header connectedUsers={connectedUsers} />
+        <Header
+          connectedUsers={connectedUsers}
+          incomingCollaboratorsCount={incomingCollaborators.length}
+          onOpenCollaborators={() => setCollaboratorsOpen(true)}
+        />
 
         {showingAddToRepertoireMenu && (
           <>
@@ -337,6 +401,17 @@ export const Chessrepeat = () => {
             <AddToRepertoireModal />
           </>
         )}
+
+        <CollaboratorsPanel
+          open={collaboratorsOpen}
+          onClose={() => setCollaboratorsOpen(false)}
+          outgoing={outgoingCollaborators}
+          incoming={incomingCollaborators}
+          onAdd={handleAddCollaborator}
+          onRemove={handleRemoveCollaborator}
+          onViewRepertoire={handleViewRepertoire}
+          onViewMine={authUsername ? handleViewMine : undefined}
+        />
 
         <div className="app-main">
           {/* BOARD */}

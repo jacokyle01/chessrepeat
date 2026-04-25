@@ -15,9 +15,9 @@ import (
 
 // ── document types ──
 
-// Each user owns exactly one repertoire, so we model the relationship by
-// making the user *be* the repertoire: chapters reference the user's
-// TokenID via `owner_id`. There is no separate repertoires collection.
+// Users are identified by their Google OAuth subject. Their repertoire is
+// tracked in a sibling `repertoires` collection (see repertoireDoc) — the
+// repertoire carries chapter pointers and the list of collaborators.
 type userJson struct {
 	TokenID  string `json:"tokenId"            bson:"_id"`
 	Username string `json:"username,omitempty" bson:"username,omitempty"`
@@ -36,9 +36,11 @@ type sessionDoc struct {
 // ChapterDoc is the MongoDB document for a chapter.
 // Moves is a flat map keyed by id-path (concatenation of each ancestor's
 // TrainingData.ID from root to that node).  The root node lives at key "".
+// Chapters reference their parent repertoire; the repertoireDoc also
+// maintains a Chapters[] array as the canonical ordered list.
 type ChapterDoc struct {
 	UUID         string                  `json:"uuid"          bson:"_id"`
-	OwnerID      string                  `json:"ownerId"       bson:"owner_id"`
+	RepertoireID string                  `json:"repertoireId"  bson:"repertoire_id"`
 	Name         string                  `json:"name"          bson:"name"`
 	TrainAs      string                  `json:"trainAs"       bson:"train_as"`
 	EnabledCount int                     `json:"enabledCount" bson:"enabled_count"`
@@ -56,7 +58,7 @@ type ChapterTreeNode struct {
 //TODO does this need to be duplicated?
 type ChapterTreeResponse struct {
 	UUID         string          `json:"uuid"`
-	OwnerID      string          `json:"ownerId"`
+	RepertoireID string          `json:"repertoireId"`
 	Name         string          `json:"name"`
 	TrainAs      string          `json:"trainAs"`
 	EnabledCount int					 `json:"enabledCount"`
@@ -107,6 +109,19 @@ func connectDb() *DB {
 		client: client,
 		db:     client.Database(dbName),
 	}
+}
+
+// repertoireDoc is the top-level container for one user's repertoire. It
+// holds pointers to the user's chapters and a list of other users granted
+// read access (collaborators). There is exactly one repertoire per user —
+// the schema keeps a separate _id so we can extend to multiple
+// repertoires per user later without reshaping the chapter collection.
+type repertoireDoc struct {
+	RepertoireID  string    `bson:"_id"           json:"repertoireId"`
+	OwnerID       string    `bson:"owner_id"      json:"ownerId"`
+	Chapters      []string  `bson:"chapters"      json:"chapters"`
+	Collaborators []string  `bson:"collaborators" json:"collaborators"`
+	CreatedAt     time.Time `bson:"created_at"    json:"createdAt"`
 }
 
 // ── sessions ──
@@ -192,6 +207,140 @@ func fetchUserByUsername(db *DB, username string) (*userJson, error) {
 	return &user, nil
 }
 
+// ── repertoires ──
+
+// CollaboratorView is the per-side shape returned to the client. Usernames
+// + pictures are resolved against the users collection at read time.
+type CollaboratorView struct {
+	Username string `json:"username"`
+	Picture  string `json:"picture,omitempty"`
+}
+
+// ensureRepertoire returns the caller's repertoire doc, creating one if
+// the user hasn't had a repertoire provisioned yet. Exactly one doc per
+// user (by owner_id) is maintained.
+func ensureRepertoire(db *DB, ownerID string) (*repertoireDoc, error) {
+	coll := db.db.Collection("repertoires")
+	var rep repertoireDoc
+	err := coll.FindOne(context.TODO(), bson.M{"owner_id": ownerID}).Decode(&rep)
+	if err == nil {
+		return &rep, nil
+	}
+	if err != mongo.ErrNoDocuments {
+		return nil, err
+	}
+	id, err := newSessionID()
+	if err != nil {
+		return nil, err
+	}
+	rep = repertoireDoc{
+		RepertoireID:  id,
+		OwnerID:       ownerID,
+		Chapters:      []string{},
+		Collaborators: []string{},
+		CreatedAt:     time.Now().UTC(),
+	}
+	if _, err := coll.InsertOne(context.TODO(), rep); err != nil {
+		return nil, err
+	}
+	return &rep, nil
+}
+
+// addCollaborator appends the user to the owner's repertoire. $addToSet
+// is idempotent so POSTing twice is a no-op.
+func addCollaborator(db *DB, ownerID string, collaboratorID string) error {
+	if _, err := ensureRepertoire(db, ownerID); err != nil {
+		return err
+	}
+	coll := db.db.Collection("repertoires")
+	_, err := coll.UpdateOne(
+		context.TODO(),
+		bson.M{"owner_id": ownerID},
+		bson.M{"$addToSet": bson.M{"collaborators": collaboratorID}},
+	)
+	return err
+}
+
+func removeCollaborator(db *DB, ownerID string, collaboratorID string) error {
+	coll := db.db.Collection("repertoires")
+	_, err := coll.UpdateOne(
+		context.TODO(),
+		bson.M{"owner_id": ownerID},
+		bson.M{"$pull": bson.M{"collaborators": collaboratorID}},
+	)
+	return err
+}
+
+// fetchOutgoingCollaborators returns the users I have added as
+// collaborators on my repertoire.
+func fetchOutgoingCollaborators(db *DB, ownerID string) ([]CollaboratorView, error) {
+	rep, err := ensureRepertoire(db, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	return resolveUsersToViews(db, rep.Collaborators)
+}
+
+// fetchIncomingCollaborators returns the owners of repertoires that have
+// me listed as a collaborator.
+func fetchIncomingCollaborators(db *DB, userID string) ([]CollaboratorView, error) {
+	coll := db.db.Collection("repertoires")
+	cursor, err := coll.Find(context.TODO(), bson.M{"collaborators": userID})
+	if err != nil {
+		return nil, err
+	}
+	var reps []repertoireDoc
+	if err := cursor.All(context.TODO(), &reps); err != nil {
+		return nil, err
+	}
+	ownerIDs := make([]string, 0, len(reps))
+	for _, r := range reps {
+		ownerIDs = append(ownerIDs, r.OwnerID)
+	}
+	return resolveUsersToViews(db, ownerIDs)
+}
+
+// canViewRepertoire returns true if viewer is the owner or a collaborator
+// on the owner's repertoire. Drives the /repertoire?owner= auth check.
+func canViewRepertoire(db *DB, ownerID string, viewerID string) (bool, error) {
+	if ownerID == viewerID {
+		return true, nil
+	}
+	rep, err := ensureRepertoire(db, ownerID)
+	if err != nil {
+		return false, err
+	}
+	for _, c := range rep.Collaborators {
+		if c == viewerID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func resolveUsersToViews(db *DB, userIDs []string) ([]CollaboratorView, error) {
+	out := make([]CollaboratorView, 0, len(userIDs))
+	if len(userIDs) == 0 {
+		return out, nil
+	}
+	coll := db.db.Collection("users")
+	cursor, err := coll.Find(context.TODO(), bson.M{"_id": bson.M{"$in": userIDs}})
+	if err != nil {
+		return nil, err
+	}
+	var users []userJson
+	if err := cursor.All(context.TODO(), &users); err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		if u.Username == "" {
+			continue
+		}
+		out = append(out, CollaboratorView{Username: u.Username, Picture: u.Picture})
+	}
+	return out, nil
+}
+
 // ── chapters ──
 
 // flattenTree walks a ChapterTreeNode tree and produces a flat path->TrainingData map.
@@ -209,19 +358,32 @@ func flattenTree(root ChapterTreeNode) map[string]TrainingData {
 	return moves
 }
 
-// createChapter flattens the incoming move tree and inserts the chapter document.
+// createChapter flattens the incoming move tree, inserts the chapter, and
+// appends the chapter ID to its parent repertoire's Chapters array.
 func createChapter(db *DB, event ChapterEvent) error {
+	rep, err := ensureRepertoire(db, event.OwnerID)
+	if err != nil {
+		return err
+	}
 	doc := ChapterDoc{
 		UUID:         event.ChapterID,
-		OwnerID:      event.OwnerID,
+		RepertoireID: rep.RepertoireID,
 		Name:         event.Name,
 		TrainAs:      event.TrainAs,
 		EnabledCount: event.EnabledCount,
-		UnseenCount: event.UnseenCount,
-		Moves: flattenTree(event.Root),
+		UnseenCount:  event.UnseenCount,
+		Moves:        flattenTree(event.Root),
 	}
 	coll := db.db.Collection("chapters")
-	_, err := coll.InsertOne(context.TODO(), doc)
+	if _, err := coll.InsertOne(context.TODO(), doc); err != nil {
+		return err
+	}
+	reps := db.db.Collection("repertoires")
+	_, err = reps.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": rep.RepertoireID},
+		bson.M{"$addToSet": bson.M{"chapters": event.ChapterID}},
+	)
 	return err
 }
 
@@ -318,17 +480,25 @@ func setEnabledRecursive(db *DB, chapterID string, path string, enabled bool) er
 	return err
 }
 
-// fetchChaptersByOwner returns every chapter belonging to a user's repertoire,
-// each rebuilt as a tree response ready to send to a client.
+// fetchChaptersByOwner returns every chapter belonging to a user's
+// repertoire. Uses the repertoire doc as the source of truth — chapters
+// whose IDs appear in rep.Chapters are fetched in one $in query.
 func fetchChaptersByOwner(db *DB, ownerID string) ([]ChapterTreeResponse, error) {
+	rep, err := ensureRepertoire(db, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	chapters := make([]ChapterTreeResponse, 0)
+	if len(rep.Chapters) == 0 {
+		return chapters, nil
+	}
 	coll := db.db.Collection("chapters")
-	cursor, err := coll.Find(context.TODO(), bson.M{"owner_id": ownerID})
+	cursor, err := coll.Find(context.TODO(), bson.M{"_id": bson.M{"$in": rep.Chapters}})
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(context.TODO())
 
-	chapters := make([]ChapterTreeResponse, 0)
 	for cursor.Next(context.TODO()) {
 		var doc ChapterDoc
 		if err := cursor.Decode(&doc); err != nil {
@@ -336,10 +506,10 @@ func fetchChaptersByOwner(db *DB, ownerID string) ([]ChapterTreeResponse, error)
 		}
 		chapters = append(chapters, ChapterTreeResponse{
 			UUID:         doc.UUID,
-			OwnerID:      doc.OwnerID,
+			RepertoireID: doc.RepertoireID,
 			Name:         doc.Name,
 			TrainAs:      doc.TrainAs,
-			UnseenCount: doc.UnseenCount,
+			UnseenCount:  doc.UnseenCount,
 			EnabledCount: doc.EnabledCount,
 			Root:         buildTree(doc.Moves),
 		})
@@ -379,10 +549,10 @@ func readChapterAsTree(db *DB, chapterID string) (*ChapterTreeResponse, error) {
 
 	return &ChapterTreeResponse{
 		UUID:         doc.UUID,
-		OwnerID:      doc.OwnerID,
+		RepertoireID: doc.RepertoireID,
 		Name:         doc.Name,
 		TrainAs:      doc.TrainAs,
-		UnseenCount: doc.UnseenCount,
+		UnseenCount:  doc.UnseenCount,
 		EnabledCount: doc.EnabledCount,
 		Root:         root,
 	}, nil

@@ -23,6 +23,23 @@ func withCORS(next http.Handler) http.Handler {
 // opaque session id on every request from the browser.
 const sessionCookieName = "chessrepeat_session"
 
+// requireSession resolves the session cookie and returns the session doc,
+// or writes a 401 and returns ok=false. Small helper to keep the handlers
+// below from repeating the same cookie-parse boilerplate.
+func requireSession(db *DB, w http.ResponseWriter, r *http.Request) (*sessionDoc, bool) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return nil, false
+	}
+	sess, err := fetchSession(db, cookie.Value)
+	if err != nil || sess == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return nil, false
+	}
+	return sess, true
+}
+
 // sessionHintCookieName is a non-HttpOnly companion cookie so the frontend
 // can cheaply tell whether a session exists without probing /me. It carries
 // no secret — just a flag — so exposing it to JS is safe.
@@ -69,6 +86,17 @@ func main() {
 		}
 		if owner == nil {
 			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		ok, err := canViewRepertoire(db, owner.TokenID, sess.UserID)
+		if err != nil {
+			log.Println("view auth check failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !ok {
+			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 
@@ -247,6 +275,105 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(tree)
+	})
+
+	// GET  /collaborators/outgoing → { collaborators: [...] } — users I've added
+	// GET  /collaborators/incoming → { collaborators: [...] } — users who've added me
+	// POST /collaborators { username } → add user to my repertoire
+	// DELETE /collaborators/{username}  → remove user from my repertoire
+	http.HandleFunc("GET /collaborators/outgoing", func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := requireSession(db, w, r)
+		if !ok {
+			return
+		}
+		collabs, err := fetchOutgoingCollaborators(db, sess.UserID)
+		if err != nil {
+			log.Println("failed to fetch outgoing collaborators:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"collaborators": collabs})
+	})
+
+	http.HandleFunc("GET /collaborators/incoming", func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := requireSession(db, w, r)
+		if !ok {
+			return
+		}
+		collabs, err := fetchIncomingCollaborators(db, sess.UserID)
+		if err != nil {
+			log.Println("failed to fetch incoming collaborators:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"collaborators": collabs})
+	})
+
+	http.HandleFunc("POST /collaborators", func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := requireSession(db, w, r)
+		if !ok {
+			return
+		}
+		var body struct {
+			Username string `json:"username"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Username == "" {
+			http.Error(w, "missing username", http.StatusBadRequest)
+			return
+		}
+		target, err := fetchUserByUsername(db, body.Username)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if target == nil {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		if target.TokenID == sess.UserID {
+			http.Error(w, "cannot add yourself", http.StatusBadRequest)
+			return
+		}
+		if err := addCollaborator(db, sess.UserID, target.TokenID); err != nil {
+			log.Println("failed to add collaborator:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CollaboratorView{
+			Username: target.Username,
+			Picture:  target.Picture,
+		})
+	})
+
+	http.HandleFunc("DELETE /collaborators/{username}", func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := requireSession(db, w, r)
+		if !ok {
+			return
+		}
+		username := r.PathValue("username")
+		if username == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		target, err := fetchUserByUsername(db, username)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if target == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if err := removeCollaborator(db, sess.UserID, target.TokenID); err != nil {
+			log.Println("failed to remove collaborator:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// WebSocket endpoint, scoped per user. Since each user IS their

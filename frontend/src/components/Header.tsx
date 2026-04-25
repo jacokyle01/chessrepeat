@@ -1,5 +1,5 @@
 import { SiDiscord, SiGithub } from 'react-icons/si';
-import { Bug, LogIn, LogOut, User } from 'lucide-react';
+import { Bug, Globe, LogIn, LogOut, User } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import type { Peer } from '../store/state';
 
@@ -7,9 +7,11 @@ interface Props {
   // Other users currently connected to the same repertoire. Only meaningful
   // on Chessrepeat; Login omits this.
   connectedUsers?: Peer[];
+  incomingCollaboratorsCount?: number;
+  onOpenCollaborators?: () => void;
 }
 
-export function Header({ connectedUsers }: Props) {
+export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenCollaborators }: Props) {
   const authUser = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const openLogin = useAuthStore((s) => s.openLogin);
@@ -55,6 +57,23 @@ export function Header({ connectedUsers }: Props) {
         <span>report bug</span>
         <Bug />
       </a>
+
+      {authUser && onOpenCollaborators && (
+        <button
+          type="button"
+          onClick={onOpenCollaborators}
+          title="Collaborators"
+          className="header-link relative"
+        >
+          <span>collaborators</span>
+          <Globe />
+          {incomingCollaboratorsCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center font-semibold">
+              {incomingCollaboratorsCount}
+            </span>
+          )}
+        </button>
+      )}
 
       <div className="ml-auto flex items-end gap-3">
         {peers.length > 0 && (

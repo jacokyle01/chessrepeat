@@ -104,7 +104,11 @@ const Repertoire: React.FC = () => {
   const blackEntries: Chapter[] = [];
 
   const repertoire = useTrainerStore().repertoire;
+  const repertoireAuthor = useTrainerStore().repertoireAuthor;
   const isAuth = useAuthStore().isAuthenticated(); // TODO don't use auth state to keep track of network connection
+  const authUsername = useAuthStore().user?.username;
+  const viewingOther = !!repertoireAuthor && !!authUsername && repertoireAuthor !== authUsername;
+  const title = viewingOther ? `${repertoireAuthor}'s Repertoire` : 'My Repertoire';
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);
@@ -118,7 +122,7 @@ const Repertoire: React.FC = () => {
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
           <BookOpenIcon />
         </div>
-        <span className="text-gray-800 font-semibold text-xl">My Repertoire</span>
+        <span className="text-gray-800 font-semibold text-xl">{title}</span>
         {isAuth ? (
           <span className="text-green-600">
             <LucideCloudUpload />
