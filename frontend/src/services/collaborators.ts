@@ -1,7 +1,7 @@
 import { parseChapters } from '../util/chapters';
 import { useTrainerStore } from '../store/state';
 
-const API = 'http://localhost:8080';
+const API = import.meta.env.VITE_API_URL
 
 export type Collaborator = {
   username: string;

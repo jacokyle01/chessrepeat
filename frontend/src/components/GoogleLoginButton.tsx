@@ -4,6 +4,7 @@ import { useTrainerStore } from '../store/state';
 import { parseChapters } from '../util/chapters';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Props {
   onNeedsUsername?: (idToken: string) => void;
@@ -43,7 +44,7 @@ export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
         const idToken: string = resp.credential;
 
         try {
-          const res = await fetch('http://localhost:8080/login', {
+          const res = await fetch(`${API_URL}/login`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },

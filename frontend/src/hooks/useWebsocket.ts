@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
 
+const WS_URL = import.meta.env.VITE_API_URL.replace(/^http/, 'ws');
+
 // Owns the /repertoire fetch and the WebSocket lifecycle. Two phases:
 //
 //   1. Bootstrap (mount): call GET /repertoire (session-resolved). On 200 we
@@ -31,7 +33,7 @@ export function useWebsocket() {
 
   useEffect(() => {
     if (!repertoireAuthor) return;
-    const ws = new WebSocket(`ws://localhost:8080/subscribe/${repertoireAuthor}`);
+    const ws = new WebSocket(`${WS_URL}/subscribe/${repertoireAuthor}`);
     setWebSocket(ws);
     ws.onopen = () => console.log('ws live');
     ws.onmessage = (event) => {

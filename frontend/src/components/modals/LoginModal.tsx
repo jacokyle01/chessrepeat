@@ -3,6 +3,8 @@ import { Modal } from './Modal';
 import { GoogleLoginButton, applyLoginResponse } from '../GoogleLoginButton';
 import { useAuthStore } from '../../store/auth';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 type Visibility = 'public' | 'private' | 'whitelist';
 
 export function LoginModal() {
@@ -43,7 +45,7 @@ export function LoginModal() {
               const username = pendingUsername.trim();
               if (!username) return;
               try {
-                const res = await fetch('http://localhost:8080/login', {
+                const res = await fetch(`${API_URL}/login`, {
                   method: 'POST',
                   credentials: 'include',
                   headers: { 'Content-Type': 'application/json' },

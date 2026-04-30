@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const PLAYGROUND_SUB = "__playground__";
 
 export type AuthUser = {
@@ -37,7 +39,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearAuth: () => {
     // hit the backend to delete the session and expire the cookie
-    fetch('http://localhost:8080/logout', {
+    fetch(`${API_URL}/logout`, {
       method: 'POST',
       credentials: 'include',
     }).catch((err) => console.warn('logout request failed', err));

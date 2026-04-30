@@ -6,6 +6,8 @@ import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
 import { parseChapters } from '../util/chapters';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 /*
   Boot chessrepeat: 
     - signed out: pull from indexedDB
@@ -29,7 +31,7 @@ export function useStartup() {
         return;
       }
       try {
-        const res = await fetch('http://localhost:8080/repertoire', {
+        const res = await fetch(`${API_URL}/repertoire`, {
           credentials: 'include',
         });
         if (cancelled) return;
