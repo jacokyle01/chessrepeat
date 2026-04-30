@@ -27,8 +27,8 @@ const AddToRepertoireModal: React.FC = () => {
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isImportingJson, setIsImportingJson] = useState(false);
 
-  //TODO need single source of truth for if training locally / remote cxn
-  const isLoggedIn = !useAuthStore().isPlayground();
+  // Whether this chapter will be saved locally or to the server
+  const isLoggedIn = useAuthStore().isAuthenticated();
 
   const resetJsonState = () => {
     setJsonText('');
@@ -252,8 +252,8 @@ const AddToRepertoireModal: React.FC = () => {
             </div>
             {!isLoggedIn && (
               <span className="text-sm text-red-400">
-                Warning: You're not logged in — you'll only be able to train this chapter locally, while
-                signed out. Sign in to save your work.
+                User not logged in — chapter will be saved locally; log in to save to the server and train
+                anywhere
               </span>
             )}
 
@@ -304,8 +304,8 @@ const AddToRepertoireModal: React.FC = () => {
             {jsonError ? <div className="mb-3 text-sm text-red-600">{jsonError}</div> : null}
             {!isLoggedIn && (
               <span className="text-sm text-red-400">
-                Warning: You're not logged in — you'll only be able to train this chapter locally, while
-                signed out. Sign in to save your work.
+                User not logged in — chapter will be saved locally; log in to save to the server and train
+                anywhere
               </span>
             )}
 

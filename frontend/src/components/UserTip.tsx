@@ -27,13 +27,15 @@ const Tip = ({
   titleClassName = 'font-bold text-base md:text-2xl text-gray-800',
   descriptionClassName = 'text-sm md:text-lg text-gray-600',
 }: TipProps) => (
-  <div className="bg-white flex items-center justify-center py-3 md:py-12 px-4 md:px-6 border border-gray-300 gap-2 md:gap-3 rounded-md my-auto">
-    <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-      <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">{icon}</div>
-    </div>
-    <div className="text-center">
-      <h1 className={titleClassName}>{title}</h1>
-      <h2 className={descriptionClassName}>{description}</h2>
+  <div className="bg-white flex justify-center py-3 md:py-12 px-4 md:px-6 border border-gray-300 rounded-md">
+    <div className="inline-flex items-center gap-2 md:gap-3">
+      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
+        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">{icon}</div>
+      </div>
+      <div className="text-start">
+        <h1 className={titleClassName}>{title}</h1>
+        <h2 className={descriptionClassName}>{description}</h2>
+      </div>
     </div>
   </div>
 );

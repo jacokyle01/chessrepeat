@@ -17,7 +17,6 @@ type AuthState = {
   showLogin: boolean;
 
   isAuthenticated: () => boolean;
-  isPlayground: () => boolean;
 
   setUser: (user: AuthUser | null) => void;
   openLogin: () => void;
@@ -30,7 +29,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   showLogin: false,
 
   isAuthenticated: () => !!get().user,
-  isPlayground: () => !get().user,
 
   setUser: (user) => set({ user }),
 

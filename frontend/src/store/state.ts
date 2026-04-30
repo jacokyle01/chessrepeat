@@ -36,11 +36,7 @@ export type Peer = {
 /** Get the current user's sub from the auth store, falling back to playground sub. */
 function currentUserSub(): string | null {
   const auth = useAuthStore.getState();
-  return auth.user?.sub ?? (auth.isPlayground() ? PLAYGROUND_SUB : null);
-}
-
-function isPlayground(): boolean {
-  return !useAuthStore.getState().user;
+  return auth.user?.sub ?? (!auth.isAuthenticated() ? PLAYGROUND_SUB : null);
 }
 
 import { userCard } from '../util/userCard';
@@ -188,7 +184,7 @@ const indexedDBStorage: StateStorage = {
 
 // Helper: persist one chapter to IDB (playground mode only)
 async function persistChapter(chapter: Chapter) {
-  if (!isPlayground()) return;
+  if (useAuthStore.getState().isAuthenticated()) return;
   await writeChapter(chapter.uuid, chapter);
 
   const ids = await readChapterIds();
@@ -199,7 +195,7 @@ async function persistChapter(chapter: Chapter) {
 
 // Helper: persist all chapters to IDB (playground mode only)
 async function persistAllChapters(repertoire: Chapter[]) {
-  if (!isPlayground()) return;
+  if (useAuthStore.getState().isAuthenticated()) return;
   const ids: string[] = [];
   for (const ch of repertoire) {
     ids.push(ch.uuid);
@@ -396,7 +392,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         await persistChapter(chapter);
 
-        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
+        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(
             JSON.stringify({
               type: 'node_deleted',
@@ -498,7 +494,7 @@ export const useTrainerStore = create<TrainerState>()(
         chapter.unseenCount--;
         await persistChapter(chapter);
 
-        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
+        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: 'training_updated',
             chapterId: chapter.uuid,
@@ -525,7 +521,7 @@ export const useTrainerStore = create<TrainerState>()(
         targetNode.data.training[sub] = card;
         void persistChapter(chapter);
 
-        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
+        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: 'training_updated',
             chapterId: chapter.uuid,
@@ -579,7 +575,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         await persistChapter(chapter);
 
-        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
+        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'node_disabled', chapterId: chapter.uuid, path }));
         }
       },
@@ -607,7 +603,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         await persistChapter(chapter);
 
-        if (!isPlayground() && socket && socket.readyState === WebSocket.OPEN) {
+        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'node_enabled', chapterId: chapter.uuid, path }));
         }
       },
@@ -777,7 +773,7 @@ export const useTrainerStore = create<TrainerState>()(
           //TODO put network actions somewhere
           //TODO why void?
 
-          if (isPlayground()) {
+          if (!useAuthStore.getState().isAuthenticated()) {
             await persistChapter(chapter);
           } else {
             console.log("try send over socket")
@@ -812,7 +808,7 @@ export const useTrainerStore = create<TrainerState>()(
       addNewChapter: async (chapter: Chapter) => {
         const { addNewChapterLocally } = get();
         await addNewChapterLocally(chapter);
-        if (!isPlayground()) {
+        if (useAuthStore.getState().isAuthenticated()) {
           void postChapter(chapter);
         }
       },
@@ -832,7 +828,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         set({ repertoire: newRepertoire });
 
-        if (isPlayground()) {
+        if (!useAuthStore.getState().isAuthenticated()) {
           const cid = chapter.uuid;
           await writeChapter(cid, chapter);
           const ids = await readChapterIds();
@@ -911,7 +907,7 @@ export const useTrainerStore = create<TrainerState>()(
       //     if (err || !state) return;
       //     // In playground mode, hydrate chapters from IDB on page load.
       //     // When authenticated, chapters come from the server instead.
-      //     if (isPlayground()) {
+      //     if (!useAuthStore.getState().isAuthenticated()) {
       //       console.log("hydrate")
       //       await state.hydrateRepertoireFromIDB();
       //     }
