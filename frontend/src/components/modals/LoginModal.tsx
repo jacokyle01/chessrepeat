@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from './Modal';
 import { GoogleLoginButton, applyLoginResponse } from '../GoogleLoginButton';
 import { useAuthStore } from '../../store/auth';
@@ -6,6 +6,9 @@ import { useAuthStore } from '../../store/auth';
 const API_URL = import.meta.env.VITE_API_URL;
 
 type Visibility = 'public' | 'private' | 'whitelist';
+type CheckState = 'idle' | 'pending' | 'available' | 'taken' | 'invalid';
+
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 export function LoginModal() {
   const showLogin = useAuthStore((s) => s.showLogin);
@@ -14,13 +17,58 @@ export function LoginModal() {
   const [pendingSignup, setPendingSignup] = useState<{ idToken: string } | null>(null);
   const [pendingUsername, setPendingUsername] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('private');
+  const [checkState, setCheckState] = useState<CheckState>('idle');
+
+  // Debounced availability check. Empty input → idle; locally-invalid
+  // input → invalid (no request); otherwise wait 500ms then hit the
+  // backend. A request id guards against an out-of-order response
+  // overwriting a newer keystroke's state.
+  useEffect(() => {
+    const trimmed = pendingUsername.trim().toLowerCase();
+    if (!trimmed) {
+      setCheckState('idle');
+      return;
+    }
+    if (!USERNAME_RE.test(trimmed)) {
+      setCheckState('invalid');
+      return;
+    }
+    setCheckState('pending');
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/username/check?username=${encodeURIComponent(trimmed)}`,
+          { signal: ctrl.signal },
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        // guard: only commit if the input still matches what we asked about
+        if (pendingUsername.trim().toLowerCase() !== trimmed) return;
+        if (data.available) setCheckState('available');
+        else if (data.reason === 'invalid') setCheckState('invalid');
+        else setCheckState('taken');
+      } catch (err) {
+        if ((err as any)?.name !== 'AbortError') {
+          console.warn('username check failed', err);
+        }
+      }
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [pendingUsername]);
 
   const dismiss = () => {
     setPendingSignup(null);
     setPendingUsername('');
     setVisibility('private');
+    setCheckState('idle');
     closeLogin();
   };
+
+  const canSubmit = checkState === 'available';
 
   return (
     <Modal open={showLogin} onClose={dismiss} title="Sign in">
@@ -42,8 +90,8 @@ export function LoginModal() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              const username = pendingUsername.trim();
-              if (!username) return;
+              if (!canSubmit) return;
+              const username = pendingUsername.trim().toLowerCase();
               try {
                 const res = await fetch(`${API_URL}/login`, {
                   method: 'POST',
@@ -56,6 +104,10 @@ export function LoginModal() {
                     repertoireVisibility: visibility,
                   }),
                 });
+                if (res.status === 409) {
+                  setCheckState('taken');
+                  return;
+                }
                 if (!res.ok) {
                   console.error('signup failed', res.status, await res.text());
                   return;
@@ -65,19 +117,45 @@ export function LoginModal() {
                 setPendingSignup(null);
                 setPendingUsername('');
                 setVisibility('private');
+                setCheckState('idle');
               } catch (err) {
                 console.error('signup request failed', err);
               }
             }}
           >
-            <input
-              type="text"
-              autoFocus
-              value={pendingUsername}
-              onChange={(e) => setPendingUsername(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 mb-4 text-sm"
-              placeholder="username"
-            />
+            <div className="relative mb-1">
+              <input
+                type="text"
+                autoFocus
+                value={pendingUsername}
+                onChange={(e) => setPendingUsername(e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-2 pr-9 text-sm"
+                placeholder="username"
+                aria-invalid={checkState === 'taken' || checkState === 'invalid'}
+              />
+              <span
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm leading-none"
+                aria-live="polite"
+              >
+                {checkState === 'pending' && (
+                  <span className="text-gray-400" title="Checking…">…</span>
+                )}
+                {checkState === 'available' && (
+                  <span className="text-green-600" title="Available">✓</span>
+                )}
+                {checkState === 'taken' && (
+                  <span className="text-red-600" title="Taken">✕</span>
+                )}
+                {checkState === 'invalid' && (
+                  <span className="text-red-600" title="3–20 chars, a–z 0–9 _">✕</span>
+                )}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mb-4 h-4">
+              {checkState === 'invalid' && 'Use 3–20 chars: a–z, 0–9, underscore.'}
+              {checkState === 'taken' && 'That username is taken.'}
+              {checkState === 'available' && 'Username is available.'}
+            </p>
 
             <div className="mb-4">
               <label className="block text-xs font-semibold text-gray-700 mb-2">
@@ -104,7 +182,12 @@ export function LoginModal() {
 
             <button
               type="submit"
-              className="w-full bg-slate-800 text-white text-sm font-semibold py-2 rounded hover:bg-slate-700"
+              disabled={!canSubmit}
+              className={
+                canSubmit
+                  ? 'w-full bg-emerald-600 text-white text-sm font-semibold py-2 rounded hover:bg-emerald-500 ring-2 ring-emerald-300'
+                  : 'w-full bg-slate-300 text-slate-500 text-sm font-semibold py-2 rounded cursor-not-allowed'
+              }
             >
               Continue
             </button>

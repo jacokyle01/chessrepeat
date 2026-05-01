@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"chessrepeat/internal/auth"
 	"chessrepeat/internal/domain"
@@ -62,7 +64,22 @@ func Login(db *store.DB) http.HandlerFunc {
 		if existing != nil {
 			user.Username = existing.Username
 		} else {
-			user.Username = body.Username
+			candidate := strings.ToLower(strings.TrimSpace(body.Username))
+			if !isValidUsername(candidate) {
+				http.Error(w, "invalid username", http.StatusBadRequest)
+				return
+			}
+			taken, err := db.FetchUserByUsername(candidate)
+			if err != nil {
+				log.Println("username lookup failed:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if taken != nil {
+				http.Error(w, "username taken", http.StatusConflict)
+				return
+			}
+			user.Username = candidate
 		}
 
 		if err := db.UpsertUser(user); err != nil {
@@ -96,6 +113,44 @@ func Login(db *store.DB) http.HandlerFunc {
 		}{User: user, Chapters: chapters})
 	}
 }
+
+// CheckUsername reports whether a username is available for signup.
+// Used by the signup form to show live availability feedback before
+// the user submits. Validation rules mirror what we'd enforce on
+// upsert: 3–20 chars, [a-z0-9_], lowercased.
+func CheckUsername(db *store.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("username")))
+		w.Header().Set("Content-Type", "application/json")
+
+		if !isValidUsername(username) {
+			json.NewEncoder(w).Encode(map[string]any{
+				"available": false,
+				"reason":    "invalid",
+			})
+			return
+		}
+		existing, err := db.FetchUserByUsername(username)
+		if err != nil {
+			log.Println("username check failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"available": existing == nil,
+			"reason": func() string {
+				if existing == nil {
+					return ""
+				}
+				return "taken"
+			}(),
+		})
+	}
+}
+
+var usernameRe = regexp.MustCompile(`^[a-z0-9_]{3,20}$`)
+
+func isValidUsername(u string) bool { return usernameRe.MatchString(u) }
 
 func Logout(db *store.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

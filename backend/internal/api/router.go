@@ -12,6 +12,7 @@ func Register(mux *http.ServeMux, db *store.DB) {
 	mux.HandleFunc("GET /repertoire", GetRepertoire(db))
 	mux.HandleFunc("/login", Login(db))
 	mux.HandleFunc("/logout", Logout(db))
+	mux.HandleFunc("GET /username/check", CheckUsername(db))
 
 	mux.HandleFunc("GET /collaborators/outgoing", GetOutgoingCollaborators(db))
 	mux.HandleFunc("GET /collaborators/incoming", GetIncomingCollaborators(db))

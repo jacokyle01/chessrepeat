@@ -67,11 +67,6 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
         >
           <span>collaborators</span>
           <Globe />
-          {incomingCollaboratorsCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center font-semibold">
-              {incomingCollaboratorsCount}
-            </span>
-          )}
         </button>
       )}
 
