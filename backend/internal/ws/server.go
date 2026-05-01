@@ -127,6 +127,16 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return errors.New("user not found")
 	}
 
+	canView, err := s.db.CanViewRepertoire(ownerID, sess.UserID)
+	if err != nil {
+		http.Error(w, "view auth check failed", http.StatusInternalServerError)
+		return err
+	}
+	if !canView {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return errors.New("not a collaborator")
+	}
+
 	sub := &subscriber{
 		msgs:     make(chan []byte, s.subscriberMessageBuffer),
 		userID:   sess.UserID,
