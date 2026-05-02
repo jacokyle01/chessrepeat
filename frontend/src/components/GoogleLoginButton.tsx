@@ -20,9 +20,7 @@ export function applyLoginResponse(data: any) {
   const auth = useAuthStore.getState();
   const trainer = useTrainerStore.getState();
   auth.setUser({
-    sub: data.user.tokenId,
     username: data.user.username,
-    email: data.user.email,
     picture: data.user.picture,
   });
   void trainer.setRepertoire(parseChapters(data.chapters));

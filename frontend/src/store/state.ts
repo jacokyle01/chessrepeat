@@ -25,18 +25,19 @@ import { annotatePgn, chapterFromPgn } from '../util/io';
 import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig, type Card } from '../util/srs';
 import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
-import { PLAYGROUND_SUB, useAuthStore } from './auth';
+import { PLAYGROUND_KEY, useAuthStore } from './auth';
 
 export type Peer = {
-  userId: string;
   username: string;
   picture: string;
 };
 
-/** Get the current user's sub from the auth store, falling back to playground sub. */
-function currentUserSub(): string | null {
+// Resolve the training-map key for the current user: their username if
+// signed in, the playground key for the IDB-only local mode, or null
+// while we don't yet know which (during bootstrap).
+function currentUserKey(): string | null {
   const auth = useAuthStore.getState();
-  return auth.user?.sub ?? (!auth.isAuthenticated() ? PLAYGROUND_SUB : null);
+  return auth.user?.username ?? (!auth.isAuthenticated() ? PLAYGROUND_KEY : null);
 }
 
 import { userCard } from '../util/userCard';
@@ -107,7 +108,7 @@ interface TrainerState {
   connectedUsers: Peer[];
   setConnectedUsers: (users: Peer[]) => void;
   addConnectedUser: (user: Peer) => void;
-  removeConnectedUser: (userId: string) => void;
+  removeConnectedUser: (username: string) => void;
 
   // NEW: hydrate chapters from IDB after persist rehydrates small state
   hydrateRepertoireFromIDB: () => Promise<void>;
@@ -131,13 +132,14 @@ interface TrainerState {
   deleteNodeRemote: (chapterId: string, path: string) => void;
   disableNodeRemote: (chapterId: string, path: string) => void;
   enableNodeRemote: (chapterId: string, path: string) => void;
-  updateTrainingRemote: (chapterId: string, path: string, userSub: string, card: Card) => void;
+  updateTrainingRemote: (chapterId: string, path: string, username: string, card: Card) => void;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   addNewChapterLocally: (chapter: Chapter) => Promise<void>;
   importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
 
   renameChapter: (index: number, name: string) => void;
   deleteChapterAt: (index: number) => void;
+  deleteChapterRemote: (chapterId: string) => void;
 }
 
 /**
@@ -274,12 +276,12 @@ export const useTrainerStore = create<TrainerState>()(
       connectedUsers: [],
       setConnectedUsers: (users) => set({ connectedUsers: users }),
       addConnectedUser: (user) => set((state) => ({
-        connectedUsers: state.connectedUsers.some((u) => u.userId === user.userId)
+        connectedUsers: state.connectedUsers.some((u) => u.username === user.username)
           ? state.connectedUsers
           : [...state.connectedUsers, user],
       })),
-      removeConnectedUser: (userId) => set((state) => ({
-        connectedUsers: state.connectedUsers.filter((u) => u.userId !== userId),
+      removeConnectedUser: (username) => set((state) => ({
+        connectedUsers: state.connectedUsers.filter((u) => u.username !== username),
       })),
 
       // ---- inside create(...) actions ----
@@ -302,7 +304,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       deleteChapterAt: async (chapterIndex: number) => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, repertoireIndex, socket } = get();
         const chapter = repertoire[chapterIndex];
         if (!chapter) return;
 
@@ -326,10 +328,44 @@ export const useTrainerStore = create<TrainerState>()(
           userTip: 'empty',
         });
 
-        await deleteChapterIDB(cid);
+        // playground state lives in IDB; authenticated state lives on the
+        // server and is mirrored to peers via the WebSocket.
+        if (!useAuthStore.getState().isAuthenticated()) {
+          await deleteChapterIDB(cid);
+          await writeChapterIds(nextRepertoire.map((c) => c.uuid));
+        } else if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'chapter_deleted', chapterId: cid }));
+        } else {
+          console.warn('socket not open; chapter deletion not broadcast');
+        }
+      },
 
-        const ids = nextRepertoire.map((c) => c.uuid);
-        await writeChapterIds(ids);
+      // handle a chapter_deleted event received from another client
+      deleteChapterRemote: (chapterId: string) => {
+        const { repertoire, repertoireIndex } = get();
+        const idx = repertoire.findIndex((c) => c.uuid === chapterId);
+        if (idx === -1) return;
+
+        const nextRepertoire = repertoire.slice();
+        nextRepertoire.splice(idx, 1);
+
+        // mirror deleteChapterAt's index-fixup so the active selection
+        // doesn't fall off the end when a remote peer drops a chapter
+        // that's behind ours, or the one we're currently viewing.
+        let nextIndex = repertoireIndex;
+        if (nextRepertoire.length === 0) nextIndex = 0;
+        else if (idx < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
+        else if (idx === repertoireIndex)
+          nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+
+        const clearingActive = idx === repertoireIndex;
+        set({
+          repertoire: nextRepertoire,
+          repertoireIndex: nextIndex,
+          ...(clearingActive
+            ? { selectedPath: '', selectedNode: null, trainableContext: null as any, userTip: 'empty' }
+            : {}),
+        });
       },
 
       // Load playground chapters from IDB on refresh (playground mode only)
@@ -432,16 +468,16 @@ export const useTrainerStore = create<TrainerState>()(
       // get milliseconds til due for each node
       updateDueCounts: () => {
         const { repertoire, repertoireIndex } = get();
-        const sub = currentUserSub();
+        const key = currentUserKey();
         const chapter = repertoire[repertoireIndex];
-        if (!chapter || !sub) return;
+        if (!chapter || !key) return;
 
         let dueSummary = [];
         let countDueNow = 0;
         forEachNode(chapter.root, (node) => {
           const d = node.data;
           if (!d.enabled) return;
-          const card = userCard(d, sub);
+          const card = userCard(d, key);
           if (!card) return;
 
           const msTilDue = new Date(card.due).getTime() - Date.now();
@@ -484,13 +520,13 @@ export const useTrainerStore = create<TrainerState>()(
       */
       learn: async () => {
         const { repertoire, repertoireIndex, trainableContext, socket } = get();
-        const sub = currentUserSub();
+        const key = currentUserKey();
         const chapter = repertoire[repertoireIndex];
         const targetNode = trainableContext?.targetMove;
-        if (!chapter || !targetNode || !sub) return;
+        if (!chapter || !targetNode || !key) return;
         const card = createCard();
         if (!targetNode.data.training) targetNode.data.training = {};
-        targetNode.data.training[sub] = card;
+        targetNode.data.training[key] = card;
         chapter.unseenCount--;
         await persistChapter(chapter);
 
@@ -499,7 +535,7 @@ export const useTrainerStore = create<TrainerState>()(
             type: 'training_updated',
             chapterId: chapter.uuid,
             path: trainableContext.startingPath,
-            userSub: sub,
+            username: key,
             card,
           }));
         }
@@ -510,15 +546,15 @@ export const useTrainerStore = create<TrainerState>()(
       */
       train: (correct: boolean) => {
         const { repertoire, repertoireIndex, trainableContext, socket } = get();
-        const sub = currentUserSub();
+        const key = currentUserKey();
         const targetNode = trainableContext?.targetMove;
         const chapter = repertoire[repertoireIndex];
-        if (!chapter || !targetNode || !sub) return null;
+        if (!chapter || !targetNode || !key) return null;
 
-        const oldCard = userCard(targetNode.data, sub);
+        const oldCard = userCard(targetNode.data, key);
         if (!oldCard) return null;
         const card = reviewCard(oldCard, correct);
-        targetNode.data.training[sub] = card;
+        targetNode.data.training[key] = card;
         void persistChapter(chapter);
 
         if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
@@ -526,7 +562,7 @@ export const useTrainerStore = create<TrainerState>()(
             type: 'training_updated',
             chapterId: chapter.uuid,
             path: trainableContext.startingPath,
-            userSub: sub,
+            username: key,
             card,
           }));
         }
@@ -708,7 +744,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       // handle a training_updated event received from another client
-      updateTrainingRemote: (chapterId: string, path: string, userSub: string, card: Card) => {
+      updateTrainingRemote: (chapterId: string, path: string, username: string, card: Card) => {
         const { repertoire } = get();
         const chapter = repertoire.find((c) => c.uuid === chapterId);
         if (!chapter) return;
@@ -717,7 +753,7 @@ export const useTrainerStore = create<TrainerState>()(
         if (!node) return;
 
         if (!node.data.training) node.data.training = {};
-        node.data.training[userSub] = card;
+        node.data.training[username] = card;
 
         set((state) => {
           const next = state.repertoire.slice();

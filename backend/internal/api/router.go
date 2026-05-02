@@ -8,9 +8,9 @@ import (
 
 // Register attaches every HTTP handler to the given mux. The mux still
 // owns CORS — wrap the result in WithCORS at the call site.
-func Register(mux *http.ServeMux, db *store.DB) {
+func Register(mux *http.ServeMux, db *store.DB, googleClientID string) {
 	mux.HandleFunc("GET /repertoire", GetRepertoire(db))
-	mux.HandleFunc("/login", Login(db))
+	mux.HandleFunc("/login", Login(db, googleClientID))
 	mux.HandleFunc("/logout", Logout(db))
 	mux.HandleFunc("GET /username/check", CheckUsername(db))
 

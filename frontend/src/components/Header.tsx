@@ -17,7 +17,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
   const openLogin = useAuthStore((s) => s.openLogin);
   const showLogin = useAuthStore((s) => s.showLogin);
 
-  const peers = connectedUsers?.filter((u) => u.userId !== authUser?.sub) ?? [];
+  const peers = connectedUsers?.filter((u) => u.username !== authUser?.username) ?? [];
   const showSignIn = !showLogin;
 
   return (
@@ -75,7 +75,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
           <div className="flex items-end -space-x-1.5">
             {peers.map((u) => (
               <img
-                key={u.userId}
+                key={u.username}
                 src={u.picture}
                 alt={u.username}
                 title={u.username}

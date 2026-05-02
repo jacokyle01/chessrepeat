@@ -2,12 +2,13 @@ import { create } from "zustand";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const PLAYGROUND_SUB = "__playground__";
+// PLAYGROUND_KEY is the training-card key used for not-signed-in users,
+// who exist only locally in IndexedDB. Authenticated users key by
+// username so the Google sub never has to ride on the wire.
+export const PLAYGROUND_KEY = "__playground__";
 
 export type AuthUser = {
-  sub: string;       // Google stable user id
-  username?: string;
-  email?: string;
+  username: string;
   picture?: string;
 };
 

@@ -5,7 +5,6 @@ import { useAuthStore } from '../../store/auth';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-type Visibility = 'public' | 'private' | 'whitelist';
 type CheckState = 'idle' | 'pending' | 'available' | 'taken' | 'invalid';
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
@@ -16,7 +15,6 @@ export function LoginModal() {
 
   const [pendingSignup, setPendingSignup] = useState<{ idToken: string } | null>(null);
   const [pendingUsername, setPendingUsername] = useState('');
-  const [visibility, setVisibility] = useState<Visibility>('private');
   const [checkState, setCheckState] = useState<CheckState>('idle');
 
   // Debounced availability check. Empty input → idle; locally-invalid
@@ -37,10 +35,9 @@ export function LoginModal() {
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `${API_URL}/username/check?username=${encodeURIComponent(trimmed)}`,
-          { signal: ctrl.signal },
-        );
+        const res = await fetch(`${API_URL}/username/check?username=${encodeURIComponent(trimmed)}`, {
+          signal: ctrl.signal,
+        });
         if (!res.ok) return;
         const data = await res.json();
         // guard: only commit if the input still matches what we asked about
@@ -63,7 +60,6 @@ export function LoginModal() {
   const dismiss = () => {
     setPendingSignup(null);
     setPendingUsername('');
-    setVisibility('private');
     setCheckState('idle');
     closeLogin();
   };
@@ -100,8 +96,6 @@ export function LoginModal() {
                   body: JSON.stringify({
                     idToken: pendingSignup.idToken,
                     username,
-                    // placeholder: server doesn't consume this yet
-                    repertoireVisibility: visibility,
                   }),
                 });
                 if (res.status === 409) {
@@ -116,7 +110,6 @@ export function LoginModal() {
                 applyLoginResponse(data);
                 setPendingSignup(null);
                 setPendingUsername('');
-                setVisibility('private');
                 setCheckState('idle');
               } catch (err) {
                 console.error('signup request failed', err);
@@ -138,16 +131,24 @@ export function LoginModal() {
                 aria-live="polite"
               >
                 {checkState === 'pending' && (
-                  <span className="text-gray-400" title="Checking…">…</span>
+                  <span className="text-gray-400" title="Checking…">
+                    …
+                  </span>
                 )}
                 {checkState === 'available' && (
-                  <span className="text-green-600" title="Available">✓</span>
+                  <span className="text-green-600" title="Available">
+                    ✓
+                  </span>
                 )}
                 {checkState === 'taken' && (
-                  <span className="text-red-600" title="Taken">✕</span>
+                  <span className="text-red-600" title="Taken">
+                    ✕
+                  </span>
                 )}
                 {checkState === 'invalid' && (
-                  <span className="text-red-600" title="3–20 chars, a–z 0–9 _">✕</span>
+                  <span className="text-red-600" title="3–20 chars, a–z 0–9 _">
+                    ✕
+                  </span>
                 )}
               </span>
             </div>
@@ -156,29 +157,6 @@ export function LoginModal() {
               {checkState === 'taken' && 'That username is taken.'}
               {checkState === 'available' && 'Username is available.'}
             </p>
-
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-gray-700 mb-2">
-                Repertoire visibility
-              </label>
-              <div className="flex flex-col gap-1.5">
-                {(['public', 'private', 'whitelist'] as Visibility[]).map((opt) => (
-                  <label
-                    key={opt}
-                    className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
-                  >
-                    <input
-                      type="radio"
-                      name="repertoire-visibility"
-                      value={opt}
-                      checked={visibility === opt}
-                      onChange={() => setVisibility(opt)}
-                    />
-                    <span className="capitalize">{opt}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
 
             <button
               type="submit"

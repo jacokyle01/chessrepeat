@@ -29,6 +29,7 @@ export function useWebsocket() {
     disableNodeRemote,
     enableNodeRemote,
     updateTrainingRemote,
+    deleteChapterRemote,
   } = useTrainerStore();
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function useWebsocket() {
           addConnectedUser(payload.user);
           break;
         case 'user_left':
-          removeConnectedUser(payload.user.userId);
+          removeConnectedUser(payload.user.username);
           break;
         case 'move_created':
           addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
@@ -61,7 +62,10 @@ export function useWebsocket() {
           enableNodeRemote(payload.chapterId, payload.path);
           break;
         case 'training_updated':
-          updateTrainingRemote(payload.chapterId, payload.path, payload.userSub, payload.card);
+          updateTrainingRemote(payload.chapterId, payload.path, payload.username, payload.card);
+          break;
+        case 'chapter_deleted':
+          deleteChapterRemote(payload.chapterId);
           break;
         case 'chapter_created':
           addNewChapterLocally({

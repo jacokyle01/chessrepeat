@@ -3,10 +3,8 @@ package store
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -17,18 +15,9 @@ type DB struct {
 	db     *mongo.Database
 }
 
-// Connect loads .env, dials Mongo, and pings to fail-fast on bad config.
-func Connect() *DB {
-	log.Println("loading .env file...")
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	uri := os.Getenv("MONGO_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-
+// Connect dials Mongo and pings to fail-fast on bad config. The caller
+// is responsible for loading any .env file before invoking this.
+func Connect(uri, dbName string) *DB {
 	log.Println("connecting to MongoDB...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -44,11 +33,6 @@ func Connect() *DB {
 	}
 
 	log.Println("connected to MongoDB!")
-
-	dbName := os.Getenv("MONGO_DB")
-	if dbName == "" {
-		dbName = "chessrepeat"
-	}
 
 	return &DB{
 		client: client,

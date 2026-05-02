@@ -154,10 +154,10 @@ function OtherUsersTraining({ entries }: { entries: [string, Card][] }) {
       </button>
       {expanded && (
         <div className="mt-1.5 flex flex-col gap-2">
-          {entries.map(([sub, card]) => (
-            <div key={sub} className="border-l-2 border-gray-200 pl-2">
-              <div className="text-[10px] text-gray-400 truncate mb-0.5" title={sub}>
-                {sub.slice(0, 12)}...
+          {entries.map(([username, card]) => (
+            <div key={username} className="border-l-2 border-gray-200 pl-2">
+              <div className="text-[10px] text-gray-400 truncate mb-0.5" title={username}>
+                {username}
               </div>
               <div className="flex flex-col gap-1 text-xs">
                 <div className="flex items-center gap-1.5">
@@ -183,8 +183,8 @@ const contextMenuItems = (path: string, data: TrainingData) => {
   const myCard = userCard(data);
 
   // other users who have trained this move (excluding the current user)
-  const mySub = useAuthStore.getState().user?.sub;
-  const otherEntries = Object.entries(training ?? {}).filter(([sub]) => sub !== mySub);
+  const myUsername = useAuthStore.getState().user?.username;
+  const otherEntries = Object.entries(training ?? {}).filter(([username]) => username !== myUsername);
 
   return [
     // Header

@@ -133,3 +133,57 @@ func (db *DB) CanViewRepertoire(ownerID string, viewerID string) (bool, error) {
 	}
 	return false, nil
 }
+
+// CanCollaborateOnRepertoire returns true if userID may write to the
+// repertoire owned by ownerID — i.e., is the owner or has been added as
+// a collaborator. Used by chapter_created (which has no existing chapter
+// id to resolve), and by CanCollaborateOnChapter once it has chased the
+// chapter back to its owning repertoire.
+//
+// Currently identical to CanViewRepertoire; kept as its own function so
+// a future read-only collaborator role can diverge here without
+// loosening the view path.
+func (db *DB) CanCollaborateOnRepertoire(ownerID, userID string) (bool, error) {
+	return db.CanViewRepertoire(ownerID, userID)
+}
+
+// CanCollaborateOnChapter returns true if userID may mutate the chapter
+// identified by chapterID. The check is anchored on the chapter's own
+// repertoire_id (not the WebSocket room), so a client cannot bypass
+// authz by joining one room and submitting a chapterId from another:
+// they're authorized if and only if they own, or have been added as a
+// collaborator on, the repertoire that actually contains the chapter.
+//
+// A missing chapter returns (false, nil) so callers can treat "not
+// found" the same as "forbidden" without leaking which one it was.
+func (db *DB) CanCollaborateOnChapter(chapterID, userID string) (bool, error) {
+	chColl := db.db.Collection("chapters")
+	var ch struct {
+		RepertoireID string `bson:"repertoire_id"`
+	}
+	err := chColl.FindOne(context.TODO(), bson.M{"_id": chapterID}).Decode(&ch)
+	if err == mongo.ErrNoDocuments {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	repColl := db.db.Collection("repertoires")
+	var rep repertoireDoc
+	err = repColl.FindOne(context.TODO(), bson.M{"_id": ch.RepertoireID}).Decode(&rep)
+	if err == mongo.ErrNoDocuments {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if rep.OwnerID == userID {
+		return true, nil
+	}
+	for _, c := range rep.Collaborators {
+		if c == userID {
+			return true, nil
+		}
+	}
+	return false, nil
+}

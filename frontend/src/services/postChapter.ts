@@ -8,7 +8,7 @@ import { useTrainerStore } from '../store/state';
 export async function postChapter(chapter: Chapter) {
   const { user } = useAuthStore.getState();
   const { socket, repertoireAuthor } = useTrainerStore.getState();
-  if (!user?.sub || !repertoireAuthor) {
+  if (!user?.username || !repertoireAuthor) {
     console.error('postChapter: not authenticated or no author');
     return;
   }

@@ -42,9 +42,7 @@ export function useStartup() {
         const data = await res.json();
         if (cancelled) return;
         setUser({
-          sub: data.user.tokenId, // shouldn't have this..
           username: data.user.username,
-          email: data.user.email,
           picture: data.user.picture,
         });
         setRepertoireAuthor(data.user.username);

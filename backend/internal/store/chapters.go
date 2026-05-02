@@ -53,6 +53,33 @@ func (db *DB) CreateChapter(event domain.ChapterEvent) error {
 	return err
 }
 
+// DeleteChapter removes a chapter doc and pulls its id from the parent
+// repertoire's chapters array. Counterpart to CreateChapter; the
+// repertoire's chapters[] is the canonical ordered list, so we have to
+// keep it in sync to prevent FetchChaptersByOwner from issuing $in
+// queries against a dangling id.
+func (db *DB) DeleteChapter(chapterID string) error {
+	chColl := db.db.Collection("chapters")
+	var doc chapterDoc
+	err := chColl.FindOne(context.TODO(), bson.M{"_id": chapterID}).Decode(&doc)
+	if err == mongo.ErrNoDocuments {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := chColl.DeleteOne(context.TODO(), bson.M{"_id": chapterID}); err != nil {
+		return err
+	}
+	repColl := db.db.Collection("repertoires")
+	_, err = repColl.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": doc.RepertoireID},
+		bson.M{"$pull": bson.M{"chapters": chapterID}},
+	)
+	return err
+}
+
 // AddMoveToChapter adds a single move to a chapter's flattened move map.
 // The key is the move's path (parent path + move ID).
 // TODO shouldn't have to read entire chapter to put move in there.
@@ -76,7 +103,10 @@ func (db *DB) AddMoveToChapter(event domain.MoveEvent) error {
 	return err
 }
 
-// UpdateTrainingState sets a single user's training card on a specific node.
+// UpdateTrainingState sets a single user's training card on a specific
+// node. The training map is keyed by username so that the (username,
+// picture) public identity is the only thing peers need to render
+// per-user progress — no Google sub on the wire.
 func (db *DB) UpdateTrainingState(event domain.TrainingUpdatedEvent) error {
 	coll := db.db.Collection("chapters")
 
@@ -94,7 +124,7 @@ func (db *DB) UpdateTrainingState(event domain.TrainingUpdatedEvent) error {
 	if move.Training == nil {
 		move.Training = make(map[string]*domain.CardData)
 	}
-	move.Training[event.UserSub] = &event.Card
+	move.Training[event.Username] = &event.Card
 	doc.Moves[event.Path] = move
 
 	_, err = coll.ReplaceOne(context.TODO(), bson.M{"_id": event.ChapterID}, doc)

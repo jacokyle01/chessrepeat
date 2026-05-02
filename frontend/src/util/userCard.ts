@@ -1,11 +1,13 @@
 import type { Card } from 'ts-fsrs';
 import type { TrainingData } from '../types/training';
-import { PLAYGROUND_SUB, useAuthStore } from '../store/auth';
+import { PLAYGROUND_KEY, useAuthStore } from '../store/auth';
 
-/** Get the current user's Card from a node's training map, or null if unseen. */
-export function userCard(data: TrainingData, sub?: string): Card | null {
+// Read the current user's SRS card from a node's training map. The map
+// is keyed by username for signed-in users (server stamps it from the
+// session) and by PLAYGROUND_KEY for the local-only playground.
+export function userCard(data: TrainingData, username?: string): Card | null {
   const auth = useAuthStore.getState();
-  const key = sub ?? auth.user?.sub ?? (!auth.isAuthenticated() ? PLAYGROUND_SUB : null);
+  const key = username ?? auth.user?.username ?? (!auth.isAuthenticated() ? PLAYGROUND_KEY : null);
   if (!key) return null;
   return data.training?.[key] ?? null;
 }

@@ -15,7 +15,7 @@ import (
 // Login upserts the user and opens a session. Chapters are created on
 // demand via the WebSocket chapter_created event; there is no separate
 // repertoire row.
-func Login(db *store.DB) http.HandlerFunc {
+func Login(db *store.DB, googleClientID string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -33,7 +33,7 @@ func Login(db *store.DB) http.HandlerFunc {
 
 		// verify the Google ID token: signature, issuer, expiry, audience —
 		// we are trading this for a session
-		claims, err := auth.VerifyGoogleIDToken(r.Context(), body.IDToken)
+		claims, err := auth.VerifyGoogleIDToken(r.Context(), body.IDToken, googleClientID)
 		if err != nil {
 			log.Println("google id token verification failed:", err)
 			http.Error(w, "invalid id token", http.StatusUnauthorized)

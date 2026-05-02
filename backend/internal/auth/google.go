@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"os"
 
 	"google.golang.org/api/idtoken"
 )
@@ -18,11 +17,10 @@ type GoogleClaims struct {
 
 // VerifyGoogleIDToken validates a Google-issued ID token. It checks
 // signature (against Google's JWKS), issuer, expiry, and that the aud
-// claim matches GOOGLE_CLIENT_ID.
-func VerifyGoogleIDToken(ctx context.Context, rawToken string) (*GoogleClaims, error) {
-	audience := os.Getenv("GOOGLE_CLIENT_ID")
+// claim matches the provided audience (GOOGLE_CLIENT_ID).
+func VerifyGoogleIDToken(ctx context.Context, rawToken, audience string) (*GoogleClaims, error) {
 	if audience == "" {
-		return nil, errors.New("GOOGLE_CLIENT_ID env var not set")
+		return nil, errors.New("google client id not configured")
 	}
 
 	payload, err := idtoken.Validate(ctx, rawToken, audience)

@@ -26,6 +26,11 @@ type Server struct {
 
 	db *store.DB
 
+	// allowedOrigins is the whitelist of Origin headers permitted on the
+	// WebSocket upgrade. Origins are stored as raw `host:port` patterns
+	// matching coder/websocket's OriginPatterns.
+	allowedOrigins []string
+
 	logf func(f string, v ...any)
 
 	// mu protects both the rooms map and each room's subscriber set.
@@ -52,14 +57,17 @@ type subscriber struct {
 }
 
 func (s *subscriber) peerInfo() domain.PeerInfo {
-	return domain.PeerInfo{UserID: s.userID, Username: s.username, Picture: s.picture}
+	return domain.PeerInfo{Username: s.username, Picture: s.picture}
 }
 
-// NewServer constructs a Server with the defaults.
-func NewServer(db *store.DB) *Server {
+// NewServer constructs a Server with the defaults. originPatterns is the
+// list of Origin host[:port] patterns accepted on the WebSocket upgrade
+// (see coder/websocket AcceptOptions.OriginPatterns).
+func NewServer(db *store.DB, originPatterns []string) *Server {
 	return &Server{
 		subscriberMessageBuffer: 16,
 		db:                      db,
+		allowedOrigins:          originPatterns,
 		logf:                    log.Printf,
 		rooms:                   make(map[string]*room),
 	}
@@ -147,7 +155,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 	defer s.leave(sub)
 
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"localhost:5173"},
+		OriginPatterns: s.allowedOrigins,
 	})
 	if err != nil {
 		return err
