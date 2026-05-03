@@ -91,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           install -d "${{ secrets.VPS_PATH }}"
-          cp docker-compose.yml Caddyfile "${{ secrets.VPS_PATH }}/"
+          cp docker-compose.yml "${{ secrets.VPS_PATH }}/"
           cp backend/schema.sql "${{ secrets.VPS_PATH }}/"
       - name: pull image and restart
         run: |
