@@ -1,0 +1,69 @@
+-- chessrepeat Postgres schema.
+-- Apply once before the server boots:
+--   psql "$POSTGRES_URL" -f schema.sql
+
+CREATE TABLE users (
+  token_id TEXT PRIMARY KEY,
+  username TEXT UNIQUE,
+  email    TEXT NOT NULL,
+  picture  TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE sessions (
+  session_id TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+-- TODO add a permissions column later (e.g. read/write/admin).
+CREATE TABLE collaborators (
+  owner_id        TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
+  collaborator_id TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
+  PRIMARY KEY (owner_id, collaborator_id)
+);
+CREATE INDEX collaborators_collaborator ON collaborators (collaborator_id);
+
+CREATE TABLE chapters (
+  uuid          TEXT PRIMARY KEY,
+  owner_id      TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
+  name          TEXT NOT NULL,
+  train_as      TEXT NOT NULL,
+  enabled_count INT  NOT NULL,
+  unseen_count  INT  NOT NULL
+);
+CREATE INDEX chapters_owner ON chapters (owner_id);
+
+CREATE TABLE moves (
+  chapter_id TEXT NOT NULL REFERENCES chapters(uuid) ON DELETE CASCADE,
+  path       TEXT NOT NULL,
+  id         TEXT NOT NULL,
+  fen        TEXT NOT NULL,
+  ply        INT  NOT NULL,
+  san        TEXT NOT NULL,
+  comment    TEXT NOT NULL DEFAULT '',
+  enabled    BOOL NOT NULL,
+  PRIMARY KEY (chapter_id, path)
+);
+-- text_pattern_ops makes `path LIKE 'prefix%'` index-eligible, which is
+-- what DeleteNodeFromChapter / SetEnabledRecursive need to avoid a
+-- chapter-wide scan.
+CREATE INDEX moves_chapter_path_prefix
+  ON moves (chapter_id, path text_pattern_ops);
+
+CREATE TABLE training_cards (
+  chapter_id     TEXT NOT NULL,
+  path           TEXT NOT NULL,
+  username       TEXT NOT NULL,
+  due            TEXT NOT NULL,
+  stability      DOUBLE PRECISION NOT NULL,
+  difficulty     DOUBLE PRECISION NOT NULL,
+  elapsed_days   INT NOT NULL,
+  scheduled_days INT NOT NULL,
+  reps           INT NOT NULL,
+  lapses         INT NOT NULL,
+  state          INT NOT NULL,
+  last_review    TEXT NOT NULL,
+  PRIMARY KEY (chapter_id, path, username),
+  FOREIGN KEY (chapter_id, path) REFERENCES moves(chapter_id, path) ON DELETE CASCADE
+);

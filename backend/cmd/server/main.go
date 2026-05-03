@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"chessrepeat/internal/api"
+	"chessrepeat/internal/auth"
 	"chessrepeat/internal/config"
 	"chessrepeat/internal/store"
 	"chessrepeat/internal/ws"
@@ -16,8 +17,9 @@ func main() {
 	log.Println("starting server...")
 
 	cfg := config.Load()
+	auth.Init(cfg.CookieSecure)
 
-	db := store.Connect(cfg.MongoURI, cfg.MongoDB)
+	db := store.Connect(cfg.PostgresURL)
 	wsServer := ws.NewServer(db, wsOriginPatterns(cfg.AllowedOrigins))
 
 	mux := http.NewServeMux()

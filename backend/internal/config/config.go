@@ -14,9 +14,12 @@ import (
 type Config struct {
 	ListenAddr     string
 	AllowedOrigins []string
-	MongoURI       string
-	MongoDB        string
+	PostgresURL    string
 	GoogleClientID string
+	// CookieSecure turns on the Secure flag and the __Host- prefix on
+	// the session cookie. Set COOKIE_SECURE=true in any environment
+	// behind TLS; leave unset for local HTTP development.
+	CookieSecure bool
 }
 
 // Load reads .env (if present) and resolves every config value, applying
@@ -31,9 +34,9 @@ func Load() Config {
 	cfg := Config{
 		ListenAddr:     getEnv("LISTEN_ADDR", ":8080"),
 		AllowedOrigins: splitAndTrim(getEnv("ALLOWED_ORIGINS", "http://localhost:5173")),
-		MongoURI:       getEnv("MONGO_URI", "mongodb://localhost:27017"),
-		MongoDB:        getEnv("MONGO_DB", "chessrepeat"),
+		PostgresURL:    getEnv("POSTGRES_URL", "postgres://localhost:5432/chessrepeat?sslmode=disable"),
 		GoogleClientID: os.Getenv("GOOGLE_CLIENT_ID"),
+		CookieSecure:   strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true"),
 	}
 
 	if cfg.GoogleClientID == "" {

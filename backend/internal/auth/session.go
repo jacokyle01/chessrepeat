@@ -9,13 +9,36 @@ import (
 )
 
 // SessionCookieName is the HTTP-only cookie that carries the opaque
-// session id on every request from the browser.
-const SessionCookieName = "chessrepeat_session"
+// session id on every request from the browser. The name is rewritten
+// at startup by Init: in secure mode it gains the `__Host-` prefix,
+// which forbids a Domain attribute, requires Path=/, and refuses to be
+// set over plaintext — three properties the browser then enforces.
+var SessionCookieName = "chessrepeat_session"
 
 // SessionHintCookieName is a non-HttpOnly companion cookie so the
 // frontend can cheaply tell whether a session exists without probing
-// /me. It carries no secret — just a flag — so exposing it to JS is safe.
+// /me. It carries no secret — just a flag — so exposing it to JS is
+// safe. Name is *not* prefixed in secure mode because the SPA reads it
+// by name (frontend/src/hooks/useStartup.ts).
 const SessionHintCookieName = "chessrepeat_has_session"
+
+// secureCookies toggles the Secure flag on every cookie we set, plus
+// the __Host- prefix on SessionCookieName. Configured at startup via
+// Init from the COOKIE_SECURE env var; defaults to false so localhost
+// HTTP development still works.
+var secureCookies = false
+
+// Init wires deployment-time cookie settings. Call once at startup
+// (before any handler runs) with secure=true in any environment that
+// terminates TLS — the Secure flag prevents the browser from ever
+// sending the cookie over plaintext, and the __Host- prefix makes
+// that guarantee browser-enforced.
+func Init(secure bool) {
+	secureCookies = secure
+	if secure {
+		SessionCookieName = "__Host-chessrepeat_session"
+	}
+}
 
 // NewSessionID returns a cryptographically random opaque session id.
 func NewSessionID() (string, error) {
@@ -44,6 +67,7 @@ func SetSessionCookies(w http.ResponseWriter, sess store.Session) {
 		Value:    sess.SessionID,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  sess.ExpiresAt,
 	})
@@ -52,6 +76,7 @@ func SetSessionCookies(w http.ResponseWriter, sess store.Session) {
 		Value:    "1",
 		Path:     "/",
 		HttpOnly: false,
+		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  sess.ExpiresAt,
 	})
@@ -64,6 +89,7 @@ func ClearSessionCookies(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
@@ -72,6 +98,7 @@ func ClearSessionCookies(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: false,
+		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})

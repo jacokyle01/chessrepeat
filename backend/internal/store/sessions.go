@@ -2,18 +2,18 @@ package store
 
 import (
 	"context"
+	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"github.com/jackc/pgx/v5"
 )
 
 // Session is a server-side authenticated session record.
 type Session struct {
-	SessionID string    `bson:"_id"        json:"sessionId"`
-	UserID    string    `bson:"user_id"    json:"userId"`
-	CreatedAt time.Time `bson:"created_at" json:"createdAt"`
-	ExpiresAt time.Time `bson:"expires_at" json:"expiresAt"`
+	SessionID string    `json:"sessionId"`
+	UserID    string    `json:"userId"`
+	CreatedAt time.Time `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 // CreateSession persists a new session bound to a user. The caller owns
@@ -28,8 +28,11 @@ func (db *DB) CreateSession(id string, userID string) (Session, error) {
 		CreatedAt: now,
 		ExpiresAt: now.Add(30 * 24 * time.Hour),
 	}
-	coll := db.db.Collection("sessions")
-	if _, err := coll.InsertOne(context.TODO(), sess); err != nil {
+	_, err := db.pool.Exec(context.TODO(), `
+		INSERT INTO sessions (session_id, user_id, created_at, expires_at)
+		VALUES ($1, $2, $3, $4)
+	`, sess.SessionID, sess.UserID, sess.CreatedAt, sess.ExpiresAt)
+	if err != nil {
 		return Session{}, err
 	}
 	return sess, nil
@@ -39,10 +42,13 @@ func (db *DB) CreateSession(id string, userID string) (Session, error) {
 // not expired. A nil session with nil error means "not found or expired".
 // TODO session invalidation?
 func (db *DB) FetchSession(sessionID string) (*Session, error) {
-	coll := db.db.Collection("sessions")
 	var sess Session
-	err := coll.FindOne(context.TODO(), bson.M{"_id": sessionID}).Decode(&sess)
-	if err == mongo.ErrNoDocuments {
+	err := db.pool.QueryRow(context.TODO(), `
+		SELECT session_id, user_id, created_at, expires_at
+		FROM sessions
+		WHERE session_id = $1
+	`, sessionID).Scan(&sess.SessionID, &sess.UserID, &sess.CreatedAt, &sess.ExpiresAt)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -55,7 +61,7 @@ func (db *DB) FetchSession(sessionID string) (*Session, error) {
 }
 
 func (db *DB) DeleteSession(sessionID string) error {
-	coll := db.db.Collection("sessions")
-	_, err := coll.DeleteOne(context.TODO(), bson.M{"_id": sessionID})
+	_, err := db.pool.Exec(context.TODO(),
+		`DELETE FROM sessions WHERE session_id = $1`, sessionID)
 	return err
 }

@@ -5,37 +5,32 @@ import (
 	"log"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// DB wraps the Mongo client and the named database we operate on.
+// Schema lives in backend/schema.sql — apply it once before booting.
+
+// DB wraps a pgx connection pool.
 type DB struct {
-	client *mongo.Client
-	db     *mongo.Database
+	pool *pgxpool.Pool
 }
 
-// Connect dials Mongo and pings to fail-fast on bad config. The caller
+// Connect dials Postgres and pings to fail-fast on bad config. The caller
 // is responsible for loading any .env file before invoking this.
-func Connect(uri, dbName string) *DB {
-	log.Println("connecting to MongoDB...")
+func Connect(url string) *DB {
+	log.Println("connecting to Postgres...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if err := client.Ping(ctx, nil); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("connected to MongoDB!")
-
-	return &DB{
-		client: client,
-		db:     client.Database(dbName),
-	}
+	log.Println("connected to Postgres!")
+	return &DB{pool: pool}
 }
