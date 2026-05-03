@@ -1,0 +1,6 @@
+.env
+.env.*
+*.log
+README.md
+schema.sql
+chessrepeat

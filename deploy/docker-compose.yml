@@ -1,0 +1,64 @@
+name: chessrepeat
+
+# Production stack for the VPS. The CI workflow rsyncs this file (plus
+# Caddyfile and schema.sql) to the deploy directory on the server, then
+# runs `docker compose pull && docker compose up -d`.
+#
+# Secrets and per-host knobs come from a `.env` file that lives ONLY on
+# the VPS (see .env.example). Image tags pin to :latest by default; set
+# IMAGE_TAG=<sha> in .env to roll forward/back to a specific commit.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Postgres runs every *.sql in this directory once, on the very
+      # first boot of an empty data volume. Subsequent deploys skip it.
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/${GH_OWNER}/chessrepeat-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      LISTEN_ADDR: ":8080"
+      COOKIE_SECURE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/${GH_OWNER}/chessrepeat-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
