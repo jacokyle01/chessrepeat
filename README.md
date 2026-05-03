@@ -1,4 +1,4 @@
-# chessrepeat
+# Chessrepeat
 A website to train chess openings using spaced repetition.
 
 ## Prerequisites
