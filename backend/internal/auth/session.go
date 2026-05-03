@@ -50,7 +50,7 @@ func NewSessionID() (string, error) {
 }
 
 // CreateSession mints a session id and persists it.
-func CreateSession(db *store.DB, userID string) (store.Session, error) {
+func CreateSession(db store.Repo, userID string) (store.Session, error) {
 	id, err := NewSessionID()
 	if err != nil {
 		return store.Session{}, err
@@ -107,7 +107,7 @@ func ClearSessionCookies(w http.ResponseWriter) {
 // RequireSession resolves the session cookie and returns the session
 // doc, or writes a 401 and returns ok=false. Small helper to keep the
 // HTTP handlers from repeating the same cookie-parse boilerplate.
-func RequireSession(db *store.DB, w http.ResponseWriter, r *http.Request) (*store.Session, bool) {
+func RequireSession(db store.Repo, w http.ResponseWriter, r *http.Request) (*store.Session, bool) {
 	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)

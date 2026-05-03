@@ -10,7 +10,7 @@ import (
 	"chessrepeat/internal/store"
 )
 
-func GetOutgoingCollaborators(db *store.DB) http.HandlerFunc {
+func GetOutgoingCollaborators(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := auth.RequireSession(db, w, r)
 		if !ok {
@@ -27,7 +27,7 @@ func GetOutgoingCollaborators(db *store.DB) http.HandlerFunc {
 	}
 }
 
-func GetIncomingCollaborators(db *store.DB) http.HandlerFunc {
+func GetIncomingCollaborators(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := auth.RequireSession(db, w, r)
 		if !ok {
@@ -44,7 +44,7 @@ func GetIncomingCollaborators(db *store.DB) http.HandlerFunc {
 	}
 }
 
-func AddCollaborator(db *store.DB) http.HandlerFunc {
+func AddCollaborator(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := auth.RequireSession(db, w, r)
 		if !ok {
@@ -84,7 +84,7 @@ func AddCollaborator(db *store.DB) http.HandlerFunc {
 	}
 }
 
-func RemoveCollaborator(db *store.DB) http.HandlerFunc {
+func RemoveCollaborator(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := auth.RequireSession(db, w, r)
 		if !ok {

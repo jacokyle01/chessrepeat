@@ -14,7 +14,7 @@ import (
 // session cookie) or, if owner=<username> is set, that user's repertoire.
 // The response shape is {user, chapters} — each user IS their repertoire,
 // so the owner's profile doubles as repertoire metadata.
-func GetRepertoire(db *store.DB) http.HandlerFunc {
+func GetRepertoire(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sess, ok := auth.RequireSession(db, w, r)
 		if !ok {

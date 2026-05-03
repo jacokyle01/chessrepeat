@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -12,10 +13,17 @@ import (
 	"chessrepeat/internal/store"
 )
 
+// googleVerifier is the function shape of auth.VerifyGoogleIDToken.
+// Exposed as a package-level var so tests can stub the network round
+// trip to Google without rewiring every Login signature.
+type googleVerifier func(ctx context.Context, token, audience string) (*auth.GoogleClaims, error)
+
+var verifyGoogleIDToken googleVerifier = auth.VerifyGoogleIDToken
+
 // Login upserts the user and opens a session. Chapters are created on
 // demand via the WebSocket chapter_created event; there is no separate
 // repertoire row.
-func Login(db *store.DB, googleClientID string) http.HandlerFunc {
+func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -33,7 +41,7 @@ func Login(db *store.DB, googleClientID string) http.HandlerFunc {
 
 		// verify the Google ID token: signature, issuer, expiry, audience —
 		// we are trading this for a session
-		claims, err := auth.VerifyGoogleIDToken(r.Context(), body.IDToken, googleClientID)
+		claims, err := verifyGoogleIDToken(r.Context(), body.IDToken, googleClientID)
 		if err != nil {
 			log.Println("google id token verification failed:", err)
 			http.Error(w, "invalid id token", http.StatusUnauthorized)
@@ -118,7 +126,7 @@ func Login(db *store.DB, googleClientID string) http.HandlerFunc {
 // Used by the signup form to show live availability feedback before
 // the user submits. Validation rules mirror what we'd enforce on
 // upsert: 3–20 chars, [a-z0-9_], lowercased.
-func CheckUsername(db *store.DB) http.HandlerFunc {
+func CheckUsername(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("username")))
 		w.Header().Set("Content-Type", "application/json")
@@ -152,7 +160,7 @@ var usernameRe = regexp.MustCompile(`^[a-z0-9_]{3,20}$`)
 
 func isValidUsername(u string) bool { return usernameRe.MatchString(u) }
 
-func Logout(db *store.DB) http.HandlerFunc {
+func Logout(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
