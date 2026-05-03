@@ -1,0 +1,111 @@
+name: deploy
+
+# On push to main: tests run on the VPS via a self-hosted runner; if
+# they pass, the backend image is built on GitHub-hosted infra and
+# pushed to GHCR; the VPS-side runner then pulls the image and
+# restarts the docker-compose stack in place.
+#
+# On PR: a lightweight test job runs on a GitHub-hosted runner so
+# merging doesn't depend on the VPS being up.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ${{ github.repository }}-backend
+
+jobs:
+  # PR-only quick test on GitHub-hosted infra.
+  test-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: vet
+        working-directory: backend
+        run: go vet ./...
+      - name: test
+        working-directory: backend
+        run: go test -race ./...
+
+  # Real gate for deploys: tests run on the VPS itself.
+  test-on-vps:
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, chessrepeat-vps]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: vet
+        working-directory: backend
+        run: go vet ./...
+      - name: test
+        working-directory: backend
+        run: go test -race ./...
+
+  build-and-push:
+    if: github.event_name == 'push'
+    needs: test-on-vps
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: build-and-push
+    runs-on: [self-hosted, chessrepeat-vps]
+    steps:
+      - uses: actions/checkout@v4
+      - name: stage compose files into deploy dir
+        # The runner is on the VPS, so we just copy the live config
+        # into ${VPS_PATH}. No rsync, no SSH.
+        run: |
+          set -euo pipefail
+          install -d "${{ secrets.VPS_PATH }}"
+          cp docker-compose.yml Caddyfile "${{ secrets.VPS_PATH }}/"
+          cp backend/schema.sql "${{ secrets.VPS_PATH }}/"
+      - name: pull image and restart
+        run: |
+          set -euo pipefail
+          cd "${{ secrets.VPS_PATH }}"
+          echo "${{ secrets.GHCR_PULL_TOKEN }}" \
+            | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker image prune -f
+      - name: smoke test
+        run: |
+          # Give Caddy a moment to swap upstreams, then check the API
+          # is reachable from the public internet.
+          sleep 5
+          curl -fsS --max-time 10 https://${{ secrets.API_HOSTNAME }}/healthz \
+            || (echo "smoke test failed — check 'docker compose logs' on the VPS"; exit 1)

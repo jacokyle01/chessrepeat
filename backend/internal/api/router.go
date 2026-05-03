@@ -18,4 +18,7 @@ func Register(mux *http.ServeMux, db store.Repo, googleClientID string) {
 	mux.HandleFunc("GET /collaborators/incoming", GetIncomingCollaborators(db))
 	mux.HandleFunc("POST /collaborators", AddCollaborator(db))
 	mux.HandleFunc("DELETE /collaborators/{username}", RemoveCollaborator(db))
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 }

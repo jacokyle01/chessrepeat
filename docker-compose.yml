@@ -1,8 +1,10 @@
 name: chessrepeat
 
-# Production stack for the VPS. The CI workflow rsyncs this file (plus
-# Caddyfile and schema.sql) to the deploy directory on the server, then
-# runs `docker compose pull && docker compose up -d`.
+# Production stack for the VPS. The frontend is hosted on Cloudflare
+# Pages (built from the same git repo), so the VPS only runs the
+# API-side services. The CI workflow rsyncs this file (plus Caddyfile
+# and schema.sql) to the deploy directory on the server, then runs
+# `docker compose pull && docker compose up -d`.
 #
 # Secrets and per-host knobs come from a `.env` file that lives ONLY on
 # the VPS (see .env.example). Image tags pin to :latest by default; set
@@ -40,10 +42,6 @@ services:
       postgres:
         condition: service_healthy
 
-  frontend:
-    image: ghcr.io/${GH_OWNER}/chessrepeat-frontend:${IMAGE_TAG:-latest}
-    restart: unless-stopped
-
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -56,7 +54,6 @@ services:
       - caddy_config:/config
     depends_on:
       - backend
-      - frontend
 
 volumes:
   pgdata:
