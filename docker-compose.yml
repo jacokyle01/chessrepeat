@@ -1,15 +1,5 @@
 name: chessrepeat
 
-# Production stack for the VPS. The frontend is hosted on Cloudflare
-# Pages (built from the same git repo), so the VPS only runs the
-# API-side services. The CI workflow rsyncs this file (plus Caddyfile
-# and schema.sql) to the deploy directory on the server, then runs
-# `docker compose pull && docker compose up -d`.
-#
-# Secrets and per-host knobs come from a `.env` file that lives ONLY on
-# the VPS (see .env.example). Image tags pin to :latest by default; set
-# IMAGE_TAG=<sha> in .env to roll forward/back to a specific commit.
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -38,24 +28,11 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       LISTEN_ADDR: ":8080"
       COOKIE_SECURE: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - backend
-
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
