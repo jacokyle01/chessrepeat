@@ -13,8 +13,7 @@ import (
 // CreateChapter inserts the chapter row and bulk-inserts its flattened
 // move tree. Wrapped in a transaction so a partial failure can't leave a
 // chapter with no moves.
-func (db *DB) CreateChapter(event domain.ChapterEvent) error {
-	ctx := context.TODO()
+func (db *DB) CreateChapter(ctx context.Context, event domain.ChapterEvent) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -56,17 +55,17 @@ func (db *DB) CreateChapter(event domain.ChapterEvent) error {
 
 // DeleteChapter removes a chapter row. Moves and training_cards cascade
 // via FK ON DELETE CASCADE.
-func (db *DB) DeleteChapter(chapterID string) error {
-	_, err := db.pool.Exec(context.TODO(),
+func (db *DB) DeleteChapter(ctx context.Context, chapterID string) error {
+	_, err := db.pool.Exec(ctx,
 		`DELETE FROM chapters WHERE uuid = $1`, chapterID)
 	return err
 }
 
 // AddMoveToChapter upserts a single move. The key is the move's path
 // (parent path + move ID).
-func (db *DB) AddMoveToChapter(event domain.MoveEvent) error {
+func (db *DB) AddMoveToChapter(ctx context.Context, event domain.MoveEvent) error {
 	movePath := event.Path + event.Move.ID
-	_, err := db.pool.Exec(context.TODO(), `
+	_, err := db.pool.Exec(ctx, `
 		INSERT INTO moves
 			(chapter_id, path, id, fen, ply, san, comment, enabled)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -93,9 +92,9 @@ func (db *DB) AddMoveToChapter(event domain.MoveEvent) error {
 // The INSERT...SELECT WHERE EXISTS guard mirrors the previous
 // "node not found, nothing to update" Mongo behavior: if the move row
 // doesn't exist, the insert is a no-op rather than an FK error.
-func (db *DB) UpdateTrainingState(event domain.TrainingUpdatedEvent) error {
+func (db *DB) UpdateTrainingState(ctx context.Context, event domain.TrainingUpdatedEvent) error {
 	c := event.Card
-	_, err := db.pool.Exec(context.TODO(), `
+	_, err := db.pool.Exec(ctx, `
 		INSERT INTO training_cards
 			(chapter_id, path, username, due, stability, difficulty,
 			 elapsed_days, scheduled_days, reps, lapses, state, last_review)
@@ -133,8 +132,7 @@ func (db *DB) UpdateTrainingState(event domain.TrainingUpdatedEvent) error {
 // the delete; combined with escapeLike on the prefix pattern, this
 // prevents a client from over-matching descendants by smuggling LIKE
 // wildcards into the path.
-func (db *DB) DeleteNodeFromChapter(event domain.NodeDeleteEvent) error {
-	ctx := context.TODO()
+func (db *DB) DeleteNodeFromChapter(ctx context.Context, event domain.NodeDeleteEvent) error {
 	ok, err := db.pathExists(ctx, event.ChapterID, event.Path)
 	if err != nil || !ok {
 		return err
@@ -150,8 +148,7 @@ func (db *DB) DeleteNodeFromChapter(event domain.NodeDeleteEvent) error {
 // SetEnabledRecursive sets the enabled flag on a node and all its
 // descendants. Same prefix-match and same path-existence guard as
 // DeleteNodeFromChapter.
-func (db *DB) SetEnabledRecursive(chapterID string, path string, enabled bool) error {
-	ctx := context.TODO()
+func (db *DB) SetEnabledRecursive(ctx context.Context, chapterID string, path string, enabled bool) error {
 	ok, err := db.pathExists(ctx, chapterID, path)
 	if err != nil || !ok {
 		return err
@@ -193,8 +190,7 @@ func escapeLike(s string) string {
 // FetchChaptersByOwner returns every chapter belonging to a user. Loads
 // chapters, moves, and training_cards in three queries, then assembles
 // the trees in Go.
-func (db *DB) FetchChaptersByOwner(ownerID string) ([]domain.ChapterTreeResponse, error) {
-	ctx := context.TODO()
+func (db *DB) FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domain.ChapterTreeResponse, error) {
 	chapters := make([]domain.ChapterTreeResponse, 0)
 
 	chRows, err := db.pool.Query(ctx, `
@@ -256,8 +252,7 @@ func (db *DB) FetchChaptersByOwner(ownerID string) ([]domain.ChapterTreeResponse
 }
 
 // ReadChapterAsTree fetches one chapter and rebuilds the move tree.
-func (db *DB) ReadChapterAsTree(chapterID string) (*domain.ChapterTreeResponse, error) {
-	ctx := context.TODO()
+func (db *DB) ReadChapterAsTree(ctx context.Context, chapterID string) (*domain.ChapterTreeResponse, error) {
 	var resp domain.ChapterTreeResponse
 	err := db.pool.QueryRow(ctx, `
 		SELECT uuid, name, train_as, enabled_count, unseen_count

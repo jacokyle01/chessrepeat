@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -12,6 +13,10 @@ import (
 // mirrors the behaviour of the real Postgres-backed store; mutations
 // are guarded by a mutex so a handler that runs concurrent reads/writes
 // (the WS dispatch path doesn't, but it costs nothing) doesn't race.
+//
+// ctx is accepted by every method to satisfy the Repo contract, but
+// not honored — the in-memory ops complete instantly so cancellation
+// has nothing to interrupt.
 type fakeStore struct {
 	mu sync.Mutex
 
@@ -55,7 +60,7 @@ func (f *fakeStore) withErr(name string, err error) {
 	f.errOn[name] = err
 }
 
-func (f *fakeStore) UpsertUser(u domain.User) error {
+func (f *fakeStore) UpsertUser(_ context.Context, u domain.User) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("UpsertUser"); err != nil {
@@ -71,7 +76,7 @@ func (f *fakeStore) UpsertUser(u domain.User) error {
 	return nil
 }
 
-func (f *fakeStore) FetchUser(tokenID string) (*domain.User, error) {
+func (f *fakeStore) FetchUser(_ context.Context, tokenID string) (*domain.User, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("FetchUser"); err != nil {
@@ -85,7 +90,7 @@ func (f *fakeStore) FetchUser(tokenID string) (*domain.User, error) {
 	return &cp, nil
 }
 
-func (f *fakeStore) FetchUserByUsername(username string) (*domain.User, error) {
+func (f *fakeStore) FetchUserByUsername(_ context.Context, username string) (*domain.User, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("FetchUserByUsername"); err != nil {
@@ -99,7 +104,7 @@ func (f *fakeStore) FetchUserByUsername(username string) (*domain.User, error) {
 	return &u, nil
 }
 
-func (f *fakeStore) CreateSession(id, userID string) (store.Session, error) {
+func (f *fakeStore) CreateSession(_ context.Context, id, userID string) (store.Session, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("CreateSession"); err != nil {
@@ -116,7 +121,7 @@ func (f *fakeStore) CreateSession(id, userID string) (store.Session, error) {
 	return sess, nil
 }
 
-func (f *fakeStore) FetchSession(id string) (*store.Session, error) {
+func (f *fakeStore) FetchSession(_ context.Context, id string) (*store.Session, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("FetchSession"); err != nil {
@@ -132,7 +137,7 @@ func (f *fakeStore) FetchSession(id string) (*store.Session, error) {
 	return &sess, nil
 }
 
-func (f *fakeStore) DeleteSession(id string) error {
+func (f *fakeStore) DeleteSession(_ context.Context, id string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("DeleteSession"); err != nil {
@@ -142,7 +147,7 @@ func (f *fakeStore) DeleteSession(id string) error {
 	return nil
 }
 
-func (f *fakeStore) FetchChaptersByOwner(ownerID string) ([]domain.ChapterTreeResponse, error) {
+func (f *fakeStore) FetchChaptersByOwner(_ context.Context, ownerID string) ([]domain.ChapterTreeResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("FetchChaptersByOwner"); err != nil {
@@ -153,7 +158,7 @@ func (f *fakeStore) FetchChaptersByOwner(ownerID string) ([]domain.ChapterTreeRe
 	return out, nil
 }
 
-func (f *fakeStore) AddCollaborator(ownerID, collaboratorID string) error {
+func (f *fakeStore) AddCollaborator(_ context.Context, ownerID, collaboratorID string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("AddCollaborator"); err != nil {
@@ -163,7 +168,7 @@ func (f *fakeStore) AddCollaborator(ownerID, collaboratorID string) error {
 	return nil
 }
 
-func (f *fakeStore) RemoveCollaborator(ownerID, collaboratorID string) error {
+func (f *fakeStore) RemoveCollaborator(_ context.Context, ownerID, collaboratorID string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("RemoveCollaborator"); err != nil {
@@ -173,7 +178,7 @@ func (f *fakeStore) RemoveCollaborator(ownerID, collaboratorID string) error {
 	return nil
 }
 
-func (f *fakeStore) FetchOutgoingCollaborators(ownerID string) ([]domain.CollaboratorView, error) {
+func (f *fakeStore) FetchOutgoingCollaborators(_ context.Context, ownerID string) ([]domain.CollaboratorView, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("FetchOutgoingCollaborators"); err != nil {
@@ -191,7 +196,7 @@ func (f *fakeStore) FetchOutgoingCollaborators(ownerID string) ([]domain.Collabo
 	return out, nil
 }
 
-func (f *fakeStore) FetchIncomingCollaborators(userID string) ([]domain.CollaboratorView, error) {
+func (f *fakeStore) FetchIncomingCollaborators(_ context.Context, userID string) ([]domain.CollaboratorView, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("FetchIncomingCollaborators"); err != nil {
@@ -209,7 +214,7 @@ func (f *fakeStore) FetchIncomingCollaborators(userID string) ([]domain.Collabor
 	return out, nil
 }
 
-func (f *fakeStore) CanViewRepertoire(ownerID, viewerID string) (bool, error) {
+func (f *fakeStore) CanViewRepertoire(_ context.Context, ownerID, viewerID string) (bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("CanViewRepertoire"); err != nil {

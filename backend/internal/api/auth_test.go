@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -64,7 +65,7 @@ func TestLogin_RejectsInvalidUsername(t *testing.T) {
 
 func TestLogin_UsernameTaken(t *testing.T) {
 	fs := newFakeStore()
-	if err := fs.UpsertUser(domain.User{TokenID: "other", Username: "alice", Email: "x"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "other", Username: "alice", Email: "x"}); err != nil {
 		t.Fatal(err)
 	}
 	stubVerifier(t, &auth.GoogleClaims{Sub: "new-sub", Email: "e@example.com"}, nil)
@@ -119,7 +120,7 @@ func TestLogin_SuccessNewUser_SetsCookiesAndReturnsRepertoire(t *testing.T) {
 
 func TestLogin_ExistingUserKeepsUsername(t *testing.T) {
 	fs := newFakeStore()
-	if err := fs.UpsertUser(domain.User{TokenID: "sub", Username: "alice", Email: "e", Picture: "old"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "sub", Username: "alice", Email: "e", Picture: "old"}); err != nil {
 		t.Fatal(err)
 	}
 	// Returning user logs in again — no username in the body, but they
@@ -182,7 +183,7 @@ func TestLogout_WithoutCookieStillClears(t *testing.T) {
 
 func TestCheckUsername(t *testing.T) {
 	fs := newFakeStore()
-	if err := fs.UpsertUser(domain.User{TokenID: "t", Username: "alice", Email: "e"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "t", Username: "alice", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
 

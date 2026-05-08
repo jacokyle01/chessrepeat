@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,10 +13,10 @@ import (
 func TestGetOutgoingCollaborators(t *testing.T) {
 	fs := newFakeStore()
 	sid := seedUser(t, fs, domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"})
-	if err := fs.UpsertUser(domain.User{TokenID: "bob-sub", Username: "bob", Email: "e", Picture: "pb"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "bob-sub", Username: "bob", Email: "e", Picture: "pb"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator("owner-sub", "bob-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "bob-sub"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -40,10 +41,10 @@ func TestGetOutgoingCollaborators(t *testing.T) {
 func TestGetIncomingCollaborators(t *testing.T) {
 	fs := newFakeStore()
 	sid := seedUser(t, fs, domain.User{TokenID: "me-sub", Username: "me", Email: "e"})
-	if err := fs.UpsertUser(domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator("owner-sub", "me-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "me-sub"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -68,7 +69,7 @@ func TestGetIncomingCollaborators(t *testing.T) {
 func TestAddCollaborator_Success(t *testing.T) {
 	fs := newFakeStore()
 	sid := seedUser(t, fs, domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"})
-	if err := fs.UpsertUser(domain.User{TokenID: "bob-sub", Username: "bob", Email: "e", Picture: "pb"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "bob-sub", Username: "bob", Email: "e", Picture: "pb"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -142,10 +143,10 @@ func TestAddCollaborator_Unauthorized(t *testing.T) {
 func TestRemoveCollaborator_Success(t *testing.T) {
 	fs := newFakeStore()
 	sid := seedUser(t, fs, domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"})
-	if err := fs.UpsertUser(domain.User{TokenID: "bob-sub", Username: "bob", Email: "e"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "bob-sub", Username: "bob", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator("owner-sub", "bob-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "bob-sub"); err != nil {
 		t.Fatal(err)
 	}
 

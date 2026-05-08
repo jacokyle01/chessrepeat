@@ -20,7 +20,7 @@ type Session struct {
 // session-id generation so the auth package can keep crypto-random
 // concerns in one place.
 // TODO what if we already have a session
-func (db *DB) CreateSession(id string, userID string) (Session, error) {
+func (db *DB) CreateSession(ctx context.Context, id string, userID string) (Session, error) {
 	now := time.Now().UTC()
 	sess := Session{
 		SessionID: id,
@@ -28,7 +28,7 @@ func (db *DB) CreateSession(id string, userID string) (Session, error) {
 		CreatedAt: now,
 		ExpiresAt: now.Add(30 * 24 * time.Hour),
 	}
-	_, err := db.pool.Exec(context.TODO(), `
+	_, err := db.pool.Exec(ctx, `
 		INSERT INTO sessions (session_id, user_id, created_at, expires_at)
 		VALUES ($1, $2, $3, $4)
 	`, sess.SessionID, sess.UserID, sess.CreatedAt, sess.ExpiresAt)
@@ -41,9 +41,9 @@ func (db *DB) CreateSession(id string, userID string) (Session, error) {
 // FetchSession returns the session for the given id if it exists and has
 // not expired. A nil session with nil error means "not found or expired".
 // TODO session invalidation?
-func (db *DB) FetchSession(sessionID string) (*Session, error) {
+func (db *DB) FetchSession(ctx context.Context, sessionID string) (*Session, error) {
 	var sess Session
-	err := db.pool.QueryRow(context.TODO(), `
+	err := db.pool.QueryRow(ctx, `
 		SELECT session_id, user_id, created_at, expires_at
 		FROM sessions
 		WHERE session_id = $1
@@ -60,8 +60,8 @@ func (db *DB) FetchSession(sessionID string) (*Session, error) {
 	return &sess, nil
 }
 
-func (db *DB) DeleteSession(sessionID string) error {
-	_, err := db.pool.Exec(context.TODO(),
+func (db *DB) DeleteSession(ctx context.Context, sessionID string) error {
+	_, err := db.pool.Exec(ctx,
 		`DELETE FROM sessions WHERE session_id = $1`, sessionID)
 	return err
 }

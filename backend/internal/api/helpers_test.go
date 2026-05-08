@@ -29,10 +29,10 @@ func stubVerifier(t *testing.T, claims *auth.GoogleClaims, err error) {
 // session id so callers can attach it as a cookie.
 func seedUser(t *testing.T, fs *fakeStore, u domain.User) string {
 	t.Helper()
-	if err := fs.UpsertUser(u); err != nil {
+	if err := fs.UpsertUser(context.Background(), u); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
-	sess, err := fs.CreateSession("session-"+u.TokenID, u.TokenID)
+	sess, err := fs.CreateSession(context.Background(), "session-"+u.TokenID, u.TokenID)
 	if err != nil {
 		t.Fatalf("seed session: %v", err)
 	}

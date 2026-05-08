@@ -16,7 +16,7 @@ func GetOutgoingCollaborators(db store.Repo) http.HandlerFunc {
 		if !ok {
 			return
 		}
-		collabs, err := db.FetchOutgoingCollaborators(sess.UserID)
+		collabs, err := db.FetchOutgoingCollaborators(r.Context(), sess.UserID)
 		if err != nil {
 			log.Println("failed to fetch outgoing collaborators:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -33,7 +33,7 @@ func GetIncomingCollaborators(db store.Repo) http.HandlerFunc {
 		if !ok {
 			return
 		}
-		collabs, err := db.FetchIncomingCollaborators(sess.UserID)
+		collabs, err := db.FetchIncomingCollaborators(r.Context(), sess.UserID)
 		if err != nil {
 			log.Println("failed to fetch incoming collaborators:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -57,7 +57,7 @@ func AddCollaborator(db store.Repo) http.HandlerFunc {
 			http.Error(w, "missing username", http.StatusBadRequest)
 			return
 		}
-		target, err := db.FetchUserByUsername(body.Username)
+		target, err := db.FetchUserByUsername(r.Context(), body.Username)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -70,7 +70,7 @@ func AddCollaborator(db store.Repo) http.HandlerFunc {
 			http.Error(w, "cannot add yourself", http.StatusBadRequest)
 			return
 		}
-		if err := db.AddCollaborator(sess.UserID, target.TokenID); err != nil {
+		if err := db.AddCollaborator(r.Context(), sess.UserID, target.TokenID); err != nil {
 			log.Println("failed to add collaborator:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -95,7 +95,7 @@ func RemoveCollaborator(db store.Repo) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		target, err := db.FetchUserByUsername(username)
+		target, err := db.FetchUserByUsername(r.Context(), username)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -104,7 +104,7 @@ func RemoveCollaborator(db store.Repo) http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if err := db.RemoveCollaborator(sess.UserID, target.TokenID); err != nil {
+		if err := db.RemoveCollaborator(r.Context(), sess.UserID, target.TokenID); err != nil {
 			log.Println("failed to remove collaborator:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

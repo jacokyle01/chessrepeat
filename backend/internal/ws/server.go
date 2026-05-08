@@ -11,11 +11,32 @@ import (
 
 	"chessrepeat/internal/auth"
 	"chessrepeat/internal/domain"
+	"chessrepeat/internal/ratelimit"
 	"chessrepeat/internal/store"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
+
+// readLimitBytes caps the size of a single inbound WebSocket message.
+// Our largest legit payload is a chapter_created event carrying a PGN —
+// tens of KB at most. 64 KiB is enough headroom that no real client hits
+// it, while preventing an authenticated peer from streaming multi-MB
+// JSON to burn DB/CPU.
+const readLimitBytes int64 = 64 * 1024
+
+// per-subscriber message budget: sustained 10 msg/sec, burst 30. A
+// collaborator entering moves rapidly will fit; a malicious client
+// blasting events gets pinned to the refill rate and silently dropped.
+const (
+	wsBucketCapacity = 30
+	wsRefillPerSec   = 10
+)
+
+// dbOpTimeout caps how long a single ws-driven DB operation may run.
+// The query is cancelled past this even if the client stays connected,
+// so a slow query can't hold a pool connection hostage.
+const dbOpTimeout = 10 * time.Second
 
 // Server maintains per-owner "rooms" of subscribers and fans out
 // messages within each room.
@@ -54,6 +75,10 @@ type subscriber struct {
 	username string
 	picture  string
 	room     *room
+	// readBudget gates inbound messages so a malicious client can't
+	// burn CPU/DB by flooding the connection. Allocated per-connection
+	// so one chatty peer can't starve another.
+	readBudget *ratelimit.Bucket
 }
 
 func (s *subscriber) peerInfo() domain.PeerInfo {
@@ -83,7 +108,7 @@ func (s *Server) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner, err := s.db.FetchUserByUsername(username)
+	owner, err := s.db.FetchUserByUsername(r.Context(), username)
 	if err != nil {
 		http.Error(w, "user lookup failed", http.StatusInternalServerError)
 		return
@@ -115,7 +140,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		http.Error(w, "missing session", http.StatusUnauthorized)
 		return err
 	}
-	sess, err := s.db.FetchSession(cookie.Value)
+	sess, err := s.db.FetchSession(r.Context(), cookie.Value)
 	if err != nil {
 		http.Error(w, "session lookup failed", http.StatusInternalServerError)
 		return err
@@ -125,7 +150,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return errors.New("invalid or expired session")
 	}
 
-	user, err := s.db.FetchUser(sess.UserID)
+	user, err := s.db.FetchUser(r.Context(), sess.UserID)
 	if err != nil {
 		http.Error(w, "user lookup failed", http.StatusInternalServerError)
 		return err
@@ -135,7 +160,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return errors.New("user not found")
 	}
 
-	canView, err := s.db.CanViewRepertoire(ownerID, sess.UserID)
+	canView, err := s.db.CanViewRepertoire(r.Context(), ownerID, sess.UserID)
 	if err != nil {
 		http.Error(w, "view auth check failed", http.StatusInternalServerError)
 		return err
@@ -146,10 +171,11 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 	}
 
 	sub := &subscriber{
-		msgs:     make(chan []byte, s.subscriberMessageBuffer),
-		userID:   sess.UserID,
-		username: user.Username,
-		picture:  user.Picture,
+		msgs:       make(chan []byte, s.subscriberMessageBuffer),
+		userID:     sess.UserID,
+		username:   user.Username,
+		picture:    user.Picture,
+		readBudget: ratelimit.NewBucket(wsBucketCapacity, wsRefillPerSec),
 	}
 	s.join(ownerID, sub)
 	defer s.leave(sub)
@@ -161,6 +187,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return err
 	}
 	defer c.CloseNow()
+	c.SetReadLimit(readLimitBytes)
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -176,7 +203,19 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 			if err != nil {
 				return
 			}
-			s.handleMessage(sub, data)
+			if !sub.readBudget.Allow() {
+				// Pinned to the refill rate — drop silently rather than
+				// closing the socket, since legit clients may briefly
+				// burst above capacity (e.g. paste of a long line).
+				s.logf("ws rate limit: dropping message from user %s", sub.userID)
+				continue
+			}
+			// Per-message DB budget. Bounded so a slow query can't pin
+			// a connection past the message lifetime; derived from ctx
+			// so connection close still cancels in-flight work early.
+			msgCtx, msgCancel := context.WithTimeout(ctx, dbOpTimeout)
+			s.handleMessage(msgCtx, sub, data)
+			msgCancel()
 		}
 	}()
 

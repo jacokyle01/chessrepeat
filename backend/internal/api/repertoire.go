@@ -26,9 +26,9 @@ func GetRepertoire(db store.Repo) http.HandlerFunc {
 			err   error
 		)
 		if q := r.URL.Query().Get("owner"); q != "" {
-			owner, err = db.FetchUserByUsername(q)
+			owner, err = db.FetchUserByUsername(r.Context(), q)
 		} else {
-			owner, err = db.FetchUser(sess.UserID)
+			owner, err = db.FetchUser(r.Context(), sess.UserID)
 		}
 		if err != nil {
 			log.Println("owner lookup failed:", err)
@@ -40,7 +40,7 @@ func GetRepertoire(db store.Repo) http.HandlerFunc {
 			return
 		}
 
-		canView, err := db.CanViewRepertoire(owner.TokenID, sess.UserID)
+		canView, err := db.CanViewRepertoire(r.Context(), owner.TokenID, sess.UserID)
 		if err != nil {
 			log.Println("view auth check failed:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -51,7 +51,7 @@ func GetRepertoire(db store.Repo) http.HandlerFunc {
 			return
 		}
 
-		chapters, err := db.FetchChaptersByOwner(owner.TokenID)
+		chapters, err := db.FetchChaptersByOwner(r.Context(), owner.TokenID)
 		if err != nil {
 			log.Println("failed to fetch chapters:", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -13,8 +13,8 @@ import (
 // re-adding the same pair is a no-op via ON CONFLICT.
 //
 // TODO add a permissions column later (e.g. read/write/admin).
-func (db *DB) AddCollaborator(ownerID string, collaboratorID string) error {
-	_, err := db.pool.Exec(context.TODO(), `
+func (db *DB) AddCollaborator(ctx context.Context, ownerID string, collaboratorID string) error {
+	_, err := db.pool.Exec(ctx, `
 		INSERT INTO collaborators (owner_id, collaborator_id)
 		VALUES ($1, $2)
 		ON CONFLICT DO NOTHING
@@ -22,8 +22,8 @@ func (db *DB) AddCollaborator(ownerID string, collaboratorID string) error {
 	return err
 }
 
-func (db *DB) RemoveCollaborator(ownerID string, collaboratorID string) error {
-	_, err := db.pool.Exec(context.TODO(), `
+func (db *DB) RemoveCollaborator(ctx context.Context, ownerID string, collaboratorID string) error {
+	_, err := db.pool.Exec(ctx, `
 		DELETE FROM collaborators
 		WHERE owner_id = $1 AND collaborator_id = $2
 	`, ownerID, collaboratorID)
@@ -32,8 +32,8 @@ func (db *DB) RemoveCollaborator(ownerID string, collaboratorID string) error {
 
 // FetchOutgoingCollaborators returns the users I have added as
 // collaborators on my chapters.
-func (db *DB) FetchOutgoingCollaborators(ownerID string) ([]domain.CollaboratorView, error) {
-	return db.queryCollaboratorViews(`
+func (db *DB) FetchOutgoingCollaborators(ctx context.Context, ownerID string) ([]domain.CollaboratorView, error) {
+	return db.queryCollaboratorViews(ctx, `
 		SELECT u.username, u.picture
 		FROM collaborators c
 		JOIN users u ON u.token_id = c.collaborator_id
@@ -43,8 +43,8 @@ func (db *DB) FetchOutgoingCollaborators(ownerID string) ([]domain.CollaboratorV
 
 // FetchIncomingCollaborators returns the owners who have granted me
 // access to their chapters.
-func (db *DB) FetchIncomingCollaborators(userID string) ([]domain.CollaboratorView, error) {
-	return db.queryCollaboratorViews(`
+func (db *DB) FetchIncomingCollaborators(ctx context.Context, userID string) ([]domain.CollaboratorView, error) {
+	return db.queryCollaboratorViews(ctx, `
 		SELECT u.username, u.picture
 		FROM collaborators c
 		JOIN users u ON u.token_id = c.owner_id
@@ -52,8 +52,8 @@ func (db *DB) FetchIncomingCollaborators(userID string) ([]domain.CollaboratorVi
 	`, userID)
 }
 
-func (db *DB) queryCollaboratorViews(sql string, arg string) ([]domain.CollaboratorView, error) {
-	rows, err := db.pool.Query(context.TODO(), sql, arg)
+func (db *DB) queryCollaboratorViews(ctx context.Context, sql string, arg string) ([]domain.CollaboratorView, error) {
+	rows, err := db.pool.Query(ctx, sql, arg)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +71,12 @@ func (db *DB) queryCollaboratorViews(sql string, arg string) ([]domain.Collabora
 
 // CanViewRepertoire returns true if viewer is the owner or has been
 // granted collaborator access. Drives the /repertoire?owner= auth check.
-func (db *DB) CanViewRepertoire(ownerID string, viewerID string) (bool, error) {
+func (db *DB) CanViewRepertoire(ctx context.Context, ownerID string, viewerID string) (bool, error) {
 	if ownerID == viewerID {
 		return true, nil
 	}
 	var exists bool
-	err := db.pool.QueryRow(context.TODO(), `
+	err := db.pool.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM collaborators
 			WHERE owner_id = $1 AND collaborator_id = $2
@@ -89,8 +89,8 @@ func (db *DB) CanViewRepertoire(ownerID string, viewerID string) (bool, error) {
 // owned by ownerID. Currently identical to CanViewRepertoire; kept as
 // its own function so a future read-only collaborator role can diverge
 // here without loosening the view path.
-func (db *DB) CanCollaborateOnRepertoire(ownerID, userID string) (bool, error) {
-	return db.CanViewRepertoire(ownerID, userID)
+func (db *DB) CanCollaborateOnRepertoire(ctx context.Context, ownerID, userID string) (bool, error) {
+	return db.CanViewRepertoire(ctx, ownerID, userID)
 }
 
 // CanCollaborateOnChapter returns true if userID may mutate the chapter
@@ -102,9 +102,9 @@ func (db *DB) CanCollaborateOnRepertoire(ownerID, userID string) (bool, error) {
 //
 // A missing chapter returns (false, nil) so callers can treat "not
 // found" the same as "forbidden" without leaking which one it was.
-func (db *DB) CanCollaborateOnChapter(chapterID, userID string) (bool, error) {
+func (db *DB) CanCollaborateOnChapter(ctx context.Context, chapterID, userID string) (bool, error) {
 	var allowed bool
-	err := db.pool.QueryRow(context.TODO(), `
+	err := db.pool.QueryRow(ctx, `
 		SELECT
 			c.owner_id = $2
 			OR EXISTS (

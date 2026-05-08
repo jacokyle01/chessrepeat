@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
@@ -50,12 +51,12 @@ func NewSessionID() (string, error) {
 }
 
 // CreateSession mints a session id and persists it.
-func CreateSession(db store.Repo, userID string) (store.Session, error) {
+func CreateSession(ctx context.Context, db store.Repo, userID string) (store.Session, error) {
 	id, err := NewSessionID()
 	if err != nil {
 		return store.Session{}, err
 	}
-	return db.CreateSession(id, userID)
+	return db.CreateSession(ctx, id, userID)
 }
 
 // SetSessionCookies attaches both cookies to the response. The HTTP-only
@@ -113,7 +114,7 @@ func RequireSession(db store.Repo, w http.ResponseWriter, r *http.Request) (*sto
 		w.WriteHeader(http.StatusUnauthorized)
 		return nil, false
 	}
-	sess, err := db.FetchSession(cookie.Value)
+	sess, err := db.FetchSession(r.Context(), cookie.Value)
 	if err != nil || sess == nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return nil, false

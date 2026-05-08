@@ -22,12 +22,19 @@ func main() {
 	db := store.Connect(cfg.PostgresURL)
 	wsServer := ws.NewServer(db, wsOriginPatterns(cfg.AllowedOrigins))
 
-	mux := http.NewServeMux()
-	api.Register(mux, db, cfg.GoogleClientID)
-	mux.HandleFunc("/subscribe/{username}", wsServer.SubscribeHandler)
+	// httpMux carries every short-lived HTTP route. It gets a per-request
+	// timeout so a slow query can't pin a DB connection.
+	httpMux := http.NewServeMux()
+	api.Register(httpMux, db, cfg.GoogleClientID)
+
+	// rootMux dispatches WS upgrades directly (long-lived, no timeout)
+	// and everything else through the timeout wrapper.
+	rootMux := http.NewServeMux()
+	rootMux.HandleFunc("/subscribe/{username}", wsServer.SubscribeHandler)
+	rootMux.Handle("/", api.WithRequestTimeout(api.DefaultRequestTimeout, httpMux))
 
 	log.Printf("server ready on %s (origins: %s)", cfg.ListenAddr, strings.Join(cfg.AllowedOrigins, ","))
-	log.Fatal(http.ListenAndServe(cfg.ListenAddr, api.WithCORS(cfg.AllowedOrigins, mux)))
+	log.Fatal(http.ListenAndServe(cfg.ListenAddr, api.WithCORS(cfg.AllowedOrigins, rootMux)))
 }
 
 // wsOriginPatterns converts the CORS origin URLs ("http://localhost:5173")

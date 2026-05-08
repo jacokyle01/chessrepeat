@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -48,7 +49,7 @@ func TestGetRepertoire_OwnRepertoire(t *testing.T) {
 func TestGetRepertoire_OtherOwnerForbidden(t *testing.T) {
 	fs := newFakeStore()
 	sid := seedUser(t, fs, domain.User{TokenID: "viewer-sub", Username: "viewer", Email: "e"})
-	if err := fs.UpsertUser(domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -64,10 +65,10 @@ func TestGetRepertoire_OtherOwnerForbidden(t *testing.T) {
 func TestGetRepertoire_OtherOwnerAllowedAsCollaborator(t *testing.T) {
 	fs := newFakeStore()
 	sid := seedUser(t, fs, domain.User{TokenID: "viewer-sub", Username: "viewer", Email: "e"})
-	if err := fs.UpsertUser(domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator("owner-sub", "viewer-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "viewer-sub"); err != nil {
 		t.Fatal(err)
 	}
 	fs.chapters["owner-sub"] = []domain.ChapterTreeResponse{{UUID: "x", Name: "shared"}}

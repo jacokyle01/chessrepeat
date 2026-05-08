@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
 
 	"chessrepeat/internal/domain"
@@ -19,8 +20,8 @@ import (
 //
 // On error or denial we log and return false; the caller drops the
 // message silently rather than echoing details back to the client.
-func (s *Server) canCollaborate(sub *subscriber, chapterID string) bool {
-	ok, err := s.db.CanCollaborateOnChapter(chapterID, sub.userID)
+func (s *Server) canCollaborate(ctx context.Context, sub *subscriber, chapterID string) bool {
+	ok, err := s.db.CanCollaborateOnChapter(ctx, chapterID, sub.userID)
 	if err != nil {
 		s.logf("authz check failed (user %s, chapter %s): %v", sub.userID, chapterID, err)
 		return false
@@ -34,8 +35,8 @@ func (s *Server) canCollaborate(sub *subscriber, chapterID string) bool {
 // canCollaborateOnRoom is the chapter_created variant: there is no
 // existing chapter to resolve, so we authorize against the joined
 // room's owning repertoire instead.
-func (s *Server) canCollaborateOnRoom(sub *subscriber) bool {
-	ok, err := s.db.CanCollaborateOnRepertoire(sub.room.id, sub.userID)
+func (s *Server) canCollaborateOnRoom(ctx context.Context, sub *subscriber) bool {
+	ok, err := s.db.CanCollaborateOnRepertoire(ctx, sub.room.id, sub.userID)
 	if err != nil {
 		s.logf("authz check failed (user %s, room %s): %v", sub.userID, sub.room.id, err)
 		return false
@@ -49,8 +50,9 @@ func (s *Server) canCollaborateOnRoom(sub *subscriber) bool {
 // handleMessage matches the `type` field of an incoming WebSocket
 // message to a server action. New ops are added by extending the switch.
 // Every chapter-mutating branch must gate on canCollaborate before
-// touching the store.
-func (s *Server) handleMessage(sub *subscriber, raw []byte) {
+// touching the store. ctx is bounded per-message so a slow query
+// cancels rather than pinning a DB connection.
+func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte) {
 	var env struct {
 		Type string `json:"type"`
 	}
@@ -66,10 +68,10 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			s.logf("invalid move_created from user %s: %v", sub.userID, err)
 			return
 		}
-		if !s.canCollaborate(sub, event.ChapterID) {
+		if !s.canCollaborate(ctx, sub, event.ChapterID) {
 			return
 		}
-		if err := s.db.AddMoveToChapter(event); err != nil {
+		if err := s.db.AddMoveToChapter(ctx, event); err != nil {
 			s.logf("persist move (user %s): %v", sub.userID, err)
 			return
 		}
@@ -81,7 +83,7 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			s.logf("invalid training_updated from user %s: %v", sub.userID, err)
 			return
 		}
-		if !s.canCollaborate(sub, event.ChapterID) {
+		if !s.canCollaborate(ctx, sub, event.ChapterID) {
 			return
 		}
 		// stamp the username from the session: a collaborator must not be
@@ -93,7 +95,7 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			s.logf("marshal training_updated (user %s): %v", sub.userID, err)
 			return
 		}
-		if err := s.db.UpdateTrainingState(event); err != nil {
+		if err := s.db.UpdateTrainingState(ctx, event); err != nil {
 			s.logf("update training (user %s): %v", sub.userID, err)
 			return
 		}
@@ -105,10 +107,10 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			s.logf("invalid node_deleted from user %s: %v", sub.userID, err)
 			return
 		}
-		if !s.canCollaborate(sub, event.ChapterID) {
+		if !s.canCollaborate(ctx, sub, event.ChapterID) {
 			return
 		}
-		if err := s.db.DeleteNodeFromChapter(event); err != nil {
+		if err := s.db.DeleteNodeFromChapter(ctx, event); err != nil {
 			s.logf("delete node (user %s): %v", sub.userID, err)
 			return
 		}
@@ -120,10 +122,10 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			s.logf("invalid node_disabled from user %s: %v", sub.userID, err)
 			return
 		}
-		if !s.canCollaborate(sub, event.ChapterID) {
+		if !s.canCollaborate(ctx, sub, event.ChapterID) {
 			return
 		}
-		if err := s.db.SetEnabledRecursive(event.ChapterID, event.Path, false); err != nil {
+		if err := s.db.SetEnabledRecursive(ctx, event.ChapterID, event.Path, false); err != nil {
 			s.logf("disable node (user %s): %v", sub.userID, err)
 			return
 		}
@@ -135,10 +137,10 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			s.logf("invalid node_enabled from user %s: %v", sub.userID, err)
 			return
 		}
-		if !s.canCollaborate(sub, event.ChapterID) {
+		if !s.canCollaborate(ctx, sub, event.ChapterID) {
 			return
 		}
-		if err := s.db.SetEnabledRecursive(event.ChapterID, event.Path, true); err != nil {
+		if err := s.db.SetEnabledRecursive(ctx, event.ChapterID, event.Path, true); err != nil {
 			s.logf("enable node (user %s): %v", sub.userID, err)
 			return
 		}
@@ -151,12 +153,12 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			return
 		}
 		// no chapter yet to resolve — authorize against the joined room.
-		if !s.canCollaborateOnRoom(sub) {
+		if !s.canCollaborateOnRoom(ctx, sub) {
 			return
 		}
 		// stamp owner from the joined room rather than trusting the client
 		event.OwnerID = sub.room.id
-		if err := s.db.CreateChapter(event); err != nil {
+		if err := s.db.CreateChapter(ctx, event); err != nil {
 			s.logf("persist chapter (user %s): %v", sub.userID, err)
 			return
 		}
@@ -168,10 +170,10 @@ func (s *Server) handleMessage(sub *subscriber, raw []byte) {
 			s.logf("invalid chapter_deleted from user %s: %v", sub.userID, err)
 			return
 		}
-		if !s.canCollaborate(sub, event.ChapterID) {
+		if !s.canCollaborate(ctx, sub, event.ChapterID) {
 			return
 		}
-		if err := s.db.DeleteChapter(event.ChapterID); err != nil {
+		if err := s.db.DeleteChapter(ctx, event.ChapterID); err != nil {
 			s.logf("delete chapter (user %s): %v", sub.userID, err)
 			return
 		}
