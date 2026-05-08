@@ -68,7 +68,7 @@ func TestGetRepertoire_OtherOwnerAllowedAsCollaborator(t *testing.T) {
 	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator(context.Background(), "owner-sub", "viewer-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "viewer-sub", "edit"); err != nil {
 		t.Fatal(err)
 	}
 	fs.chapters["owner-sub"] = []domain.ChapterTreeResponse{{UUID: "x", Name: "shared"}}

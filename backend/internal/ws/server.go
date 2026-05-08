@@ -74,7 +74,14 @@ type subscriber struct {
 	userID   string
 	username string
 	picture  string
-	room     *room
+	// permission is pinned at handshake from EffectivePermissionOnRepertoire
+	// against the joined room's owner. Used for the PeerInfo color cue and
+	// (for chapter_created, where there's no chapter yet to anchor on) as
+	// the authz source for that one op. Every other mutating op re-checks
+	// against the chapter's actual owner_id, so a stale snapshot here can't
+	// grant write access to a foreign repertoire.
+	permission string
+	room       *room
 	// readBudget gates inbound messages so a malicious client can't
 	// burn CPU/DB by flooding the connection. Allocated per-connection
 	// so one chatty peer can't starve another.
@@ -82,7 +89,7 @@ type subscriber struct {
 }
 
 func (s *subscriber) peerInfo() domain.PeerInfo {
-	return domain.PeerInfo{Username: s.username, Picture: s.picture}
+	return domain.PeerInfo{Username: s.username, Picture: s.picture, Permission: s.permission}
 }
 
 // NewServer constructs a Server with the defaults. originPatterns is the
@@ -160,12 +167,12 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return errors.New("user not found")
 	}
 
-	canView, err := s.db.CanViewRepertoire(r.Context(), ownerID, sess.UserID)
+	perm, err := s.db.EffectivePermissionOnRepertoire(r.Context(), ownerID, sess.UserID)
 	if err != nil {
 		http.Error(w, "view auth check failed", http.StatusInternalServerError)
 		return err
 	}
-	if !canView {
+	if perm == "" {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return errors.New("not a collaborator")
 	}
@@ -175,6 +182,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		userID:     sess.UserID,
 		username:   user.Username,
 		picture:    user.Picture,
+		permission: perm,
 		readBudget: ratelimit.NewBucket(wsBucketCapacity, wsRefillPerSec),
 	}
 	s.join(ownerID, sub)

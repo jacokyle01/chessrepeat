@@ -3,9 +3,15 @@ import { useTrainerStore } from '../store/state';
 
 const API = import.meta.env.VITE_API_URL
 
+// 'edit' grants full CRUD on the repertoire; 'train' is read-only on
+// the move tree but persists training-card updates. The owner is never
+// represented as a Collaborator (they have no row in the table).
+export type CollaboratorPermission = 'edit' | 'train';
+
 export type Collaborator = {
   username: string;
   picture?: string;
+  permission: CollaboratorPermission;
 };
 
 // Users we've added to our repertoire as collaborators.
@@ -26,6 +32,7 @@ export async function fetchIncomingCollaborators(): Promise<Collaborator[]> {
 
 export async function addCollaborator(
   username: string,
+  permission: CollaboratorPermission,
 ): Promise<{ ok: boolean; collaborator?: Collaborator; error?: string }> {
   const name = username.trim();
   if (!name) return { ok: false, error: 'username required' };
@@ -34,7 +41,7 @@ export async function addCollaborator(
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: name }),
+      body: JSON.stringify({ username: name, permission }),
     });
     if (!res.ok) {
       const text = await res.text();

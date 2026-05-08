@@ -128,8 +128,11 @@ export const Chessrepeat = () => {
     })();
   }, [authUsername, collaboratorsOpen]);
 
-  const handleAddCollaborator = async (username: string) => {
-    const result = await addCollaboratorService(username);
+  const handleAddCollaborator = async (
+    username: string,
+    permission: 'edit' | 'train',
+  ) => {
+    const result = await addCollaboratorService(username, permission);
     if (result.ok && result.collaborator) {
       setOutgoingCollaborators((prev) =>
         prev.some((c) => c.username === result.collaborator!.username)

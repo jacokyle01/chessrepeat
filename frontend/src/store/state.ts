@@ -27,9 +27,16 @@ import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
 import { PLAYGROUND_KEY, useAuthStore } from './auth';
 
+// Permission a connected peer holds against the joined room.
+// 'owner' is the repertoire owner; 'edit' has full CRUD; 'train' can
+// only persist their own training updates. The UI uses this to color
+// each connected user's avatar ring.
+export type Permission = 'owner' | 'edit' | 'train';
+
 export type Peer = {
   username: string;
   picture: string;
+  permission: Permission;
 };
 
 // Resolve the training-map key for the current user: their username if

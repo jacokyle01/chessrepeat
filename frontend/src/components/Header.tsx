@@ -73,16 +73,23 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
       <div className="ml-auto flex items-end gap-3">
         {peers.length > 0 && (
           <div className="flex items-end -space-x-1.5">
-            {peers.map((u) => (
-              <img
-                key={u.username}
-                src={u.picture}
-                alt={u.username}
-                title={u.username}
-                referrerPolicy="no-referrer"
-                className="h-6 w-6 rounded-full ring-2 ring-white"
-              />
-            ))}
+            {peers.map((u) => {
+              // train collaborators get a light-blue ring; everyone else
+              // (owner, edit) gets dark blue. Owner appears as a peer
+              // only when a collaborator is viewing — same color as edit
+              // since they have full access too.
+              const ring = u.permission === 'train' ? 'ring-blue-300' : 'ring-blue-700';
+              return (
+                <img
+                  key={u.username}
+                  src={u.picture}
+                  alt={u.username}
+                  title={`${u.username} (${u.permission})`}
+                  referrerPolicy="no-referrer"
+                  className={`h-6 w-6 rounded-full ring-2 ${ring}`}
+                />
+              );
+            })}
           </div>
         )}
 

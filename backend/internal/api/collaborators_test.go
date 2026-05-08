@@ -16,7 +16,7 @@ func TestGetOutgoingCollaborators(t *testing.T) {
 	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "bob-sub", Username: "bob", Email: "e", Picture: "pb"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator(context.Background(), "owner-sub", "bob-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "bob-sub", "edit"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -44,7 +44,7 @@ func TestGetIncomingCollaborators(t *testing.T) {
 	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "owner-sub", Username: "owner", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator(context.Background(), "owner-sub", "me-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "me-sub", "edit"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -74,21 +74,41 @@ func TestAddCollaborator_Success(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	req := withSession(newJSONRequest("POST", "/collaborators", `{"username":"bob"}`), sid)
+	req := withSession(newJSONRequest("POST", "/collaborators", `{"username":"bob","permission":"train"}`), sid)
 	AddCollaborator(fs)(rr, req)
 
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body=%s", rr.Code, rr.Body.String())
 	}
-	if _, ok := fs.collaborators[collabKey{"owner-sub", "bob-sub"}]; !ok {
-		t.Fatal("collaborator not stored")
+	if perm, ok := fs.collaborators[collabKey{"owner-sub", "bob-sub"}]; !ok || perm != "train" {
+		t.Fatalf("collaborator not stored or wrong perm: ok=%v perm=%q", ok, perm)
 	}
 	var body domain.CollaboratorView
 	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if body.Username != "bob" || body.Picture != "pb" {
+	if body.Username != "bob" || body.Picture != "pb" || body.Permission != "train" {
 		t.Errorf("body = %#v", body)
+	}
+}
+
+func TestAddCollaborator_InvalidPermission(t *testing.T) {
+	fs := newFakeStore()
+	sid := seedUser(t, fs, domain.User{TokenID: "alice-sub", Username: "alice", Email: "e"})
+	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "bob-sub", Username: "bob", Email: "e"}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, body := range []string{
+		`{"username":"bob"}`,                     // missing permission
+		`{"username":"bob","permission":"admin"}`, // unsupported value
+	} {
+		rr := httptest.NewRecorder()
+		req := withSession(newJSONRequest("POST", "/collaborators", body), sid)
+		AddCollaborator(fs)(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Errorf("body %s: status = %d, want 400", body, rr.Code)
+		}
 	}
 }
 
@@ -97,7 +117,7 @@ func TestAddCollaborator_RejectsSelf(t *testing.T) {
 	sid := seedUser(t, fs, domain.User{TokenID: "alice-sub", Username: "alice", Email: "e"})
 
 	rr := httptest.NewRecorder()
-	req := withSession(newJSONRequest("POST", "/collaborators", `{"username":"alice"}`), sid)
+	req := withSession(newJSONRequest("POST", "/collaborators", `{"username":"alice","permission":"edit"}`), sid)
 	AddCollaborator(fs)(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
@@ -110,7 +130,7 @@ func TestAddCollaborator_UnknownUser(t *testing.T) {
 	sid := seedUser(t, fs, domain.User{TokenID: "alice-sub", Username: "alice", Email: "e"})
 
 	rr := httptest.NewRecorder()
-	req := withSession(newJSONRequest("POST", "/collaborators", `{"username":"ghost"}`), sid)
+	req := withSession(newJSONRequest("POST", "/collaborators", `{"username":"ghost","permission":"edit"}`), sid)
 	AddCollaborator(fs)(rr, req)
 
 	if rr.Code != http.StatusNotFound {
@@ -134,7 +154,7 @@ func TestAddCollaborator_MissingBody(t *testing.T) {
 func TestAddCollaborator_Unauthorized(t *testing.T) {
 	fs := newFakeStore()
 	rr := httptest.NewRecorder()
-	AddCollaborator(fs)(rr, newJSONRequest("POST", "/collaborators", `{"username":"bob"}`))
+	AddCollaborator(fs)(rr, newJSONRequest("POST", "/collaborators", `{"username":"bob","permission":"edit"}`))
 	if rr.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", rr.Code)
 	}
@@ -146,7 +166,7 @@ func TestRemoveCollaborator_Success(t *testing.T) {
 	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "bob-sub", Username: "bob", Email: "e"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.AddCollaborator(context.Background(), "owner-sub", "bob-sub"); err != nil {
+	if err := fs.AddCollaborator(context.Background(), "owner-sub", "bob-sub", "edit"); err != nil {
 		t.Fatal(err)
 	}
 

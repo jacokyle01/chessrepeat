@@ -31,7 +31,7 @@ type Repo interface {
 
 	FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domain.ChapterTreeResponse, error)
 
-	AddCollaborator(ctx context.Context, ownerID, collaboratorID string) error
+	AddCollaborator(ctx context.Context, ownerID, collaboratorID, permission string) error
 	RemoveCollaborator(ctx context.Context, ownerID, collaboratorID string) error
 	FetchOutgoingCollaborators(ctx context.Context, ownerID string) ([]domain.CollaboratorView, error)
 	FetchIncomingCollaborators(ctx context.Context, userID string) ([]domain.CollaboratorView, error)

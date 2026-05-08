@@ -16,10 +16,15 @@ CREATE TABLE sessions (
   expires_at TIMESTAMPTZ NOT NULL
 );
 
--- TODO add a permissions column later (e.g. read/write/admin).
+-- 'edit' = full CRUD on chapters, moves, training cards.
+-- 'train' = read-only on the tree, but training_updated events are
+--           accepted and persisted (so a learner can drill against
+--           someone else's repertoire and have their progress saved).
 CREATE TABLE collaborators (
   owner_id        TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
   collaborator_id TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
+  permission      TEXT NOT NULL DEFAULT 'edit'
+                  CHECK (permission IN ('edit', 'train')),
   PRIMARY KEY (owner_id, collaborator_id)
 );
 CREATE INDEX collaborators_collaborator ON collaborators (collaborator_id);

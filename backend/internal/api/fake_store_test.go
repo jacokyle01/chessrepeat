@@ -24,7 +24,7 @@ type fakeStore struct {
 	usersByUsername map[string]string // username -> token id
 	sessions        map[string]store.Session
 	chapters        map[string][]domain.ChapterTreeResponse
-	collaborators   map[collabKey]struct{}
+	collaborators   map[collabKey]string // value is the permission ('edit' | 'train')
 
 	// errOn forces a method to return the given error on its next
 	// call. Set via withErr; cleared after the call fires.
@@ -39,7 +39,7 @@ func newFakeStore() *fakeStore {
 		usersByUsername: map[string]string{},
 		sessions:        map[string]store.Session{},
 		chapters:        map[string][]domain.ChapterTreeResponse{},
-		collaborators:   map[collabKey]struct{}{},
+		collaborators:   map[collabKey]string{},
 		errOn:           map[string]error{},
 	}
 }
@@ -158,13 +158,13 @@ func (f *fakeStore) FetchChaptersByOwner(_ context.Context, ownerID string) ([]d
 	return out, nil
 }
 
-func (f *fakeStore) AddCollaborator(_ context.Context, ownerID, collaboratorID string) error {
+func (f *fakeStore) AddCollaborator(_ context.Context, ownerID, collaboratorID, permission string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if err := f.takeErr("AddCollaborator"); err != nil {
 		return err
 	}
-	f.collaborators[collabKey{ownerID, collaboratorID}] = struct{}{}
+	f.collaborators[collabKey{ownerID, collaboratorID}] = permission
 	return nil
 }
 
@@ -185,12 +185,12 @@ func (f *fakeStore) FetchOutgoingCollaborators(_ context.Context, ownerID string
 		return nil, err
 	}
 	out := make([]domain.CollaboratorView, 0)
-	for k := range f.collaborators {
+	for k, perm := range f.collaborators {
 		if k.owner != ownerID {
 			continue
 		}
 		if u, ok := f.usersByToken[k.collaborator]; ok && u.Username != "" {
-			out = append(out, domain.CollaboratorView{Username: u.Username, Picture: u.Picture})
+			out = append(out, domain.CollaboratorView{Username: u.Username, Picture: u.Picture, Permission: perm})
 		}
 	}
 	return out, nil
@@ -203,12 +203,12 @@ func (f *fakeStore) FetchIncomingCollaborators(_ context.Context, userID string)
 		return nil, err
 	}
 	out := make([]domain.CollaboratorView, 0)
-	for k := range f.collaborators {
+	for k, perm := range f.collaborators {
 		if k.collaborator != userID {
 			continue
 		}
 		if u, ok := f.usersByToken[k.owner]; ok && u.Username != "" {
-			out = append(out, domain.CollaboratorView{Username: u.Username, Picture: u.Picture})
+			out = append(out, domain.CollaboratorView{Username: u.Username, Picture: u.Picture, Permission: perm})
 		}
 	}
 	return out, nil
