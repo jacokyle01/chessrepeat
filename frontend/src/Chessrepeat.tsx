@@ -88,6 +88,7 @@ export const Chessrepeat = () => {
 
     selectedNode,
     selectedPath,
+    setSelectedNode,
 
     trainingMethod,
 
@@ -216,6 +217,11 @@ export const Chessrepeat = () => {
   // TODO should be in different component?
   const chapter = repertoire[repertoireIndex];
   const isEditing = trainingMethod == 'edit';
+
+// automatically select root node of chapter. fires on chapter change or page reload. 
+  useEffect(() => {
+    if (chapter?.root) setSelectedNode(chapter.root);
+  }, [chapter?.root]);
 
   //TODO hints
   //TODO fail
@@ -390,7 +396,7 @@ export const Chessrepeat = () => {
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
-      {/* <Debug /> */}
+      <Debug />
       <div className="app-root">
         <Header
           connectedUsers={connectedUsers}
