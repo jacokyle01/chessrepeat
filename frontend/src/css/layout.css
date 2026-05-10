@@ -98,13 +98,14 @@
 .app-main {
   grid-template-columns: 1fr;
   gap: 0.25rem;
-  grid-template-rows: repeat(5, auto);
+  grid-template-rows: repeat(6, auto);
   grid-template-areas:
     'board'
     'controls'
     'usertip'
     'pgn'
-    'repertoire';
+    'repertoire'
+    'schedule';
 }
 
 /* grid area assignments – min-width:0 lets children shrink inside 1fr columns */
@@ -123,6 +124,10 @@
      available width, independent of the global breakpoint. */
   container-type: inline-size;
   container-name: usertip;
+}
+.area-schedule {
+  grid-area: schedule;
+  min-width: 0;
 }
 
 /* Internal padding for the tip card. These overrides win over any
@@ -242,7 +247,16 @@
 .area-repertoire {
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
+  /* don't stretch to fill the grid cell — only take what content needs.
+     max-height caps it at the cell so internal scrolling kicks in when
+     there are many chapters. */
+  align-self: start;
+  max-height: 100%;
+}
+
+/* schedule */
+.area-schedule {
 }
 
 /* when the repertoire card is narrow (e.g. 2-column middle layout),
@@ -270,11 +284,12 @@
 
   .app-main {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto minmax(64px, 1fr) auto;
     grid-template-areas:
       'board     pgn'
       'controls  pgn'
-      'usertip   repertoire';
+      'usertip   repertoire'
+      'schedule  repertoire';
     padding: 0 1.5rem 1rem;
     gap: 0.75rem;
     overflow: hidden;
@@ -289,7 +304,7 @@
   }
 
   .area-repertoire {
-    grid-row: 3;
+    grid-row: 3 / 5;
     min-height: 0;
     max-height: 100%;
     overflow: hidden;
@@ -298,6 +313,12 @@
   .area-usertip {
     overflow: auto;
     max-height: 200px;
+  }
+
+  .area-schedule {
+    min-height: 0;
+    overflow: auto;
+    max-height: 120px;
   }
 
   .pgn-tree-scroll {
@@ -314,25 +335,27 @@
     padding: 0 2.5rem;
   }
 
+  /* TODO define shrinking strategy w/ respect to chessboard */
   .app-main {
     grid-template-columns: minmax(200px, 1fr) 1fr 1fr;
     grid-template-rows: auto auto auto 1fr;
     grid-template-areas:
       'repertoire board    pgn'
-      'repertoire controls pgn'
-      'repertoire usertip  pgn'
-      'repertoire comment  pgn';
+      'schedule   board    pgn'
+      'schedule   controls pgn'
+      'schedule   usertip  pgn';
     padding: 0 2.5rem 1rem;
+    /* shrink the grid box itself so app-root's background is visible below.
+       padding-bottom won't work here: the chessground is aspect-ratio:1 and
+       forces the grid to overflow, so anything carved out of the grid (a
+       spacer row or padding) gets clipped by overflow:hidden first. */
+    margin-bottom: 5rem;
     gap: 0.75rem;
     overflow: hidden;
   }
 
   /* side columns span all rows */
   .area-repertoire {
-    grid-row: 1 / -1;
-    min-height: 0;
-    max-height: 100%;
-    overflow: hidden;
   }
 
   .area-pgn {

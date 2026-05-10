@@ -7,6 +7,7 @@ import {
   FilePlus2Icon,
   LucideCloudOff,
   LucideCloudUpload,
+  Settings2Icon,
   SettingsIcon,
 } from 'lucide-react';
 import { useStore } from 'zustand';
@@ -57,7 +58,7 @@ export const ChapterRow = ({ entry, index, id }) => {
         onClick={handleChangeChapter}
         className={repertoireIndex === index ? 'bg-cyan-50' : ''}
       >
-        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
+        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-2 py-0.5">
           <span className="font-bold pr-3 text-blue-600 flex-shrink-0">{index + 1}</span>
 
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
@@ -79,11 +80,11 @@ export const ChapterRow = ({ entry, index, id }) => {
 
           <div
             id="edit-chapter"
-            className="ml-auto mr-2 text-gray-600 cursor-pointer flex-shrink-0"
+            className="ml-auto mr-2 text-slate-500 cursor-pointer flex-shrink-0"
             onClick={() => setEditOpen(true)}
           >
             <div id="icon-wrap">
-              <SettingsIcon width={20} height={20} color="black" />
+              <Settings2Icon width={20} height={20}/>
             </div>
           </div>
         </div>
@@ -135,16 +136,17 @@ const Repertoire: React.FC = () => {
           onClick={() => setIsDownloadOpen(true)}
           disabled={isEmpty}
           aria-label="Download repertoire"
-          className={`ml-auto p-1.5 rounded-md transition ${
+          className={`ml-auto p-1.5 rounded-md transition flex gap-1 text-sm items-end ${
             isEmpty
               ? 'text-gray-300 cursor-not-allowed'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
           }`}
         >
+          <span>download</span>
           <DownloadIcon className="w-5 h-5" />
         </button>
       </div>
-
+      
       {/* ONLY THIS SCROLLS */}
       <div
         id="repertoire-wrap"
@@ -174,14 +176,14 @@ const Repertoire: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowingAddToRepertoireMenu(true)}
-          className={`text-gray-600 w-full h-11 inline-flex items-center justify-left gap-2 rounded-md px-3
-            border border-gray-300 bg-white hover:shadow transition active:scale-[0.98]
+          className={`text-slate-500 w-full h-11 inline-flex items-center justify-left gap-1 rounded-md px-1
+            bg-white hover:shadow transition active:scale-[0.98]
             ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
         >
           <div className="">
             <FilePlus2Icon size={18} />
           </div>
-          <span className="font-semibold">Add to Repertoire</span>
+          <span className="font-semibold text-sm">Add to Repertoire</span>
         </button>
       </div>
 

@@ -16,7 +16,6 @@ import { useTrainerStore } from './store/state';
 import { UserTip } from './components/UserTip';
 import Schedule from './components/MemorySchedule';
 import AddToRepertoireModal from './components/modals/AddToRepertoireModal';
-import RepertoireActions from './components/repertoire/RepertoireActions';
 import PgnControls from './components/pgn/PgnControls';
 import PgnTree from './components/pgn/PgnTree';
 import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
@@ -129,10 +128,7 @@ export const Chessrepeat = () => {
     })();
   }, [authUsername, collaboratorsOpen]);
 
-  const handleAddCollaborator = async (
-    username: string,
-    permission: 'edit' | 'train',
-  ) => {
+  const handleAddCollaborator = async (username: string, permission: 'edit' | 'train') => {
     const result = await addCollaboratorService(username, permission);
     if (result.ok && result.collaborator) {
       setOutgoingCollaborators((prev) =>
@@ -218,7 +214,7 @@ export const Chessrepeat = () => {
   const chapter = repertoire[repertoireIndex];
   const isEditing = trainingMethod == 'edit';
 
-// automatically select root node of chapter. fires on chapter change or page reload. 
+  // automatically select root node of chapter. fires on chapter change or page reload.
   useEffect(() => {
     if (chapter?.root) setSelectedNode(chapter.root);
   }, [chapter?.root]);
@@ -396,7 +392,7 @@ export const Chessrepeat = () => {
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
     <MantineProvider>
-      <Debug />
+      {/* <Debug /> */}
       <div className="app-root">
         <Header
           connectedUsers={connectedUsers}
@@ -420,47 +416,47 @@ export const Chessrepeat = () => {
           onRemove={handleRemoveCollaborator}
           onViewRepertoire={handleViewRepertoire}
           onViewMine={authUsername ? handleViewMine : undefined}
-          />
+        />
 
         <div className="app-main">
           {/* BOARD */}
           <div className="area-board" id="board-wrap">
-          {chapter && chapter.enabledCount > 0 && (
-          <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200">
-              <div
-                className="h-full bg-sky-300"
-                style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
-              />
-              <div
-                className="h-full bg-blue-500"
-                style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
-              />
-            </div>
-          )}
-          <div ref={containerRef}>
-            <Chessground
-              orientation={chapter?.trainAs || 'white'}
-              fen={selectedNode?.data.fen || initial}
-              turnColor={turn}
-              lastMove={lastMove}
-              movable={{
-                free: false,
-                color: turn,
-                dests: calculateDests(),
-                events: { after: onAfterMove },
-              }}
-              drawable={{ autoShapes: createShapes() }}
-              />
-            {pendingPromo && (
-              <PromotionOverlay
-                dest={pendingPromo.to}
-                color={promotionColorFromFen(pendingPromo.fenBefore)}
+            {chapter && chapter.enabledCount > 0 && (
+              <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200">
+                <div
+                  className="h-full bg-sky-300"
+                  style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
+                />
+                <div
+                  className="h-full bg-blue-500"
+                  style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
+                />
+              </div>
+            )}
+            <div ref={containerRef}>
+              <Chessground
                 orientation={chapter?.trainAs || 'white'}
-                onCancel={closePromo}
-                requiredRole={
-                  trainingMethod === 'learn'
-                    ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
-                    : undefined
+                fen={selectedNode?.data.fen || initial}
+                turnColor={turn}
+                lastMove={lastMove}
+                movable={{
+                  free: false,
+                  color: turn,
+                  dests: calculateDests(),
+                  events: { after: onAfterMove },
+                }}
+                drawable={{ autoShapes: createShapes() }}
+              />
+              {pendingPromo && (
+                <PromotionOverlay
+                  dest={pendingPromo.to}
+                  color={promotionColorFromFen(pendingPromo.fenBefore)}
+                  orientation={chapter?.trainAs || 'white'}
+                  onCancel={closePromo}
+                  requiredRole={
+                    trainingMethod === 'learn'
+                      ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
+                      : undefined
                   }
                   onPick={(role: PromoRole) => {
                     const { fenBefore, from, to, meta } = pendingPromo;
@@ -468,9 +464,9 @@ export const Chessrepeat = () => {
                     const san = chessgroundToSan(fenBefore, from, to, role);
                     finishMove(san, meta, to);
                   }}
-                  />
-                )}
-                </div>
+                />
+              )}
+            </div>
           </div>
 
           {/* CONTROLS */}
@@ -484,7 +480,7 @@ export const Chessrepeat = () => {
                 onClick={() => setSettingsOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
                   transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
-                  aria-label="Settings"
+                aria-label="Settings"
                 title="Settings"
               >
                 <FolderCog2Icon size={18} />
@@ -516,7 +512,8 @@ export const Chessrepeat = () => {
                 </div>
                 <span className="text-gray-800 font-semibold text-xl">Chapter</span>
                 {/* copy icon */}
-                <div className="inline-flex p-1 ml-auto bg-gray-200 rounded-md">
+                <div className="inline-flex p-1 ml-auto text-slate-600">
+                  <span className='text-sm flex items-end'>copy fen</span>
                   <button
                     type="button"
                     onClick={async () => {
@@ -527,12 +524,10 @@ export const Chessrepeat = () => {
                       setTimeout(() => setFenCopied(false), 1200);
                     }}
                     className={`
-                      text-sm font-semibold
-                      transition-all duration-200 hover:text-green-400
                       ${
                         fenCopied
-                          ? 'bg-white text-green-600 ring-1 ring-green-300'
-                          : 'hover:text-slate-800 hover:bg-slate-200'
+                          ? 'bg-white text-green-600'
+                          : 'hover:text-slate-800'
                       }
                     `}
                     aria-label="Copy FEN"
@@ -554,12 +549,13 @@ export const Chessrepeat = () => {
 
           {/* REPERTOIRE */}
           <div className="area-repertoire">
-            {/* Desktop only: full inline repertoire */}
-            <div className="hidden lg:flex flex-col flex-1 min-h-0">
+            <div className="flex flex-col flex-1 min-h-0">
               <Repertoire />
             </div>
-            {/* Mobile + medium: repertoire as modal trigger */}
-            <RepertoireActions />
+          </div>
+
+          {/* MEMORY SCHEDULE */}
+          <div className="area-schedule">
             <Schedule />
           </div>
         </div>

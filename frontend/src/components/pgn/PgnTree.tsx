@@ -235,20 +235,12 @@ function RenderComment({
   const displayText = isTruncated && !expanded ? truncated : comment;
   const isCommentOfActiveMove = path === selectedPath;
   const selectedClass = isCommentOfActiveMove
-    ? 'text-blue-700 bg-blue-50 rounded shadow-inner ring-1 ring-blue-200'
+    ? 'text-blue-700 bg-blue-50 shadow-inner ring-1 ring-blue-200 text-gray-700'
     : '';
 
   return (
     <span
-      className={`comment inline-block text-gray-500 mx-2 break-words px-2 rounded hover:bg-blue-50 cursor-pointer ${selectedClass}`}
-      style={
-        isCommentOfActiveMove
-          ? {
-              maskImage:
-                'linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent)',
-            }
-          : undefined
-      }
+      className={`comment inline-block text-gray-500 break-words px-1 rounded cursor-pointer ${selectedClass}`}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
       {displayText}
@@ -771,7 +763,7 @@ export default function PgnTree({ setActiveMoveId }) {
         <div
           ref={scrollRef}
           onMouseDown={handleMouseDown}
-          className="tview2 tview2-column repertoire-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white min-h-0"
+          className="tview2 tview2-column tree-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white min-h-0"
         >
           {root.data.comment && (
             <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
