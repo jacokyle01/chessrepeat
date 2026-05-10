@@ -16,12 +16,12 @@ import {
 import { ChildNode } from 'chessops/pgn';
 import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, updateAt, updateRecursive } from '../util/tree';
 import { contains, init } from '../util/path';
-import { computeDueCounts, computeNextTrainableNode, merge } from '../util/training';
+import { computeDueCounts, computeNextTrainableNode } from '../util/training';
 import { colorFromPly, positionFromFen } from '../util/chess';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
-import { INITIAL_BOARD_FEN, makeFen } from 'chessops/fen';
-import { annotatePgn, chapterFromPgn } from '../util/io';
+import { makeFen } from 'chessops/fen';
+import { chapterFromPgn } from '../util/io';
 import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig, type Card } from '../util/srs';
 import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
@@ -61,9 +61,6 @@ interface TrainerState {
 
   showingAddToRepertoireMenu: boolean;
   setShowingAddToRepertoireMenu: (val: boolean) => void;
-
-  showingImportIntoChapterModal: boolean;
-  setShowingImportIntoChapterModal: (val: boolean) => void;
 
   repertoire: Chapter[];
   setRepertoire: (r: Chapter[]) => Promise<void>; // now async (writes per chapter)
@@ -133,17 +130,13 @@ interface TrainerState {
   guess: (san: string) => TrainingOutcome;
 
   // higher-level ops
-  disableLine: (path: string) => Promise<void>;
   deleteLine: (path: string) => Promise<void>;
-  enableLine: (path: string) => Promise<void>;
   deleteNodeRemote: (chapterId: string, path: string) => void;
   disableNodeRemote: (chapterId: string, path: string) => void;
   enableNodeRemote: (chapterId: string, path: string) => void;
   updateTrainingRemote: (chapterId: string, path: string, username: string, card: Card) => void;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   addNewChapterLocally: (chapter: Chapter) => Promise<void>;
-  importIntoChapter: (targetChapter: number, newPgn: string) => Promise<void>;
-
   renameChapter: (index: number, name: string) => void;
   deleteChapterAt: (index: number) => void;
   deleteChapterRemote: (chapterId: string) => void;
@@ -221,9 +214,6 @@ export const useTrainerStore = create<TrainerState>()(
 
       showingAddToRepertoireMenu: false,
       setShowingAddToRepertoireMenu: (val) => set({ showingAddToRepertoireMenu: val }),
-
-      showingImportIntoChapterModal: false,
-      setShowingImportIntoChapterModal: (val) => set({ showingAddToRepertoireMenu: val }),
 
       // in-memory only; loaded via hydrateRepertoireFromIDB
       repertoire: [],
@@ -597,60 +587,6 @@ export const useTrainerStore = create<TrainerState>()(
         return possibleMoves.includes(san) ? (target.data.san === san ? 'success' : 'alternate') : 'failure';
       },
 
-      disableLine: async (path: string) => {
-        const { repertoire, repertoireIndex, socket } = get();
-        const chapter = repertoire[repertoireIndex];
-        const root = chapter?.root;
-        if (!chapter || !root) return;
-
-        updateRecursive(root, path, (node) => {
-          if (node.data.enabled) {
-            chapter.enabledCount--;
-            node.data.enabled = false;
-          }
-        });
-
-        set((state) => {
-          const next = state.repertoire.slice();
-          next[repertoireIndex] = { ...next[repertoireIndex] };
-          return { repertoire: next };
-        });
-
-        await persistChapter(chapter);
-
-        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'node_disabled', chapterId: chapter.uuid, path }));
-        }
-      },
-
-      enableLine: async (path: string) => {
-        const { repertoire, repertoireIndex, socket } = get();
-        const chapter = repertoire[repertoireIndex];
-        if (!chapter) return;
-        const trainAs = chapter.trainAs;
-
-        updateRecursive(chapter.root, path, (node) => {
-          const color: Color = colorFromPly(node.data.ply);
-
-          if (trainAs === color && !node.data.enabled) {
-            chapter.enabledCount++;
-            node.data.enabled = true;
-          }
-        });
-
-        set((state) => {
-          const next = state.repertoire.slice();
-          next[repertoireIndex] = { ...next[repertoireIndex] };
-          return { repertoire: next };
-        });
-
-        await persistChapter(chapter);
-
-        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'node_enabled', chapterId: chapter.uuid, path }));
-        }
-      },
-
       //TODO separate state action for makeMove, addMove ?
 
       /*
@@ -881,54 +817,6 @@ export const useTrainerStore = create<TrainerState>()(
         }
       },
 
-      //TODO namespace
-      importIntoChapter: async (targetChapter: number, newPgn: string) => {
-        const { repertoire } = get();
-        const chapter = repertoire[targetChapter];
-        if (!chapter) return;
-
-        const importedPgnRoot = annotatePgn(newPgn, chapter.trainAs);
-        console.log(importedPgnRoot, newPgn);
-
-        const importRoot = {
-          data: {
-            comment: '',
-            fen: INITIAL_BOARD_FEN,
-            id: '',
-            ply: 0,
-            san: '',
-            enabled: false,
-            training: null,
-          },
-          children: importedPgnRoot.children,
-        };
-
-        merge(chapter.root, importRoot);
-
-        // //TODO can we make this part of merge?
-        let enabledCount = 0;
-        let unseenCount = 0;
-        forEachNode(chapter.root, (node) => {
-          if (node.data.enabled) {
-            enabledCount++;
-          }
-          if (!userCard(node.data)) unseenCount++;
-        });
-
-        chapter.enabledCount = enabledCount;
-        chapter.unseenCount = unseenCount;
-
-        // touch only this chapter so UI updates (no set({ repertoire }) on whole array reference)
-        set((state) => {
-          const next = state.repertoire.slice();
-          next[targetChapter] = { ...next[targetChapter] };
-          return { repertoire: next };
-        });
-
-        // persist only this chapter
-        await persistChapter(chapter);
-        // isAuthenticated ?
-      },
     }),
 
     {

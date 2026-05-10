@@ -1,14 +1,10 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { useTrainerStore } from '../store/state';
 import {
   GraduationCapIcon,
   HistoryIcon,
-  Lightbulb,
   LucideRepeat2,
-  MessageSquarePlus,
   MousePointer,
-  PencilIcon,
-  Repeat2,
   XIcon,
 } from 'lucide-react';
 
@@ -141,105 +137,13 @@ const Unselected = () => (
   />
 );
 
-//TODO factor this out of userTip?
-const EditCommentInline = () => {
-  const selectedNode = useTrainerStore((s) => s.selectedNode);
-  const selectedPath = useTrainerStore((s) => s.selectedPath);
-  const setCommentAt = useTrainerStore((s) => s.setCommentAt);
-
-  const savedComment = selectedNode?.data?.comment ?? '';
-  const [draft, setDraft] = useState(savedComment);
-
-  useEffect(() => {
-    setDraft(selectedNode?.data?.comment ?? '');
-  }, [selectedPath, selectedNode?.data?.comment]);
-
-  const isDirty = draft !== savedComment;
-
-  const handleSave = () => {
-    if (selectedPath !== undefined) {
-      setCommentAt(draft, selectedPath);
-    }
-  };
-
-  return (
-    <div className="bg-white border border-gray-300 rounded-md p-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-1">Comment</label>
-      <textarea
-        className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
-        rows={3}
-        value={draft}
-        placeholder="~no comment~"
-        onChange={(e) => setDraft(e.target.value)}
-      />
-      <div className="flex items-center justify-between mt-2 h-6">
-        <span
-          className={`text-xs text-amber-600 transition-opacity duration-150 ${isDirty ? 'opacity-100' : 'opacity-0'}`}
-        >
-          Unsaved changes
-        </span>
-        <button
-          className={`text-sm font-semibold px-3 py-1 rounded transition ${
-            isDirty
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-          disabled={!isDirty}
-          onClick={handleSave}
-        >
-          Save
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const EditComment = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const selectedNode = useTrainerStore((s) => s.selectedNode);
-  const currentComment = selectedNode?.data?.comment ?? '';
-
-  return (
-    <>
-      {/* Desktop: inline editor */}
-      <div className="hidden md:block">
-        <EditCommentInline />
-      </div>
-      {/* Mobile: button to open modal */}
-      <div className="md:hidden">
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 border border-gray-300 bg-white hover:shadow transition active:scale-[0.98]"
-        >
-          <div className="bg-gray-200 rounded p-1">
-            <PencilIcon className="h-4 w-4 text-black" />
-          </div>
-          <span className="text-sm truncate">{currentComment ? currentComment : 'Add comment'}</span>
-        </button>
-      </div>
-      {/* Mobile modal */}
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center md:hidden"
-          onClick={() => setModalOpen(false)}
-        >
-          <div className="mx-4 w-full" onClick={(e) => e.stopPropagation()}>
-            <EditCommentInline />
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
 export const UserTip = () => {
   const { userTip, repertoire, repertoireIndex, trainingMethod, trainableContext, lastGuess } =
     useTrainerStore();
 
   if (repertoire.length == 0) return <EmptyRepertoire />;
   if (!trainingMethod) return <Unselected />;
-  if (trainingMethod == 'edit') return <EditComment />;
+  if (trainingMethod == 'edit') return null;
 
   const chapter = repertoire[repertoireIndex];
   const san = trainableContext?.targetMove?.data.san;

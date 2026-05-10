@@ -1,34 +1,27 @@
 //TODO repertoire and repertoire section in same file
 
 import {
-  CloudAlert,
-  FileCog,
-  FileDown,
-  LucideCloud,
+  BookOpenIcon,
+  BookPlus,
+  DownloadIcon,
+  FilePlus2Icon,
   LucideCloudOff,
   LucideCloudUpload,
   SettingsIcon,
 } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../store/state';
-import { Modal } from '../modals/Modal';
 import EditChapterModal from '../modals/EditChapterModal';
-import React, { Dispatch, SetStateAction, useState } from 'react';
-import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
+import DownloadModal from '../modals/DownloadModal';
+import React, { useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
 
 export const ChapterRow = ({ entry, index, id }) => {
-  // console.log('chapter ID should be visible', id);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const repertoireIndex = useTrainerStore().repertoireIndex;
-  const cbConfig = useTrainerStore().cbConfig;
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [newName, setNewName] = useState('');
   const meta = entry;
   const name = entry.name;
 
@@ -48,11 +41,11 @@ export const ChapterRow = ({ entry, index, id }) => {
       bg-black/50 backdrop-blur-sm
       flex items-center justify-center
     "
-          onClick={() => setEditOpen(false)} // close on backdrop click
+          onClick={() => setEditOpen(false)}
         >
           <div
             className="z-50"
-            onClick={(e) => e.stopPropagation()} // prevent closing when clicking modal
+            onClick={(e) => e.stopPropagation()}
           >
             <EditChapterModal chapterIndex={index} onClose={() => setEditOpen(false)} />
           </div>
@@ -105,10 +98,15 @@ const Repertoire: React.FC = () => {
 
   const repertoire = useTrainerStore().repertoire;
   const repertoireAuthor = useTrainerStore().repertoireAuthor;
+  const setShowingAddToRepertoireMenu = useTrainerStore((s) => s.setShowingAddToRepertoireMenu);
   const isAuth = useAuthStore().isAuthenticated(); // TODO don't use auth state to keep track of network connection
   const authUsername = useAuthStore().user?.username;
   const viewingOther = !!repertoireAuthor && !!authUsername && repertoireAuthor !== authUsername;
   const title = viewingOther ? `${repertoireAuthor}'s Repertoire` : 'My Repertoire';
+
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+
+  const isEmpty = repertoire.length === 0;
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);
@@ -132,6 +130,19 @@ const Repertoire: React.FC = () => {
             <LucideCloudOff />
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => setIsDownloadOpen(true)}
+          disabled={isEmpty}
+          aria-label="Download repertoire"
+          className={`ml-auto p-1.5 rounded-md transition ${
+            isEmpty
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <DownloadIcon className="w-5 h-5" />
+        </button>
       </div>
 
       {/* ONLY THIS SCROLLS */}
@@ -157,6 +168,24 @@ const Repertoire: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Add to repertoire button */}
+      <div className="shrink-0 border-t border-gray-200 p-1">
+        <button
+          type="button"
+          onClick={() => setShowingAddToRepertoireMenu(true)}
+          className={`text-gray-600 w-full h-11 inline-flex items-center justify-left gap-2 rounded-md px-3
+            border border-gray-300 bg-white hover:shadow transition active:scale-[0.98]
+            ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
+        >
+          <div className="">
+            <FilePlus2Icon size={18} />
+          </div>
+          <span className="font-semibold">Add to Repertoire</span>
+        </button>
+      </div>
+
+      {isDownloadOpen && <DownloadModal onClose={() => setIsDownloadOpen(false)} />}
     </div>
   );
 };

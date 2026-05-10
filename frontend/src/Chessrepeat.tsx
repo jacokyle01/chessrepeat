@@ -420,11 +420,24 @@ export const Chessrepeat = () => {
           onRemove={handleRemoveCollaborator}
           onViewRepertoire={handleViewRepertoire}
           onViewMine={authUsername ? handleViewMine : undefined}
-        />
+          />
 
         <div className="app-main">
           {/* BOARD */}
-          <div className="area-board" id="board-wrap" ref={containerRef}>
+          <div className="area-board" id="board-wrap">
+          {chapter && chapter.enabledCount > 0 && (
+          <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200">
+              <div
+                className="h-full bg-sky-300"
+                style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
+              />
+              <div
+                className="h-full bg-blue-500"
+                style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
+              />
+            </div>
+          )}
+          <div ref={containerRef}>
             <Chessground
               orientation={chapter?.trainAs || 'white'}
               fen={selectedNode?.data.fen || initial}
@@ -437,7 +450,7 @@ export const Chessrepeat = () => {
                 events: { after: onAfterMove },
               }}
               drawable={{ autoShapes: createShapes() }}
-            />
+              />
             {pendingPromo && (
               <PromotionOverlay
                 dest={pendingPromo.to}
@@ -448,15 +461,16 @@ export const Chessrepeat = () => {
                   trainingMethod === 'learn'
                     ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
                     : undefined
-                }
-                onPick={(role: PromoRole) => {
-                  const { fenBefore, from, to, meta } = pendingPromo;
-                  closePromo();
-                  const san = chessgroundToSan(fenBefore, from, to, role);
-                  finishMove(san, meta, to);
-                }}
-              />
-            )}
+                  }
+                  onPick={(role: PromoRole) => {
+                    const { fenBefore, from, to, meta } = pendingPromo;
+                    closePromo();
+                    const san = chessgroundToSan(fenBefore, from, to, role);
+                    finishMove(san, meta, to);
+                  }}
+                  />
+                )}
+                </div>
           </div>
 
           {/* CONTROLS */}
@@ -470,7 +484,7 @@ export const Chessrepeat = () => {
                 onClick={() => setSettingsOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
                   transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
-                aria-label="Settings"
+                  aria-label="Settings"
                 title="Settings"
               >
                 <FolderCog2Icon size={18} />
