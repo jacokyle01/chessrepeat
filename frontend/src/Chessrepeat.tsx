@@ -512,30 +512,26 @@ export const Chessrepeat = () => {
                 </div>
                 <span className="text-gray-800 font-semibold text-xl">Chapter</span>
                 {/* copy icon */}
-                <div className="inline-flex p-1 ml-auto text-slate-600">
-                  <span className='text-sm flex items-end'>copy fen</span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
-                      if (!fen) return;
-                      await navigator.clipboard.writeText(fen);
-                      setFenCopied(true);
-                      setTimeout(() => setFenCopied(false), 1200);
-                    }}
-                    className={`
-                      ${
-                        fenCopied
-                          ? 'bg-white text-green-600'
-                          : 'hover:text-slate-800'
-                      }
-                    `}
-                    aria-label="Copy FEN"
-                    title="Copy FEN"
-                  >
-                    {fenCopied ? <ClipboardCheck size={18} /> : <ClipboardCopy size={18} />}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
+                    if (!fen) return;
+                    await navigator.clipboard.writeText(fen);
+                    setFenCopied(true);
+                    setTimeout(() => setFenCopied(false), 1200);
+                  }}
+                  className={`ml-auto p-1.5 rounded-md transition flex gap-1 text-sm items-end ${
+                    fenCopied
+                      ? 'bg-white text-green-600'
+                      : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
+                  }`}
+                  aria-label="Copy FEN"
+                  title="Copy FEN"
+                >
+                  <span>copy fen</span>
+                  {fenCopied ? <ClipboardCheck className="w-5 h-5" /> : <ClipboardCopy className="w-5 h-5" />}
+                </button>
               </div>
               <div className="pgn-tree-scroll">
                 <PgnTree setActiveMoveId={setActiveMoveId} />

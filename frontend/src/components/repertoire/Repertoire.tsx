@@ -183,7 +183,7 @@ const Repertoire: React.FC = () => {
           <div className="">
             <FilePlus2Icon size={18} />
           </div>
-          <span className="font-semibold text-sm">Add to Repertoire</span>
+          <span className="font-semibold text-sm uppercase text-gray-600">Add to Repertoire</span>
         </button>
       </div>
 

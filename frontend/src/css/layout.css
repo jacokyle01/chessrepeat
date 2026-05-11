@@ -284,47 +284,43 @@
 
   .app-main {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto minmax(64px, 1fr) auto;
+    grid-template-rows: auto auto auto auto;
     grid-template-areas:
       'board     pgn'
       'controls  pgn'
       'usertip   repertoire'
       'schedule  repertoire';
-    padding: 0 1.5rem 1rem;
+    padding: 0 1.5rem 2rem;
     gap: 0.75rem;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .area-pgn {
     grid-row: 1 / 3;
     min-height: 0;
     min-width: 0;
-    max-height: 100%;
-    overflow: hidden;
   }
 
   .area-repertoire {
     grid-row: 3 / 5;
     min-height: 0;
-    max-height: 100%;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
   }
 
   .area-usertip {
-    overflow: auto;
     max-height: 200px;
   }
 
   .area-schedule {
     min-height: 0;
-    overflow: auto;
-    max-height: 120px;
   }
 
   .pgn-tree-scroll {
     flex: 1;
     min-height: 0;
-    max-height: none;
+    max-height: 50vh;
     overflow-y: auto;
   }
 }
