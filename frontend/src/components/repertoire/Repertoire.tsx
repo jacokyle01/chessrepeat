@@ -7,6 +7,7 @@ import {
   FilePlus2Icon,
   LucideCloudOff,
   LucideCloudUpload,
+  PlusIcon,
   Settings2Icon,
   SettingsIcon,
 } from 'lucide-react';
@@ -176,12 +177,12 @@ const Repertoire: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowingAddToRepertoireMenu(true)}
-          className={`text-slate-500 w-full h-11 inline-flex items-center justify-left gap-1 rounded-md px-1
+          className={`text-slate-500 w-full h-11 inline-flex items-center justify-left rounded-md px-1
             bg-white hover:shadow transition active:scale-[0.98]
             ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
         >
           <div className="">
-            <FilePlus2Icon size={18} />
+            <PlusIcon size={18} />
           </div>
           <span className="font-semibold text-sm uppercase text-gray-600">Add to Repertoire</span>
         </button>

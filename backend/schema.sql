@@ -17,9 +17,7 @@ CREATE TABLE sessions (
 );
 
 -- 'edit' = full CRUD on chapters, moves, training cards.
--- 'train' = read-only on the tree, but training_updated events are
---           accepted and persisted (so a learner can drill against
---           someone else's repertoire and have their progress saved).
+-- 'train' = read-only on repetroires, write/update for personal training stat
 CREATE TABLE collaborators (
   owner_id        TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
   collaborator_id TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
