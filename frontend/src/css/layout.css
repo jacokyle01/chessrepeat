@@ -128,7 +128,6 @@
 .area-schedule {
   grid-area: schedule;
   min-width: 0;
-  align-self: start;
 }
 
 /* Internal padding for the tip card. These overrides win over any
@@ -376,12 +375,17 @@
   }
 
   .area-repertoire {
-    flex: 1 1 0;
+    /* size to content, but never taller than half the sidebar;
+       internal scrolling handles overflow past that cap. */
+    flex: 0 1 auto;
     min-height: 0;
+    max-height: 50%;
   }
 
   .area-schedule {
-    flex: 0 0 auto;
+    flex: 0 0 35%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .area-pgn {

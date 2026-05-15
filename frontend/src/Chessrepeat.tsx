@@ -16,13 +16,13 @@ import { useTrainerStore } from './store/state';
 import { UserTip } from './components/UserTip';
 import Schedule from './components/MemorySchedule';
 import AddToRepertoireModal from './components/modals/AddToRepertoireModal';
-import PgnControls from './components/pgn/PgnControls';
-import PgnTree from './components/pgn/PgnTree';
+import PgnControls from './components/pgn/TreeControls';
+import PgnTree from './components/pgn/Tree';
 import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
-import { ClipboardCheck, ClipboardCopy, FolderCog2Icon, NetworkIcon } from 'lucide-react';
+import { ClipboardCheck, ClipboardCopy, FileIcon, FolderCog2Icon, NetworkIcon } from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
 import { Header } from './components/Header';
 import { CollaboratorsPanel } from './components/collaborators/CollaboratorsPanel';
@@ -508,7 +508,7 @@ export const Chessrepeat = () => {
             >
               <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
                 <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
-                  <NetworkIcon />
+                  <FileIcon />
                 </div>
                 <span className="text-gray-800 font-semibold text-xl">Chapter</span>
                 {/* copy icon */}

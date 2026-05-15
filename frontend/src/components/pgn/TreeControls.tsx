@@ -5,6 +5,10 @@
 // see en-crossaint
 
 import {
+  ArrowBigLeftDashIcon,
+  ArrowBigLeftIcon,
+  ArrowBigRightDashIcon,
+  ArrowBigRightIcon,
   ArrowLeftToLineIcon,
   ArrowRightToLineIcon,
   ChevronFirst,
@@ -70,16 +74,16 @@ const PgnControls = () => {
   return (
     <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto py-2">
       <button onClick={first} disabled={atStart} className={btnClass(atStart)}>
-        {<ArrowLeftToLineIcon size={30} />}
+        {<ArrowBigLeftDashIcon size={30} />}
       </button>
       <button onClick={prev} disabled={atStart} className={btnClass(atStart)}>
-        {<MoveLeftIcon size={30} />}
+        {<ArrowBigLeftIcon size={30} />}
       </button>
       <button onClick={next} disabled={atEnd} className={btnClass(atEnd)}>
-        {<MoveRightIcon size={30} />}
+        {<ArrowBigRightIcon size={30} />}
       </button>
       <button onClick={last} disabled={atEnd} className={btnClass(atEnd)}>
-        {<ArrowRightToLineIcon size={30} />}
+        {<ArrowBigRightDashIcon size={30} />}
       </button>
     </div>
   );
