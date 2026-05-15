@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CalendarHeatmap, { ReactCalendarHeatmapValue } from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import { useTrainerStore } from '../store/state';
@@ -47,9 +47,16 @@ interface HeatValue {
   count: number;
 }
 
+
+
 const InsightChart: React.FC = () => {
-  const dueTimes = useTrainerStore((s) => s.dueTimes);
+  const updateDueCounts = useTrainerStore().updateDueCounts
   const [hovered, setHovered] = useState<HeatValue | null>(null);
+  useEffect(() => {
+    updateDueCounts()
+    console.log("hi")
+  }, [])
+  const dueTimes = useTrainerStore((s) => s.dueTimes);
 
   const { values, startDate, endDate, maxCount, totalMoves, dueNow, todayKey } = useMemo(() => {
     const today = new Date();

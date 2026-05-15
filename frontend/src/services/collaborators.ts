@@ -83,12 +83,12 @@ export async function viewUserRepertoire(username: string): Promise<{ ok: boolea
     // from the previous room between now and when useWebsocket's effect
     // reruns for the new repertoireAuthor.
     if (socket && socket.readyState !== WebSocket.CLOSED) {
-      socket.close();
+      socket.close(); //TODO put in useWebsocket hook? on author change, fetch other user's repertoire? 
     }
     setConnectedUsers([]);
 
     await setRepertoire(parseChapters(data.chapters));
-    setRepertoireAuthor(username);
+    setRepertoireAuthor(username); // triggers 
     return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };

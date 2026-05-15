@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
 import { parseChapters } from '../util/chapters';
+import { update } from 'idb-keyval';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -16,9 +17,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export function useStartup() {
   const setUser = useAuthStore((s) => s.setUser);
+  const updateDueCounts = useTrainerStore().updateDueCounts;
   const setRepertoireAuthor = useTrainerStore().setRepertoireAuthor;
 
   const { setRepertoire, hydrateRepertoireFromIDB } = useTrainerStore();
+  const { repertoire } = useTrainerStore();
 
   useEffect(() => {
     const hasSessionHint = document.cookie.split('; ').some((c) => c.startsWith('chessrepeat_has_session='));
@@ -28,6 +31,8 @@ export function useStartup() {
       if (!hasSessionHint) {
         // console.log("NO")
         await hydrateRepertoireFromIDB();
+        updateDueCounts();
+
         return;
       }
       try {
@@ -51,10 +56,10 @@ export function useStartup() {
         console.warn('bootstrap /repertoire failed', err);
         if (!cancelled) await hydrateRepertoireFromIDB();
       }
+      updateDueCounts();
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 }
-
