@@ -545,9 +545,7 @@ export const Chessrepeat = () => {
 
           {/* REPERTOIRE */}
           <div className="area-repertoire">
-            <div className="flex flex-col flex-1 min-h-0">
               <Repertoire />
-            </div>
           </div>
 
           {/* MEMORY SCHEDULE */}

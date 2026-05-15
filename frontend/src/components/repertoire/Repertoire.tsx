@@ -116,7 +116,7 @@ const Repertoire: React.FC = () => {
   });
 
   return (
-    <div id="repertoire" className="flex flex-col flex-1 min-h-0 rounded-xl border border-gray-300 bg-white">
+    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-xl border border-gray-300 bg-white">
       {/* fixed header */}
       <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
