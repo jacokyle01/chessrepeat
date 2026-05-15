@@ -171,6 +171,14 @@
   min-width: 0;
 }
 
+/* Sidebar wrapper: by default it's a layout-transparent shim so its
+   children (repertoire + schedule) participate directly in .app-main's
+   grid (mobile + middle layouts). Desktop overrides this to make the
+   sidebar a real flex column owning the left column. */
+.area-sidebar {
+  display: contents;
+}
+
 /* board wrapper */
 .area-board {
   background: #fff;
@@ -342,9 +350,9 @@
     grid-template-columns: minmax(200px, 1fr) 1fr 1fr;
     grid-template-rows: auto auto 1fr;
     grid-template-areas:
-      'repertoire board    pgn'
-      'repertoire   controls pgn'
-      'schedule   usertip pgn';
+      'sidebar board    pgn'
+      'sidebar controls pgn'
+      'sidebar usertip  pgn';
     padding: 0 2.5rem 1rem;
     /* shrink the grid box itself so app-root's background is visible below.
        padding-bottom won't work here: the chessground is aspect-ratio:1 and
@@ -355,9 +363,25 @@
     overflow: hidden;
   }
 
+  /* Sidebar takes the full left column; repertoire flexes to fill,
+     schedule sits at the bottom sized to its content. */
+  .area-sidebar {
+    display: flex;
+    flex-direction: column;
+    grid-area: sidebar;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    gap: 0.75rem;
+  }
 
-  /* side columns span all rows */
   .area-repertoire {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .area-schedule {
+    flex: 0 0 auto;
   }
 
   .area-pgn {

@@ -543,14 +543,15 @@ export const Chessrepeat = () => {
             </div>
           </div>
 
-          {/* REPERTOIRE */}
-          <div className="area-repertoire">
+          {/* SIDEBAR (repertoire + memory schedule) */}
+          <div className="area-sidebar">
+            <div className="area-repertoire">
               <Repertoire />
-          </div>
+            </div>
 
-          {/* MEMORY SCHEDULE */}
-          <div className="area-schedule">
-            <Schedule />
+            <div className="area-schedule">
+              <Schedule />
+            </div>
           </div>
         </div>
       </div>
