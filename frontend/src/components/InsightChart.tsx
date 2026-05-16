@@ -87,7 +87,7 @@ const InsightChart: React.FC = () => {
 
   return (
     <div className="cr-heatmap font-sans text-xs w-full">
-      <div className="w-full pr-5 -ml-1.5">
+      <div className="w-full pr-5">
         <CalendarHeatmap
           startDate={startDate}
           endDate={endDate}
@@ -138,7 +138,6 @@ const InsightChart: React.FC = () => {
         .cr-heatmap .react-calendar-heatmap text { fill: #374151; font-size: 9px; font-weight: 600; }
         .cr-heatmap .react-calendar-heatmap .react-calendar-heatmap-small-text { font-size: 8px; }
         .cr-heatmap .react-calendar-heatmap-month-label { transform: translateY(3px); }
-        .cr-heatmap .react-calendar-heatmap-weekday-label { transform: translateX(5px); }
         .cr-heatmap .react-calendar-heatmap rect { rx: 1; ry: 1; }
         .cr-heatmap .react-calendar-heatmap rect.color-cr-0 { fill: #dfdfdf; }
         .cr-heatmap .react-calendar-heatmap rect.color-cr-1 { fill: #c9deff; }

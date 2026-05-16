@@ -513,7 +513,7 @@ export const Chessrepeat = () => {
             >
               <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
                 <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
-                  <FileIcon />
+                  <FileIcon className="w-5 h-5" />
                 </div>
                 <span className="text-gray-800 font-semibold text-lg">Chapter</span>
                 {/* copy icon */}

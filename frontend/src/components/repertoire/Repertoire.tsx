@@ -69,7 +69,7 @@ export const ChapterRow = ({ entry, index, id }) => {
 
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
             <span className="text-sm truncate leading-none">{name}</span>
-            <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
+            <span className="ml-auto text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
           </h3>
 
           {entry.unseenCount > 0 && (
@@ -123,9 +123,9 @@ const Repertoire: React.FC = () => {
   return (
     <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-xl border border-gray-300 bg-white">
       {/* fixed header */}
-      <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
+      <div id="repertoire-header" className="shrink-0 flex flex-row items-end p-3 gap-2">
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
-          <BookOpenIcon />
+          <BookOpenIcon className="w-5 h-5" />
         </div>
         <div className="flex flex-col leading-none min-w-0">
           <span className="text-lg text-gray-800 font-semibold truncate">{title}</span>
@@ -140,7 +140,7 @@ const Repertoire: React.FC = () => {
           onClick={() => setShowingAddToRepertoireMenu(true)}
           aria-label="Add to repertoire"
           title="Add to repertoire"
-          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
+          className={`ml-auto shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
             text-slate-600 hover:text-slate-800 hover:bg-gray-100
             ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
             >
@@ -164,11 +164,11 @@ const Repertoire: React.FC = () => {
           <span className="chapter-btn-label">download</span>
         </button>
           {isAuth ? (
-            <span className="ml-auto shrink-0 text-green-600" title="Synced">
+            <span className="shrink-0 text-green-600" title="Synced">
               <LucideCloudUpload size={18}/>
             </span>
           ) : (
-            <span className="ml-auto shrink-0 text-red-600" title="Offline — changes not synced">
+            <span className="shrink-0 text-red-600" title="Offline — changes not synced">
               <LucideCloudOff size={18}/>
             </span>
           )}
