@@ -187,7 +187,7 @@ function CommentEditor({ path, initial }: { path: string; initial: string }) {
             save();
           }
         }}
-        className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+        className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-blue"
       />
       <div className="flex justify-end gap-2">
         <button
@@ -203,7 +203,7 @@ function CommentEditor({ path, initial }: { path: string; initial: string }) {
           disabled={!isDirty}
           className={`text-xs font-semibold px-2 py-0.5 rounded transition ${
             isDirty
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-brand-blue text-white hover:brightness-110'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
@@ -235,7 +235,7 @@ function RenderComment({
   const displayText = isTruncated && !expanded ? truncated : comment;
   const isCommentOfActiveMove = path === selectedPath;
   const selectedClass = isCommentOfActiveMove
-    ? 'text-blue-700 bg-blue-50 shadow-inner ring-1 ring-blue-200 text-gray-700'
+    ? 'text-brand-blue bg-blue-50 shadow-inner ring-1 ring-blue-200 text-gray-700'
     : '';
 
   return (
@@ -332,7 +332,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? 'bg-blue-500 rounded-md active' : '';
+  const activeClass = path === selectedPath ? 'bg-brand-blue rounded-md active' : '';
 
   const { repertoire, repertoireIndex } = useTrainerStore.getState();
   const chapter = repertoire[repertoireIndex];
@@ -347,7 +347,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
       data-path={path}
       className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
         leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold
-        hover:bg-sky-400 hover:rounded-md select-none cursor-pointer
+        hover:bg-brand-blue-light hover:rounded-md select-none cursor-pointer
         text-gray-700
         ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''} `}
       onContextMenu={(e) => showMenu(e, items, path)}
@@ -380,7 +380,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   // const classes = nodeClasses(ctx, node, path);
 
   const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'bg-blue-500 rounded-md active' : '';
+  const activeClass = path == selectedPath ? 'bg-brand-blue rounded-md active' : '';
 
   return (
     <span
@@ -388,7 +388,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
       className={`move variation inline-block max-w-full align-top
   whitespace-normal break-words
   px-[7.9px] pr-[4.74px]
-  hover:bg-sky-400 hover:rounded-md select-none cursor-pointer ${activeClass}
+  hover:bg-brand-blue-light hover:rounded-md select-none cursor-pointer ${activeClass}
   text-gray-700
   `}
       onContextMenu={(e) => showMenu(e, items, path)}
@@ -670,7 +670,7 @@ function ChildMoveButtons() {
         {node.children.map((child) => (
           <button
             key={child.data.id}
-            className="px-2.5 py-1 text-sm font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition shadow-sm basis-[calc(50%-0.1875rem)]"
+            className="px-2.5 py-1 text-sm font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-blue-50 hover:border-brand-blue hover:text-brand-blue transition shadow-sm basis-[calc(50%-0.1875rem)]"
             onClick={() => jump(selectedPath + child.data.id)}
           >
             {renderIndex(child.data.ply, true)} {child.data.san}

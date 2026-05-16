@@ -87,7 +87,7 @@ const InsightChart: React.FC = () => {
 
   return (
     <div className="cr-heatmap font-sans text-xs w-full">
-      <div className="w-full max-w-[320px]">
+      <div className="w-full pr-5 -ml-1.5">
         <CalendarHeatmap
           startDate={startDate}
           endDate={endDate}
@@ -110,7 +110,7 @@ const InsightChart: React.FC = () => {
         />
       </div>
 
-      <div className="h-4 text-[11px] text-gray-700 pl-1 -mt-0.5">
+      <div className="h-4 text-[11px] text-gray-700 pl-1 -mt-3">
         {hovered && (
           <>
             <strong>
@@ -145,7 +145,7 @@ const InsightChart: React.FC = () => {
         .cr-heatmap .react-calendar-heatmap rect.color-cr-2 { fill: #91bbff; }
         .cr-heatmap .react-calendar-heatmap rect.color-cr-3 { fill: #6991ff; }
         .cr-heatmap .react-calendar-heatmap rect.color-cr-4 { fill: #1856ff; }
-        .cr-heatmap .react-calendar-heatmap rect.cr-today { stroke: #1856ff; stroke-width: 1.5; }
+        .cr-heatmap .react-calendar-heatmap rect.cr-today { stroke: #3b82f6; stroke-width: 1.5; }
         .cr-heatmap .react-calendar-heatmap rect:hover { stroke: #555; stroke-width: 1; cursor: pointer; }
       `}</style>
     </div>

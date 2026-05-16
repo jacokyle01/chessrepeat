@@ -424,11 +424,11 @@ export const Chessrepeat = () => {
             {chapter && chapter.enabledCount > 0 && (
               <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200">
                 <div
-                  className="h-full bg-sky-300"
+                  className="h-full bg-brand-blue-light"
                   style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
                 />
                 <div
-                  className="h-full bg-blue-500"
+                  className="h-full bg-brand-blue"
                   style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
                 />
               </div>
@@ -510,7 +510,7 @@ export const Chessrepeat = () => {
                 <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
                   <FileIcon />
                 </div>
-                <span className="text-gray-800 font-semibold text-xl">Chapter</span>
+                <span className="text-gray-800 font-semibold text-lg">Chapter</span>
                 {/* copy icon */}
                 <button
                   type="button"

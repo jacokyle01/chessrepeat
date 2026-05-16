@@ -7,6 +7,11 @@ import {
   FilePlus2Icon,
   LucideCloudOff,
   LucideCloudUpload,
+  LucideGraduationCap,
+  LucideHistory,
+  LucideRepeat,
+  LucideRepeat2,
+  LucideUpload,
   PlusIcon,
   Settings2Icon,
   SettingsIcon,
@@ -60,22 +65,22 @@ export const ChapterRow = ({ entry, index, id }) => {
         className={repertoireIndex === index ? 'bg-cyan-50' : ''}
       >
         <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-2 py-0.5">
-          <span className="font-bold pr-3 text-blue-600 flex-shrink-0">{index + 1}</span>
+          <span className="font-bold pr-3 text-brand-blue flex-shrink-0">{index + 1}</span>
 
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
-            <span className="text-md truncate leading-none">{name}</span>
+            <span className="text-sm truncate leading-none">{name}</span>
             <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
           </h3>
 
           {entry.unseenCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-sky-300/40 text-sky-700 rounded-md px-2 mr-2 flex-shrink-0">
-              <span className="chapter-btn-label">Learn </span>{entry.unseenCount}
+            <button className="font-roboto text-sm font-medium bg-brand-blue-light/40 text-sky-700 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
+              <span className="chapter-btn-label"><LucideGraduationCap size={18}/></span>{entry.unseenCount}
             </button>
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-blue-500/30 text-blue-800 rounded-md px-2 mr-2 flex-shrink-0">
-              <span className="chapter-btn-label">Recall </span>{entry.lastDueCount}
+            <button className="font-roboto text-sm font-medium bg-brand-blue/30 text-blue-800 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
+              <span className="chapter-btn-label"><LucideHistory size={18}/> </span>{entry.lastDueCount}
             </button>
           )}
 
@@ -122,14 +127,14 @@ const Repertoire: React.FC = () => {
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
           <BookOpenIcon />
         </div>
-        <span className="text-gray-800 font-semibold text-xl">{title}</span>
+        <span className="text-gray-800 font-semibold text-lg">{title}</span>
         {isAuth ? (
           <span className="text-green-600">
-            <LucideCloudUpload />
+            <LucideCloudUpload size={18}/>
           </span>
         ) : (
           <span className="text-red-600">
-            <LucideCloudOff />
+            <LucideCloudOff size={18}/>
           </span>
         )}
         <button
@@ -181,10 +186,10 @@ const Repertoire: React.FC = () => {
             bg-white hover:shadow transition active:scale-[0.98]
             ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
         >
+          <span className="text-sm text-gray-600">add to repertoire</span>
           <div className="">
-            <PlusIcon size={18} />
+            <LucideUpload size={18} />
           </div>
-          <span className="font-semibold text-sm uppercase text-gray-600">Add to Repertoire</span>
         </button>
       </div>
 

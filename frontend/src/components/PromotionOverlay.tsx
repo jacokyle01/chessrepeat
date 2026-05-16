@@ -35,7 +35,7 @@ export function PromotionOverlay(props: {
                   disabled={isDisabled}
                   className={`relative rounded-lg transition ${
                     isRequired
-                      ? 'bg-blue-200 ring-2 ring-blue-400'
+                      ? 'bg-blue-200 ring-2 ring-brand-blue'
                       : isDisabled
                         ? 'bg-black/5 opacity-30 cursor-not-allowed'
                         : 'bg-black/5 hover:bg-black/10'

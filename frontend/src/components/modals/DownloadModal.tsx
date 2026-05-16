@@ -109,7 +109,7 @@ const DownloadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition
               ${
                 canDownload
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98]'
+                  ? 'bg-brand-blue hover:brightness-110 text-white active:scale-[0.98]'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
           >
@@ -136,7 +136,7 @@ const ScopeOption: React.FC<{
     className={`text-left px-3 py-2.5 rounded-lg border-2 transition text-sm
       ${
         selected
-          ? 'border-blue-500 bg-blue-50 text-blue-900'
+          ? 'border-brand-blue bg-blue-50 text-blue-900'
           : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
       }
       ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -158,7 +158,7 @@ const FormatOption: React.FC<{
     className={`text-left px-3 py-2.5 rounded-lg border-2 transition text-sm cursor-pointer
       ${
         selected
-          ? 'border-blue-500 bg-blue-50 text-blue-900'
+          ? 'border-brand-blue bg-blue-50 text-blue-900'
           : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
       }`}
   >

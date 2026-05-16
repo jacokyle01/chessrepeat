@@ -78,7 +78,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
               // (owner, edit) gets dark blue. Owner appears as a peer
               // only when a collaborator is viewing — same color as edit
               // since they have full access too.
-              const ring = u.permission === 'train' ? 'ring-blue-300' : 'ring-blue-700';
+              const ring = u.permission === 'train' ? 'ring-brand-blue-light' : 'ring-brand-blue';
               return (
                 <img
                   key={u.username}

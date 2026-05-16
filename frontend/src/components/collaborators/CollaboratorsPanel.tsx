@@ -24,8 +24,8 @@ const PERMISSION_DESCRIPTIONS: Record<CollaboratorPermission, string> = {
 // Badge swatches mirror the avatar-ring colors in Header.tsx so the
 // panel and the live presence list stay visually consistent.
 const PERMISSION_BADGE: Record<CollaboratorPermission, string> = {
-  edit: 'bg-blue-700 text-white',
-  train: 'bg-blue-300 text-blue-900',
+  edit: 'bg-brand-blue text-white',
+  train: 'bg-brand-blue-light text-blue-900',
 };
 
 export function CollaboratorsPanel({
@@ -102,7 +102,7 @@ export function CollaboratorsPanel({
                     <button
                       type="button"
                       onClick={() => onViewRepertoire(c.username)}
-                      className="flex-1 text-left text-sm font-medium text-blue-700 hover:underline"
+                      className="flex-1 text-left text-sm font-medium text-brand-blue hover:underline"
                       title="Open their repertoire"
                     >
                       {c.username}

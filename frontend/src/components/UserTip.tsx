@@ -20,17 +20,17 @@ const Tip = ({
   icon,
   title,
   description,
-  titleClassName = 'font-bold text-base md:text-2xl text-gray-800',
-  descriptionClassName = 'text-sm md:text-lg text-gray-600',
+  titleClassName = 'font-bold text-base md:text-xl text-gray-800',
+  descriptionClassName = 'text-md text-gray-600',
 }: TipProps) => (
   <div className="bg-white flex justify-center p-4 md:px-6 border border-gray-300 rounded-md">
     <div className="inline-flex items-center gap-2 md:gap-3">
       <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
         <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">{icon}</div>
       </div>
-      <div className="text-start">
-        <h1 className={titleClassName}>{title}</h1>
-        <h2 className={descriptionClassName}>{description}</h2>
+      <div className="text-start flex flex-col">
+        <span className={titleClassName}>{title}</span>
+        <span className={descriptionClassName}>{description}</span>
       </div>
     </div>
   </div>
@@ -78,21 +78,21 @@ const Fail = () => {
       {/* Action buttons */}
       <div className="flex flex-row items-center justify-center gap-1 md:gap-2 w-full px-2 md:px-4">
         <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
+          className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
           onClick={onContinue}
         >
           CONTINUE
         </button>
 
         <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
+          className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
           onClick={() => setUserTip('recall')}
         >
           UNDO
         </button>
 
         <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
+          className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
           onClick={() => onMarkAlternative(lastGuess)}
         >
           ADD <span className="text-black">{lastGuess}</span>

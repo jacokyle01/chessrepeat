@@ -84,7 +84,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterIndex, onClo
         {isRenaming ? (
           <div className="flex items-center gap-2">
             <input
-              className="flex-1 text-2xl font-semibold text-gray-800 border-b-2 border-blue-400
+              className="flex-1 text-2xl font-semibold text-gray-800 border-b-2 border-brand-blue
                          focus:outline-none bg-transparent"
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
@@ -92,7 +92,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterIndex, onClo
               autoFocus
             />
             <button
-              className="p-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition"
+              className="p-1.5 rounded-md bg-brand-blue hover:brightness-110 text-white transition"
               onClick={commitRename}
               type="button"
               aria-label="Confirm rename"

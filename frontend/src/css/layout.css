@@ -322,10 +322,6 @@
     align-self: start;
   }
 
-  .area-usertip {
-    max-height: 200px;
-  }
-
   .area-schedule {
     min-height: 0;
   }
@@ -346,7 +342,7 @@
 
   /* TODO define shrinking strategy w/ respect to chessboard */
   .app-main {
-    grid-template-columns: minmax(200px, 1fr) 1fr 1fr;
+    grid-template-columns: minmax(200px, 1fr) 1.15fr 1fr;
     grid-template-rows: auto auto 1fr;
     grid-template-areas:
       'sidebar board    pgn'
@@ -357,7 +353,7 @@
        padding-bottom won't work here: the chessground is aspect-ratio:1 and
        forces the grid to overflow, so anything carved out of the grid (a
        spacer row or padding) gets clipped by overflow:hidden first. */
-    margin-bottom: 5rem;
+    margin-bottom: 3rem;
     gap: 0.75rem;
     overflow: hidden;
   }
@@ -403,10 +399,11 @@
     overflow-y: auto;
   }
 
-  /* cap usertip/comment so they don't steal height from the board row */
+  /* usertip fills the remaining 1fr row beneath the board/controls */
   .area-usertip {
     overflow: auto;
-    max-height: 200px;
+    min-height: 0;
+    max-height: none;
   }
 
   .area-comment {

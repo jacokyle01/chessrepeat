@@ -67,8 +67,8 @@ const Controls = () => {
           transition-all duration-200
           ${
             method === 'learn'
-              ? 'bg-white text-sky-400 shadow-md ring-1 ring-sky-300'
-              : 'text-slate-500 hover:text-sky-400 hover:bg-slate-200'
+              ? 'bg-white text-brand-blue-light shadow-md ring-1 ring-brand-blue-light'
+              : 'text-slate-500 hover:text-brand-blue-light hover:bg-slate-200'
           }
           ${!method && name === 'Example Repertoire' ? 'animate-ring-pulse' : ''}
         `}
@@ -89,8 +89,8 @@ const Controls = () => {
           transition-all duration-200
           ${
             method === 'recall'
-              ? 'bg-white text-blue-600 shadow-md ring-1 ring-blue-300'
-              : 'text-slate-500 hover:text-blue-600 hover:bg-slate-200'
+              ? 'bg-white text-brand-blue shadow-md ring-1 ring-brand-blue'
+              : 'text-slate-500 hover:text-brand-blue hover:bg-slate-200'
           }
         `}
         >

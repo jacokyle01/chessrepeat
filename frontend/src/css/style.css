@@ -211,7 +211,7 @@ cg-board piece.fading {
 } */
 
 #flip {
-  background-color: blue;
+  background-color: #3b82f6;
   max-height: 100px;
 }
 
