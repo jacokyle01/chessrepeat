@@ -257,8 +257,8 @@
   flex-direction: column;
   overflow: hidden;
   /* stretch to fill the entire grid slot; internal scrolling handles
-     long chapter lists. */
-  min-height: 0;
+     long chapter lists. Never shorter than a quarter of the viewport. */
+  min-height: 25vh;
   max-height: 100%;
 }
 
@@ -316,7 +316,7 @@
      it actually gets expanding height instead of just content height. */
   .area-repertoire {
     grid-row: 2 / 4;
-    min-height: 0;
+    min-height: 25vh;
     max-height: 100%;
     overflow: hidden;
   }
@@ -376,10 +376,10 @@
   }
 
   .area-repertoire {
-    /* size to content, but never taller than half the sidebar;
-       internal scrolling handles overflow past that cap. */
+    /* size to content, but at least a quarter of the viewport and never
+       taller than half the sidebar; internal scrolling handles overflow. */
     flex: 0 1 auto;
-    min-height: 0;
+    min-height: 25vh;
     max-height: 50%;
   }
 

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Chessground } from './components/Chessground';
 import Controls from './components/TrainingControls';
+import MobileCommentPopout from './components/MobileCommentPopout';
 
 import { useEffect, useRef } from 'react';
 import Repertoire from './components/repertoire/Repertoire';
@@ -476,6 +477,7 @@ export const Chessrepeat = () => {
               <div className="flex items-start gap-1">
                 <Controls />
               </div>
+              <MobileCommentPopout />
               <div className="inline-flex rounded-b-xl bg-white p-1">
                 <button
                   type="button"

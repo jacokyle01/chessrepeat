@@ -127,16 +127,51 @@ const Repertoire: React.FC = () => {
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
           <BookOpenIcon />
         </div>
-        <span className="text-gray-800 font-semibold text-lg">{title}</span>
-        {isAuth ? (
-          <span className="ml-auto text-green-600" title="Synced">
-            <LucideCloudUpload size={18}/>
+        <div className="flex flex-col leading-none min-w-0">
+          <span className="text-lg text-gray-800 font-semibold truncate">{title}</span>
+          <span className="-mt-0.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+            {repertoire.length} chapter{repertoire.length === 1 ? '' : 's'}
           </span>
-        ) : (
-          <span className="ml-auto text-red-600" title="Offline — changes not synced">
-            <LucideCloudOff size={18}/>
-          </span>
-        )}
+        </div>
+
+
+        <button
+          type="button"
+          onClick={() => setShowingAddToRepertoireMenu(true)}
+          aria-label="Add to repertoire"
+          title="Add to repertoire"
+          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
+            text-slate-600 hover:text-slate-800 hover:bg-gray-100
+            ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
+            >
+          <LucideUpload size={18} />
+          <span className="chapter-btn-label">add</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsDownloadOpen(true)}
+          disabled={isEmpty}
+          aria-label="Download repertoire"
+          title="Download repertoire"
+          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center ${
+            isEmpty
+            ? 'text-gray-300 cursor-not-allowed'
+            : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
+          }`}
+          >
+          <DownloadIcon className="w-[18px] h-[18px]" />
+          <span className="chapter-btn-label">download</span>
+        </button>
+          {isAuth ? (
+            <span className="ml-auto shrink-0 text-green-600" title="Synced">
+              <LucideCloudUpload size={18}/>
+            </span>
+          ) : (
+            <span className="ml-auto shrink-0 text-red-600" title="Offline — changes not synced">
+              <LucideCloudOff size={18}/>
+            </span>
+          )}
       </div>
       
       {/* ONLY THIS SCROLLS */}
@@ -161,35 +196,6 @@ const Repertoire: React.FC = () => {
             <ChapterRow id={entry.id} entry={entry} index={index + whiteEntries.length} />
           ))}
         </div>
-      </div>
-
-      {/* Repertoire-level actions */}
-      <div className="shrink-0 border-t border-gray-200 p-1 flex gap-1">
-        <button
-          type="button"
-          onClick={() => setShowingAddToRepertoireMenu(true)}
-          className={`flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-md px-1
-            text-sm text-gray-600 hover:bg-gray-100 transition active:scale-[0.98]
-            ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
-        >
-          <LucideUpload size={18} />
-          <span>add to repertoire</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsDownloadOpen(true)}
-          disabled={isEmpty}
-          aria-label="Download repertoire"
-          className={`flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-md px-1
-            text-sm transition active:scale-[0.98] ${
-              isEmpty
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-        >
-          <DownloadIcon className="w-[18px] h-[18px]" />
-          <span>download</span>
-        </button>
       </div>
 
       {isDownloadOpen && <DownloadModal onClose={() => setIsDownloadOpen(false)} />}
