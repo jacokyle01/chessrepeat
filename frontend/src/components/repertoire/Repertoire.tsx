@@ -129,28 +129,14 @@ const Repertoire: React.FC = () => {
         </div>
         <span className="text-gray-800 font-semibold text-lg">{title}</span>
         {isAuth ? (
-          <span className="text-green-600">
+          <span className="ml-auto text-green-600" title="Synced">
             <LucideCloudUpload size={18}/>
           </span>
         ) : (
-          <span className="text-red-600">
+          <span className="ml-auto text-red-600" title="Offline — changes not synced">
             <LucideCloudOff size={18}/>
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => setIsDownloadOpen(true)}
-          disabled={isEmpty}
-          aria-label="Download repertoire"
-          className={`ml-auto p-1.5 rounded-md transition flex gap-1 text-sm items-end ${
-            isEmpty
-              ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          <span>download</span>
-          <DownloadIcon className="w-5 h-5" />
-        </button>
       </div>
       
       {/* ONLY THIS SCROLLS */}
@@ -177,19 +163,32 @@ const Repertoire: React.FC = () => {
         </div>
       </div>
 
-      {/* Add to repertoire button */}
-      <div className="shrink-0 border-t border-gray-200 p-1">
+      {/* Repertoire-level actions */}
+      <div className="shrink-0 border-t border-gray-200 p-1 flex gap-1">
         <button
           type="button"
           onClick={() => setShowingAddToRepertoireMenu(true)}
-          className={`text-slate-500 w-full h-11 inline-flex items-center justify-left rounded-md px-1
-            bg-white hover:shadow transition active:scale-[0.98]
+          className={`flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-md px-1
+            text-sm text-gray-600 hover:bg-gray-100 transition active:scale-[0.98]
             ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
         >
-          <span className="text-sm text-gray-600">add to repertoire</span>
-          <div className="">
-            <LucideUpload size={18} />
-          </div>
+          <LucideUpload size={18} />
+          <span>add to repertoire</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsDownloadOpen(true)}
+          disabled={isEmpty}
+          aria-label="Download repertoire"
+          className={`flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-md px-1
+            text-sm transition active:scale-[0.98] ${
+              isEmpty
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+        >
+          <DownloadIcon className="w-[18px] h-[18px]" />
+          <span>download</span>
         </button>
       </div>
 
