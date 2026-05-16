@@ -307,10 +307,8 @@
      board is square). Internal scroll handles longer trees. */
   .area-pgn {
     grid-row: 1;
-    align-self: start;
     min-height: 0;
     min-width: 0;
-    max-height: calc(50vw - 2rem);
     overflow: hidden;
   }
 
