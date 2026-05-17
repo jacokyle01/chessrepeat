@@ -130,33 +130,6 @@
   min-width: 0;
 }
 
-/* Internal padding for the tip card. These overrides win over any
-   Tailwind py-*/px-* because the selectors are more specific than a
-   single utility class. Keep everything style-related in CSS. */
-.area-usertip > div {
-  padding: 1rem 1.25rem;
-}
-
-@container usertip (min-width: 500px) {
-  .area-usertip > div {
-    padding: 2rem 1.5rem;
-  }
-}
-
-/* allow the text block next to the tip icon to shrink below its content
-   width so the h1's nowrap + ellipsis can kick in. */
-.area-usertip div:has(> h1) {
-  min-width: 0;
-  flex: 1 1 0;
-}
-
-/* tip headline: single line, shrinks to fit with clamp() */
-.area-usertip h1 {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: clamp(0.8rem, 5cqi, 1.5rem);
-}
 .area-comment {
   grid-area: comment;
   min-width: 0;

@@ -8,117 +8,54 @@ import {
   XIcon,
 } from 'lucide-react';
 
+type TipAction = {
+  label: ReactNode;
+  onClick: () => void;
+};
+
 type TipProps = {
   icon: ReactNode;
   title: string;
   description: string;
   titleClassName?: string;
   descriptionClassName?: string;
+  actions?: TipAction[];
 };
 
 const Tip = ({
   icon,
   title,
   description,
-  titleClassName = 'font-bold text-base md:text-xl text-gray-800',
+  titleClassName = 'font-bold text-base md:text-lg text-gray-800',
   descriptionClassName = 'text-md text-gray-600',
+  actions,
 }: TipProps) => (
-  <div className="bg-white flex justify-center p-4 md:px-6 border border-gray-300 rounded-md">
+  <div className="bg-white flex flex-col items-center py-4 md:px-6 border border-gray-300 rounded-lg">
     <div className="inline-flex items-center gap-2 md:gap-3">
       <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">{icon}</div>
+        <div className="text-gray-500 p-1.5 md:p-2 rounded-md">{icon}</div>
       </div>
       <div className="text-start flex flex-col">
         <span className={titleClassName}>{title}</span>
         <span className={descriptionClassName}>{description}</span>
       </div>
     </div>
+
+    {actions && actions.length > 0 && (
+      <div className="flex flex-row items-center justify-center gap-1 md:gap-2 w-full px-2 md:px-4 pt-2 ">
+        {actions.map((action, i) => (
+          <button
+            key={i}
+            className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
+            onClick={action.onClick}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    )}
   </div>
 );
-
-const Fail = () => {
-  const train = useTrainerStore((s) => s.train);
-  const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
-  const makeMove = useTrainerStore((s) => s.makeMove);
-
-  // OPTIONAL: swap these for real store actions when ready
-  // const undoLastGuess = useTrainerStore((s) => s.undoLastGuess);
-  // const markAsAlternative = useTrainerStore((s) => s.markAsAlternative);
-
-  const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
-  const lastGuess = useTrainerStore.getState().lastGuess;
-  // const isWhite = useTrainerStore((s) => s.chapter.trainAs === 'white');
-
-  const onContinue = () => {
-    train(false);
-    setNextTrainable();
-  };
-
-  const onMarkAlternative = (san: string) => {
-    // markAsAlternative?.(); // TODO: implement in store
-    // setNextTrainable();
-    makeMove(san);
-    setUserTip('recall');
-  };
-
-  const setUserTip = useTrainerStore((s) => s.setUserTip);
-  const { repertoire, repertoireIndex } = useTrainerStore();
-  const chapter = repertoire[repertoireIndex];
-  const isWhite = chapter.trainAs == 'white';
-  return (
-    <div className="bg-white py-2 md:py-5 flex flex-col items-center rounded-md border border-gray-300">
-      <div className="flex flex-row justify-center items-center w-full space-x-3 md:space-x-5 pb-2 md:pb-5">
-        <div className="text-red-500 text-4xl md:text-7xl font-bold">✗</div>
-        <div id="failure">
-          <h2 className="font-bold text-base md:text-2xl text-gray-800">{`${lastGuess} is incorrect`}</h2>
-          <p className="text-sm md:text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</p>
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex flex-row items-center justify-center gap-1 md:gap-2 w-full px-2 md:px-4">
-        <button
-          className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
-          onClick={onContinue}
-        >
-          CONTINUE
-        </button>
-
-        <button
-          className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
-          onClick={() => setUserTip('recall')}
-        >
-          UNDO
-        </button>
-
-        <button
-          className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
-          onClick={() => onMarkAlternative(lastGuess)}
-        >
-          ADD <span className="text-black">{lastGuess}</span>
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const Alternate = () => {
-  const lastGuess = useTrainerStore.getState().lastGuess;
-
-  return (
-    <div className="border-t-2">
-      <div className="bg-white py-3 md:py-10 shadow-md flex flex-col items-center">
-        <div className="flex flex-row justify-center items-center w-full space-x-3 md:space-x-5">
-          <LucideRepeat2 className="w-8 h-8 md:w-12 md:h-12" color={'gold'} />
-          <div>
-            <h2 className="font-bold text-base md:text-2xl text-amber-400">{`${lastGuess} is an alternate move`}</h2>
-            <p className="text-sm md:text-lg text-gray-600">Try playing a different move</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const EmptyRepertoire = () => (
   <Tip
@@ -140,6 +77,10 @@ const Unselected = () => (
 export const UserTip = () => {
   const { userTip, repertoire, repertoireIndex, trainingMethod, trainableContext, lastGuess } =
     useTrainerStore();
+  const train = useTrainerStore((s) => s.train);
+  const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
+  const makeMove = useTrainerStore((s) => s.makeMove);
+  const setUserTip = useTrainerStore((s) => s.setUserTip);
 
   if (repertoire.length == 0) return <EmptyRepertoire />;
   if (!trainingMethod) return <Unselected />;
@@ -184,7 +125,37 @@ export const UserTip = () => {
         />
       );
     case 'fail':
-      return <Fail />;
+      return (
+        <Tip
+          icon={<div className="text-red-500 text-2xl md:text-4xl">✗</div>}
+          title={`${lastGuess} is incorrect`}
+          description={`${isWhite ? 'White' : 'Black'} plays ${san}`}
+          actions={[
+            {
+              label: 'CONTINUE',
+              onClick: () => {
+                train(false);
+                setNextTrainable();
+              },
+            },
+            {
+              label: 'UNDO',
+              onClick: () => setUserTip('recall'),
+            },
+            {
+              label: (
+                <>
+                  ADD <span className="text-black">{lastGuess}</span>
+                </>
+              ),
+              onClick: () => {
+                makeMove(lastGuess);
+                setUserTip('recall');
+              },
+            },
+          ]}
+        />
+      );
     default:
       return <div>Other</div>;
   }
