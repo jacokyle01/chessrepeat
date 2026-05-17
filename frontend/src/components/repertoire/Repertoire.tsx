@@ -27,6 +27,7 @@ import { useAuthStore } from '../../store/auth';
 export const ChapterRow = ({ entry, index, id }) => {
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
+  const updateDueCounts = useTrainerStore().updateDueCounts;
   const repertoireIndex = useTrainerStore().repertoireIndex;
   const [editOpen, setEditOpen] = useState(false);
   const meta = entry;
@@ -37,6 +38,7 @@ export const ChapterRow = ({ entry, index, id }) => {
   const handleChangeChapter = () => {
     setRepertoireIndex(index);
     clearChapterContext();
+    updateDueCounts();
   };
 
   return (
@@ -68,8 +70,8 @@ export const ChapterRow = ({ entry, index, id }) => {
           <span className="font-bold pr-3 text-brand-blue flex-shrink-0">{index + 1}</span>
 
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
-            <span className="text-sm truncate leading-none">{name}</span>
-            <span className="ml-auto text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
+            <span className={`text-sm truncate leading-none ${repertoireIndex === index ? 'font-bold' : ''}`}>{name}</span>
+            <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
           </h3>
 
           {entry.unseenCount > 0 && (
@@ -121,7 +123,7 @@ const Repertoire: React.FC = () => {
   });
 
   return (
-    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-xl border border-gray-300 bg-white">
+    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-sm">
       {/* fixed header */}
       <div id="repertoire-header" className="shrink-0 flex flex-row items-end p-3 gap-2">
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">

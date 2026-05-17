@@ -1,7 +1,7 @@
 import { SiDiscord, SiGithub } from 'react-icons/si';
 import { Bug, Globe, LogIn, LogOut, User } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
-import type { Peer } from '../store/state';
+import { useTrainerStore, type Peer } from '../store/state';
 
 interface Props {
   // Other users currently connected to the same repertoire. Only meaningful
@@ -17,6 +17,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
   const openLogin = useAuthStore((s) => s.openLogin);
   const showLogin = useAuthStore((s) => s.showLogin);
 
+  const setConnectedUsers = useTrainerStore().setConnectedUsers;
   const peers = connectedUsers?.filter((u) => u.username !== authUser?.username) ?? [];
   const showSignIn = !showLogin;
 
@@ -108,7 +109,16 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
               )}
               <span className="text-sm">{authUser.username ?? 'Unnamed'}</span>
             </span>
-            <button type="button" onClick={() => clearAuth()} title="Sign out" className="header-link">
+            <button
+              type="button"
+              onClick={() => {
+                clearAuth();
+                //TODO we don't need to reload but this make it easy ..  
+                location.reload();
+              }}
+              title="Sign out"
+              className="header-link"
+            >
               <LogOut />
             </button>
           </>

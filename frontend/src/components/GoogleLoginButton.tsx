@@ -24,12 +24,14 @@ export function applyLoginResponse(data: any) {
     picture: data.user.picture,
   });
   void trainer.setRepertoire(parseChapters(data.chapters));
+  // triggers websocket hook 
   if (data.user?.username) trainer.setRepertoireAuthor(data.user.username);
   auth.closeLogin();
 }
 
 export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
   const [ready, setReady] = useState(false);
+  const updateDueCounts = useTrainerStore().updateDueCounts;
 
   useEffect(() => {
     // @ts-ignore
@@ -62,6 +64,7 @@ export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
             return;
           }
           applyLoginResponse(data);
+          updateDueCounts();
         } catch (err) {
           console.error('login request failed', err);
         }

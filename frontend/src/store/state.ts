@@ -793,8 +793,6 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       addNewChapterLocally: async (chapter: Chapter) => {
-        const { repertoire } = get();
-
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
           case 'white':
@@ -806,7 +804,6 @@ export const useTrainerStore = create<TrainerState>()(
         }
 
         set({ repertoire: newRepertoire });
-
         if (!useAuthStore.getState().isAuthenticated()) {
           const cid = chapter.uuid;
           await writeChapter(cid, chapter);

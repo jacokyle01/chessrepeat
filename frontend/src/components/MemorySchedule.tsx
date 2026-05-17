@@ -4,7 +4,7 @@ import { CalendarIcon } from 'lucide-react';
 
 const Schedule: React.FC = () => {
   return (
-    <div className="shrink-0 flex flex-col rounded-lg border border-gray-300 bg-white pb-0 w-full">
+    <div className="shrink-0 flex flex-col rounded-lg border border-gray-300 bg-white shadow-sm pb-0 w-full">
       <div id="schedule-header" className="shrink-0 flex items-center px-3 pt-2 pb-1 gap-2">
         <div id="schedule-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
           <CalendarIcon className="w-5 h-5" />
