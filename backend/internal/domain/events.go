@@ -28,11 +28,26 @@ type TrainingUpdatedEvent struct {
 	Card      CardData `json:"card"`     // the updated card
 }
 
-// NodeToggleEvent is the WebSocket message envelope for enable/disable events.
-type NodeToggleEvent struct {
-	Type      string `json:"type"` // "node_enabled" or "node_disabled"
+
+// CommentEvent is the WebSocket message envelope for setting a node's
+// comment. Server enforces store.MaxCommentChars by truncating; the
+// canonical (possibly-truncated) comment is what gets broadcast back to
+// peers, so every client converges on the same text.
+type CommentEvent struct {
+	Type      string `json:"type"` // "set_comment"
 	ChapterID string `json:"chapterId"`
 	Path      string `json:"path"`
+	Comment   string `json:"comment"`
+}
+
+// ChapterRenameEvent is the WebSocket message envelope for chapter
+// rename. The server persists the new name and broadcasts a 'reload'
+// to peers — the renaming client already updated optimistically and is
+// excluded from the broadcast, mirroring the chapter_deleted flow.
+type ChapterRenameEvent struct {
+	Type      string `json:"type"` // "chapter_renamed"
+	ChapterID string `json:"chapterId"`
+	Name      string `json:"name"`
 }
 
 // ChapterDeleteEvent is the WebSocket message envelope for chapter

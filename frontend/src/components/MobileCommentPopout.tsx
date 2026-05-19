@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CircleXIcon, MessageSquareTextIcon } from 'lucide-react';
-import { useTrainerStore } from '../store/state';
+import { useTrainerStore, MAX_COMMENT_CHARS } from '../store/state';
 
 /**
  * Mobile-only affordance shown during learn/recall when the current move
@@ -94,6 +94,7 @@ const MobileCommentPopout: React.FC = () => {
               ref={textareaRef}
               rows={3}
               value={draft}
+              maxLength={MAX_COMMENT_CHARS}
               placeholder="Add comment…"
               onChange={(e) => {
                 setDraft(e.target.value);

@@ -14,7 +14,7 @@ import {
   TrainingOutcome,
 } from '../types/training';
 import { ChildNode } from 'chessops/pgn';
-import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, updateAt, updateRecursive } from '../util/tree';
+import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, updateAt } from '../util/tree';
 import { contains, init } from '../util/path';
 import { computeDueCounts, computeNextTrainableNode } from '../util/training';
 import { colorFromPly, positionFromFen } from '../util/chess';
@@ -30,9 +30,9 @@ import {
   type SrsConfig,
   type Card,
 } from '../util/srs';
-import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
 import { PLAYGROUND_KEY, useAuthStore } from './auth';
+import { reloadRepertoire } from '../services/repertoire';
 
 // Permission a connected peer holds against the joined room.
 // 'owner' is the repertoire owner; 'edit' has full CRUD; 'train' can
@@ -54,8 +54,19 @@ function currentUserKey(): string | null {
   return auth.user?.username ?? (!auth.isAuthenticated() ? PLAYGROUND_KEY : null);
 }
 
+// function persistChapter(chapter: Chapter) {
+//   if 
+// }
+
+
 import { userCard } from '../util/userCard';
 export { userCard };
+
+// Cap a single move's comment. Mirrors store.MaxCommentChars on the
+// backend (which truncates anything over this and broadcasts the
+// canonical text). Textareas use it for `maxLength` so users hit it
+// before round-tripping.
+export const MAX_COMMENT_CHARS = 1000;
 
 const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter of a chessrepeat repertoire. You can add your own chapter by clicking "Add to Repertoire" and selecting a PGN (game file) to import. Then, you can train your own openings with spaced repetition! Click "Learn" to see positions for the first time, then click "Recall" to train them after increasingly long intervals of time.
 Spaced repetition can help you memorize new openings more efficiently and effectively than other techniques.
@@ -130,6 +141,7 @@ interface TrainerState {
 
   clearChapterContext: () => void;
   setCommentAt: (comment: string, path: string) => Promise<void>;
+  setCommentRemote: (chapterId: string, path: string, comment: string) => void;
   updateDueCounts: () => void;
   setNextTrainablePosition: () => void;
   learn: () => void;
@@ -139,8 +151,6 @@ interface TrainerState {
   // higher-level ops
   deleteLine: (path: string) => Promise<void>;
   deleteNodeRemote: (chapterId: string, path: string) => void;
-  disableNodeRemote: (chapterId: string, path: string) => void;
-  enableNodeRemote: (chapterId: string, path: string) => void;
   updateTrainingRemote: (chapterId: string, path: string, username: string, card: Card) => void;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   addNewChapterLocally: (chapter: Chapter) => Promise<void>;
@@ -292,21 +302,29 @@ export const useTrainerStore = create<TrainerState>()(
 
       // ---- inside create(...) actions ----
       renameChapter: async (chapterIndex: number, newName: string) => {
-        const { repertoire } = get();
+        const { repertoire, socket } = get();
         const chapter = repertoire[chapterIndex];
         if (!chapter) return;
 
         const cid = chapter.uuid;
 
-        // update in-memory (touch only that chapter)
+        // update in-memory optimistically (touch only that chapter)
         set((state) => {
           const next = state.repertoire.slice();
           next[chapterIndex] = { ...next[chapterIndex], name: newName };
           return { repertoire: next };
         });
 
-        // persist only this chapter
-        await writeChapter(cid, { ...chapter, name: newName });
+        // Playground state lives in IDB; authenticated state lives on
+        // the server and is mirrored to peers via the WebSocket (the
+        // server broadcasts 'reload' so other tabs/sessions resync).
+        if (!useAuthStore.getState().isAuthenticated()) {
+          await writeChapter(cid, { ...chapter, name: newName });
+        } else if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'chapter_renamed', chapterId: cid, name: newName }));
+        } else {
+          console.warn('socket not open; chapter rename not broadcast');
+        }
       },
 
       deleteChapterAt: async (chapterIndex: number) => {
@@ -409,7 +427,13 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = repertoire[repertoireIndex];
         const root = chapter.root;
         const node = nodeAtPath(root, path);
-        if (!node) return;
+        if (!node) {
+          // The path we're asked to delete isn't in our local tree —
+          // we've drifted from the server. Resync rather than no-op.
+          console.warn('deleteLine: path not found, reloading', { path });
+          await reloadRepertoire();
+          return;
+        }
 
         // count number of enabled moves we're deleting
         let deleteCount = 0;
@@ -507,16 +531,54 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       setCommentAt: async (comment: string, path: string) => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, repertoireIndex, socket } = get();
         const chapter = repertoire[repertoireIndex];
         if (!chapter) return;
         const node = nodeAtPath(chapter.root, path);
-        if (!node) return;
+        if (!node) {
+          // Commenting on a path our tree doesn't have — we've drifted
+          // from the server. Resync rather than silently dropping it.
+          console.warn('setCommentAt: path not found, reloading', { path });
+          await reloadRepertoire();
+          return;
+        }
+        // Defensive cap: the textarea already enforces maxLength, but
+        // a programmatic caller (or paste-bypass) could exceed it. The
+        // server truncates by runes too, so this just avoids a wasted
+        // round-trip + reconciles to the same canonical length.
+        if (comment.length > MAX_COMMENT_CHARS) comment = comment.slice(0, MAX_COMMENT_CHARS);
         node.data.comment = comment;
         //TODO abstraction over both persistence mechanisms?
         //TODO better naming
         await persistChapter(chapter);
         set({ repertoire });
+
+        if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(
+            JSON.stringify({
+              type: 'set_comment',
+              chapterId: chapter.uuid,
+              path,
+              comment,
+            }),
+          );
+        }
+      },
+
+      // handle a set_comment event received from another client
+      setCommentRemote: (chapterId: string, path: string, comment: string) => {
+        const { repertoire } = get();
+        const chapter = repertoire.find((c) => c.uuid === chapterId);
+        if (!chapter) return;
+        const node = nodeAtPath(chapter.root, path);
+        if (!node) return; // server stays authoritative; missing locally means we'll resync separately
+        node.data.comment = comment;
+        set((state) => {
+          const next = state.repertoire.slice();
+          const idx = next.findIndex((c) => c.uuid === chapterId);
+          if (idx !== -1) next[idx] = { ...next[idx] };
+          return { repertoire: next };
+        });
       },
 
       /*
@@ -621,7 +683,6 @@ export const useTrainerStore = create<TrainerState>()(
           // tree has drifted from the server's. Don't persist an
           // orphan; resync the whole repertoire over HTTP instead.
           console.warn('addMove: path not found, reloading', { chapterId, path });
-          const { reloadRepertoire } = await import('../services/repertoire');
           await reloadRepertoire();
           return;
         }
@@ -662,48 +723,6 @@ export const useTrainerStore = create<TrainerState>()(
 
         // if we were viewing a node inside the deleted subtree, jump to the parent
         if (contains(selectedPath, path)) jump(init(path));
-      },
-
-      disableNodeRemote: (chapterId: string, path: string) => {
-        const { repertoire } = get();
-        const chapter = repertoire.find((c) => c.uuid === chapterId);
-        if (!chapter) return;
-
-        updateRecursive(chapter.root, path, (node) => {
-          if (node.data.enabled) {
-            chapter.enabledCount--;
-            node.data.enabled = false;
-          }
-        });
-
-        set((state) => {
-          const next = state.repertoire.slice();
-          const idx = next.findIndex((c) => c.uuid === chapterId);
-          if (idx !== -1) next[idx] = { ...next[idx] };
-          return { repertoire: next };
-        });
-      },
-
-      enableNodeRemote: (chapterId: string, path: string) => {
-        const { repertoire } = get();
-        const chapter = repertoire.find((c) => c.uuid === chapterId);
-        if (!chapter) return;
-        const trainAs = chapter.trainAs;
-
-        updateRecursive(chapter.root, path, (node) => {
-          const color: Color = colorFromPly(node.data.ply);
-          if (trainAs === color && !node.data.enabled) {
-            chapter.enabledCount++;
-            node.data.enabled = true;
-          }
-        });
-
-        set((state) => {
-          const next = state.repertoire.slice();
-          const idx = next.findIndex((c) => c.uuid === chapterId);
-          if (idx !== -1) next[idx] = { ...next[idx] };
-          return { repertoire: next };
-        });
       },
 
       // handle a training_updated event received from another client

@@ -111,7 +111,7 @@ const Repertoire: React.FC = () => {
   const isAuth = useAuthStore().isAuthenticated(); // TODO don't use auth state to keep track of network connection
   const authUsername = useAuthStore().user?.username;
   const viewingOther = !!repertoireAuthor && !!authUsername && repertoireAuthor !== authUsername;
-  const title = viewingOther ? `${repertoireAuthor}'s Repertoire` : 'My Repertoire';
+  const title = viewingOther ? `${repertoireAuthor}'s repertoire` : 'Repertoire';
 
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
@@ -125,7 +125,7 @@ const Repertoire: React.FC = () => {
   return (
     <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-md">
       {/* fixed header */}
-      <div id="repertoire-header" className="shrink-0 flex flex-row items-end p-3 gap-2">
+      <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
           <BookOpenIcon className="w-5 h-5" />
         </div>
@@ -142,7 +142,7 @@ const Repertoire: React.FC = () => {
           onClick={() => setShowingAddToRepertoireMenu(true)}
           aria-label="Add to repertoire"
           title="Add to repertoire"
-          className={`ml-auto shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
+          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
             text-slate-600 hover:text-slate-800 hover:bg-gray-100
             ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
             >
@@ -166,11 +166,11 @@ const Repertoire: React.FC = () => {
           <span className="chapter-btn-label">download</span>
         </button>
           {isAuth ? (
-            <span className="shrink-0 text-green-600" title="Synced">
+            <span className="shrink-0 ml-auto text-green-600" title="Synced">
               <LucideCloudUpload size={18}/>
             </span>
           ) : (
-            <span className="shrink-0 text-red-600" title="Offline — changes not synced">
+            <span className="shrink-0 ml-auto text-red-600" title="Offline — changes not synced">
               <LucideCloudOff size={18}/>
             </span>
           )}

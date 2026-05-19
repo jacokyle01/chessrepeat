@@ -3,7 +3,7 @@
 //TODO fix off-by-one bug with ply (compare w/ lichess)
 //TODO adjust scrollheight automatically when clicking a move
 //TODO fix formatting. use retroLine?
-import { useTrainerStore } from '../../store/state';
+import { useTrainerStore, MAX_COMMENT_CHARS } from '../../store/state';
 import { useAppContextMenu } from './ContextMenuProvider';
 
 // import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
@@ -172,6 +172,7 @@ function CommentEditor({ path, initial }: { path: string; initial: string }) {
         ref={textareaRef}
         rows={1}
         value={draft}
+        maxLength={MAX_COMMENT_CHARS}
         placeholder="Add comment…"
         onChange={(e) => {
           setDraft(e.target.value);

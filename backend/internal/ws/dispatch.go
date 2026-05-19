@@ -93,6 +93,42 @@ func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte)
 		}
 		s.publishRoom(sub.room, raw, sub)
 
+	case "set_comment":
+		var event domain.CommentEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			s.logf("invalid set_comment from user %s: %v", sub.userID, err)
+			return
+		}
+		if !s.authorizeChapter(ctx, sub, event.ChapterID, true) {
+			return
+		}
+		// Truncate over-long comments rather than rejecting: the
+		// frontend already caps the textarea, this is defense in depth.
+		// Count by runes so multi-byte characters aren't sliced mid-glyph.
+		if r := []rune(event.Comment); len(r) > store.MaxCommentChars {
+			event.Comment = string(r[:store.MaxCommentChars])
+		}
+		// Re-marshal so peers receive the canonical (possibly-truncated)
+		// comment, not the oversized original.
+		out, err := json.Marshal(event)
+		if err != nil {
+			s.logf("marshal set_comment (user %s): %v", sub.userID, err)
+			return
+		}
+		if err := s.db.SetComment(ctx, event.ChapterID, event.Path, event.Comment); err != nil {
+			if errors.Is(err, store.ErrPathNotFound) {
+				// Commenting on a node the server doesn't have:
+				// sender's tree drifted. Reload just that client.
+				s.logf("set_comment from user %s targets missing path %q in chapter %s; requesting reload",
+					sub.userID, event.Path, event.ChapterID)
+				s.sendTo(sub, reloadMessage)
+				return
+			}
+			s.logf("set comment (user %s): %v", sub.userID, err)
+			return
+		}
+		s.publishRoom(sub.room, out, sub)
+
 	case "training_updated":
 		var event domain.TrainingUpdatedEvent
 		if err := json.Unmarshal(raw, &event); err != nil {
@@ -114,6 +150,15 @@ func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte)
 			return
 		}
 		if err := s.db.UpdateTrainingState(ctx, event); err != nil {
+			if errors.Is(err, store.ErrPathNotFound) {
+				// Training update targets a node the server doesn't
+				// have: sender's tree drifted. Resync just that client;
+				// don't broadcast a no-op.
+				s.logf("training_updated from user %s targets missing path %q in chapter %s; requesting reload",
+					sub.userID, event.Path, event.ChapterID)
+				s.sendTo(sub, reloadMessage)
+				return
+			}
 			s.logf("update training (user %s): %v", sub.userID, err)
 			return
 		}
@@ -129,44 +174,44 @@ func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte)
 			return
 		}
 		if err := s.db.DeleteNodeFromChapter(ctx, event); err != nil {
+			if errors.Is(err, store.ErrPathNotFound) {
+				// Node to delete isn't on the server: sender's tree
+				// drifted. Resync just that client; don't broadcast.
+				s.logf("node_deleted from user %s targets missing path %q in chapter %s; requesting reload",
+					sub.userID, event.Path, event.ChapterID)
+				s.sendTo(sub, reloadMessage)
+				return
+			}
 			s.logf("delete node (user %s): %v", sub.userID, err)
 			return
 		}
 		s.publishRoom(sub.room, raw, sub)
 
-	case "node_disabled":
-		var event domain.NodeToggleEvent
-		if err := json.Unmarshal(raw, &event); err != nil {
-			s.logf("invalid node_disabled from user %s: %v", sub.userID, err)
-			return
-		}
-		if !s.authorizeChapter(ctx, sub, event.ChapterID, true) {
-			return
-		}
-		if err := s.db.SetEnabledRecursive(ctx, event.ChapterID, event.Path, false); err != nil {
-			s.logf("disable node (user %s): %v", sub.userID, err)
-			return
-		}
-		s.publishRoom(sub.room, raw, sub)
-
-	case "node_enabled":
-		var event domain.NodeToggleEvent
-		if err := json.Unmarshal(raw, &event); err != nil {
-			s.logf("invalid node_enabled from user %s: %v", sub.userID, err)
-			return
-		}
-		if !s.authorizeChapter(ctx, sub, event.ChapterID, true) {
-			return
-		}
-		if err := s.db.SetEnabledRecursive(ctx, event.ChapterID, event.Path, true); err != nil {
-			s.logf("enable node (user %s): %v", sub.userID, err)
-			return
-		}
-		s.publishRoom(sub.room, raw, sub)
+	// node_enabled / node_disabled are intentionally absent: the
+	// enable/disable WS ops were removed. Enable/disable state changes
+	// ride along with the move tree (move_created upserts the enabled
+	// flag) and chapter-level resyncs.
 
 	// chapter_created is intentionally absent: chapters are created via
 	// HTTP POST /chapter (the tree exceeds the WS frame cap). The HTTP
 	// handler persists and then broadcasts a reload to the owner's room.
+
+	case "chapter_renamed":
+		var event domain.ChapterRenameEvent
+		if err := json.Unmarshal(raw, &event); err != nil {
+			s.logf("invalid chapter_renamed from user %s: %v", sub.userID, err)
+			return
+		}
+		if !s.authorizeChapter(ctx, sub, event.ChapterID, true) {
+			return
+		}
+		if err := s.db.RenameChapter(ctx, event.ChapterID, event.Name); err != nil {
+			s.logf("rename chapter (user %s): %v", sub.userID, err)
+			return
+		}
+		// Same model as chapter_deleted: structural change, peers
+		// resync; sender already updated optimistically so it's excluded.
+		s.publishRoom(sub.room, reloadMessage, sub)
 
 	case "chapter_deleted":
 		var event domain.ChapterDeleteEvent
@@ -181,7 +226,11 @@ func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte)
 			s.logf("delete chapter (user %s): %v", sub.userID, err)
 			return
 		}
-		s.publishRoom(sub.room, raw, sub)
+		// Structural change: tell peers to resync rather than patching
+		// the delete locally, matching the chapter-create flow. The
+		// deleting client already removed it optimistically, so exclude
+		// it (sender) to skip a redundant refetch on that tab.
+		s.publishRoom(sub.room, reloadMessage, sub)
 
 	default:
 		s.logf("unknown ws op %q from user %s", env.Type, sub.userID)

@@ -66,6 +66,16 @@ func (db *DB) CreateChapter(ctx context.Context, event domain.ChapterEvent) erro
 	return tx.Commit(ctx)
 }
 
+// RenameChapter updates a chapter's display name. Idempotent and a
+// no-op if the chapter doesn't exist (the next reload reconciles), same
+// soft-failure mode as DeleteChapter.
+func (db *DB) RenameChapter(ctx context.Context, chapterID, name string) error {
+	_, err := db.pool.Exec(ctx,
+		`UPDATE chapters SET name = $2 WHERE uuid = $1`,
+		chapterID, name)
+	return err
+}
+
 // DeleteChapter removes a chapter row. Moves and training_cards cascade
 // via FK ON DELETE CASCADE.
 func (db *DB) DeleteChapter(ctx context.Context, chapterID string) error {
@@ -91,6 +101,12 @@ const MaxMovesPerChapter = 10
 // past MaxMovesPerChapter. Surfaced to the originating client as a
 // reload, same as ErrPathNotFound.
 var ErrChapterMoveLimit = errors.New("store: chapter move limit exceeded")
+
+// MaxCommentChars caps a single move's comment. Enforced server-side by
+// truncating (in the ws dispatch layer, which then broadcasts the
+// canonical truncated text); the frontend mirrors the limit at the
+// textarea so users hit it before round-trip.
+const MaxCommentChars = 1000
 
 // chapterMoveCount returns the number of real moves in a chapter. The
 // root placeholder (path ”) is excluded so the count lines up with the
@@ -167,12 +183,14 @@ func (db *DB) AddMoveToChapter(ctx context.Context, event domain.MoveEvent) erro
 // (username, picture) public identity is the only thing peers need to
 // render per-user progress — no Google sub on the wire.
 //
-// The INSERT...SELECT WHERE EXISTS guard mirrors the previous
-// "node not found, nothing to update" Mongo behavior: if the move row
-// doesn't exist, the insert is a no-op rather than an FK error.
+// The INSERT...SELECT WHERE EXISTS guard means a missing move row makes
+// the statement affect zero rows instead of raising an FK error. We
+// treat that as ErrPathNotFound so the caller can tell the originating
+// client its tree drifted and to resync, rather than silently dropping
+// the training update.
 func (db *DB) UpdateTrainingState(ctx context.Context, event domain.TrainingUpdatedEvent) error {
 	c := event.Card
-	_, err := db.pool.Exec(ctx, `
+	tag, err := db.pool.Exec(ctx, `
 		INSERT INTO training_cards
 			(chapter_id, path, username, due, stability, difficulty,
 			 elapsed_days, scheduled_days, reps, lapses, state, last_review)
@@ -196,7 +214,13 @@ func (db *DB) UpdateTrainingState(ctx context.Context, event domain.TrainingUpda
 		c.ElapsedDays, c.ScheduledDays, c.Reps, c.Lapses,
 		c.State, c.LastReview,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrPathNotFound
+	}
+	return nil
 }
 
 // DeleteNodeFromChapter removes a node and all its descendants. A
@@ -212,8 +236,18 @@ func (db *DB) UpdateTrainingState(ctx context.Context, event domain.TrainingUpda
 // wildcards into the path.
 func (db *DB) DeleteNodeFromChapter(ctx context.Context, event domain.NodeDeleteEvent) error {
 	ok, err := db.pathExists(ctx, event.ChapterID, event.Path)
-	if err != nil || !ok {
+	if err != nil {
 		return err
+	}
+	if !ok {
+		// Empty path is the chapter root — a deliberate no-op (clients
+		// send chapter_deleted instead). A non-empty path that doesn't
+		// exist means the client's tree drifted from the server's;
+		// surface that so the caller can be told to resync.
+		if event.Path == "" {
+			return nil
+		}
+		return ErrPathNotFound
 	}
 	_, err = db.pool.Exec(ctx, `
 		DELETE FROM moves
@@ -223,21 +257,23 @@ func (db *DB) DeleteNodeFromChapter(ctx context.Context, event domain.NodeDelete
 	return err
 }
 
-// SetEnabledRecursive sets the enabled flag on a node and all its
-// descendants. Same prefix-match and same path-existence guard as
-// DeleteNodeFromChapter.
-func (db *DB) SetEnabledRecursive(ctx context.Context, chapterID string, path string, enabled bool) error {
-	ok, err := db.pathExists(ctx, chapterID, path)
-	if err != nil || !ok {
+// SetComment writes a node's comment. Caller is responsible for
+// enforcing MaxCommentChars (the dispatch layer truncates before
+// calling, so we can broadcast the canonical text). A missing move row
+// returns ErrPathNotFound so the caller can reload the sender — mirrors
+// the path guard used by AddMoveToChapter and friends.
+func (db *DB) SetComment(ctx context.Context, chapterID, path, comment string) error {
+	tag, err := db.pool.Exec(ctx, `
+		UPDATE moves SET comment = $3
+		WHERE chapter_id = $1 AND path = $2
+	`, chapterID, path, comment)
+	if err != nil {
 		return err
 	}
-	_, err = db.pool.Exec(ctx, `
-		UPDATE moves
-		SET enabled = $4
-		WHERE chapter_id = $1
-		  AND (path = $2 OR path LIKE $3 || '%' ESCAPE '\')
-	`, chapterID, path, escapeLike(path), enabled)
-	return err
+	if tag.RowsAffected() == 0 {
+		return ErrPathNotFound
+	}
+	return nil
 }
 
 // pathExists is the input-validation guard for the recursive subtree

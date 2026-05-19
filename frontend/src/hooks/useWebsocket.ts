@@ -26,10 +26,8 @@ export function useWebsocket() {
     removeConnectedUser,
     addMove,
     deleteNodeRemote,
-    disableNodeRemote,
-    enableNodeRemote,
     updateTrainingRemote,
-    deleteChapterRemote,
+    setCommentRemote,
   } = useTrainerStore();
 
   useEffect(() => {
@@ -60,21 +58,18 @@ export function useWebsocket() {
         case 'node_deleted':
           deleteNodeRemote(payload.chapterId, payload.path);
           break;
-        case 'node_disabled':
-          disableNodeRemote(payload.chapterId, payload.path);
+        case 'set_comment':
+          setCommentRemote(payload.chapterId, payload.path, payload.comment);
           break;
-        case 'node_enabled':
-          enableNodeRemote(payload.chapterId, payload.path);
-          break;
+        // node_enabled / node_disabled removed: enable/disable no longer
+        // has its own WS op; the state rides the move tree + resyncs.
         case 'training_updated':
           updateTrainingRemote(payload.chapterId, payload.path, payload.username, payload.card);
           break;
-        case 'chapter_deleted':
-          deleteChapterRemote(payload.chapterId);
-          break;
-        // No 'chapter_created' case: chapters are created via HTTP POST
-        // /chapter, after which the server broadcasts 'reload' to the
-        // room and every peer resyncs via reloadRepertoire above.
+        // No 'chapter_created'/'chapter_deleted' cases: chapter-level
+        // structural changes are persisted (HTTP POST /chapter for
+        // create; ws for delete) and the server then broadcasts
+        // 'reload', so every peer resyncs via reloadRepertoire above.
       }
     };
     return () => {
