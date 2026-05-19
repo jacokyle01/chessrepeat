@@ -37,7 +37,7 @@ const Controls = () => {
   //TODO difference between handleLearn and setting mode to learn?
   return (
     <div className="flex justify-start items-start">
-      <div id="training-controls" className="inline-flex rounded-b-xl bg-white p-1">
+      <div id="training-controls" className="inline-flex rounded-b-xl bg-white shadow-md p-1">
         {/* EDIT */}
         <button
           onClick={() => setTrainingMethod('edit')}

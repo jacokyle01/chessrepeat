@@ -167,6 +167,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return errors.New("user not found")
 	}
 
+	//TODO check permission at websocket message time, trigger reload if 
 	perm, err := s.db.EffectivePermissionOnRepertoire(r.Context(), ownerID, sess.UserID)
 	if err != nil {
 		http.Error(w, "view auth check failed", http.StatusInternalServerError)
@@ -338,6 +339,40 @@ func (s *Server) publishRoom(r *room, msg []byte, sender *subscriber) {
 			go s.leave(sub)
 		}
 	}
+}
+
+// sendTo delivers a message to a single subscriber. Non-blocking and
+// same eviction policy as publishRoom: a subscriber too slow to drain
+// its buffer is dropped rather than stalling the caller.
+func (s *Server) sendTo(sub *subscriber, msg []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	select {
+	case sub.msgs <- msg:
+	default:
+		go s.leave(sub)
+	}
+}
+
+// NotifyRepertoireChanged tells every client currently in the given
+// owner's room to re-fetch the repertoire over HTTP. Used by the
+// chapter HTTP POST path: a full chapter tree is too large for the WS
+// frame cap, so it's persisted over HTTP and connected peers are nudged
+// to resync rather than receiving the tree over the socket. No-op if no
+// room exists for the owner.
+func (s *Server) NotifyRepertoireChanged(ownerID string) {
+	s.mu.Lock()
+	r, ok := s.rooms[ownerID]
+	s.mu.Unlock()
+	if !ok {
+		return
+	}
+	// sender == nil: broadcast to everyone, including the creator's
+	// other sessions. The creator's active tab already has the chapter
+	// locally; a redundant resync just reconciles it with the
+	// authoritative (possibly cap-trimmed) server state.
+	s.publishRoom(r, reloadMessage, nil)
 }
 
 func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg []byte) error {

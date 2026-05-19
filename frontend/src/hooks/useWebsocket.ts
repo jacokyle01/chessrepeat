@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
+import { reloadRepertoire } from '../services/repertoire';
 
 const WS_URL = import.meta.env.VITE_API_URL.replace(/^http/, 'ws');
 
@@ -24,7 +25,6 @@ export function useWebsocket() {
     addConnectedUser,
     removeConnectedUser,
     addMove,
-    addNewChapterLocally,
     deleteNodeRemote,
     disableNodeRemote,
     enableNodeRemote,
@@ -52,6 +52,11 @@ export function useWebsocket() {
         case 'move_created':
           addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
           break;
+        case 'reload':
+          // Server rejected one of our mutations because it targeted a
+          // path it doesn't have — our tree drifted. Resync over HTTP.
+          void reloadRepertoire();
+          break;
         case 'node_deleted':
           deleteNodeRemote(payload.chapterId, payload.path);
           break;
@@ -67,28 +72,9 @@ export function useWebsocket() {
         case 'chapter_deleted':
           deleteChapterRemote(payload.chapterId);
           break;
-        case 'chapter_created':
-          addNewChapterLocally({
-            uuid: payload.chapterId,
-            name: payload.name,
-            trainAs: payload.trainAs,
-            root: {
-              data: {
-                id: '',
-                fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-                ply: 0,
-                san: '',
-                comment: '',
-                enabled: false,
-                training: {},
-              },
-              children: [],
-            },
-            enabledCount: payload.enabledCount,
-            unseenCount: payload.enabledCount,
-            lastDueCount: 0,
-          });
-          break;
+        // No 'chapter_created' case: chapters are created via HTTP POST
+        // /chapter, after which the server broadcasts 'reload' to the
+        // room and every peer resyncs via reloadRepertoire above.
       }
     };
     return () => {

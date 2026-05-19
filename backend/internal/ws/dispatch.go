@@ -3,9 +3,17 @@ package ws
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"chessrepeat/internal/domain"
+	"chessrepeat/internal/store"
 )
+
+// reloadMessage tells a single client to discard its in-memory tree and
+// re-fetch the repertoire over HTTP. Sent when that client's mutation
+// referenced a path the server doesn't have (its tree drifted), so the
+// bad op is never fanned out to the rest of the room.
+var reloadMessage = []byte(`{"type":"reload"}`)
 
 // authorizeChapter is the per-message authorization gate for every
 // chapter-anchored WebSocket op. The handshake's view check only proves
@@ -39,22 +47,6 @@ func (s *Server) authorizeChapter(ctx context.Context, sub *subscriber, chapterI
 	return true
 }
 
-// authorizeRoomEdit is the chapter_created variant: there is no existing
-// chapter to resolve, so we authorize against the joined room's owner.
-// Always edit-class — train-only collaborators cannot create chapters.
-func (s *Server) authorizeRoomEdit(ctx context.Context, sub *subscriber) bool {
-	perm, err := s.db.EffectivePermissionOnRepertoire(ctx, sub.room.id, sub.userID)
-	if err != nil {
-		s.logf("authz check failed (user %s, room %s): %v", sub.userID, sub.room.id, err)
-		return false
-	}
-	if !domain.CanEdit(perm) {
-		s.logf("forbidden: user %s has %q on room %s, edit required", sub.userID, perm, sub.room.id)
-		return false
-	}
-	return true
-}
-
 // handleMessage matches the `type` field of an incoming WebSocket
 // message to a server action. New ops are added by extending the switch.
 // Every chapter-mutating branch must gate on authorizeChapter before
@@ -80,7 +72,23 @@ func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte)
 			return
 		}
 		if err := s.db.AddMoveToChapter(ctx, event); err != nil {
-			s.logf("persist move (user %s): %v", sub.userID, err)
+			switch {
+			case errors.Is(err, store.ErrPathNotFound):
+				// Client added a move under a path the server doesn't
+				// have: its tree has drifted. Tell just that client to
+				// resync; don't fan the bad op out to the room.
+				s.logf("move_created from user %s targets missing path %q in chapter %s; requesting reload",
+					sub.userID, event.Path, event.ChapterID)
+				s.sendTo(sub, reloadMessage)
+			case errors.Is(err, store.ErrChapterMoveLimit):
+				// Chapter is at the move cap. Reject and resync the
+				// originating client so it drops the local move.
+				s.logf("move_created from user %s exceeds move cap on chapter %s; requesting reload",
+					sub.userID, event.ChapterID)
+				s.sendTo(sub, reloadMessage)
+			default:
+				s.logf("persist move (user %s): %v", sub.userID, err)
+			}
 			return
 		}
 		s.publishRoom(sub.room, raw, sub)
@@ -156,23 +164,9 @@ func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte)
 		}
 		s.publishRoom(sub.room, raw, sub)
 
-	case "chapter_created":
-		var event domain.ChapterEvent
-		if err := json.Unmarshal(raw, &event); err != nil {
-			s.logf("invalid chapter_created from user %s: %v", sub.userID, err)
-			return
-		}
-		// no chapter yet to resolve — authorize against the joined room.
-		if !s.authorizeRoomEdit(ctx, sub) {
-			return
-		}
-		// stamp owner from the joined room rather than trusting the client
-		event.OwnerID = sub.room.id
-		if err := s.db.CreateChapter(ctx, event); err != nil {
-			s.logf("persist chapter (user %s): %v", sub.userID, err)
-			return
-		}
-		s.publishRoom(sub.room, raw, sub)
+	// chapter_created is intentionally absent: chapters are created via
+	// HTTP POST /chapter (the tree exceeds the WS frame cap). The HTTP
+	// handler persists and then broadcasts a reload to the owner's room.
 
 	case "chapter_deleted":
 		var event domain.ChapterDeleteEvent

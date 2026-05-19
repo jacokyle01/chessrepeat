@@ -123,7 +123,7 @@ const Repertoire: React.FC = () => {
   });
 
   return (
-    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-sm">
+    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-md">
       {/* fixed header */}
       <div id="repertoire-header" className="shrink-0 flex flex-row items-end p-3 gap-2">
         <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">

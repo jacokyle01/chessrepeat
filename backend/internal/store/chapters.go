@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"chessrepeat/internal/domain"
+
 	"github.com/jackc/pgx/v5"
 )
 
@@ -14,6 +15,19 @@ import (
 // move tree. Wrapped in a transaction so a partial failure can't leave a
 // chapter with no moves.
 func (db *DB) CreateChapter(ctx context.Context, event domain.ChapterEvent) error {
+	// Enforce the per-chapter move cap before opening a transaction.
+	// flattenTree includes the root placeholder at path ''; that's not
+	// a move, so it doesn't count toward the cap.
+	moves := flattenTree(event.Root)
+	moveCount := len(moves)
+	println(moveCount)
+	if _, hasRoot := moves[""]; hasRoot {
+		moveCount--
+	}
+	if moveCount > MaxMovesPerChapter {
+		return ErrChapterMoveLimit
+	}
+
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -32,7 +46,6 @@ func (db *DB) CreateChapter(ctx context.Context, event domain.ChapterEvent) erro
 		return err
 	}
 
-	moves := flattenTree(event.Root)
 	rows := make([][]any, 0, len(moves))
 	for path, m := range moves {
 		rows = append(rows, []any{
@@ -61,11 +74,76 @@ func (db *DB) DeleteChapter(ctx context.Context, chapterID string) error {
 	return err
 }
 
+// ErrPathNotFound is returned by tree-mutating store ops when the anchor
+// path they target has no move row — i.e. the client's in-memory tree
+// has drifted from the server's. The ws dispatch layer surfaces this to
+// the originating client as a reload signal so it can resync.
+var ErrPathNotFound = errors.New("store: path not found")
+
+// MaxMovesPerChapter caps how many real moves a single chapter may hold
+// (the root placeholder row at path ” is not a move and doesn't count).
+// Enforced server-side on every move/chapter insert; the offending
+// client is told to reload so it discards the rejected local mutation.
+// Single tunable knob — raise/lower here.
+const MaxMovesPerChapter = 10
+
+// ErrChapterMoveLimit is returned when an insert would push a chapter
+// past MaxMovesPerChapter. Surfaced to the originating client as a
+// reload, same as ErrPathNotFound.
+var ErrChapterMoveLimit = errors.New("store: chapter move limit exceeded")
+
+// chapterMoveCount returns the number of real moves in a chapter. The
+// root placeholder (path ”) is excluded so the count lines up with the
+// "at most X moves" cap as a user would count moves.
+func (db *DB) chapterMoveCount(ctx context.Context, chapterID string) (int, error) {
+	var n int
+	err := db.pool.QueryRow(ctx,
+		`SELECT count(*) FROM moves WHERE chapter_id = $1 AND path <> ''`,
+		chapterID).Scan(&n)
+	return n, err
+}
+
 // AddMoveToChapter upserts a single move. The key is the move's path
 // (parent path + move ID).
+//
+// The parent we attach to is event.Path; an empty parent path is the
+// chapter root, which always exists (it has no move row). For any deeper
+// parent we require the row to exist first: without that guard a move
+// added under a path the server never saw would be silently inserted as
+// an orphan, permanently diverging this client from everyone else.
 func (db *DB) AddMoveToChapter(ctx context.Context, event domain.MoveEvent) error {
+	if event.Path != "" {
+		ok, err := db.pathExists(ctx, event.ChapterID, event.Path)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return ErrPathNotFound
+		}
+	}
 	movePath := event.Path + event.Move.ID
-	_, err := db.pool.Exec(ctx, `
+
+	// Enforce the per-chapter cap, but only for a genuinely new move.
+	// Re-sending an existing path is an idempotent upsert (e.g. a
+	// comment edit or enabled toggle) and must not be rejected just
+	// because the chapter is already at the cap. Like the path guards
+	// above this is check-then-write, not transactional, so concurrent
+	// adds could overshoot by a few — acceptable for a soft cap.
+	exists, err := db.pathExists(ctx, event.ChapterID, movePath)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		n, err := db.chapterMoveCount(ctx, event.ChapterID)
+		if err != nil {
+			return err
+		}
+		if n >= MaxMovesPerChapter {
+			return ErrChapterMoveLimit
+		}
+	}
+
+	_, err = db.pool.Exec(ctx, `
 		INSERT INTO moves
 			(chapter_id, path, id, fen, ply, san, comment, enabled)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -202,9 +280,9 @@ func (db *DB) FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domai
 		return nil, err
 	}
 	type chapterRow struct {
-		uuid                       string
-		name, trainAs              string
-		enabledCount, unseenCount  int
+		uuid                      string
+		name, trainAs             string
+		enabledCount, unseenCount int
 	}
 	var chRowsBuf []chapterRow
 	for chRows.Next() {

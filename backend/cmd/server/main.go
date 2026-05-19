@@ -26,6 +26,9 @@ func main() {
 	// timeout so a slow query can't pin a DB connection.
 	httpMux := http.NewServeMux()
 	api.Register(httpMux, db, cfg.GoogleClientID)
+	// Chapter creation is an HTTP POST (the tree exceeds the WS frame
+	// cap); on success the ws server nudges the owner's room to resync.
+	api.RegisterChapterRoute(httpMux, db, wsServer)
 
 	// rootMux dispatches WS upgrades directly (long-lived, no timeout)
 	// and everything else through the timeout wrapper.

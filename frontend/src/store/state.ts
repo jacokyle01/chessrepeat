@@ -22,7 +22,14 @@ import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { scalachessCharPair } from 'chessops/compat';
 import { makeFen } from 'chessops/fen';
 import { chapterFromPgn } from '../util/io';
-import { createCard, reviewCard, defaultSrsConfig, updateScheduler, type SrsConfig, type Card } from '../util/srs';
+import {
+  createCard,
+  reviewCard,
+  defaultSrsConfig,
+  updateScheduler,
+  type SrsConfig,
+  type Card,
+} from '../util/srs';
 import { Color } from 'chessops';
 import { postChapter } from '../services/postChapter';
 import { PLAYGROUND_KEY, useAuthStore } from './auth';
@@ -106,7 +113,7 @@ interface TrainerState {
   setWebSocket: (ws: WebSocket) => void;
 
   // whose repertoire are we looking at? `useWebsocket` watches this to automatically start a session
-  repertoireAuthor: string | null; 
+  repertoireAuthor: string | null;
   setRepertoireAuthor: (author: string) => void;
 
   connectedUsers: Peer[];
@@ -238,7 +245,7 @@ export const useTrainerStore = create<TrainerState>()(
       setSelectedNode: (node) => set({ selectedNode: node }),
 
       repertoireAuthor: null,
-      setRepertoireAuthor: (author) => set ({repertoireAuthor: author}),
+      setRepertoireAuthor: (author) => set({ repertoireAuthor: author }),
 
       showingHint: false,
       setShowingHint: (v) => set({ showingHint: v }),
@@ -272,14 +279,16 @@ export const useTrainerStore = create<TrainerState>()(
 
       connectedUsers: [],
       setConnectedUsers: (users) => set({ connectedUsers: users }),
-      addConnectedUser: (user) => set((state) => ({
-        connectedUsers: state.connectedUsers.some((u) => u.username === user.username)
-          ? state.connectedUsers
-          : [...state.connectedUsers, user],
-      })),
-      removeConnectedUser: (username) => set((state) => ({
-        connectedUsers: state.connectedUsers.filter((u) => u.username !== username),
-      })),
+      addConnectedUser: (user) =>
+        set((state) => ({
+          connectedUsers: state.connectedUsers.some((u) => u.username === user.username)
+            ? state.connectedUsers
+            : [...state.connectedUsers, user],
+        })),
+      removeConnectedUser: (username) =>
+        set((state) => ({
+          connectedUsers: state.connectedUsers.filter((u) => u.username !== username),
+        })),
 
       // ---- inside create(...) actions ----
       renameChapter: async (chapterIndex: number, newName: string) => {
@@ -352,8 +361,7 @@ export const useTrainerStore = create<TrainerState>()(
         let nextIndex = repertoireIndex;
         if (nextRepertoire.length === 0) nextIndex = 0;
         else if (idx < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
-        else if (idx === repertoireIndex)
-          nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+        else if (idx === repertoireIndex) nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
 
         const clearingActive = idx === repertoireIndex;
         set({
@@ -367,7 +375,7 @@ export const useTrainerStore = create<TrainerState>()(
 
       // Load playground chapters from IDB on refresh (playground mode only)
       hydrateRepertoireFromIDB: async () => {
-        console.log("hydrate")
+        console.log('hydrate');
         const { repertoire, addNewChapterLocally } = get();
         if (repertoire.length > 0) return;
         const ids = await readChapterIds();
@@ -528,13 +536,15 @@ export const useTrainerStore = create<TrainerState>()(
         await persistChapter(chapter);
 
         if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({
-            type: 'training_updated',
-            chapterId: chapter.uuid,
-            path: trainableContext.startingPath,
-            username: key,
-            card,
-          }));
+          socket.send(
+            JSON.stringify({
+              type: 'training_updated',
+              chapterId: chapter.uuid,
+              path: trainableContext.startingPath,
+              username: key,
+              card,
+            }),
+          );
         }
       },
 
@@ -555,13 +565,15 @@ export const useTrainerStore = create<TrainerState>()(
         void persistChapter(chapter);
 
         if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({
-            type: 'training_updated',
-            chapterId: chapter.uuid,
-            path: trainableContext.startingPath,
-            username: key,
-            card,
-          }));
+          socket.send(
+            JSON.stringify({
+              type: 'training_updated',
+              chapterId: chapter.uuid,
+              path: trainableContext.startingPath,
+              username: key,
+              card,
+            }),
+          );
         }
 
         return Math.trunc((new Date(card.due).getTime() - Date.now()) / 1000);
@@ -603,8 +615,16 @@ export const useTrainerStore = create<TrainerState>()(
           return;
         }
         const root = chapter.root;
-        //TODO test for existing
-        updateAt(root, path, (parent: TrainableNode) => parent.children.push(node));
+        const parent = updateAt(root, path, (p: TrainableNode) => p.children.push(node));
+        if (!parent) {
+          // The path we're attaching to doesn't exist locally — our
+          // tree has drifted from the server's. Don't persist an
+          // orphan; resync the whole repertoire over HTTP instead.
+          console.warn('addMove: path not found, reloading', { chapterId, path });
+          const { reloadRepertoire } = await import('../services/repertoire');
+          await reloadRepertoire();
+          return;
+        }
 
         if (node.data.enabled) chapter.enabledCount++;
         if (!userCard(node.data)) chapter.unseenCount++;
@@ -755,7 +775,7 @@ export const useTrainerStore = create<TrainerState>()(
           if (!useAuthStore.getState().isAuthenticated()) {
             await persistChapter(chapter);
           } else {
-            console.log("try send over socket")
+            console.log('try send over socket');
             const { socket } = get();
             if (socket && socket.readyState === WebSocket.OPEN) {
               socket.send(
@@ -793,6 +813,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       addNewChapterLocally: async (chapter: Chapter) => {
+        const { repertoire } = get();
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
           case 'white':
@@ -813,7 +834,6 @@ export const useTrainerStore = create<TrainerState>()(
           }
         }
       },
-
     }),
 
     {
@@ -828,8 +848,8 @@ export const useTrainerStore = create<TrainerState>()(
         // searchConfig: state.searchConfig,
         // srsConfig: state.srsConfig,
       }),
-      
-      //TODO don't need? handled but `useStartup()` hook.. 
+
+      //TODO don't need? handled but `useStartup()` hook..
       // onRehydrateStorage: () => {
       //   return async (state, err) => {
       //     if (err || !state) return;

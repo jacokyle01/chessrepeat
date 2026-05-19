@@ -30,7 +30,7 @@ const Tip = ({
   descriptionClassName = 'text-md text-gray-600',
   actions,
 }: TipProps) => (
-  <div className="bg-white flex flex-col items-center py-4 md:px-6 border border-gray-300 rounded-lg">
+  <div className="bg-white flex flex-col items-center py-4 md:px-6 border border-gray-300 rounded-lg shadow-md">
     <div className="inline-flex items-center gap-2 md:gap-3">
       <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
         <div className="text-gray-500 p-1.5 md:p-2 rounded-md">{icon}</div>

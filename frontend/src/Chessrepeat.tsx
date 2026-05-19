@@ -23,7 +23,15 @@ import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
-import { ClipboardCheck, ClipboardCopy, FileIcon, FolderCog2Icon, NetworkIcon } from 'lucide-react';
+import {
+  ClipboardCheck,
+  ClipboardCopy,
+  FileIcon,
+  FolderCog2Icon,
+  GraduationCap,
+  History,
+  NetworkIcon,
+} from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
 import { Header } from './components/Header';
 import { CollaboratorsPanel } from './components/collaborators/CollaboratorsPanel';
@@ -424,15 +432,47 @@ export const Chessrepeat = () => {
           <div className="area-board" id="board-wrap">
             <div className="board-card">
             {chapter && chapter.enabledCount > 0 && (
-              <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200">
+              <div className="group relative">
+                <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200 cursor-default">
+                  <div
+                    className="h-full bg-brand-blue-light"
+                    style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
+                  />
+                  <div
+                    className="h-full bg-brand-blue"
+                    style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
+                  />
+                </div>
+
+                {/* Breakdown tooltip on hover */}
                 <div
-                  className="h-full bg-brand-blue-light"
-                  style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
-                />
-                <div
-                  className="h-full bg-brand-blue"
-                  style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
-                />
+                  className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2
+                    whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-2 text-xs
+                    text-gray-700 shadow-lg opacity-0 transition-opacity duration-150
+                    group-hover:opacity-100"
+                >
+                  <div className="flex items-center gap-2 py-0.5">
+                    <GraduationCap size={14} className="text-sky-700" />
+                    <span className="flex-1">To learn</span>
+                    <span className="font-mono font-semibold">{chapter.unseenCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2 py-0.5">
+                    <History size={14} className="text-blue-800" />
+                    <span className="flex-1">Due</span>
+                    <span className="font-mono font-semibold">{chapter.lastDueCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2 py-0.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-gray-200" />
+                    <span className="flex-1">Learned</span>
+                    <span className="font-mono font-semibold">
+                      {chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 border-t border-gray-100 pt-1">
+                    <span className="flex-1 font-semibold">Total</span>
+                    <span className="font-mono font-semibold">{chapter.enabledCount}</span>
+                  </div>
+                </div>
               </div>
             )}
             <div ref={containerRef}>
@@ -478,7 +518,7 @@ export const Chessrepeat = () => {
                 <Controls />
               </div>
               <MobileCommentPopout />
-              <div className="inline-flex rounded-b-xl bg-white p-1">
+              <div className="inline-flex rounded-b-xl bg-white shadow-md p-1">
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(true)}
@@ -506,7 +546,7 @@ export const Chessrepeat = () => {
           </div>
 
           {/* PGN TREE */}
-          <div className="area-pgn" ref={movesContainerRef}>
+          <div className="area-pgn shadow-md" ref={movesContainerRef}>
             {/* Header + tree: hidden on mobile during learn/recall */}
             <div
               className={`flex flex-col min-h-0 flex-1 overflow-hidden ${isTraining ? 'hidden md:flex' : ''}`}
