@@ -32,7 +32,7 @@ import {
 } from '../util/srs';
 import { postChapter } from '../services/postChapter';
 import { PLAYGROUND_KEY, useAuthStore } from './auth';
-import { reloadRepertoire } from '../services/repertoire';
+import { fetchRepertoire } from '../services/repertoire';
 
 // Permission a connected peer holds against the joined room.
 // 'owner' is the repertoire owner; 'edit' has full CRUD; 'train' can
@@ -431,7 +431,7 @@ export const useTrainerStore = create<TrainerState>()(
           // The path we're asked to delete isn't in our local tree —
           // we've drifted from the server. Resync rather than no-op.
           console.warn('deleteLine: path not found, reloading', { path });
-          await reloadRepertoire();
+          await fetchRepertoire();
           return;
         }
 
@@ -539,7 +539,7 @@ export const useTrainerStore = create<TrainerState>()(
           // Commenting on a path our tree doesn't have — we've drifted
           // from the server. Resync rather than silently dropping it.
           console.warn('setCommentAt: path not found, reloading', { path });
-          await reloadRepertoire();
+          await fetchRepertoire();
           return;
         }
         // Defensive cap: the textarea already enforces maxLength, but
@@ -598,11 +598,19 @@ export const useTrainerStore = create<TrainerState>()(
         await persistChapter(chapter);
 
         if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
+          // Wire path must be the *target move's* path, not the parent's
+          // (startingPath = pathToHere is the position the move is
+          // played from). Cards live on the target node both locally
+          // and in the moves table; mergeCardsIntoMoves attaches them
+          // by path equality, so sending the parent path used to anchor
+          // the card on the wrong row and the card "disappeared" on the
+          // next reload.
+          const targetPath = trainableContext.startingPath + targetNode.data.id;
           socket.send(
             JSON.stringify({
               type: 'training_updated',
               chapterId: chapter.uuid,
-              path: trainableContext.startingPath,
+              path: targetPath,
               username: key,
               card,
             }),
@@ -627,11 +635,13 @@ export const useTrainerStore = create<TrainerState>()(
         void persistChapter(chapter);
 
         if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
+          // Target move's path (see learn() comment above).
+          const targetPath = trainableContext.startingPath + targetNode.data.id;
           socket.send(
             JSON.stringify({
               type: 'training_updated',
               chapterId: chapter.uuid,
-              path: trainableContext.startingPath,
+              path: targetPath,
               username: key,
               card,
             }),
@@ -683,7 +693,7 @@ export const useTrainerStore = create<TrainerState>()(
           // tree has drifted from the server's. Don't persist an
           // orphan; resync the whole repertoire over HTTP instead.
           console.warn('addMove: path not found, reloading', { chapterId, path });
-          await reloadRepertoire();
+          await fetchRepertoire();
           return;
         }
 

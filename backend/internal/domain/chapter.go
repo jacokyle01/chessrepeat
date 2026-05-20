@@ -8,11 +8,11 @@ type ChapterTreeNode struct {
 }
 
 // ChapterTreeResponse is the JSON sent to clients when reading a chapter.
+// Counts (enabled/unseen/due) are no longer persisted server-side — the
+// client computes them from the move tree + per-user training cards.
 type ChapterTreeResponse struct {
-	UUID         string          `json:"uuid"`
-	Name         string          `json:"name"`
-	TrainAs      string          `json:"trainAs"`
-	EnabledCount int             `json:"enabledCount"`
-	UnseenCount  int             `json:"unseenCount"`
-	Root         ChapterTreeNode `json:"root"`
+	UUID    string          `json:"uuid"`
+	Name    string          `json:"name"`
+	TrainAs string          `json:"trainAs"`
+	Root    ChapterTreeNode `json:"root"`
 }

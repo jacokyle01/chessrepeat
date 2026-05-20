@@ -23,7 +23,7 @@ type NodeDeleteEvent struct {
 type TrainingUpdatedEvent struct {
 	Type      string   `json:"type"` // "training_updated"
 	ChapterID string   `json:"chapterId"`
-	Path      string   `json:"path"`     // path to the node (parent path, not including node id)
+	Path      string   `json:"path"`     // path to the target move (parent path + move id) — same row the card is attached to in moves/training_cards
 	Username  string   `json:"username"` // which user's training state changed
 	Card      CardData `json:"card"`     // the updated card
 }
@@ -59,14 +59,14 @@ type ChapterDeleteEvent struct {
 	ChapterID string `json:"chapterId"`
 }
 
-// ChapterEvent is the WebSocket message envelope for chapter creation events.
+// ChapterEvent is the payload of POST /chapter. Counts (enabled/unseen)
+// are derived client-side from the tree and per-user training cards, so
+// they no longer travel on the wire or live in the chapters table.
 type ChapterEvent struct {
-	Type         string          `json:"type"`      // "chapter_created"
-	ChapterID    string          `json:"chapterId"` // TODO uuid? //TODO create server-side??
-	OwnerID      string          `json:"ownerId"`
-	Name         string          `json:"name"`
-	TrainAs      string          `json:"trainAs"`
-	Root         ChapterTreeNode `json:"root"`
-	EnabledCount int             `json:"enabledCount"`
-	UnseenCount  int             `json:"unseenCount"`
+	Type      string          `json:"type"`      // "chapter_created"
+	ChapterID string          `json:"chapterId"` // TODO uuid? //TODO create server-side??
+	OwnerID   string          `json:"ownerId"`
+	Name      string          `json:"name"`
+	TrainAs   string          `json:"trainAs"`
+	Root      ChapterTreeNode `json:"root"`
 }

@@ -30,16 +30,14 @@ export async function postChapter(chapter: Chapter): Promise<void> {
         name: chapter.name,
         trainAs: chapter.trainAs,
         root: chapter.root,
-        enabledCount: chapter.enabledCount,
-        unseenCount: chapter.unseenCount,
       }),
     });
     if (!res.ok) {
       // 413 => over the per-chapter move cap; other codes => transient.
       // Either way the local copy is now divergent: resync from server.
       console.error('postChapter: http', res.status);
-      const { reloadRepertoire } = await import('./repertoire');
-      await reloadRepertoire();
+      const { fetchRepertoire } = await import('./repertoire');
+      await fetchRepertoire();
     }
   } catch (err) {
     console.error('postChapter: failed', err);

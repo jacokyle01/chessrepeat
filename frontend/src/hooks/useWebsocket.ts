@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
-import { reloadRepertoire } from '../services/repertoire';
+import { fetchRepertoire } from '../services/repertoire';
 
 const WS_URL = import.meta.env.VITE_API_URL.replace(/^http/, 'ws');
 
@@ -53,7 +53,7 @@ export function useWebsocket() {
         case 'reload':
           // Server rejected one of our mutations because it targeted a
           // path it doesn't have — our tree drifted. Resync over HTTP.
-          void reloadRepertoire();
+          void fetchRepertoire();
           break;
         case 'node_deleted':
           deleteNodeRemote(payload.chapterId, payload.path);
@@ -69,7 +69,7 @@ export function useWebsocket() {
         // No 'chapter_created'/'chapter_deleted' cases: chapter-level
         // structural changes are persisted (HTTP POST /chapter for
         // create; ws for delete) and the server then broadcasts
-        // 'reload', so every peer resyncs via reloadRepertoire above.
+        // 'reload', so every peer resyncs via fetchRepertoire above.
       }
     };
     return () => {

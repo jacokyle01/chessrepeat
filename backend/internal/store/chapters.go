@@ -36,11 +36,10 @@ func (db *DB) CreateChapter(ctx context.Context, event domain.ChapterEvent) erro
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO chapters
-			(uuid, owner_id, name, train_as, enabled_count, unseen_count)
-		VALUES ($1, $2, $3, $4, $5, $6)
+			(uuid, owner_id, name, train_as)
+		VALUES ($1, $2, $3, $4)
 	`,
 		event.ChapterID, event.OwnerID, event.Name, event.TrainAs,
-		event.EnabledCount, event.UnseenCount,
 	)
 	if err != nil {
 		return err
@@ -308,7 +307,7 @@ func (db *DB) FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domai
 	chapters := make([]domain.ChapterTreeResponse, 0)
 
 	chRows, err := db.pool.Query(ctx, `
-		SELECT uuid, name, train_as, enabled_count, unseen_count
+		SELECT uuid, name, train_as
 		FROM chapters
 		WHERE owner_id = $1
 	`, ownerID)
@@ -316,14 +315,13 @@ func (db *DB) FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domai
 		return nil, err
 	}
 	type chapterRow struct {
-		uuid                      string
-		name, trainAs             string
-		enabledCount, unseenCount int
+		uuid          string
+		name, trainAs string
 	}
 	var chRowsBuf []chapterRow
 	for chRows.Next() {
 		var r chapterRow
-		if err := chRows.Scan(&r.uuid, &r.name, &r.trainAs, &r.enabledCount, &r.unseenCount); err != nil {
+		if err := chRows.Scan(&r.uuid, &r.name, &r.trainAs); err != nil {
 			chRows.Close()
 			return nil, err
 		}
@@ -354,12 +352,10 @@ func (db *DB) FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domai
 	for _, r := range chRowsBuf {
 		mergeCardsIntoMoves(movesByChapter[r.uuid], cardsByChapter[r.uuid])
 		chapters = append(chapters, domain.ChapterTreeResponse{
-			UUID:         r.uuid,
-			Name:         r.name,
-			TrainAs:      r.trainAs,
-			EnabledCount: r.enabledCount,
-			UnseenCount:  r.unseenCount,
-			Root:         buildTree(movesByChapter[r.uuid]),
+			UUID:    r.uuid,
+			Name:    r.name,
+			TrainAs: r.trainAs,
+			Root:    buildTree(movesByChapter[r.uuid]),
 		})
 	}
 	return chapters, nil
@@ -369,10 +365,10 @@ func (db *DB) FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domai
 func (db *DB) ReadChapterAsTree(ctx context.Context, chapterID string) (*domain.ChapterTreeResponse, error) {
 	var resp domain.ChapterTreeResponse
 	err := db.pool.QueryRow(ctx, `
-		SELECT uuid, name, train_as, enabled_count, unseen_count
+		SELECT uuid, name, train_as
 		FROM chapters
 		WHERE uuid = $1
-	`, chapterID).Scan(&resp.UUID, &resp.Name, &resp.TrainAs, &resp.EnabledCount, &resp.UnseenCount)
+	`, chapterID).Scan(&resp.UUID, &resp.Name, &resp.TrainAs)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

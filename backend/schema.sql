@@ -31,9 +31,7 @@ CREATE TABLE chapters (
   uuid          TEXT PRIMARY KEY,
   owner_id      TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
-  train_as      TEXT NOT NULL,
-  enabled_count INT  NOT NULL,
-  unseen_count  INT  NOT NULL
+  train_as      TEXT NOT NULL
 );
 CREATE INDEX chapters_owner ON chapters (owner_id);
 

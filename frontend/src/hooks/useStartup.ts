@@ -2,26 +2,20 @@
 //TODO useEffect on owner id switch?
 
 import { useEffect } from 'react';
-import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
-import { parseChapters } from '../util/chapters';
-import { update } from 'idb-keyval';
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { fetchRepertoire } from '../services/repertoire';
 
 /*
-  Boot chessrepeat: 
+  Boot chessrepeat:
     - signed out: pull from indexedDB
-    - signed in: hit /repertoire and populate user and repertoire
+    - signed in: hit /repertoire (via fetchRepertoire), which hydrates
+      the auth store + repertoireAuthor from the response and computes
+      per-chapter counts before installing.
 */
 
 export function useStartup() {
-  const setUser = useAuthStore((s) => s.setUser);
   const updateDueCounts = useTrainerStore().updateDueCounts;
-  const setRepertoireAuthor = useTrainerStore().setRepertoireAuthor;
-
-  const { setRepertoire, hydrateRepertoireFromIDB } = useTrainerStore();
-  const { repertoire } = useTrainerStore();
+  const { hydrateRepertoireFromIDB } = useTrainerStore();
 
   useEffect(() => {
     const hasSessionHint = document.cookie.split('; ').some((c) => c.startsWith('chessrepeat_has_session='));
@@ -29,32 +23,17 @@ export function useStartup() {
     /* Don't try to log-in if session hint cookie is missing */
     (async () => {
       if (!hasSessionHint) {
-        // console.log("NO")
         await hydrateRepertoireFromIDB();
         updateDueCounts();
-
         return;
       }
-      try {
-        const res = await fetch(`${API_URL}/repertoire`, {
-          credentials: 'include',
-        });
-        if (cancelled) return;
-        if (!res.ok) {
-          if (res.status === 401) await hydrateRepertoireFromIDB();
-          return;
-        }
-        const data = await res.json();
-        if (cancelled) return;
-        setUser({
-          username: data.user.username,
-          picture: data.user.picture,
-        });
-        setRepertoireAuthor(data.user.username);
-        void setRepertoire(parseChapters(data.chapters));
-      } catch (err) {
-        console.warn('bootstrap /repertoire failed', err);
-        if (!cancelled) await hydrateRepertoireFromIDB();
+      const result = await fetchRepertoire();
+      if (cancelled) return;
+      // Fall back to IDB on auth failure (stale session hint) or a
+      // network error — anything else (5xx, etc.) returns silently as
+      // before, no fallback.
+      if (!result.ok && (result.status === 401 || result.status === undefined)) {
+        await hydrateRepertoireFromIDB();
       }
       updateDueCounts();
     })();
