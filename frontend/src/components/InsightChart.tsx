@@ -127,12 +127,12 @@ const InsightChart: React.FC = () => {
           </>
         )}
       </div>
-
+{/* 
       <div className="flex items-center gap-1 pl-1 pt-1 text-[13px]">
         <AlarmCheckIcon className="w-4 h-4 text-gray-700" />
         <span className="font-semibold text-gray-800">{dueNow}</span>
         <span className="text-gray-600">moves due now</span>
-      </div>
+      </div> */}
 
       <style>{`
         .cr-heatmap .react-calendar-heatmap text { fill: #374151; font-size: 9px; font-weight: 600; }
