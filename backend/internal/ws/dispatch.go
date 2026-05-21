@@ -15,6 +15,11 @@ import (
 // bad op is never fanned out to the rest of the room.
 var reloadMessage = []byte(`{"type":"reload"}`)
 
+// pongMessage is the reply to a client-initiated ping. Used by the
+// frontend's liveness watchdog: if it doesn't see a pong within its own
+// timeout it tears the socket down and reconnects.
+var pongMessage = []byte(`{"type":"pong"}`)
+
 // authorizeChapter is the per-message authorization gate for every
 // chapter-anchored WebSocket op. The handshake's view check only proves
 // the subscriber may *read* the joined room; it doesn't prove they may
@@ -62,6 +67,12 @@ func (s *Server) handleMessage(ctx context.Context, sub *subscriber, raw []byte)
 	}
 
 	switch env.Type {
+	case "ping":
+		// Liveness primitive: no auth, no DB, no broadcast. The reader
+		// already updated lastSeenAt before we got here, so this just
+		// echoes pong so the client's own watchdog sees a heartbeat.
+		s.sendTo(sub, pongMessage)
+
 	case "move_created":
 		var event domain.MoveEvent
 		if err := json.Unmarshal(raw, &event); err != nil {

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"chessrepeat/internal/auth"
@@ -37,6 +38,17 @@ const (
 // The query is cancelled past this even if the client stays connected,
 // so a slow query can't hold a pool connection hostage.
 const dbOpTimeout = 10 * time.Second
+
+// Liveness: the client pings every clientPingInterval (~20s) and the
+// server replies with pong (dispatch.go). The server-side watcher
+// closes any connection that hasn't produced inbound traffic in
+// idleTimeout — long enough to ride out a couple of skipped pings on a
+// flaky link, short enough to reclaim slots from genuinely-dead peers.
+// livenessCheckInterval is how often the watcher inspects lastSeenAt.
+const (
+	idleTimeout           = 30 * time.Second
+	livenessCheckInterval = 10 * time.Second
+)
 
 // Server maintains per-owner "rooms" of subscribers and fans out
 // messages within each room.
@@ -86,6 +98,11 @@ type subscriber struct {
 	// burn CPU/DB by flooding the connection. Allocated per-connection
 	// so one chatty peer can't starve another.
 	readBudget *ratelimit.Bucket
+	// lastSeenAt is the unix-nano timestamp of the most recent inbound
+	// message (any type — pings, mutations, anything). The liveness
+	// watcher kicks the subscriber if this falls outside idleTimeout.
+	// atomic because reader (writes) and watcher (reads) run concurrently.
+	lastSeenAt atomic.Int64
 }
 
 func (s *subscriber) peerInfo() domain.PeerInfo {
@@ -186,6 +203,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		permission: perm,
 		readBudget: ratelimit.NewBucket(wsBucketCapacity, wsRefillPerSec),
 	}
+	sub.lastSeenAt.Store(time.Now().UnixNano())
 	s.join(ownerID, sub)
 	defer s.leave(sub)
 
@@ -201,6 +219,28 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
+	// liveness watcher: kicks the subscriber if no inbound message has
+	// arrived in idleTimeout. Pairs with the client-side ping interval:
+	// a healthy peer pings every ~20s, so a 60s gap means the link is
+	// dead even if TCP hasn't noticed yet.
+	go func() {
+		ticker := time.NewTicker(livenessCheckInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				last := time.Unix(0, sub.lastSeenAt.Load())
+				if time.Since(last) > idleTimeout {
+					s.logf("ws idle timeout (%s): kicking user %s", time.Since(last).Round(time.Second), sub.userID)
+					cancel()
+					return
+				}
+			}
+		}
+	}()
+
 	// reader goroutine: pulls messages off the socket and dispatches
 	// them. when the client disconnects (or sends garbage), cancel()
 	// trips the writer loop below so we tear the connection down
@@ -212,6 +252,9 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 			if err != nil {
 				return
 			}
+			// Any inbound traffic (even rate-limited / unknown ops) keeps
+			// the subscriber alive — it proves the socket is bidirectional.
+			sub.lastSeenAt.Store(time.Now().UnixNano())
 			if !sub.readBudget.Allow() {
 				// Pinned to the refill rate — drop silently rather than
 				// closing the socket, since legit clients may briefly
