@@ -326,9 +326,12 @@
   .app-main {
     grid-template-columns: minmax(200px, 1fr) 1.15fr 1fr;
     grid-template-rows: auto 1fr;
+    /* pgn lives only in row 1, so it caps at the board's height; the
+       column-3 cell in row 2 is intentionally empty (`.`) and shows the
+       page background through. */
     grid-template-areas:
       'sidebar board   pgn'
-      'sidebar usertip pgn';
+      'sidebar usertip .  ';
     padding: 0 2.5rem 1rem;
     /* shrink the grid box itself so app-root's background is visible below.
        padding-bottom won't work here: the chessground is aspect-ratio:1 and
@@ -366,7 +369,9 @@
   }
 
   .area-pgn {
-    grid-row: 1 / -1;
+    /* sits in row 1 only (board's row) — no `grid-row: 1 / -1` so the
+       pgn panel matches the chessboard's height instead of spanning
+       down through the usertip row. */
     min-height: 0;
     min-width: 0;
     max-height: 100%;
