@@ -7,14 +7,27 @@ import (
 	"strings"
 
 	"chessrepeat/internal/domain"
+
 	"github.com/jackc/pgx/v5"
 )
 
 // CreateChapter inserts the chapter row and bulk-inserts its flattened
 // move tree. Wrapped in a transaction so a partial failure can't leave a
 // chapter with no moves.
-func (db *DB) CreateChapter(event domain.ChapterEvent) error {
-	ctx := context.TODO()
+func (db *DB) CreateChapter(ctx context.Context, event domain.ChapterEvent) error {
+	// Enforce the per-chapter move cap before opening a transaction.
+	// flattenTree includes the root placeholder at path ''; that's not
+	// a move, so it doesn't count toward the cap.
+	moves := flattenTree(event.Root)
+	moveCount := len(moves)
+	println(moveCount)
+	if _, hasRoot := moves[""]; hasRoot {
+		moveCount--
+	}
+	if moveCount > MaxMovesPerChapter {
+		return ErrChapterMoveLimit
+	}
+
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -23,17 +36,15 @@ func (db *DB) CreateChapter(event domain.ChapterEvent) error {
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO chapters
-			(uuid, owner_id, name, train_as, enabled_count, unseen_count)
-		VALUES ($1, $2, $3, $4, $5, $6)
+			(uuid, owner_id, name, train_as)
+		VALUES ($1, $2, $3, $4)
 	`,
 		event.ChapterID, event.OwnerID, event.Name, event.TrainAs,
-		event.EnabledCount, event.UnseenCount,
 	)
 	if err != nil {
 		return err
 	}
 
-	moves := flattenTree(event.Root)
 	rows := make([][]any, 0, len(moves))
 	for path, m := range moves {
 		rows = append(rows, []any{
@@ -54,19 +65,100 @@ func (db *DB) CreateChapter(event domain.ChapterEvent) error {
 	return tx.Commit(ctx)
 }
 
+// RenameChapter updates a chapter's display name. Idempotent and a
+// no-op if the chapter doesn't exist (the next reload reconciles), same
+// soft-failure mode as DeleteChapter.
+func (db *DB) RenameChapter(ctx context.Context, chapterID, name string) error {
+	_, err := db.pool.Exec(ctx,
+		`UPDATE chapters SET name = $2 WHERE uuid = $1`,
+		chapterID, name)
+	return err
+}
+
 // DeleteChapter removes a chapter row. Moves and training_cards cascade
 // via FK ON DELETE CASCADE.
-func (db *DB) DeleteChapter(chapterID string) error {
-	_, err := db.pool.Exec(context.TODO(),
+func (db *DB) DeleteChapter(ctx context.Context, chapterID string) error {
+	_, err := db.pool.Exec(ctx,
 		`DELETE FROM chapters WHERE uuid = $1`, chapterID)
 	return err
 }
 
+// ErrPathNotFound is returned by tree-mutating store ops when the anchor
+// path they target has no move row — i.e. the client's in-memory tree
+// has drifted from the server's. The ws dispatch layer surfaces this to
+// the originating client as a reload signal so it can resync.
+var ErrPathNotFound = errors.New("store: path not found")
+
+// MaxMovesPerChapter caps how many real moves a single chapter may hold
+// (the root placeholder row at path ” is not a move and doesn't count).
+// Enforced server-side on every move/chapter insert; the offending
+// client is told to reload so it discards the rejected local mutation.
+// Single tunable knob — raise/lower here.
+const MaxMovesPerChapter = 5000
+
+// ErrChapterMoveLimit is returned when an insert would push a chapter
+// past MaxMovesPerChapter. Surfaced to the originating client as a
+// reload, same as ErrPathNotFound.
+var ErrChapterMoveLimit = errors.New("store: chapter move limit exceeded")
+
+// MaxCommentChars caps a single move's comment. Enforced server-side by
+// truncating (in the ws dispatch layer, which then broadcasts the
+// canonical truncated text); the frontend mirrors the limit at the
+// textarea so users hit it before round-trip.
+const MaxCommentChars = 1000
+
+// chapterMoveCount returns the number of real moves in a chapter. The
+// root placeholder (path ”) is excluded so the count lines up with the
+// "at most X moves" cap as a user would count moves.
+func (db *DB) chapterMoveCount(ctx context.Context, chapterID string) (int, error) {
+	var n int
+	err := db.pool.QueryRow(ctx,
+		`SELECT count(*) FROM moves WHERE chapter_id = $1 AND path <> ''`,
+		chapterID).Scan(&n)
+	return n, err
+}
+
 // AddMoveToChapter upserts a single move. The key is the move's path
 // (parent path + move ID).
-func (db *DB) AddMoveToChapter(event domain.MoveEvent) error {
+//
+// The parent we attach to is event.Path; an empty parent path is the
+// chapter root, which always exists (it has no move row). For any deeper
+// parent we require the row to exist first: without that guard a move
+// added under a path the server never saw would be silently inserted as
+// an orphan, permanently diverging this client from everyone else.
+func (db *DB) AddMoveToChapter(ctx context.Context, event domain.MoveEvent) error {
+	if event.Path != "" {
+		ok, err := db.pathExists(ctx, event.ChapterID, event.Path)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return ErrPathNotFound
+		}
+	}
 	movePath := event.Path + event.Move.ID
-	_, err := db.pool.Exec(context.TODO(), `
+
+	// Enforce the per-chapter cap, but only for a genuinely new move.
+	// Re-sending an existing path is an idempotent upsert (e.g. a
+	// comment edit or enabled toggle) and must not be rejected just
+	// because the chapter is already at the cap. Like the path guards
+	// above this is check-then-write, not transactional, so concurrent
+	// adds could overshoot by a few — acceptable for a soft cap.
+	exists, err := db.pathExists(ctx, event.ChapterID, movePath)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		n, err := db.chapterMoveCount(ctx, event.ChapterID)
+		if err != nil {
+			return err
+		}
+		if n >= MaxMovesPerChapter {
+			return ErrChapterMoveLimit
+		}
+	}
+
+	_, err = db.pool.Exec(ctx, `
 		INSERT INTO moves
 			(chapter_id, path, id, fen, ply, san, comment, enabled)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -90,12 +182,14 @@ func (db *DB) AddMoveToChapter(event domain.MoveEvent) error {
 // (username, picture) public identity is the only thing peers need to
 // render per-user progress — no Google sub on the wire.
 //
-// The INSERT...SELECT WHERE EXISTS guard mirrors the previous
-// "node not found, nothing to update" Mongo behavior: if the move row
-// doesn't exist, the insert is a no-op rather than an FK error.
-func (db *DB) UpdateTrainingState(event domain.TrainingUpdatedEvent) error {
+// The INSERT...SELECT WHERE EXISTS guard means a missing move row makes
+// the statement affect zero rows instead of raising an FK error. We
+// treat that as ErrPathNotFound so the caller can tell the originating
+// client its tree drifted and to resync, rather than silently dropping
+// the training update.
+func (db *DB) UpdateTrainingState(ctx context.Context, event domain.TrainingUpdatedEvent) error {
 	c := event.Card
-	_, err := db.pool.Exec(context.TODO(), `
+	tag, err := db.pool.Exec(ctx, `
 		INSERT INTO training_cards
 			(chapter_id, path, username, due, stability, difficulty,
 			 elapsed_days, scheduled_days, reps, lapses, state, last_review)
@@ -119,7 +213,13 @@ func (db *DB) UpdateTrainingState(event domain.TrainingUpdatedEvent) error {
 		c.ElapsedDays, c.ScheduledDays, c.Reps, c.Lapses,
 		c.State, c.LastReview,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrPathNotFound
+	}
+	return nil
 }
 
 // DeleteNodeFromChapter removes a node and all its descendants. A
@@ -133,11 +233,20 @@ func (db *DB) UpdateTrainingState(event domain.TrainingUpdatedEvent) error {
 // the delete; combined with escapeLike on the prefix pattern, this
 // prevents a client from over-matching descendants by smuggling LIKE
 // wildcards into the path.
-func (db *DB) DeleteNodeFromChapter(event domain.NodeDeleteEvent) error {
-	ctx := context.TODO()
+func (db *DB) DeleteNodeFromChapter(ctx context.Context, event domain.NodeDeleteEvent) error {
 	ok, err := db.pathExists(ctx, event.ChapterID, event.Path)
-	if err != nil || !ok {
+	if err != nil {
 		return err
+	}
+	if !ok {
+		// Empty path is the chapter root — a deliberate no-op (clients
+		// send chapter_deleted instead). A non-empty path that doesn't
+		// exist means the client's tree drifted from the server's;
+		// surface that so the caller can be told to resync.
+		if event.Path == "" {
+			return nil
+		}
+		return ErrPathNotFound
 	}
 	_, err = db.pool.Exec(ctx, `
 		DELETE FROM moves
@@ -147,22 +256,23 @@ func (db *DB) DeleteNodeFromChapter(event domain.NodeDeleteEvent) error {
 	return err
 }
 
-// SetEnabledRecursive sets the enabled flag on a node and all its
-// descendants. Same prefix-match and same path-existence guard as
-// DeleteNodeFromChapter.
-func (db *DB) SetEnabledRecursive(chapterID string, path string, enabled bool) error {
-	ctx := context.TODO()
-	ok, err := db.pathExists(ctx, chapterID, path)
-	if err != nil || !ok {
+// SetComment writes a node's comment. Caller is responsible for
+// enforcing MaxCommentChars (the dispatch layer truncates before
+// calling, so we can broadcast the canonical text). A missing move row
+// returns ErrPathNotFound so the caller can reload the sender — mirrors
+// the path guard used by AddMoveToChapter and friends.
+func (db *DB) SetComment(ctx context.Context, chapterID, path, comment string) error {
+	tag, err := db.pool.Exec(ctx, `
+		UPDATE moves SET comment = $3
+		WHERE chapter_id = $1 AND path = $2
+	`, chapterID, path, comment)
+	if err != nil {
 		return err
 	}
-	_, err = db.pool.Exec(ctx, `
-		UPDATE moves
-		SET enabled = $4
-		WHERE chapter_id = $1
-		  AND (path = $2 OR path LIKE $3 || '%' ESCAPE '\')
-	`, chapterID, path, escapeLike(path), enabled)
-	return err
+	if tag.RowsAffected() == 0 {
+		return ErrPathNotFound
+	}
+	return nil
 }
 
 // pathExists is the input-validation guard for the recursive subtree
@@ -193,12 +303,11 @@ func escapeLike(s string) string {
 // FetchChaptersByOwner returns every chapter belonging to a user. Loads
 // chapters, moves, and training_cards in three queries, then assembles
 // the trees in Go.
-func (db *DB) FetchChaptersByOwner(ownerID string) ([]domain.ChapterTreeResponse, error) {
-	ctx := context.TODO()
+func (db *DB) FetchChaptersByOwner(ctx context.Context, ownerID string) ([]domain.ChapterTreeResponse, error) {
 	chapters := make([]domain.ChapterTreeResponse, 0)
 
 	chRows, err := db.pool.Query(ctx, `
-		SELECT uuid, name, train_as, enabled_count, unseen_count
+		SELECT uuid, name, train_as
 		FROM chapters
 		WHERE owner_id = $1
 	`, ownerID)
@@ -206,14 +315,13 @@ func (db *DB) FetchChaptersByOwner(ownerID string) ([]domain.ChapterTreeResponse
 		return nil, err
 	}
 	type chapterRow struct {
-		uuid                       string
-		name, trainAs              string
-		enabledCount, unseenCount  int
+		uuid          string
+		name, trainAs string
 	}
 	var chRowsBuf []chapterRow
 	for chRows.Next() {
 		var r chapterRow
-		if err := chRows.Scan(&r.uuid, &r.name, &r.trainAs, &r.enabledCount, &r.unseenCount); err != nil {
+		if err := chRows.Scan(&r.uuid, &r.name, &r.trainAs); err != nil {
 			chRows.Close()
 			return nil, err
 		}
@@ -244,26 +352,23 @@ func (db *DB) FetchChaptersByOwner(ownerID string) ([]domain.ChapterTreeResponse
 	for _, r := range chRowsBuf {
 		mergeCardsIntoMoves(movesByChapter[r.uuid], cardsByChapter[r.uuid])
 		chapters = append(chapters, domain.ChapterTreeResponse{
-			UUID:         r.uuid,
-			Name:         r.name,
-			TrainAs:      r.trainAs,
-			EnabledCount: r.enabledCount,
-			UnseenCount:  r.unseenCount,
-			Root:         buildTree(movesByChapter[r.uuid]),
+			UUID:    r.uuid,
+			Name:    r.name,
+			TrainAs: r.trainAs,
+			Root:    buildTree(movesByChapter[r.uuid]),
 		})
 	}
 	return chapters, nil
 }
 
 // ReadChapterAsTree fetches one chapter and rebuilds the move tree.
-func (db *DB) ReadChapterAsTree(chapterID string) (*domain.ChapterTreeResponse, error) {
-	ctx := context.TODO()
+func (db *DB) ReadChapterAsTree(ctx context.Context, chapterID string) (*domain.ChapterTreeResponse, error) {
 	var resp domain.ChapterTreeResponse
 	err := db.pool.QueryRow(ctx, `
-		SELECT uuid, name, train_as, enabled_count, unseen_count
+		SELECT uuid, name, train_as
 		FROM chapters
 		WHERE uuid = $1
-	`, chapterID).Scan(&resp.UUID, &resp.Name, &resp.TrainAs, &resp.EnabledCount, &resp.UnseenCount)
+	`, chapterID).Scan(&resp.UUID, &resp.Name, &resp.TrainAs)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

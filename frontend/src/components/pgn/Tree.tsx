@@ -3,14 +3,14 @@
 //TODO fix off-by-one bug with ply (compare w/ lichess)
 //TODO adjust scrollheight automatically when clicking a move
 //TODO fix formatting. use retroLine?
-import { useTrainerStore } from '../../store/state';
+import { useTrainerStore, MAX_COMMENT_CHARS } from '../../store/state';
 import { useAppContextMenu } from './ContextMenuProvider';
 
 // import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
 
 import { ContextMenuProvider } from './ContextMenuProvider';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { TrainableNode } from '../../types/training';
 import { getNodeList, nodeAtPath, hasBranching } from '../../util/tree';
 export interface Opts {
@@ -34,238 +34,86 @@ const isEmpty = (a: any | undefined): boolean => !a || a.length === 0;
 //TODO mark line as seen option
 import {
   Trash2,
-  Ban,
-  CheckCircle2,
-  MessageSquarePlus,
+  PencilIcon,
   ChevronsRightLeftIcon,
   EllipsisIcon,
-  ChevronDown,
-  CalendarClockIcon,
-  ChartBarBig,
-  ChartBarBigIcon,
 } from 'lucide-react';
-import type { Card } from 'ts-fsrs';
 import type { TrainingData } from '../../types/training';
-import { useAuthStore } from '../../store/auth';
-import { userCard } from '../../util/userCard';
 
-function formatDueIn(card: Card): string {
-  const nowMs = Date.now();
-  const dueMs = new Date(card.due).getTime();
-  const diffMs = dueMs - nowMs;
+type CommentEditContextValue = {
+  editingPath: string | null;
+  startEditing: (path: string) => void;
+  stopEditing: () => void;
+};
 
-  if (diffMs <= 0) return 'now';
+const CommentEditContext = createContext<CommentEditContextValue>({
+  editingPath: null,
+  startEditing: () => {},
+  stopEditing: () => {},
+});
 
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return '<1m';
-  if (mins < 60) return `${mins}m`;
-
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ${mins % 60}m`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d`;
-
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo`;
-
-  const years = Math.floor(days / 365);
-  return `${years}y`;
-}
-
-function RepsBar({ reps, lapses }: { reps: number; lapses: number }) {
-  const total = reps + lapses;
-  if (total === 0) return null;
-  const successPct = (reps / total) * 100;
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="h-2 flex-1 rounded-full overflow-hidden flex bg-gray-200" style={{ minWidth: 48 }}>
-        <div className="bg-emerald-500 h-full" style={{ width: `${successPct}%` }} />
-        <div className="bg-red-400 h-full" style={{ width: `${100 - successPct}%` }} />
-      </div>
-      <span className="text-[10px] text-gray-400 tabular-nums whitespace-nowrap">
-        {reps}/{total}
-      </span>
-    </div>
-  );
-}
-
-function CardStateSection({ card }: { card: Card }) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  return (
-    <div className="px-3 py-2">
-      <div className="flex flex-col gap-1.5 text-xs">
-        <div className="flex items-center gap-1.5">
-          <CalendarClockIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-          <span className="text-gray-500">due in</span>
-          <span className="text-gray-900 font-medium">{formatDueIn(card)}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <ChartBarBigIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-          <span className="text-gray-500 shrink-0">success rate</span>
-          <span className="flex-1">
-            <RepsBar reps={card.reps} lapses={card.lapses} />
-          </span>
-        </div>
-      </div>
-      <button
-        type="button"
-        className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 transition select-none"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setShowAdvanced(!showAdvanced);
-        }}
-      >
-        <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-        Advanced
-      </button>
-      {showAdvanced && (
-        <div className="flex gap-3 text-xs mt-1">
-          <span className="text-gray-400">
-            stability <span className="text-gray-700 font-medium">{card.stability.toFixed(2)}d</span>
-          </span>
-          <span className="text-gray-400">
-            difficulty <span className="text-gray-700 font-medium">{card.difficulty.toFixed(2)}</span>
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function OtherUsersTraining({ entries }: { entries: [string, Card][] }) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="px-3 py-1">
-      <button
-        type="button"
-        className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 transition select-none"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setExpanded(!expanded);
-        }}
-      >
-        <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-        {entries.length} other {entries.length === 1 ? 'user' : 'users'} trained
-      </button>
-      {expanded && (
-        <div className="mt-1.5 flex flex-col gap-2">
-          {entries.map(([username, card]) => (
-            <div key={username} className="border-l-2 border-gray-200 pl-2">
-              <div className="text-[10px] text-gray-400 truncate mb-0.5" title={username}>
-                {username}
-              </div>
-              <div className="flex flex-col gap-1 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <CalendarClockIcon className="w-3 h-3 text-gray-400 shrink-0" />
-                  <span className="text-gray-500">due in</span>
-                  <span className="text-gray-900 font-medium">{formatDueIn(card)}</span>
-                </div>
-                <RepsBar reps={card.reps} lapses={card.lapses} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const contextMenuItems = (path: string, data: TrainingData) => {
+const useMoveContextMenuItems = (path: string, data: TrainingData) => {
   const deleteLine = useTrainerStore((s) => s.deleteLine);
-  const disableLine = useTrainerStore((s) => s.disableLine);
-  const enableLine = useTrainerStore((s) => s.enableLine);
-  const { training, san, enabled } = data;
-  const myCard = userCard(data);
-
-  // other users who have trained this move (excluding the current user)
-  const myUsername = useAuthStore.getState().user?.username;
-  const otherEntries = Object.entries(training ?? {}).filter(([username]) => username !== myUsername);
+  const { startEditing } = useContext(CommentEditContext);
+  const { hideMenu } = useAppContextMenu();
 
   return [
-    // Header
-    {
-      label: san,
-      disabled: true,
-      template: (item: any) => (
-        <div className="px-3 py-2 font-semibold text-gray-800 select-none truncate flex gap-2">
-          <span>{item.label}</span>
-          <span>•</span>
-          <span>{enabled ? 'enabled' : 'disabled'}</span>
-        </div>
-      ),
-    },
-
-    { separator: true },
-
-    // Card state for current user
-    ...(myCard
-      ? [
-          {
-            template: () => <CardStateSection card={myCard} />,
-          },
-          { separator: true },
-        ]
-      : []),
-
-    // Other users' training state (collapsible)
-    ...(otherEntries.length > 0
-      ? [
-          {
-            template: () => <OtherUsersTraining entries={otherEntries} />,
-          },
-          { separator: true },
-        ]
-      : []),
-
-    // Line actions from here
     {
       template: () => (
-        <div className="px-3 py-2">
-          <div className="text-xs font-medium text-gray-500 mb-1.5 select-none">Line actions from here</div>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900 hover:bg-gray-50 active:bg-gray-100"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                deleteLine(path);
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5 text-gray-500" />
-              Delete
-            </button>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-800 hover:bg-gray-100 active:bg-gray-200"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                disableLine(path);
-              }}
-            >
-              <Ban className="w-3.5 h-3.5 text-gray-500" />
-              Disable
-            </button>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 active:bg-blue-800"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                enableLine(path);
-              }}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Enable
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 active:bg-gray-200"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteLine(path);
+            hideMenu();
+          }}
+        >
+          <Trash2 className="w-4 h-4 text-gray-500" />
+          Delete from here
+        </button>
+      ),
+    },
+    {
+      template: () => (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 active:bg-gray-200"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            startEditing(path);
+            hideMenu();
+          }}
+        >
+          <PencilIcon className="w-4 h-4 text-gray-500" />
+          {data.comment ? 'Edit comment' : 'Add comment'}
+        </button>
+      ),
+    },
+  ];
+};
+
+const useCommentContextMenuItems = (path: string) => {
+  const { startEditing } = useContext(CommentEditContext);
+  const { hideMenu } = useAppContextMenu();
+  return [
+    {
+      template: () => (
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 active:bg-gray-200"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            startEditing(path);
+            hideMenu();
+          }}
+        >
+          <PencilIcon className="w-4 h-4 text-gray-500" />
+          Edit comment
+        </button>
       ),
     },
   ];
@@ -290,6 +138,83 @@ function enrichText(text: string): string {
 // Components
 // -------------------------
 
+function CommentEditor({ path, initial }: { path: string; initial: string }) {
+  const setCommentAt = useTrainerStore((s) => s.setCommentAt);
+  const { stopEditing } = useContext(CommentEditContext);
+  const [draft, setDraft] = useState(initial);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }, []);
+
+  const save = () => {
+    setCommentAt(draft, path);
+    stopEditing();
+  };
+
+  const cancel = () => stopEditing();
+
+  const isDirty = draft !== initial;
+
+  return (
+    <div
+      className="flex flex-col gap-1 w-full"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <textarea
+        ref={textareaRef}
+        rows={1}
+        value={draft}
+        maxLength={MAX_COMMENT_CHARS}
+        placeholder="Add comment…"
+        onChange={(e) => {
+          setDraft(e.target.value);
+          e.target.style.height = 'auto';
+          e.target.style.height = e.target.scrollHeight + 'px';
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            cancel();
+          } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            save();
+          }
+        }}
+        className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-blue"
+      />
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={cancel}
+          className="text-xs px-2 py-0.5 text-gray-500 hover:text-gray-700"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={!isDirty}
+          className={`text-xs font-semibold px-2 py-0.5 rounded transition ${
+            isDirty
+              ? 'bg-brand-blue text-white hover:brightness-110'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RenderComment({
   comment,
   ctx,
@@ -303,26 +228,21 @@ function RenderComment({
 }) {
   const [expanded, setExpanded] = useState(false); //TODO can we do this with a class instead? OPTIMIZATION
   const selectedPath = useTrainerStore.getState().selectedPath;
+  const { showMenu } = useAppContextMenu();
+  const items = useCommentContextMenuItems(path);
   const truncated = truncateComment(comment, maxLength, ctx);
   const isTruncated = truncated.length < comment.length;
 
   const displayText = isTruncated && !expanded ? truncated : comment;
   const isCommentOfActiveMove = path === selectedPath;
   const selectedClass = isCommentOfActiveMove
-    ? 'text-blue-700 bg-blue-50 rounded shadow-inner ring-1 ring-blue-200'
+    ? 'text-brand-blue bg-blue-50 shadow-inner ring-1 ring-blue-200 text-gray-700'
     : '';
 
   return (
     <span
-      className={`comment inline-block text-gray-500 mx-2 break-words px-2 ${selectedClass}`}
-      style={
-        isCommentOfActiveMove
-          ? {
-              maskImage:
-                'linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent)',
-            }
-          : undefined
-      }
+      className={`comment inline-block text-gray-500 break-words px-1 rounded cursor-pointer ${selectedClass}`}
+      onContextMenu={(e) => showMenu(e, items, path)}
     >
       {displayText}
       {isTruncated && (
@@ -345,9 +265,6 @@ function RenderComment({
 }
 
 export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: TrainableNode; path: string }) {
-  // if (!ctx.ctrl.showComments || !node.comments?.length) return null;
-  // TODO context to disable comments
-  // if (isEmpty(node.comment) return null;
   if (!node.data.comment) return null;
 
   return (
@@ -369,7 +286,6 @@ export function RenderMainlineCommentsOf({
   withColor: boolean;
   path: string;
 }) {
-  // if (!ctx.ctrl.showComments || !node.comments?.length) return null;
   if (!node.data.comment) return null;
 
   const colorClass = withColor ? (node.data.ply % 2 === 0 ? ' black' : ' white') : '';
@@ -417,7 +333,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? 'bg-blue-500 rounded-md active' : '';
+  const activeClass = path === selectedPath ? 'bg-brand-blue rounded-md active' : '';
 
   const { repertoire, repertoireIndex } = useTrainerStore.getState();
   const chapter = repertoire[repertoireIndex];
@@ -425,14 +341,14 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
 
-  const items = contextMenuItems(path, nodeFromPath.data);
+  const items = useMoveContextMenuItems(path, nodeFromPath.data);
 
   return (
     <div
       data-path={path}
       className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
         leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold
-        hover:bg-sky-400 hover:rounded-md select-none cursor-pointer
+        hover:bg-brand-blue-light hover:rounded-md select-none cursor-pointer
         text-gray-700
         ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''} `}
       onContextMenu={(e) => showMenu(e, items, path)}
@@ -452,7 +368,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   if (!chapter) return;
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
-  const items = contextMenuItems(path, nodeFromPath.data);
+  const items = useMoveContextMenuItems(path, nodeFromPath.data);
   const withIndex = opts.withIndex || node.data.ply % 2 === 1;
   const content = (
     <>
@@ -465,7 +381,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   // const classes = nodeClasses(ctx, node, path);
 
   const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'bg-blue-500 rounded-md active' : '';
+  const activeClass = path == selectedPath ? 'bg-brand-blue rounded-md active' : '';
 
   return (
     <span
@@ -473,7 +389,7 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
       className={`move variation inline-block max-w-full align-top
   whitespace-normal break-words
   px-[7.9px] pr-[4.74px]
-  hover:bg-sky-400 hover:rounded-md select-none cursor-pointer ${activeClass}
+  hover:bg-brand-blue-light hover:rounded-md select-none cursor-pointer ${activeClass}
   text-gray-700
   `}
       onContextMenu={(e) => showMenu(e, items, path)}
@@ -720,6 +636,23 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
   return <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />;
 }
 
+function BottomCommentEditor() {
+  const { editingPath } = useContext(CommentEditContext);
+  const repertoire = useTrainerStore((s) => s.repertoire);
+  const repertoireIndex = useTrainerStore((s) => s.repertoireIndex);
+  if (editingPath === null) return null;
+  const chapter = repertoire[repertoireIndex];
+  if (!chapter) return null;
+  const node = nodeAtPath(chapter.root, editingPath);
+  if (!node) return null;
+
+  return (
+    <div className="shrink-0 bg-white border-t border-gray-200 px-2 py-2">
+      <CommentEditor key={editingPath} path={editingPath} initial={node.data.comment ?? ''} />
+    </div>
+  );
+}
+
 function ChildMoveButtons() {
   const jump = useTrainerStore((s) => s.jump);
   const selectedPath = useTrainerStore((s) => s.selectedPath);
@@ -738,7 +671,7 @@ function ChildMoveButtons() {
         {node.children.map((child) => (
           <button
             key={child.data.id}
-            className="px-2.5 py-1 text-sm font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition shadow-sm basis-[calc(50%-0.1875rem)]"
+            className="px-2.5 py-1 text-sm font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-blue-50 hover:border-brand-blue hover:text-brand-blue transition shadow-sm basis-[calc(50%-0.1875rem)]"
             onClick={() => jump(selectedPath + child.data.id)}
           >
             {renderIndex(child.data.ply, true)} {child.data.san}
@@ -752,8 +685,27 @@ function ChildMoveButtons() {
 //TODO function should be part of state
 export default function PgnTree({ setActiveMoveId }) {
   const jump = useTrainerStore((s) => s.jump);
+  const selectedPath = useTrainerStore((s) => s.selectedPath);
   const trainingMethod = useTrainerStore((s) => s.trainingMethod);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [editingPath, setEditingPath] = useState<string | null>(null);
+
+  // Close the inline editor when leaving edit mode or jumping to a different move.
+  useEffect(() => {
+    if (trainingMethod !== 'edit') setEditingPath(null);
+  }, [trainingMethod]);
+  useEffect(() => {
+    if (editingPath !== null && editingPath !== selectedPath) setEditingPath(null);
+  }, [selectedPath, editingPath]);
+
+  const commentEditValue: CommentEditContextValue = {
+    editingPath,
+    startEditing: (p: string) => {
+      jump(p);
+      setEditingPath(p);
+    },
+    stopEditing: () => setEditingPath(null),
+  };
 
   useEffect(() => {
     if (trainingMethod == 'edit') return;
@@ -806,12 +758,13 @@ export default function PgnTree({ setActiveMoveId }) {
   //TODO should be false
   // const blackStarts = (root.data.ply & 1) === 1;
   return (
+    <CommentEditContext.Provider value={commentEditValue}>
     <ContextMenuProvider>
       <div className="relative h-full flex flex-col bg-gray-100">
         <div
           ref={scrollRef}
           onMouseDown={handleMouseDown}
-          className="tview2 tview2-column repertoire-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white min-h-0"
+          className="tview2 tview2-column tree-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white min-h-0"
         >
           {root.data.comment && (
             <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
@@ -827,9 +780,11 @@ export default function PgnTree({ setActiveMoveId }) {
           {blackStarts && <EmptyMove />} */}
           <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
         </div>
+        <BottomCommentEditor />
         <ChildMoveButtons />
       </div>
     </ContextMenuProvider>
+    </CommentEditContext.Provider>
   );
 }
 //TODO what is a comment tag?

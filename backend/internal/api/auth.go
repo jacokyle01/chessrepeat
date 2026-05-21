@@ -52,7 +52,7 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 		// exist yet and no username came in the request, bail early
 		// without writing anything — the frontend will prompt and
 		// re-submit with a username.
-		existing, err := db.FetchUser(claims.Sub)
+		existing, err := db.FetchUser(r.Context(), claims.Sub)
 		if err != nil {
 			log.Println("failed to look up user:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -77,7 +77,7 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 				http.Error(w, "invalid username", http.StatusBadRequest)
 				return
 			}
-			taken, err := db.FetchUserByUsername(candidate)
+			taken, err := db.FetchUserByUsername(r.Context(), candidate)
 			if err != nil {
 				log.Println("username lookup failed:", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -90,13 +90,13 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 			user.Username = candidate
 		}
 
-		if err := db.UpsertUser(user); err != nil {
+		if err := db.UpsertUser(r.Context(), user); err != nil {
 			log.Println("failed to upsert user:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		sess, err := auth.CreateSession(db, user.TokenID)
+		sess, err := auth.CreateSession(r.Context(), db, user.TokenID)
 		if err != nil {
 			log.Println("failed to create session:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -107,7 +107,7 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 
 		// mirror GET /repertoire's shape so the client can skip a follow-up
 		// round trip: one request hydrates user + chapters + opens session.
-		chapters, err := db.FetchChaptersByOwner(user.TokenID)
+		chapters, err := db.FetchChaptersByOwner(r.Context(), user.TokenID)
 		if err != nil {
 			log.Println("failed to fetch chapters:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -138,7 +138,7 @@ func CheckUsername(db store.Repo) http.HandlerFunc {
 			})
 			return
 		}
-		existing, err := db.FetchUserByUsername(username)
+		existing, err := db.FetchUserByUsername(r.Context(), username)
 		if err != nil {
 			log.Println("username check failed:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -167,7 +167,7 @@ func Logout(db store.Repo) http.HandlerFunc {
 			return
 		}
 		if cookie, err := r.Cookie(auth.SessionCookieName); err == nil {
-			if err := db.DeleteSession(cookie.Value); err != nil {
+			if err := db.DeleteSession(r.Context(), cookie.Value); err != nil {
 				log.Println("failed to delete session:", err)
 			}
 		}

@@ -7,14 +7,47 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"chessrepeat/internal/auth"
 	"chessrepeat/internal/domain"
+	"chessrepeat/internal/ratelimit"
 	"chessrepeat/internal/store"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+)
+
+// readLimitBytes caps the size of a single inbound WebSocket message.
+// Our largest legit payload is a chapter_created event carrying a PGN —
+// tens of KB at most. 64 KiB is enough headroom that no real client hits
+// it, while preventing an authenticated peer from streaming multi-MB
+// JSON to burn DB/CPU.
+const readLimitBytes int64 = 64 * 1024
+
+// per-subscriber message budget: sustained 10 msg/sec, burst 30. A
+// collaborator entering moves rapidly will fit; a malicious client
+// blasting events gets pinned to the refill rate and silently dropped.
+const (
+	wsBucketCapacity = 30
+	wsRefillPerSec   = 10
+)
+
+// dbOpTimeout caps how long a single ws-driven DB operation may run.
+// The query is cancelled past this even if the client stays connected,
+// so a slow query can't hold a pool connection hostage.
+const dbOpTimeout = 10 * time.Second
+
+// Liveness: the client pings every clientPingInterval (~20s) and the
+// server replies with pong (dispatch.go). The server-side watcher
+// closes any connection that hasn't produced inbound traffic in
+// idleTimeout — long enough to ride out a couple of skipped pings on a
+// flaky link, short enough to reclaim slots from genuinely-dead peers.
+// livenessCheckInterval is how often the watcher inspects lastSeenAt.
+const (
+	idleTimeout           = 30 * time.Second
+	livenessCheckInterval = 10 * time.Second
 )
 
 // Server maintains per-owner "rooms" of subscribers and fans out
@@ -53,11 +86,27 @@ type subscriber struct {
 	userID   string
 	username string
 	picture  string
-	room     *room
+	// permission is pinned at handshake from EffectivePermissionOnRepertoire
+	// against the joined room's owner. Used for the PeerInfo color cue and
+	// (for chapter_created, where there's no chapter yet to anchor on) as
+	// the authz source for that one op. Every other mutating op re-checks
+	// against the chapter's actual owner_id, so a stale snapshot here can't
+	// grant write access to a foreign repertoire.
+	permission string
+	room       *room
+	// readBudget gates inbound messages so a malicious client can't
+	// burn CPU/DB by flooding the connection. Allocated per-connection
+	// so one chatty peer can't starve another.
+	readBudget *ratelimit.Bucket
+	// lastSeenAt is the unix-nano timestamp of the most recent inbound
+	// message (any type — pings, mutations, anything). The liveness
+	// watcher kicks the subscriber if this falls outside idleTimeout.
+	// atomic because reader (writes) and watcher (reads) run concurrently.
+	lastSeenAt atomic.Int64
 }
 
 func (s *subscriber) peerInfo() domain.PeerInfo {
-	return domain.PeerInfo{Username: s.username, Picture: s.picture}
+	return domain.PeerInfo{Username: s.username, Picture: s.picture, Permission: s.permission}
 }
 
 // NewServer constructs a Server with the defaults. originPatterns is the
@@ -83,7 +132,7 @@ func (s *Server) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner, err := s.db.FetchUserByUsername(username)
+	owner, err := s.db.FetchUserByUsername(r.Context(), username)
 	if err != nil {
 		http.Error(w, "user lookup failed", http.StatusInternalServerError)
 		return
@@ -115,7 +164,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		http.Error(w, "missing session", http.StatusUnauthorized)
 		return err
 	}
-	sess, err := s.db.FetchSession(cookie.Value)
+	sess, err := s.db.FetchSession(r.Context(), cookie.Value)
 	if err != nil {
 		http.Error(w, "session lookup failed", http.StatusInternalServerError)
 		return err
@@ -125,7 +174,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return errors.New("invalid or expired session")
 	}
 
-	user, err := s.db.FetchUser(sess.UserID)
+	user, err := s.db.FetchUser(r.Context(), sess.UserID)
 	if err != nil {
 		http.Error(w, "user lookup failed", http.StatusInternalServerError)
 		return err
@@ -135,22 +184,26 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return errors.New("user not found")
 	}
 
-	canView, err := s.db.CanViewRepertoire(ownerID, sess.UserID)
+	//TODO check permission at websocket message time, trigger reload if 
+	perm, err := s.db.EffectivePermissionOnRepertoire(r.Context(), ownerID, sess.UserID)
 	if err != nil {
 		http.Error(w, "view auth check failed", http.StatusInternalServerError)
 		return err
 	}
-	if !canView {
+	if perm == "" {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return errors.New("not a collaborator")
 	}
 
 	sub := &subscriber{
-		msgs:     make(chan []byte, s.subscriberMessageBuffer),
-		userID:   sess.UserID,
-		username: user.Username,
-		picture:  user.Picture,
+		msgs:       make(chan []byte, s.subscriberMessageBuffer),
+		userID:     sess.UserID,
+		username:   user.Username,
+		picture:    user.Picture,
+		permission: perm,
+		readBudget: ratelimit.NewBucket(wsBucketCapacity, wsRefillPerSec),
 	}
+	sub.lastSeenAt.Store(time.Now().UnixNano())
 	s.join(ownerID, sub)
 	defer s.leave(sub)
 
@@ -161,9 +214,32 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 		return err
 	}
 	defer c.CloseNow()
+	c.SetReadLimit(readLimitBytes)
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+
+	// liveness watcher: kicks the subscriber if no inbound message has
+	// arrived in idleTimeout. Pairs with the client-side ping interval:
+	// a healthy peer pings every ~20s, so a 60s gap means the link is
+	// dead even if TCP hasn't noticed yet.
+	go func() {
+		ticker := time.NewTicker(livenessCheckInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				last := time.Unix(0, sub.lastSeenAt.Load())
+				if time.Since(last) > idleTimeout {
+					s.logf("ws idle timeout (%s): kicking user %s", time.Since(last).Round(time.Second), sub.userID)
+					cancel()
+					return
+				}
+			}
+		}
+	}()
 
 	// reader goroutine: pulls messages off the socket and dispatches
 	// them. when the client disconnects (or sends garbage), cancel()
@@ -176,7 +252,22 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request, ownerID strin
 			if err != nil {
 				return
 			}
-			s.handleMessage(sub, data)
+			// Any inbound traffic (even rate-limited / unknown ops) keeps
+			// the subscriber alive — it proves the socket is bidirectional.
+			sub.lastSeenAt.Store(time.Now().UnixNano())
+			if !sub.readBudget.Allow() {
+				// Pinned to the refill rate — drop silently rather than
+				// closing the socket, since legit clients may briefly
+				// burst above capacity (e.g. paste of a long line).
+				s.logf("ws rate limit: dropping message from user %s", sub.userID)
+				continue
+			}
+			// Per-message DB budget. Bounded so a slow query can't pin
+			// a connection past the message lifetime; derived from ctx
+			// so connection close still cancels in-flight work early.
+			msgCtx, msgCancel := context.WithTimeout(ctx, dbOpTimeout)
+			s.handleMessage(msgCtx, sub, data)
+			msgCancel()
 		}
 	}()
 
@@ -291,6 +382,40 @@ func (s *Server) publishRoom(r *room, msg []byte, sender *subscriber) {
 			go s.leave(sub)
 		}
 	}
+}
+
+// sendTo delivers a message to a single subscriber. Non-blocking and
+// same eviction policy as publishRoom: a subscriber too slow to drain
+// its buffer is dropped rather than stalling the caller.
+func (s *Server) sendTo(sub *subscriber, msg []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	select {
+	case sub.msgs <- msg:
+	default:
+		go s.leave(sub)
+	}
+}
+
+// NotifyRepertoireChanged tells every client currently in the given
+// owner's room to re-fetch the repertoire over HTTP. Used by the
+// chapter HTTP POST path: a full chapter tree is too large for the WS
+// frame cap, so it's persisted over HTTP and connected peers are nudged
+// to resync rather than receiving the tree over the socket. No-op if no
+// room exists for the owner.
+func (s *Server) NotifyRepertoireChanged(ownerID string) {
+	s.mu.Lock()
+	r, ok := s.rooms[ownerID]
+	s.mu.Unlock()
+	if !ok {
+		return
+	}
+	// sender == nil: broadcast to everyone, including the creator's
+	// other sessions. The creator's active tab already has the chapter
+	// locally; a redundant resync just reconciles it with the
+	// authoritative (possibly cap-trimmed) server state.
+	s.publishRoom(r, reloadMessage, nil)
 }
 
 func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg []byte) error {

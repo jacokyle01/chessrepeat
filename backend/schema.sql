@@ -16,10 +16,13 @@ CREATE TABLE sessions (
   expires_at TIMESTAMPTZ NOT NULL
 );
 
--- TODO add a permissions column later (e.g. read/write/admin).
+-- 'edit' = full CRUD on chapters, moves, training cards.
+-- 'train' = read-only on repetroires, write/update for personal training stat
 CREATE TABLE collaborators (
   owner_id        TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
   collaborator_id TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
+  permission      TEXT NOT NULL DEFAULT 'edit'
+                  CHECK (permission IN ('edit', 'train')),
   PRIMARY KEY (owner_id, collaborator_id)
 );
 CREATE INDEX collaborators_collaborator ON collaborators (collaborator_id);
@@ -28,9 +31,7 @@ CREATE TABLE chapters (
   uuid          TEXT PRIMARY KEY,
   owner_id      TEXT NOT NULL REFERENCES users(token_id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
-  train_as      TEXT NOT NULL,
-  enabled_count INT  NOT NULL,
-  unseen_count  INT  NOT NULL
+  train_as      TEXT NOT NULL
 );
 CREATE INDEX chapters_owner ON chapters (owner_id);
 

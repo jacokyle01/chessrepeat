@@ -1,16 +1,17 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { useTrainerStore } from '../store/state';
 import {
   GraduationCapIcon,
   HistoryIcon,
-  Lightbulb,
   LucideRepeat2,
-  MessageSquarePlus,
   MousePointer,
-  PencilIcon,
-  Repeat2,
   XIcon,
 } from 'lucide-react';
+
+type TipAction = {
+  label: ReactNode;
+  onClick: () => void;
+};
 
 type TipProps = {
   icon: ReactNode;
@@ -18,111 +19,43 @@ type TipProps = {
   description: string;
   titleClassName?: string;
   descriptionClassName?: string;
+  actions?: TipAction[];
 };
 
 const Tip = ({
   icon,
   title,
   description,
-  titleClassName = 'font-bold text-base md:text-2xl text-gray-800',
-  descriptionClassName = 'text-sm md:text-lg text-gray-600',
+  titleClassName = 'font-bold text-base md:text-lg text-gray-800',
+  descriptionClassName = 'text-md text-gray-600',
+  actions,
 }: TipProps) => (
-  <div className="bg-white flex justify-center py-3 md:py-12 px-4 md:px-6 border border-gray-300 rounded-md">
+  <div className="bg-white flex flex-col items-center py-4 md:px-6 border border-gray-300 rounded-lg shadow-md">
     <div className="inline-flex items-center gap-2 md:gap-3">
       <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className="text-gray-500 bg-gray-200 p-1.5 md:p-2 rounded-md">{icon}</div>
+        <div className="text-gray-500 p-1.5 md:p-2 rounded-md">{icon}</div>
       </div>
-      <div className="text-start">
-        <h1 className={titleClassName}>{title}</h1>
-        <h2 className={descriptionClassName}>{description}</h2>
+      <div className="text-start flex flex-col">
+        <span className={titleClassName}>{title}</span>
+        <span className={descriptionClassName}>{description}</span>
       </div>
     </div>
+
+    {actions && actions.length > 0 && (
+      <div className="flex flex-row items-center justify-center gap-1 md:gap-2 w-full px-2 md:px-4 pt-2 ">
+        {actions.map((action, i) => (
+          <button
+            key={i}
+            className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
+            onClick={action.onClick}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    )}
   </div>
 );
-
-const Fail = () => {
-  const train = useTrainerStore((s) => s.train);
-  const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
-  const makeMove = useTrainerStore((s) => s.makeMove);
-
-  // OPTIONAL: swap these for real store actions when ready
-  // const undoLastGuess = useTrainerStore((s) => s.undoLastGuess);
-  // const markAsAlternative = useTrainerStore((s) => s.markAsAlternative);
-
-  const san = useTrainerStore.getState().trainableContext.targetMove.data.san;
-  const lastGuess = useTrainerStore.getState().lastGuess;
-  // const isWhite = useTrainerStore((s) => s.chapter.trainAs === 'white');
-
-  const onContinue = () => {
-    train(false);
-    setNextTrainable();
-  };
-
-  const onMarkAlternative = (san: string) => {
-    // markAsAlternative?.(); // TODO: implement in store
-    // setNextTrainable();
-    makeMove(san);
-    setUserTip('recall');
-  };
-
-  const setUserTip = useTrainerStore((s) => s.setUserTip);
-  const { repertoire, repertoireIndex } = useTrainerStore();
-  const chapter = repertoire[repertoireIndex];
-  const isWhite = chapter.trainAs == 'white';
-  return (
-    <div className="bg-white py-2 md:py-5 flex flex-col items-center rounded-md border border-gray-300">
-      <div className="flex flex-row justify-center items-center w-full space-x-3 md:space-x-5 pb-2 md:pb-5">
-        <div className="text-red-500 text-4xl md:text-7xl font-bold">✗</div>
-        <div id="failure">
-          <h2 className="font-bold text-base md:text-2xl text-gray-800">{`${lastGuess} is incorrect`}</h2>
-          <p className="text-sm md:text-lg text-gray-600">{`${isWhite ? 'White' : 'Black'} plays ${san}`}</p>
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex flex-row items-center justify-center gap-1 md:gap-2 w-full px-2 md:px-4">
-        <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
-          onClick={onContinue}
-        >
-          CONTINUE
-        </button>
-
-        <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
-          onClick={() => setUserTip('recall')}
-        >
-          UNDO
-        </button>
-
-        <button
-          className="flex-1 py-1 hover:bg-gray-50 text-blue-400 rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
-          onClick={() => onMarkAlternative(lastGuess)}
-        >
-          ADD <span className="text-black">{lastGuess}</span>
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const Alternate = () => {
-  const lastGuess = useTrainerStore.getState().lastGuess;
-
-  return (
-    <div className="border-t-2">
-      <div className="bg-white py-3 md:py-10 shadow-md flex flex-col items-center">
-        <div className="flex flex-row justify-center items-center w-full space-x-3 md:space-x-5">
-          <LucideRepeat2 className="w-8 h-8 md:w-12 md:h-12" color={'gold'} />
-          <div>
-            <h2 className="font-bold text-base md:text-2xl text-amber-400">{`${lastGuess} is an alternate move`}</h2>
-            <p className="text-sm md:text-lg text-gray-600">Try playing a different move</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const EmptyRepertoire = () => (
   <Tip
@@ -141,105 +74,17 @@ const Unselected = () => (
   />
 );
 
-//TODO factor this out of userTip?
-const EditCommentInline = () => {
-  const selectedNode = useTrainerStore((s) => s.selectedNode);
-  const selectedPath = useTrainerStore((s) => s.selectedPath);
-  const setCommentAt = useTrainerStore((s) => s.setCommentAt);
-
-  const savedComment = selectedNode?.data?.comment ?? '';
-  const [draft, setDraft] = useState(savedComment);
-
-  useEffect(() => {
-    setDraft(selectedNode?.data?.comment ?? '');
-  }, [selectedPath, selectedNode?.data?.comment]);
-
-  const isDirty = draft !== savedComment;
-
-  const handleSave = () => {
-    if (selectedPath !== undefined) {
-      setCommentAt(draft, selectedPath);
-    }
-  };
-
-  return (
-    <div className="bg-white border border-gray-300 rounded-md p-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-1">Comment</label>
-      <textarea
-        className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
-        rows={3}
-        value={draft}
-        placeholder="~no comment~"
-        onChange={(e) => setDraft(e.target.value)}
-      />
-      <div className="flex items-center justify-between mt-2 h-6">
-        <span
-          className={`text-xs text-amber-600 transition-opacity duration-150 ${isDirty ? 'opacity-100' : 'opacity-0'}`}
-        >
-          Unsaved changes
-        </span>
-        <button
-          className={`text-sm font-semibold px-3 py-1 rounded transition ${
-            isDirty
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-          disabled={!isDirty}
-          onClick={handleSave}
-        >
-          Save
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const EditComment = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const selectedNode = useTrainerStore((s) => s.selectedNode);
-  const currentComment = selectedNode?.data?.comment ?? '';
-
-  return (
-    <>
-      {/* Desktop: inline editor */}
-      <div className="hidden md:block">
-        <EditCommentInline />
-      </div>
-      {/* Mobile: button to open modal */}
-      <div className="md:hidden">
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-md px-3 border border-gray-300 bg-white hover:shadow transition active:scale-[0.98]"
-        >
-          <div className="bg-gray-200 rounded p-1">
-            <PencilIcon className="h-4 w-4 text-black" />
-          </div>
-          <span className="text-sm truncate">{currentComment ? currentComment : 'Add comment'}</span>
-        </button>
-      </div>
-      {/* Mobile modal */}
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center md:hidden"
-          onClick={() => setModalOpen(false)}
-        >
-          <div className="mx-4 w-full" onClick={(e) => e.stopPropagation()}>
-            <EditCommentInline />
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
 export const UserTip = () => {
   const { userTip, repertoire, repertoireIndex, trainingMethod, trainableContext, lastGuess } =
     useTrainerStore();
+  const train = useTrainerStore((s) => s.train);
+  const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
+  const makeMove = useTrainerStore((s) => s.makeMove);
+  const setUserTip = useTrainerStore((s) => s.setUserTip);
 
   if (repertoire.length == 0) return <EmptyRepertoire />;
   if (!trainingMethod) return <Unselected />;
-  if (trainingMethod == 'edit') return <EditComment />;
+  if (trainingMethod == 'edit') return null;
 
   const chapter = repertoire[repertoireIndex];
   const san = trainableContext?.targetMove?.data.san;
@@ -280,7 +125,37 @@ export const UserTip = () => {
         />
       );
     case 'fail':
-      return <Fail />;
+      return (
+        <Tip
+          icon={<div className="text-red-500 text-2xl md:text-4xl">✗</div>}
+          title={`${lastGuess} is incorrect`}
+          description={`${isWhite ? 'White' : 'Black'} plays ${san}`}
+          actions={[
+            {
+              label: 'CONTINUE',
+              onClick: () => {
+                train(false);
+                setNextTrainable();
+              },
+            },
+            {
+              label: 'UNDO',
+              onClick: () => setUserTip('recall'),
+            },
+            {
+              label: (
+                <>
+                  ADD <span className="text-black">{lastGuess}</span>
+                </>
+              ),
+              onClick: () => {
+                makeMove(lastGuess);
+                setUserTip('recall');
+              },
+            },
+          ]}
+        />
+      );
     default:
       return <div>Other</div>;
   }

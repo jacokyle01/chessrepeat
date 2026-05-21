@@ -18,7 +18,6 @@ export const Debug: React.FC = () => {
       <div>{`TrainingMethod ${TrainingMethod}`}</div>
       <div>{`TrainingPath ${trainingPath}`}</div>
       <div>{`targetMove ${targetMove?.data?.fen}`}</div>
-      <div>{`targetMove2 ${parseSan(Chess.fromSetup(parseFen(targetMove.data.fen).unwrap()).unwrap(), 'h4')?.to}`}</div>
     </div>
   );
 };

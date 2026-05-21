@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Chessground } from './components/Chessground';
 import Controls from './components/TrainingControls';
+import MobileCommentPopout from './components/MobileCommentPopout';
 
 import { useEffect, useRef } from 'react';
 import Repertoire from './components/repertoire/Repertoire';
@@ -16,14 +17,21 @@ import { useTrainerStore } from './store/state';
 import { UserTip } from './components/UserTip';
 import Schedule from './components/MemorySchedule';
 import AddToRepertoireModal from './components/modals/AddToRepertoireModal';
-import RepertoireActions from './components/repertoire/RepertoireActions';
-import PgnControls from './components/pgn/PgnControls';
-import PgnTree from './components/pgn/PgnTree';
+import PgnControls from './components/pgn/TreeControls';
+import PgnTree from './components/pgn/Tree';
 import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
-import { ClipboardCheck, ClipboardCopy, FolderCog2Icon, NetworkIcon } from 'lucide-react';
+import {
+  ClipboardCheck,
+  ClipboardCopy,
+  FileIcon,
+  FolderCog2Icon,
+  GraduationCap,
+  History,
+  NetworkIcon,
+} from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
 import { Header } from './components/Header';
 import { CollaboratorsPanel } from './components/collaborators/CollaboratorsPanel';
@@ -88,6 +96,7 @@ export const Chessrepeat = () => {
 
     selectedNode,
     selectedPath,
+    setSelectedNode,
 
     trainingMethod,
 
@@ -128,8 +137,8 @@ export const Chessrepeat = () => {
     })();
   }, [authUsername, collaboratorsOpen]);
 
-  const handleAddCollaborator = async (username: string) => {
-    const result = await addCollaboratorService(username);
+  const handleAddCollaborator = async (username: string, permission: 'edit' | 'train') => {
+    const result = await addCollaboratorService(username, permission);
     if (result.ok && result.collaborator) {
       setOutgoingCollaborators((prev) =>
         prev.some((c) => c.username === result.collaborator!.username)
@@ -148,12 +157,6 @@ export const Chessrepeat = () => {
   const handleViewRepertoire = async (username: string) => {
     setCollaboratorsOpen(false);
     await viewUserRepertoire(username);
-  };
-
-  const handleViewMine = async () => {
-    if (!authUsername) return;
-    setCollaboratorsOpen(false);
-    await viewUserRepertoire(authUsername);
   };
 
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
@@ -201,18 +204,14 @@ export const Chessrepeat = () => {
 
   const closePromo = () => setPendingPromo(null);
 
-  //TODO move to state.ts
-  const deleteChapter = (index) => {
-    setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
-  };
-
-  const renameChapter = (index, name) => {
-    repertoire[index].name = name;
-  };
-
   // TODO should be in different component?
   const chapter = repertoire[repertoireIndex];
   const isEditing = trainingMethod == 'edit';
+
+  // automatically select root node of chapter. fires on chapter change or page reload.
+  useEffect(() => {
+    if (chapter?.root) setSelectedNode(chapter.root);
+  }, [chapter?.root]);
 
   //TODO hints
   //TODO fail
@@ -410,62 +409,111 @@ export const Chessrepeat = () => {
           onAdd={handleAddCollaborator}
           onRemove={handleRemoveCollaborator}
           onViewRepertoire={handleViewRepertoire}
-          onViewMine={authUsername ? handleViewMine : undefined}
         />
 
         <div className="app-main">
           {/* BOARD */}
-          <div className="area-board" id="board-wrap" ref={containerRef}>
-            <Chessground
-              orientation={chapter?.trainAs || 'white'}
-              fen={selectedNode?.data.fen || initial}
-              turnColor={turn}
-              lastMove={lastMove}
-              movable={{
-                free: false,
-                color: turn,
-                dests: calculateDests(),
-                events: { after: onAfterMove },
-              }}
-              drawable={{ autoShapes: createShapes() }}
-            />
-            {pendingPromo && (
-              <PromotionOverlay
-                dest={pendingPromo.to}
-                color={promotionColorFromFen(pendingPromo.fenBefore)}
-                orientation={chapter?.trainAs || 'white'}
-                onCancel={closePromo}
-                requiredRole={
-                  trainingMethod === 'learn'
-                    ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
-                    : undefined
-                }
-                onPick={(role: PromoRole) => {
-                  const { fenBefore, from, to, meta } = pendingPromo;
-                  closePromo();
-                  const san = chessgroundToSan(fenBefore, from, to, role);
-                  finishMove(san, meta, to);
-                }}
-              />
-            )}
-          </div>
+          <div className="area-board" id="board-wrap">
+            <div className="board-card">
+            {chapter && chapter.enabledCount > 0 && (
+              <div className="group relative">
+                <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200 cursor-default">
+                  <div
+                    className="h-full bg-brand-blue-light"
+                    style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
+                  />
+                  <div
+                    className="h-full bg-brand-blue"
+                    style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
+                  />
+                </div>
 
-          {/* CONTROLS */}
-          <div className="area-controls">
-            <div className="flex items-start gap-1">
-              <Controls />
+                {/* Breakdown tooltip on hover */}
+                <div
+                  className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2
+                    whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-2 text-xs
+                    text-gray-700 shadow-lg opacity-0 transition-opacity duration-150
+                    group-hover:opacity-100"
+                >
+                  <div className="flex items-center gap-2 py-0.5">
+                    <GraduationCap size={14} className="text-sky-700" />
+                    <span className="flex-1">To learn</span>
+                    <span className="font-mono font-semibold">{chapter.unseenCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2 py-0.5">
+                    <History size={14} className="text-blue-800" />
+                    <span className="flex-1">Due</span>
+                    <span className="font-mono font-semibold">{chapter.lastDueCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2 py-0.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-gray-200" />
+                    <span className="flex-1">Learned</span>
+                    <span className="font-mono font-semibold">
+                      {chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 border-t border-gray-100 pt-1">
+                    <span className="flex-1 font-semibold">Total</span>
+                    <span className="font-mono font-semibold">{chapter.enabledCount}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={containerRef}>
+              <Chessground
+                orientation={chapter?.trainAs || 'white'}
+                fen={selectedNode?.data.fen || initial}
+                turnColor={turn}
+                lastMove={lastMove}
+                movable={{
+                  free: false,
+                  color: turn,
+                  dests: calculateDests(),
+                  events: { after: onAfterMove },
+                }}
+                drawable={{ autoShapes: createShapes() }}
+              />
+              {pendingPromo && (
+                <PromotionOverlay
+                  dest={pendingPromo.to}
+                  color={promotionColorFromFen(pendingPromo.fenBefore)}
+                  orientation={chapter?.trainAs || 'white'}
+                  onCancel={closePromo}
+                  requiredRole={
+                    trainingMethod === 'learn'
+                      ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
+                      : undefined
+                  }
+                  onPick={(role: PromoRole) => {
+                    const { fenBefore, from, to, meta } = pendingPromo;
+                    closePromo();
+                    const san = chessgroundToSan(fenBefore, from, to, role);
+                    finishMove(san, meta, to);
+                  }}
+                />
+              )}
             </div>
-            <div className="inline-flex rounded-b-xl bg-white p-1">
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-                  transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
-                aria-label="Settings"
-                title="Settings"
-              >
-                <FolderCog2Icon size={18} />
-              </button>
+            </div>
+
+            {/* CONTROLS — part of the same board panel, always directly
+                beneath the board (single grid area). */}
+            <div className="area-controls">
+              <div className="flex items-start gap-1">
+                <Controls />
+              </div>
+              <MobileCommentPopout />
+              <div className="inline-flex rounded-b-xl bg-white shadow-md p-1">
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+                    transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                  aria-label="Settings"
+                  title="Settings"
+                >
+                  <FolderCog2Icon size={18} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -482,42 +530,37 @@ export const Chessrepeat = () => {
           </div>
 
           {/* PGN TREE */}
-          <div className="area-pgn" ref={movesContainerRef}>
+          <div className="area-pgn shadow-md" ref={movesContainerRef}>
             {/* Header + tree: hidden on mobile during learn/recall */}
             <div
               className={`flex flex-col min-h-0 flex-1 overflow-hidden ${isTraining ? 'hidden md:flex' : ''}`}
             >
               <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
                 <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
-                  <NetworkIcon />
+                  <FileIcon className="w-5 h-5" />
                 </div>
-                <span className="text-gray-800 font-semibold text-xl">Chapter</span>
+                <span className="text-gray-800 font-semibold text-lg">Chapter</span>
                 {/* copy icon */}
-                <div className="inline-flex p-1 ml-auto bg-gray-200 rounded-md">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
-                      if (!fen) return;
-                      await navigator.clipboard.writeText(fen);
-                      setFenCopied(true);
-                      setTimeout(() => setFenCopied(false), 1200);
-                    }}
-                    className={`
-                      text-sm font-semibold
-                      transition-all duration-200 hover:text-green-400
-                      ${
-                        fenCopied
-                          ? 'bg-white text-green-600 ring-1 ring-green-300'
-                          : 'hover:text-slate-800 hover:bg-slate-200'
-                      }
-                    `}
-                    aria-label="Copy FEN"
-                    title="Copy FEN"
-                  >
-                    {fenCopied ? <ClipboardCheck size={18} /> : <ClipboardCopy size={18} />}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
+                    if (!fen) return;
+                    await navigator.clipboard.writeText(fen);
+                    setFenCopied(true);
+                    setTimeout(() => setFenCopied(false), 1200);
+                  }}
+                  className={`ml-auto p-1.5 rounded-md transition flex gap-1 text-sm items-end ${
+                    fenCopied
+                      ? 'bg-white text-green-600'
+                      : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
+                  }`}
+                  aria-label="Copy FEN"
+                  title="Copy FEN"
+                >
+                  <span>copy fen</span>
+                  {fenCopied ? <ClipboardCheck className="w-5 h-5" /> : <ClipboardCopy className="w-5 h-5" />}
+                </button>
               </div>
               <div className="pgn-tree-scroll">
                 <PgnTree setActiveMoveId={setActiveMoveId} />
@@ -529,15 +572,15 @@ export const Chessrepeat = () => {
             </div>
           </div>
 
-          {/* REPERTOIRE */}
-          <div className="area-repertoire">
-            {/* Desktop only: full inline repertoire */}
-            <div className="hidden lg:flex flex-col flex-1 min-h-0">
+          {/* SIDEBAR (repertoire + memory schedule) */}
+          <div className="area-sidebar">
+            <div className="area-repertoire">
               <Repertoire />
             </div>
-            {/* Mobile + medium: repertoire as modal trigger */}
-            <RepertoireActions />
-            <Schedule />
+
+            <div className="area-schedule">
+              <Schedule />
+            </div>
           </div>
         </div>
       </div>

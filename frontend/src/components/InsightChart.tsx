@@ -1,42 +1,39 @@
-//TODO use a library for this?
-
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import CalendarHeatmap, { ReactCalendarHeatmapValue } from 'react-calendar-heatmap';
+import 'react-calendar-heatmap/dist/styles.css';
 import { useTrainerStore } from '../store/state';
 import { AlarmCheckIcon } from 'lucide-react';
 
-// ---- constants ----
-
-const DAY_SEC = 86400;
+const DAY_MS = 86_400_000;
 const WEEKS_TO_SHOW = 20;
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-// Color scale — 5 buckets from empty to intense
-const COLORS = [
-  'var(--heat-0, #dfdfdfff)', // 0 moves
-  'var(--heat-1, #c9deffff)', // low
-  'var(--heat-2, #91bbffff)', // medium
-  'var(--heat-3, #6991ffff)', // high
-  'var(--heat-4, #1856ffff)', // very high
-];
+function toDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
-// ---- helpers ----
-
-/** Bucket each dueTime (seconds-til-due) into a day offset from today (0 = today). */
-function bucketByDay(dueTimes: number[]): Map<number, number> {
-  const map = new Map<number, number>();
-  for (const sec of dueTimes) {
-    // Overdue or due now → day 0
-    const dayOffset = Math.max(0, Math.floor(sec / DAY_SEC));
-    map.set(dayOffset, (map.get(dayOffset) ?? 0) + 1);
+function bucketByDate(dueTimes: number[], today: Date): Map<string, HeatValue> {
+  const map = new Map<string, HeatValue>();
+  for (const ms of dueTimes) {
+    const dayOffset = Math.max(0, Math.floor(ms / DAY_MS));
+    const date = new Date(today);
+    date.setDate(date.getDate() + dayOffset);
+    const key = toDateKey(date);
+    const existing = map.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(key, { date, key, count: 1 });
+    }
   }
   return map;
 }
 
-/** Pick a color index (0–4) based on count and the max value. */
-function colorIndex(count: number, max: number): number {
+function colorBucket(count: number, max: number): number {
   if (count === 0) return 0;
   if (max <= 1) return 4;
-  // quantize into 4 non-zero buckets
   const ratio = count / max;
   if (ratio <= 0.25) return 1;
   if (ratio <= 0.5) return 2;
@@ -44,234 +41,114 @@ function colorIndex(count: number, max: number): number {
   return 4;
 }
 
-/** Get Monday-based day-of-week (0=Mon … 6=Sun) */
-function mondayDow(date: Date): number {
-  return (date.getDay() + 6) % 7;
-}
-
-function fmtDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-// ---- types ----
-
-interface CellData {
-  dayOffset: number;
+interface HeatValue {
   date: Date;
+  key: string;
   count: number;
-  colorIdx: number;
 }
 
-// ---- component ----
 
-const InsightHeatCalendar: React.FC = () => {
-  let dueTimes = useTrainerStore((s) => s.dueTimes);
-  dueTimes = dueTimes.map((_) => Math.trunc(_ / 1000));
-  const [hoveredCell, setHoveredCell] = useState<CellData | null>(null);
 
-  const { grid, maxCount, dueNow, totalMoves, monthLabels } = useMemo(() => {
-    const times = dueTimes ?? [];
-    const totalMoves = times.length;
-    const byDay = bucketByDay(times);
-    const dueNow = byDay.get(0) ?? 0;
+const InsightChart: React.FC = () => {
+  const updateDueCounts = useTrainerStore().updateDueCounts
+  const [hovered, setHovered] = useState<HeatValue | null>(null);
+  useEffect(() => {
+    updateDueCounts()
+    console.log("hi")
+  }, [])
+  const dueTimes = useTrainerStore((s) => s.dueTimes);
 
-    // Find the max daily count for color scaling
-    let maxCount = 0;
-    byDay.forEach((v) => {
-      if (v > maxCount) maxCount = v;
-    });
-
+  const { values, startDate, endDate, maxCount, totalMoves, dueNow, todayKey } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayDow = mondayDow(today);
+    const todayKey = toDateKey(today);
 
-    // We start the grid on the Monday of the current week
-    const gridStartOffset = -todayDow; // day offset for the Monday of this week
-    const totalDays = WEEKS_TO_SHOW * 7;
+    const totalMoves = dueTimes?.length ?? 0;
+    const byDate = bucketByDate(dueTimes ?? [], today);
 
-    // Build 2D grid: grid[row=dow][col=week]
-    const grid: (CellData | null)[][] = Array.from({ length: 7 }, () => []);
-    const monthLabels: { col: number; label: string }[] = [];
-    let lastMonth = -1;
+    let max = 0;
+    byDate.forEach((v) => {
+      if (v.count > max) max = v.count;
+    });
 
-    for (let i = 0; i < totalDays; i++) {
-      const dayOffset = gridStartOffset + i;
-      const col = Math.floor(i / 7); // week index
-      const row = i % 7; // day-of-week index (0=Mon)
+    const dueNow = byDate.get(todayKey)?.count ?? 0;
+    const end = new Date(today);
+    end.setDate(end.getDate() + WEEKS_TO_SHOW * 7 - 1);
 
-      const cellDate = new Date(today.getTime() + dayOffset * DAY_SEC * 1000);
+    const vals: HeatValue[] = [];
+    byDate.forEach((v) => vals.push(v));
 
-      // Only show today and future (past days in the first partial week get null)
-      if (dayOffset < 0) {
-        grid[row].push(null);
-      } else {
-        const count = byDay.get(dayOffset) ?? 0;
-        grid[row].push({
-          dayOffset,
-          date: cellDate,
-          count,
-          colorIdx: colorIndex(count, maxCount),
-        });
-      }
-
-      // Month labels on the first row
-      if (row === 0) {
-        const m = cellDate.getMonth();
-        if (m !== lastMonth) {
-          monthLabels.push({
-            col,
-            label: cellDate.toLocaleDateString(undefined, { month: 'short' }),
-          });
-          lastMonth = m;
-        }
-      }
-    }
-
-    return { grid, maxCount, dueNow, totalMoves, monthLabels };
+    return { values: vals, startDate: today, endDate: end, maxCount: max, totalMoves, dueNow, todayKey };
   }, [dueTimes]);
 
   if (!dueTimes || totalMoves === 0) {
-    return <div style={{ padding: 16, opacity: 0.5 }}>No moves to chart yet.</div>;
+    return <div className="px-2 py-1 text-xs text-gray-400">No moves to chart yet.</div>;
   }
 
-  const CELL = 14;
-  const GAP = 3;
-  const LABEL_W = 32;
-  const MONTH_H = 18;
-  const gridW = WEEKS_TO_SHOW * (CELL + GAP);
-  const gridH = 7 * (CELL + GAP);
-
   return (
-    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: 12 }}>
-      {/* Summary line */}
-      <div className="shrink-0 font-semibold text-gray-600 text-sm px-1 uppercase pb-1">
-        {`NEXT ${WEEKS_TO_SHOW} WEEKS`}
+    <div className="cr-heatmap font-sans text-xs w-full">
+      <div className="w-full pr-5">
+        <CalendarHeatmap
+          startDate={startDate}
+          endDate={endDate}
+          values={values}
+          showWeekdayLabels
+          gutterSize={2}
+          classForValue={(v) => {
+            const value = v as HeatValue | null;
+            const base = !value || !value.count
+              ? 'color-cr-0'
+              : `color-cr-${colorBucket(value.count, maxCount)}`;
+            return value?.key === todayKey ? `${base} cr-today` : base;
+          }}
+          onMouseOver={(_e, value: ReactCalendarHeatmapValue<Date> | undefined) => {
+            if (value && (value as HeatValue).key) {
+              setHovered(value as HeatValue);
+            }
+          }}
+          onMouseLeave={() => setHovered(null)}
+        />
       </div>
 
-      {/* Scrollable container for small screens */}
-      <div style={{ overflowX: 'auto' }}>
-        <div style={{ position: 'relative', width: LABEL_W + gridW, minWidth: 'fit-content' }}>
-          {/* Month labels */}
-          <div style={{ marginLeft: LABEL_W, height: MONTH_H, position: 'relative' }}>
-            {monthLabels.map((m, i) => (
-              <span
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: m.col * (CELL + GAP),
-                  fontSize: 11,
-                  opacity: 0.6,
-                }}
-              >
-                {m.label}
-              </span>
-            ))}
-          </div>
-
-          {/* Grid */}
-          <div style={{ display: 'flex' }}>
-            {/* Day-of-week labels */}
-            <div
-              style={{
-                width: LABEL_W,
-                flexShrink: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: GAP,
-              }}
-            >
-              {DAY_LABELS.map((label, i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: CELL,
-                    lineHeight: `${CELL}px`,
-                    fontSize: 10,
-                    opacity: 0.5,
-                    textAlign: 'right',
-                    paddingRight: 6,
-                  }}
-                >
-                  {i % 2 === 0 ? label : ''}
-                </div>
-              ))}
-            </div>
-
-            {/* Cells */}
-            <div>
-              {grid.map((row, rowIdx) => (
-                <div key={rowIdx} style={{ display: 'flex', gap: GAP, marginBottom: GAP }}>
-                  {row.map((cell, colIdx) => (
-                    <div
-                      key={colIdx}
-                      onMouseEnter={() => cell && setHoveredCell(cell)}
-                      onMouseLeave={() => setHoveredCell(null)}
-                      style={{
-                        width: CELL,
-                        height: CELL,
-                        borderRadius: 2,
-                        backgroundColor: cell ? COLORS[cell.colorIdx] : 'transparent',
-                        border:
-                          cell?.dayOffset === 0
-                            ? '1.5px solid rgba(255,255,255,0.5)'
-                            : '1px solid rgba(255,255,255,0.05)',
-                        cursor: cell ? 'pointer' : 'default',
-                        transition: 'transform 0.1s',
-                        transform:
-                          hoveredCell && cell && hoveredCell.dayOffset === cell.dayOffset
-                            ? 'scale(1.3)'
-                            : 'scale(1)',
-                      }}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Tooltip */}
-          {hoveredCell && (
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 12,
-                opacity: 0.8,
-                height: 18,
-                paddingLeft: 30,
-              }}
-            >
-              <strong>
-                {hoveredCell.count} move{hoveredCell.count !== 1 ? 's' : ''}
-              </strong>
-              {' due '}
-              {hoveredCell.dayOffset === 0 ? 'today' : `on ${fmtDate(hoveredCell.date)}`}
-            </div>
-          )}
-
-          {/* Legend */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              marginTop: hoveredCell ? 0 : 24,
-              fontSize: 11,
-              opacity: 0.5,
-            }}
-          ></div>
-        </div>
+      <div className="h-4 text-[11px] text-gray-700 pl-1 -mt-3">
+        {hovered && (
+          <>
+            <strong>
+              {hovered.count} move{hovered.count !== 1 ? 's' : ''}
+            </strong>
+            {' due '}
+            {hovered.key === todayKey
+              ? 'today'
+              : `on ${hovered.date.toLocaleDateString(undefined, {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                })}`}
+          </>
+        )}
       </div>
-      <div className="pb-5 flex items-end gap-1">
-        <AlarmCheckIcon />
-        <span className="font-semibold">{dueNow}</span>
-        <span className="font-lg text-gray-600">moves due now</span>
-      </div>
+{/* 
+      <div className="flex items-center gap-1 pl-1 pt-1 text-[13px]">
+        <AlarmCheckIcon className="w-4 h-4 text-gray-700" />
+        <span className="font-semibold text-gray-800">{dueNow}</span>
+        <span className="text-gray-600">moves due now</span>
+      </div> */}
+
+      <style>{`
+        .cr-heatmap .react-calendar-heatmap text { fill: #374151; font-size: 9px; font-weight: 600; }
+        .cr-heatmap .react-calendar-heatmap .react-calendar-heatmap-small-text { font-size: 8px; }
+        .cr-heatmap .react-calendar-heatmap-month-label { transform: translateY(3px); }
+        .cr-heatmap .react-calendar-heatmap rect { rx: 1; ry: 1; }
+        .cr-heatmap .react-calendar-heatmap rect.color-cr-0 { fill: #dfdfdf; }
+        .cr-heatmap .react-calendar-heatmap rect.color-cr-1 { fill: #c9deff; }
+        .cr-heatmap .react-calendar-heatmap rect.color-cr-2 { fill: #91bbff; }
+        .cr-heatmap .react-calendar-heatmap rect.color-cr-3 { fill: #6991ff; }
+        .cr-heatmap .react-calendar-heatmap rect.color-cr-4 { fill: #1856ff; }
+        .cr-heatmap .react-calendar-heatmap rect.cr-today { stroke: #3b82f6; stroke-width: 1.5; }
+        .cr-heatmap .react-calendar-heatmap rect:hover { stroke: #555; stroke-width: 1; cursor: pointer; }
+      `}</style>
     </div>
   );
 };
 
-export default InsightHeatCalendar;
+export default InsightChart;

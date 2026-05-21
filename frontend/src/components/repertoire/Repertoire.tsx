@@ -1,34 +1,37 @@
 //TODO repertoire and repertoire section in same file
 
 import {
-  CloudAlert,
-  FileCog,
-  FileDown,
-  LucideCloud,
+  ArrowLeftIcon,
+  BookOpenIcon,
+  BookPlus,
+  DownloadIcon,
+  FilePlus2Icon,
   LucideCloudOff,
   LucideCloudUpload,
+  LucideGraduationCap,
+  LucideHistory,
+  LucideRepeat,
+  LucideRepeat2,
+  LucideUpload,
+  PlusIcon,
+  Settings2Icon,
   SettingsIcon,
 } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../store/state';
-import { Modal } from '../modals/Modal';
 import EditChapterModal from '../modals/EditChapterModal';
-import React, { Dispatch, SetStateAction, useState } from 'react';
-import { BookDown, BookOpenIcon, BookPlus } from 'lucide-react';
+import DownloadModal from '../modals/DownloadModal';
+import React, { useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
+import { viewUserRepertoire } from '../../services/collaborators';
 
 export const ChapterRow = ({ entry, index, id }) => {
-  // console.log('chapter ID should be visible', id);
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
+  const updateDueCounts = useTrainerStore().updateDueCounts;
   const repertoireIndex = useTrainerStore().repertoireIndex;
-  const cbConfig = useTrainerStore().cbConfig;
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [newName, setNewName] = useState('');
   const meta = entry;
   const name = entry.name;
 
@@ -37,6 +40,7 @@ export const ChapterRow = ({ entry, index, id }) => {
   const handleChangeChapter = () => {
     setRepertoireIndex(index);
     clearChapterContext();
+    updateDueCounts();
   };
 
   return (
@@ -48,11 +52,11 @@ export const ChapterRow = ({ entry, index, id }) => {
       bg-black/50 backdrop-blur-sm
       flex items-center justify-center
     "
-          onClick={() => setEditOpen(false)} // close on backdrop click
+          onClick={() => setEditOpen(false)}
         >
           <div
             className="z-50"
-            onClick={(e) => e.stopPropagation()} // prevent closing when clicking modal
+            onClick={(e) => e.stopPropagation()}
           >
             <EditChapterModal chapterIndex={index} onClose={() => setEditOpen(false)} />
           </div>
@@ -64,33 +68,33 @@ export const ChapterRow = ({ entry, index, id }) => {
         onClick={handleChangeChapter}
         className={repertoireIndex === index ? 'bg-cyan-50' : ''}
       >
-        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-4 py-0.5">
-          <span className="font-bold pr-3 text-blue-600 flex-shrink-0">{index + 1}</span>
+        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-2 py-0.5">
+          <span className="font-bold pr-3 text-brand-blue flex-shrink-0">{index + 1}</span>
 
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
-            <span className="text-md truncate leading-none">{name}</span>
+            <span className={`text-sm truncate leading-none ${repertoireIndex === index ? 'font-bold' : ''}`}>{name}</span>
             <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
           </h3>
 
           {entry.unseenCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-sky-300/40 text-sky-700 rounded-md px-2 mr-2 flex-shrink-0">
-              <span className="chapter-btn-label">Learn </span>{entry.unseenCount}
+            <button className="font-roboto text-sm font-medium bg-brand-blue-light/40 text-sky-700 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
+              <span className="chapter-btn-label"><LucideGraduationCap size={18}/></span>{entry.unseenCount}
             </button>
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-blue-500/30 text-blue-800 rounded-md px-2 mr-2 flex-shrink-0">
-              <span className="chapter-btn-label">Recall </span>{entry.lastDueCount}
+            <button className="font-roboto text-sm font-medium bg-brand-blue/30 text-blue-800 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
+              <span className="chapter-btn-label"><LucideHistory size={18}/> </span>{entry.lastDueCount}
             </button>
           )}
 
           <div
             id="edit-chapter"
-            className="ml-auto mr-2 text-gray-600 cursor-pointer flex-shrink-0"
+            className="ml-auto mr-2 text-slate-500 cursor-pointer flex-shrink-0"
             onClick={() => setEditOpen(true)}
           >
             <div id="icon-wrap">
-              <SettingsIcon width={20} height={20} color="black" />
+              <Settings2Icon width={20} height={20}/>
             </div>
           </div>
         </div>
@@ -105,10 +109,15 @@ const Repertoire: React.FC = () => {
 
   const repertoire = useTrainerStore().repertoire;
   const repertoireAuthor = useTrainerStore().repertoireAuthor;
+  const setShowingAddToRepertoireMenu = useTrainerStore((s) => s.setShowingAddToRepertoireMenu);
   const isAuth = useAuthStore().isAuthenticated(); // TODO don't use auth state to keep track of network connection
   const authUsername = useAuthStore().user?.username;
   const viewingOther = !!repertoireAuthor && !!authUsername && repertoireAuthor !== authUsername;
-  const title = viewingOther ? `${repertoireAuthor}'s Repertoire` : 'My Repertoire';
+  const title = viewingOther ? `${repertoireAuthor}'s repertoire` : 'Repertoire';
+
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+
+  const isEmpty = repertoire.length === 0;
 
   repertoire.forEach((entry) => {
     if (entry.trainAs == 'white') whiteEntries.push(entry);
@@ -116,24 +125,71 @@ const Repertoire: React.FC = () => {
   });
 
   return (
-    <div id="repertoire" className="flex flex-col flex-1 min-h-0 rounded-xl border border-gray-300 bg-white">
+    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-md">
       {/* fixed header */}
       <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
-        <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
-          <BookOpenIcon />
-        </div>
-        <span className="text-gray-800 font-semibold text-xl">{title}</span>
-        {isAuth ? (
-          <span className="text-green-600">
-            <LucideCloudUpload />
-          </span>
+        {viewingOther && authUsername ? (
+          <button
+            type="button"
+            onClick={() => void viewUserRepertoire(authUsername)}
+            aria-label="Back to my repertoire"
+            title="Back to my repertoire"
+            className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded hover:text-gray-700 hover:bg-gray-300 transition"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </button>
         ) : (
-          <span className="text-red-600">
-            <LucideCloudOff />
-          </span>
+          <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
+            <BookOpenIcon className="w-5 h-5" />
+          </div>
         )}
-      </div>
+        <div className="flex flex-col leading-none min-w-0">
+          <span className="text-lg text-gray-800 font-semibold truncate">{title}</span>
+          <span className="-mt-0.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+            {repertoire.length} chapter{repertoire.length === 1 ? '' : 's'}
+          </span>
+        </div>
 
+
+        <button
+          type="button"
+          onClick={() => setShowingAddToRepertoireMenu(true)}
+          aria-label="Add to repertoire"
+          title="Add to repertoire"
+          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
+            text-slate-600 hover:text-slate-800 hover:bg-gray-100
+            ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
+            >
+          <LucideUpload size={18} />
+          <span className="chapter-btn-label">add</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsDownloadOpen(true)}
+          disabled={isEmpty}
+          aria-label="Download repertoire"
+          title="Download repertoire"
+          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center ${
+            isEmpty
+            ? 'text-gray-300 cursor-not-allowed'
+            : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
+          }`}
+          >
+          <DownloadIcon className="w-[18px] h-[18px]" />
+          <span className="chapter-btn-label">download</span>
+        </button>
+          {isAuth ? (
+            <span className="shrink-0 ml-auto text-green-600" title="Synced">
+              <LucideCloudUpload size={18}/>
+            </span>
+          ) : (
+            <span className="shrink-0 ml-auto text-red-600" title="Offline — changes not synced">
+              <LucideCloudOff size={18}/>
+            </span>
+          )}
+      </div>
+      
       {/* ONLY THIS SCROLLS */}
       <div
         id="repertoire-wrap"
@@ -157,6 +213,8 @@ const Repertoire: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {isDownloadOpen && <DownloadModal onClose={() => setIsDownloadOpen(false)} />}
     </div>
   );
 };

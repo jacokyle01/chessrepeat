@@ -13,8 +13,8 @@ import (
 // user has picked one — that's allowed by the schema (UNIQUE permits
 // multiple NULLs only if you use NULLS NOT DISTINCT off; we store ""
 // instead, so callers must ensure at most one user has username = "").
-func (db *DB) UpsertUser(user domain.User) error {
-	_, err := db.pool.Exec(context.TODO(), `
+func (db *DB) UpsertUser(ctx context.Context, user domain.User) error {
+	_, err := db.pool.Exec(ctx, `
 		INSERT INTO users (token_id, username, email, picture)
 		VALUES ($1, NULLIF($2, ''), $3, $4)
 		ON CONFLICT (token_id) DO UPDATE SET
@@ -25,18 +25,18 @@ func (db *DB) UpsertUser(user domain.User) error {
 	return err
 }
 
-func (db *DB) FetchUser(tokenID string) (*domain.User, error) {
-	return db.fetchUserBy(`token_id = $1`, tokenID)
+func (db *DB) FetchUser(ctx context.Context, tokenID string) (*domain.User, error) {
+	return db.fetchUserBy(ctx, `token_id = $1`, tokenID)
 }
 
-func (db *DB) FetchUserByUsername(username string) (*domain.User, error) {
-	return db.fetchUserBy(`username = $1`, username)
+func (db *DB) FetchUserByUsername(ctx context.Context, username string) (*domain.User, error) {
+	return db.fetchUserBy(ctx, `username = $1`, username)
 }
 
-func (db *DB) fetchUserBy(where string, arg string) (*domain.User, error) {
+func (db *DB) fetchUserBy(ctx context.Context, where string, arg string) (*domain.User, error) {
 	var u domain.User
 	var username *string
-	err := db.pool.QueryRow(context.TODO(),
+	err := db.pool.QueryRow(ctx,
 		`SELECT token_id, username, email, picture FROM users WHERE `+where,
 		arg,
 	).Scan(&u.TokenID, &username, &u.Email, &u.Picture)
@@ -56,12 +56,12 @@ func (db *DB) fetchUserBy(where string, arg string) (*domain.User, error) {
 // CollaboratorView shape. Callers in the collaborator layer use this
 // when converting collaborator id lists into something safe to send to
 // the client.
-func (db *DB) resolveUsersToViews(userIDs []string) ([]domain.CollaboratorView, error) {
+func (db *DB) resolveUsersToViews(ctx context.Context, userIDs []string) ([]domain.CollaboratorView, error) {
 	out := make([]domain.CollaboratorView, 0, len(userIDs))
 	if len(userIDs) == 0 {
 		return out, nil
 	}
-	rows, err := db.pool.Query(context.TODO(), `
+	rows, err := db.pool.Query(ctx, `
 		SELECT username, picture
 		FROM users
 		WHERE token_id = ANY($1) AND username IS NOT NULL

@@ -44,6 +44,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }).catch((err) => console.warn('logout request failed', err));
 
     set({ user: null });
+
     // @ts-ignore
     window.google?.accounts?.id?.disableAutoSelect?.();
   },

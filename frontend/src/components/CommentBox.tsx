@@ -7,7 +7,7 @@ export const CommentBox = () => {
   if (!comment) return null;
 
   return (
-    <div className="px-3 py-2 text-sm text-blue-700 bg-blue-50 rounded-md ring-1 ring-blue-200">
+    <div className="px-3 py-2 text-sm text-brand-blue bg-blue-50 rounded-md ring-1 ring-blue-200">
       {comment}
     </div>
   );

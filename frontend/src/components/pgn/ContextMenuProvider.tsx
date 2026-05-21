@@ -14,6 +14,7 @@ type MenuItem = {
 
 type ContextMenuContextType = {
   showMenu: (e: React.MouseEvent, items: MenuItem[], path: string, san: string) => void;
+  hideMenu: () => void;
   contextSelectedPath: string | null;
 };
 
@@ -37,6 +38,7 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
   }
 
   function hideMenu() {
+    (cm.current as any)?.hide();
     setContextSelectedPath(null);
     setContextSan('');
   }
@@ -66,7 +68,7 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
   }, [model]);
 
   return (
-    <ContextMenuContext.Provider value={{ showMenu, contextSelectedPath }}>
+    <ContextMenuContext.Provider value={{ showMenu, hideMenu, contextSelectedPath }}>
       <ContextMenu
         model={modelWithHeader}
         ref={cm}

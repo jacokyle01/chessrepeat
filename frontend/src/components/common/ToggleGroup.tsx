@@ -36,7 +36,7 @@ const ToggleGroup: React.FC<ToggleGroupProps> = ({
               i === 0 ? 'rounded-l' : i === labels.length - 1 ? 'rounded-r' : ''
             } ${
               currentIndex === i
-                ? 'bg-blue-500 text-white'
+                ? 'bg-brand-blue text-white'
                 : 'bg-white hover:bg-gray-100 text-gray-700'
             }`}
             onClick={() => {

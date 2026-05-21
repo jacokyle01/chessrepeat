@@ -1,16 +1,30 @@
 import { useState } from 'react';
-import { XIcon, UserPlusIcon, BookOpen } from 'lucide-react';
-import type { Collaborator } from '../../services/collaborators';
+import { XIcon, UserPlusIcon } from 'lucide-react';
+import type { Collaborator, CollaboratorPermission } from '../../services/collaborators';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   outgoing: Collaborator[];
   incoming: Collaborator[];
-  onAdd: (username: string) => Promise<{ ok: boolean; error?: string }>;
+  onAdd: (
+    username: string,
+    permission: CollaboratorPermission,
+  ) => Promise<{ ok: boolean; error?: string }>;
   onRemove: (username: string) => Promise<void>;
   onViewRepertoire: (username: string) => void;
-  onViewMine?: () => void;
+};
+
+const PERMISSION_DESCRIPTIONS: Record<CollaboratorPermission, string> = {
+  edit: 'Full access — add chapters, edit moves, enable/disable lines.',
+  train: 'Read-only on the tree, but their training progress syncs.',
+};
+
+// Badge swatches mirror the avatar-ring colors in Header.tsx so the
+// panel and the live presence list stay visually consistent.
+const PERMISSION_BADGE: Record<CollaboratorPermission, string> = {
+  edit: 'bg-brand-blue text-white',
+  train: 'bg-brand-blue-light text-blue-900',
 };
 
 export function CollaboratorsPanel({
@@ -21,18 +35,18 @@ export function CollaboratorsPanel({
   onAdd,
   onRemove,
   onViewRepertoire,
-  onViewMine,
 }: Props) {
   const [inviteTarget, setInviteTarget] = useState('');
+  const [invitePermission, setInvitePermission] = useState<CollaboratorPermission>('edit');
   const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   if (!open) return null;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await onAdd(inviteTarget);
+    const result = await onAdd(inviteTarget, invitePermission);
     if (result.ok) {
-      setAddMsg({ ok: true, text: `added ${inviteTarget}` });
+      setAddMsg({ ok: true, text: `added ${inviteTarget} as ${invitePermission}` });
       setInviteTarget('');
     } else {
       setAddMsg({ ok: false, text: result.error ?? 'failed' });
@@ -86,11 +100,16 @@ export function CollaboratorsPanel({
                     <button
                       type="button"
                       onClick={() => onViewRepertoire(c.username)}
-                      className="flex-1 text-left text-sm font-medium text-blue-700 hover:underline"
+                      className="flex-1 text-left text-sm font-medium text-brand-blue hover:underline"
                       title="Open their repertoire"
                     >
                       {c.username}
                     </button>
+                    <span
+                      className={`text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded ${PERMISSION_BADGE[c.permission]}`}
+                    >
+                      {c.permission}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -122,6 +141,11 @@ export function CollaboratorsPanel({
                     <span className="flex-1 text-sm font-medium text-gray-800">
                       {c.username}
                     </span>
+                    <span
+                      className={`text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded ${PERMISSION_BADGE[c.permission]}`}
+                    >
+                      {c.permission}
+                    </span>
                     <button
                       type="button"
                       onClick={() => onRemove(c.username)}
@@ -135,21 +159,37 @@ export function CollaboratorsPanel({
               </ul>
             )}
 
-            <form onSubmit={handleAdd} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={inviteTarget}
-                onChange={(e) => setInviteTarget(e.target.value)}
-                placeholder="username"
-                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1.5 bg-slate-800 text-white text-sm font-semibold px-3 py-2 rounded hover:bg-slate-700"
-              >
-                <UserPlusIcon size={14} />
-                Add
-              </button>
+            <form onSubmit={handleAdd} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={inviteTarget}
+                  onChange={(e) => setInviteTarget(e.target.value)}
+                  placeholder="username"
+                  className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                />
+                <select
+                  value={invitePermission}
+                  onChange={(e) =>
+                    setInvitePermission(e.target.value as CollaboratorPermission)
+                  }
+                  className="border border-gray-300 rounded px-2 py-2 text-sm bg-white"
+                  aria-label="Permission"
+                >
+                  <option value="edit">edit</option>
+                  <option value="train">train</option>
+                </select>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 bg-slate-800 text-white text-sm font-semibold px-3 py-2 rounded hover:bg-slate-700"
+                >
+                  <UserPlusIcon size={14} />
+                  Add
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">
+                {PERMISSION_DESCRIPTIONS[invitePermission]}
+              </p>
             </form>
             {addMsg && (
               <p className={`mt-2 text-xs ${addMsg.ok ? 'text-green-600' : 'text-red-600'}`}>
@@ -158,16 +198,6 @@ export function CollaboratorsPanel({
             )}
           </section>
 
-          {onViewMine && (
-            <button
-              type="button"
-              onClick={onViewMine}
-              className="w-full inline-flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded px-3 py-2"
-            >
-              <BookOpen size={14} />
-              View my repertoire
-            </button>
-          )}
         </div>
       </div>
     </div>

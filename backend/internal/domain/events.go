@@ -23,16 +23,31 @@ type NodeDeleteEvent struct {
 type TrainingUpdatedEvent struct {
 	Type      string   `json:"type"` // "training_updated"
 	ChapterID string   `json:"chapterId"`
-	Path      string   `json:"path"`     // path to the node (parent path, not including node id)
+	Path      string   `json:"path"`     // path to the target move (parent path + move id) — same row the card is attached to in moves/training_cards
 	Username  string   `json:"username"` // which user's training state changed
 	Card      CardData `json:"card"`     // the updated card
 }
 
-// NodeToggleEvent is the WebSocket message envelope for enable/disable events.
-type NodeToggleEvent struct {
-	Type      string `json:"type"` // "node_enabled" or "node_disabled"
+
+// CommentEvent is the WebSocket message envelope for setting a node's
+// comment. Server enforces store.MaxCommentChars by truncating; the
+// canonical (possibly-truncated) comment is what gets broadcast back to
+// peers, so every client converges on the same text.
+type CommentEvent struct {
+	Type      string `json:"type"` // "set_comment"
 	ChapterID string `json:"chapterId"`
 	Path      string `json:"path"`
+	Comment   string `json:"comment"`
+}
+
+// ChapterRenameEvent is the WebSocket message envelope for chapter
+// rename. The server persists the new name and broadcasts a 'reload'
+// to peers — the renaming client already updated optimistically and is
+// excluded from the broadcast, mirroring the chapter_deleted flow.
+type ChapterRenameEvent struct {
+	Type      string `json:"type"` // "chapter_renamed"
+	ChapterID string `json:"chapterId"`
+	Name      string `json:"name"`
 }
 
 // ChapterDeleteEvent is the WebSocket message envelope for chapter
@@ -44,14 +59,14 @@ type ChapterDeleteEvent struct {
 	ChapterID string `json:"chapterId"`
 }
 
-// ChapterEvent is the WebSocket message envelope for chapter creation events.
+// ChapterEvent is the payload of POST /chapter. Counts (enabled/unseen)
+// are derived client-side from the tree and per-user training cards, so
+// they no longer travel on the wire or live in the chapters table.
 type ChapterEvent struct {
-	Type         string          `json:"type"`      // "chapter_created"
-	ChapterID    string          `json:"chapterId"` // TODO uuid? //TODO create server-side??
-	OwnerID      string          `json:"ownerId"`
-	Name         string          `json:"name"`
-	TrainAs      string          `json:"trainAs"`
-	Root         ChapterTreeNode `json:"root"`
-	EnabledCount int             `json:"enabledCount"`
-	UnseenCount  int             `json:"unseenCount"`
+	Type      string          `json:"type"`      // "chapter_created"
+	ChapterID string          `json:"chapterId"` // TODO uuid? //TODO create server-side??
+	OwnerID   string          `json:"ownerId"`
+	Name      string          `json:"name"`
+	TrainAs   string          `json:"trainAs"`
+	Root      ChapterTreeNode `json:"root"`
 }
