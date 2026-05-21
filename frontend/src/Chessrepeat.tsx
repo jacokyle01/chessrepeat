@@ -159,12 +159,6 @@ export const Chessrepeat = () => {
     await viewUserRepertoire(username);
   };
 
-  const handleViewMine = async () => {
-    if (!authUsername) return;
-    setCollaboratorsOpen(false);
-    await viewUserRepertoire(authUsername);
-  };
-
   const isTraining = trainingMethod === 'learn' || trainingMethod === 'recall';
 
   const [sounds, setSounds] = useState(SOUNDS);
@@ -424,7 +418,6 @@ export const Chessrepeat = () => {
           onAdd={handleAddCollaborator}
           onRemove={handleRemoveCollaborator}
           onViewRepertoire={handleViewRepertoire}
-          onViewMine={authUsername ? handleViewMine : undefined}
         />
 
         <div className="app-main">

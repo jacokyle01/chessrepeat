@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { XIcon, UserPlusIcon, BookOpen } from 'lucide-react';
+import { XIcon, UserPlusIcon } from 'lucide-react';
 import type { Collaborator, CollaboratorPermission } from '../../services/collaborators';
 
 type Props = {
@@ -13,7 +13,6 @@ type Props = {
   ) => Promise<{ ok: boolean; error?: string }>;
   onRemove: (username: string) => Promise<void>;
   onViewRepertoire: (username: string) => void;
-  onViewMine?: () => void;
 };
 
 const PERMISSION_DESCRIPTIONS: Record<CollaboratorPermission, string> = {
@@ -36,7 +35,6 @@ export function CollaboratorsPanel({
   onAdd,
   onRemove,
   onViewRepertoire,
-  onViewMine,
 }: Props) {
   const [inviteTarget, setInviteTarget] = useState('');
   const [invitePermission, setInvitePermission] = useState<CollaboratorPermission>('edit');
@@ -200,16 +198,6 @@ export function CollaboratorsPanel({
             )}
           </section>
 
-          {onViewMine && (
-            <button
-              type="button"
-              onClick={onViewMine}
-              className="w-full inline-flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded px-3 py-2"
-            >
-              <BookOpen size={14} />
-              View my repertoire
-            </button>
-          )}
         </div>
       </div>
     </div>

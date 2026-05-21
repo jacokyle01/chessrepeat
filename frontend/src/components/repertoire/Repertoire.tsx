@@ -1,6 +1,7 @@
 //TODO repertoire and repertoire section in same file
 
 import {
+  ArrowLeftIcon,
   BookOpenIcon,
   BookPlus,
   DownloadIcon,
@@ -23,6 +24,7 @@ import DownloadModal from '../modals/DownloadModal';
 import React, { useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
+import { viewUserRepertoire } from '../../services/collaborators';
 
 export const ChapterRow = ({ entry, index, id }) => {
   const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
@@ -126,9 +128,21 @@ const Repertoire: React.FC = () => {
     <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-md">
       {/* fixed header */}
       <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
-        <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
-          <BookOpenIcon className="w-5 h-5" />
-        </div>
+        {viewingOther && authUsername ? (
+          <button
+            type="button"
+            onClick={() => void viewUserRepertoire(authUsername)}
+            aria-label="Back to my repertoire"
+            title="Back to my repertoire"
+            className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded hover:text-gray-700 hover:bg-gray-300 transition"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </button>
+        ) : (
+          <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
+            <BookOpenIcon className="w-5 h-5" />
+          </div>
+        )}
         <div className="flex flex-col leading-none min-w-0">
           <span className="text-lg text-gray-800 font-semibold truncate">{title}</span>
           <span className="-mt-0.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
