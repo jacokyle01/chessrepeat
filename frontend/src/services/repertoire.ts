@@ -1,9 +1,6 @@
-import type { Chapter } from '../types/training';
 import { parseChapters } from '../util/chapters';
 import { useTrainerStore } from '../store/state';
 import { useAuthStore } from '../store/auth';
-import { forEachNode } from '../util/tree';
-import { userCard } from '../util/userCard';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -13,9 +10,11 @@ export type FetchRepertoireResult = {
   status?: number;
 };
 
-// Pull the authoritative repertoire from the server, compute per-chapter
-// counts (enabled / unseen / due) from the move tree + per-user training
-// cards, then atomically install it as the in-memory state. Used by:
+// Pull the authoritative repertoire from the server and install it as
+// the in-memory state. parseChapters handles both the JSON shaping and
+// the per-chapter count derivation (enabled / unseen / due) — the
+// server no longer persists those, they're a function of the tree and
+// the current user's SRS cards. Used by:
 //   - useStartup, as the bootstrap fetch.
 //   - the ws 'reload' handler, to recover from server-detected drift.
 //   - addMove / deleteLine / setCommentAt / postChapter, when a local or
@@ -50,39 +49,10 @@ export async function fetchRepertoire(): Promise<FetchRepertoireResult> {
       store.setRepertoireAuthor(data.user.username);
     }
 
-    const chapters = parseChapters(data.chapters);
-    computeChapterCounts(chapters);
-    await useTrainerStore.getState().setRepertoire(chapters);
+    await useTrainerStore.getState().setRepertoire(parseChapters(data.chapters));
     return { ok: true, status: res.status };
   } catch (err) {
     console.warn('fetchRepertoire: failed', err);
     return { ok: false };
-  }
-}
-
-// Walks each chapter and fills in enabledCount / unseenCount /
-// lastDueCount before the chapter is installed. The server no longer
-// persists these — they're a function of the tree, the chapter's
-// trainAs (via node.data.enabled), and the current user's SRS cards, so
-// they have to be rebuilt every time the tree is reloaded.
-function computeChapterCounts(chapters: Chapter[]): void {
-  const now = Date.now();
-  for (const chapter of chapters) {
-    let enabled = 0;
-    let unseen = 0;
-    let due = 0;
-    forEachNode(chapter.root, (node) => {
-      if (!node.data.enabled) return;
-      enabled++;
-      const card = userCard(node.data);
-      if (!card) {
-        unseen++;
-        return;
-      }
-      if (new Date(card.due).getTime() < now) due++;
-    });
-    chapter.enabledCount = enabled;
-    chapter.unseenCount = unseen;
-    chapter.lastDueCount = due;
   }
 }
