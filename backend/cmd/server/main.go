@@ -17,7 +17,7 @@ func main() {
 	log.Println("starting server...")
 
 	cfg := config.Load()
-	auth.Init(cfg.CookieSecure)
+	auth.Init(cfg.CookieSecure, cfg.HintCookieDomain)
 
 	db := store.Connect(cfg.PostgresURL)
 	wsServer := ws.NewServer(db, wsOriginPatterns(cfg.AllowedOrigins))

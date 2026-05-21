@@ -37,6 +37,10 @@ Go server backed by Postgres.
    Only `GOOGLE_CLIENT_ID` is required — the rest have dev defaults.
    Set `COOKIE_SECURE=true` in any environment behind TLS so the
    session cookie carries the `Secure` flag and the `__Host-` prefix.
+   Set `HINT_COOKIE_DOMAIN=<apex>` (e.g. `chessrepeat.com`) when the
+   SPA and API live on sibling subdomains, so the non-secret hint
+   cookie is visible to the SPA via `document.cookie`. Leave unset in
+   local dev where both processes share `localhost`.
 
 ## Run
 

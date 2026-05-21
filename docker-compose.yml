@@ -28,6 +28,10 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       LISTEN_ADDR: ":8080"
       COOKIE_SECURE: "true"
+      # Apex domain shared by SPA and API so the non-secret hint cookie
+      # is visible to the SPA across sibling subdomains (e.g. SPA at
+      # chessrepeat.com, API at api.chessrepeat.com).
+      HINT_COOKIE_DOMAIN: ${HINT_COOKIE_DOMAIN}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:

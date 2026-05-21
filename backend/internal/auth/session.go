@@ -29,13 +29,25 @@ const SessionHintCookieName = "chessrepeat_has_session"
 // HTTP development still works.
 var secureCookies = false
 
+// hintCookieDomain is the Domain attribute applied to the hint cookie
+// (only) so the SPA can read it from a sibling subdomain — e.g. the
+// API runs on api.example.com and sets Domain=example.com so the SPA
+// at example.com sees the cookie via document.cookie. Empty in dev,
+// where both processes share `localhost` and host-only is fine.
+// The session cookie is deliberately NOT given a Domain: __Host-
+// forbids it and we want the secret host-scoped anyway.
+var hintCookieDomain = ""
+
 // Init wires deployment-time cookie settings. Call once at startup
 // (before any handler runs) with secure=true in any environment that
 // terminates TLS — the Secure flag prevents the browser from ever
 // sending the cookie over plaintext, and the __Host- prefix makes
-// that guarantee browser-enforced.
-func Init(secure bool) {
+// that guarantee browser-enforced. hintDomain is the apex domain
+// shared by SPA and API (e.g. "example.com"); leave it empty when the
+// SPA and API run on the same host.
+func Init(secure bool, hintDomain string) {
 	secureCookies = secure
+	hintCookieDomain = hintDomain
 	if secure {
 		SessionCookieName = "__Host-chessrepeat_session"
 	}
@@ -76,6 +88,7 @@ func SetSessionCookies(w http.ResponseWriter, sess store.Session) {
 		Name:     SessionHintCookieName,
 		Value:    "1",
 		Path:     "/",
+		Domain:   hintCookieDomain,
 		HttpOnly: false,
 		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,
@@ -94,10 +107,14 @@ func ClearSessionCookies(w http.ResponseWriter) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
+	// Domain must match what SetSessionCookies used or the browser
+	// won't match this Set-Cookie to the stored one, and logout leaves
+	// a stale hint behind.
 	http.SetCookie(w, &http.Cookie{
 		Name:     SessionHintCookieName,
 		Value:    "",
 		Path:     "/",
+		Domain:   hintCookieDomain,
 		HttpOnly: false,
 		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,

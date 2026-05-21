@@ -20,6 +20,12 @@ type Config struct {
 	// the session cookie. Set COOKIE_SECURE=true in any environment
 	// behind TLS; leave unset for local HTTP development.
 	CookieSecure bool
+	// HintCookieDomain is the Domain attribute applied to the non-secret
+	// session-hint cookie so the SPA can read it across sibling
+	// subdomains (e.g. "chessrepeat.com" when the SPA lives at
+	// chessrepeat.com and the API at api.chessrepeat.com). Leave unset
+	// in local dev where SPA and API share the same host.
+	HintCookieDomain string
 }
 
 // Load reads .env (if present) and resolves every config value, applying
@@ -32,11 +38,12 @@ func Load() Config {
 	}
 
 	cfg := Config{
-		ListenAddr:     getEnv("LISTEN_ADDR", ":8080"),
-		AllowedOrigins: splitAndTrim(getEnv("ALLOWED_ORIGINS", "http://localhost:5173")),
-		PostgresURL:    getEnv("POSTGRES_URL", "postgres://localhost:5432/chessrepeat?sslmode=disable"),
-		GoogleClientID: os.Getenv("GOOGLE_CLIENT_ID"),
-		CookieSecure:   strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true"),
+		ListenAddr:       getEnv("LISTEN_ADDR", ":8080"),
+		AllowedOrigins:   splitAndTrim(getEnv("ALLOWED_ORIGINS", "http://localhost:5173")),
+		PostgresURL:      getEnv("POSTGRES_URL", "postgres://localhost:5432/chessrepeat?sslmode=disable"),
+		GoogleClientID:   os.Getenv("GOOGLE_CLIENT_ID"),
+		CookieSecure:     strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true"),
+		HintCookieDomain: strings.TrimSpace(os.Getenv("HINT_COOKIE_DOMAIN")),
 	}
 
 	if cfg.GoogleClientID == "" {
