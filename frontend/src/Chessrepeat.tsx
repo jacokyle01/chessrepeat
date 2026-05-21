@@ -204,15 +204,6 @@ export const Chessrepeat = () => {
 
   const closePromo = () => setPendingPromo(null);
 
-  //TODO move to state.ts
-  const deleteChapter = (index) => {
-    setRepertoire([...repertoire.slice(0, index), ...repertoire.slice(index + 1)]);
-  };
-
-  const renameChapter = (index, name) => {
-    repertoire[index].name = name;
-  };
-
   // TODO should be in different component?
   const chapter = repertoire[repertoireIndex];
   const isEditing = trainingMethod == 'edit';
