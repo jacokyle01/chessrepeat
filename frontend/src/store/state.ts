@@ -399,8 +399,8 @@ export const useTrainerStore = create<TrainerState>()(
         const ids = await readChapterIds();
 
         if (!ids.length) {
-          // Seed example repertoire for new playground users
-          const exampleChapter = chapterFromPgn(EXAMPLE_PGN, 'white', 'Example Repertoire');
+          // Seed example chapter for new playground users
+          const exampleChapter = chapterFromPgn(EXAMPLE_PGN, 'white', 'Example Chapter');
           await addNewChapterLocally(exampleChapter);
           return;
         }

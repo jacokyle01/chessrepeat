@@ -70,7 +70,7 @@ const Controls = () => {
               ? 'bg-white text-brand-blue-light shadow-md ring-1 ring-brand-blue-light'
               : 'text-slate-500 hover:text-brand-blue-light hover:bg-slate-200'
           }
-          ${!method && name === 'Example Repertoire' ? 'animate-ring-pulse' : ''}
+          ${!method && name === 'Example Chapter' ? 'animate-ring-pulse' : ''}
         `}
         >
           <GraduationCap size={18} />
