@@ -482,14 +482,17 @@ func mergeCardsIntoMoves(
 // (root is always "").
 func flattenTree(root domain.ChapterTreeNode) map[string]domain.TrainingData {
 	moves := make(map[string]domain.TrainingData)
-	var walk func(node domain.ChapterTreeNode, path string)
-	walk = func(node domain.ChapterTreeNode, path string) {
+	var walk func(node *domain.ChapterTreeNode, path string)
+	walk = func(node *domain.ChapterTreeNode, path string) {
+		if node == nil {
+			return
+		}
 		moves[path] = node.Data
 		for _, child := range node.Children {
 			walk(child, path+child.Data.ID)
 		}
 	}
-	walk(root, "")
+	walk(&root, "")
 	return moves
 }
 
@@ -498,6 +501,12 @@ func flattenTree(root domain.ChapterTreeNode) map[string]domain.TrainingData {
 // always created before children. Each ID is a fixed-length 2-char
 // string (from scalachessCharPair), so the parent of path P is
 // P[:len(P)-2].
+//
+// Children are stored as []*ChapterTreeNode (see the type's doc): each
+// node is heap-allocated once and nodeMap holds that stable pointer.
+// An earlier version stored &parent.Children[i] into nodeMap, which
+// silently dropped subtrees when a parent's slice reallocated and
+// orphaned every previously-taken element pointer.
 func buildTree(moves map[string]domain.TrainingData) domain.ChapterTreeNode {
 	paths := make([]string, 0, len(moves))
 	for p := range moves {
@@ -509,25 +518,29 @@ func buildTree(moves map[string]domain.TrainingData) domain.ChapterTreeNode {
 
 	nodeMap := make(map[string]*domain.ChapterTreeNode, len(moves))
 
-	rootData := moves[""]
-	root := domain.ChapterTreeNode{Data: rootData, Children: []domain.ChapterTreeNode{}}
-	nodeMap[""] = &root
+	root := &domain.ChapterTreeNode{
+		Data:     moves[""],
+		Children: []*domain.ChapterTreeNode{},
+	}
+	nodeMap[""] = root
 
 	for _, p := range paths {
 		if p == "" {
 			continue
 		}
-		data := moves[p]
-		node := domain.ChapterTreeNode{Data: data, Children: []domain.ChapterTreeNode{}}
+		node := &domain.ChapterTreeNode{
+			Data:     moves[p],
+			Children: []*domain.ChapterTreeNode{},
+		}
 
 		parentPath := p[:len(p)-2]
 		parent, ok := nodeMap[parentPath]
 		if !ok {
-			parent = &root
+			parent = root
 		}
 		parent.Children = append(parent.Children, node)
-		nodeMap[p] = &parent.Children[len(parent.Children)-1]
+		nodeMap[p] = node
 	}
 
-	return root
+	return *root
 }

@@ -1,10 +1,13 @@
 package domain
 
 // ChapterTreeNode is used when rebuilding a chapter's move tree from the
-// flattened rows persisted in the moves table.
+// flattened rows persisted in the moves table. Children are pointers so
+// the tree builder can hold a stable *ChapterTreeNode reference in a
+// path->node map while parents' children slices grow — taking &slice[i]
+// is unsafe across appends that reallocate the backing array.
 type ChapterTreeNode struct {
-	Data     TrainingData      `json:"data"`
-	Children []ChapterTreeNode `json:"children"`
+	Data     TrainingData       `json:"data"`
+	Children []*ChapterTreeNode `json:"children"`
 }
 
 // ChapterTreeResponse is the JSON sent to clients when reading a chapter.
