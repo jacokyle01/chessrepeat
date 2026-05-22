@@ -267,7 +267,7 @@
 
   .app-main {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: 1fr auto 1fr;
     grid-template-areas:
       'board     pgn'
       'usertip   repertoire'
@@ -325,7 +325,7 @@
   /* TODO define shrinking strategy w/ respect to chessboard */
   .app-main {
     grid-template-columns: minmax(200px, 1fr) 1.15fr 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr 1fr;
     /* pgn lives only in row 1, so it caps at the board's height; the
        column-3 cell in row 2 is intentionally empty (`.`) and shows the
        page background through. */
