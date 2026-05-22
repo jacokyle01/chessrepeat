@@ -46,6 +46,7 @@ import {
 import { useAuthStore } from './store/auth';
 import {
   calcTarget,
+  castlingKingTwoSquare,
   chessgroundToSan,
   fenToDests,
   isPromotionMove,
@@ -255,6 +256,14 @@ export const Chessrepeat = () => {
     // TODO fix. this is supposed to be just the move we're looking to see, e.x. for learning or correcting on fail
     if ((trainingMethod == 'learn' || userTip == 'fail') && isAtLast) {
       const uci = targetDest();
+      // calcTarget returns castling as king→rook (e1h1, e1a1). Most
+      // chess UIs also accept king→two-squares (e1g1, e1c1), so when
+      // the target is a castle, include both as valid drop squares.
+      const fen = selectedNode?.data.fen || initial;
+      const kingTwo = castlingKingTwoSquare(fen, uci[0], uci[1]);
+      if (kingTwo) {
+        return new Map([[uci[0], [uci[1], kingTwo]]]);
+      }
       return toDestMap(uci[0], uci[1]);
     }
     return fenToDests(selectedNode?.data.fen || initial);

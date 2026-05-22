@@ -12,13 +12,36 @@ export const fenToDests = (fen: string): Dests => {
   return chessgroundDests(Chess.fromSetup(parseFen(fen).unwrap()).unwrap());
 };
 
-// TODO allow 2-move AND rook castling.
-// * current only allowing rook castling
+// calcTarget returns the chessground (from, to) for the trainable move.
+// chessops encodes castling as king→rook (e1h1, e1a1); callers that
+// expose this as a clickable destination should also accept the king
+// king→two-squares form via castlingKingTwoSquare below.
 export const calcTarget = (fen: string, san: string): Key[] => {
   const pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap();
   const move = parseSan(pos, san);
   return chessgroundMove(move!);
 };
+
+// castlingKingTwoSquare returns the "king moves two squares" destination
+// (e.g. g1 for e1→h1, c1 for e1→a1) when (from, to) describes a castle
+// on the given position, or null otherwise. Lets the dests map accept
+// both the chessops king→rook form and the king→two-squares form most
+// chess UIs default to. Works for chess960 too since we check the piece
+// on `to` is a same-color rook rather than the corner square.
+
+//TODO hack
+export function castlingKingTwoSquare(fen: string, from: Key, to: Key): Key | null {
+  const setup = parseFen(fen);
+  if (!setup.isOk) return null;
+  const pos = Chess.fromSetup(setup.value).unwrap();
+  const fromPiece = pos.board.get(parseSquare(from));
+  if (!fromPiece || fromPiece.role !== 'king') return null;
+  const toPiece = pos.board.get(parseSquare(to));
+  if (!toPiece || toPiece.role !== 'rook' || toPiece.color !== fromPiece.color) return null;
+  const dir = to.charCodeAt(0) > from.charCodeAt(0) ? 2 : -2;
+  const kingFile = String.fromCharCode(from.charCodeAt(0) + dir);
+  return (kingFile + from[1]) as Key;
+}
 
 export const toDestMap = (from: Key, to: Key): Dests => {
   const map = new Map();
