@@ -94,7 +94,7 @@ var ErrPathNotFound = errors.New("store: path not found")
 // Enforced server-side on every move/chapter insert; the offending
 // client is told to reload so it discards the rejected local mutation.
 // Single tunable knob — raise/lower here.
-const MaxMovesPerChapter = 5000
+const MaxMovesPerChapter = 12000
 
 // ErrChapterMoveLimit is returned when an insert would push a chapter
 // past MaxMovesPerChapter. Surfaced to the originating client as a
