@@ -1,6 +1,7 @@
 import { parseChapters } from '../util/chapters';
 import { useTrainerStore } from '../store/state';
 import { useAuthStore } from '../store/auth';
+import { Chapter } from '../types/training';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -49,7 +50,19 @@ export async function fetchRepertoire(): Promise<FetchRepertoireResult> {
       store.setRepertoireAuthor(data.user.username);
     }
 
-    await useTrainerStore.getState().setRepertoire(parseChapters(data.chapters));
+    let parsedChapters: Chapter[] = parseChapters(data.chapters);
+
+    //TODO createdAt field
+    const sortChapters = (ch1: Chapter, ch2: Chapter): number => {
+      if (ch1.trainAs != ch2.trainAs) {
+        return ch1.trainAs == 'white' ? -1 : 1;
+      }
+      return ch1.uuid.localeCompare(ch2.uuid);
+    };
+
+    parsedChapters.sort(sortChapters);
+
+    await useTrainerStore.getState().setRepertoire(parsedChapters);
     return { ok: true, status: res.status };
   } catch (err) {
     console.warn('fetchRepertoire: failed', err);

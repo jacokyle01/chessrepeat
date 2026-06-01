@@ -845,6 +845,7 @@ export const useTrainerStore = create<TrainerState>()(
         const { repertoire } = get();
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
+          //TODO more sophisticated chapter adding, user1 and user2 may see different orderings
           case 'white':
             newRepertoire = [chapter, ...repertoire];
             break;
