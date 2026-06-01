@@ -22,7 +22,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
   const showSignIn = !showLogin;
 
   return (
-    <div id="header" className="flex items-end pb-1">
+    <div id="header">
       <div className="logo-wrap">
         <span>chess</span>
         <span className="accent">repeat</span>
@@ -71,9 +71,9 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
         </button>
       )}
 
-      <div className="ml-auto flex items-end gap-3">
+      <div className="header-actions">
         {peers.length > 0 && (
-          <div className="flex items-end -space-x-1.5">
+          <div className="header-peers">
             {peers.map((u) => {
               // train collaborators get a light-blue ring; everyone else
               // (owner, edit) gets dark blue. Owner appears as a peer
@@ -87,7 +87,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
                   alt={u.username}
                   title={`${u.username} (${u.permission})`}
                   referrerPolicy="no-referrer"
-                  className={`h-6 w-6 rounded-full ring-2 ${ring}`}
+                  className={`header-peer ring-2 ${ring}`}
                 />
               );
             })}
@@ -96,13 +96,13 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
 
         {authUser ? (
           <>
-            <span className="flex items-end gap-2">
+            <span className="header-user">
               {authUser.picture ? (
                 <img
                   src={authUser.picture}
                   alt={authUser.username ?? 'profile'}
                   referrerPolicy="no-referrer"
-                  className="h-7 w-7 rounded-md"
+                  className="header-avatar"
                 />
               ) : (
                 <User className="h-5 w-5" />
