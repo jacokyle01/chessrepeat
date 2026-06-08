@@ -6,7 +6,12 @@ CREATE TABLE users (
   token_id TEXT PRIMARY KEY,
   username TEXT UNIQUE,
   email    TEXT NOT NULL,
-  picture  TEXT NOT NULL DEFAULT ''
+  picture  TEXT NOT NULL DEFAULT '',
+  -- Per-user quota multiplier. The default move-per-chapter and
+  -- chapters-per-user caps are multiplied by this to get the user's
+  -- effective limits (1 = stock limits). Bump it to grant a user a
+  -- larger repertoire without changing the global defaults.
+  limit_multiplier INT NOT NULL DEFAULT 1
 );
 
 CREATE TABLE sessions (

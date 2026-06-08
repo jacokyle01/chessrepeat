@@ -12,6 +12,11 @@ type User struct {
 	Username string `json:"username,omitempty" bson:"username,omitempty"`
 	Email    string `json:"-"                  bson:"email"`
 	Picture  string `json:"picture"            bson:"picture"`
+	// LimitMultiplier scales this user's quota: their effective
+	// move-per-chapter and chapters-per-user caps are the global
+	// defaults times this value (1 = stock limits). Internal only —
+	// never sent on the wire.
+	LimitMultiplier int `json:"-" bson:"limit_multiplier"`
 }
 
 // Permission values stored in the collaborators table and surfaced on

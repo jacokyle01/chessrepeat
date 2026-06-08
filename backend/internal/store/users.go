@@ -13,6 +13,11 @@ import (
 // user has picked one — that's allowed by the schema (UNIQUE permits
 // multiple NULLs only if you use NULLS NOT DISTINCT off; we store ""
 // instead, so callers must ensure at most one user has username = "").
+//
+// limit_multiplier is intentionally left out of both the insert column
+// list and the conflict update: new rows take the schema default (1) and
+// existing rows keep whatever quota an admin has granted, so a routine
+// login can't reset it.
 func (db *DB) UpsertUser(ctx context.Context, user domain.User) error {
 	_, err := db.pool.Exec(ctx, `
 		INSERT INTO users (token_id, username, email, picture)
@@ -37,9 +42,9 @@ func (db *DB) fetchUserBy(ctx context.Context, where string, arg string) (*domai
 	var u domain.User
 	var username *string
 	err := db.pool.QueryRow(ctx,
-		`SELECT token_id, username, email, picture FROM users WHERE `+where,
+		`SELECT token_id, username, email, picture, limit_multiplier FROM users WHERE `+where,
 		arg,
-	).Scan(&u.TokenID, &username, &u.Email, &u.Picture)
+	).Scan(&u.TokenID, &username, &u.Email, &u.Picture, &u.LimitMultiplier)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

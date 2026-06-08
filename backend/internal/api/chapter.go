@@ -85,6 +85,10 @@ func PostChapter(db *store.DB, notifier RepertoireNotifier) http.HandlerFunc {
 				http.Error(w, "chapter exceeds move limit", http.StatusRequestEntityTooLarge)
 				return
 			}
+			if errors.Is(err, store.ErrChapterLimit) {
+				http.Error(w, "chapter limit reached", http.StatusConflict)
+				return
+			}
 			log.Println("post chapter: create failed:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

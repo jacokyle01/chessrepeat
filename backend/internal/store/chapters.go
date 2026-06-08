@@ -15,16 +15,32 @@ import (
 // move tree. Wrapped in a transaction so a partial failure can't leave a
 // chapter with no moves.
 func (db *DB) CreateChapter(ctx context.Context, event domain.ChapterEvent) error {
+	// Resolve the owner's quota multiplier so both caps below scale with
+	// it. A missing user row yields the stock multiplier (1).
+	mult, err := db.ownerLimitMultiplier(ctx, event.OwnerID)
+	if err != nil {
+		return err
+	}
+
+	// Enforce the per-user chapter cap (scaled by the multiplier) before
+	// doing any move accounting.
+	chapterCount, err := db.chapterCountByOwner(ctx, event.OwnerID)
+	if err != nil {
+		return err
+	}
+	if chapterCount >= MaxChaptersPerUser*mult {
+		return ErrChapterLimit
+	}
+
 	// Enforce the per-chapter move cap before opening a transaction.
 	// flattenTree includes the root placeholder at path ''; that's not
 	// a move, so it doesn't count toward the cap.
 	moves := flattenTree(event.Root)
 	moveCount := len(moves)
-	println(moveCount)
 	if _, hasRoot := moves[""]; hasRoot {
 		moveCount--
 	}
-	if moveCount > MaxMovesPerChapter {
+	if moveCount > MaxMovesPerChapter*mult {
 		return ErrChapterMoveLimit
 	}
 
@@ -94,12 +110,76 @@ var ErrPathNotFound = errors.New("store: path not found")
 // Enforced server-side on every move/chapter insert; the offending
 // client is told to reload so it discards the rejected local mutation.
 // Single tunable knob — raise/lower here.
-const MaxMovesPerChapter = 12000
+const MaxMovesPerChapter = 5000
 
 // ErrChapterMoveLimit is returned when an insert would push a chapter
 // past MaxMovesPerChapter. Surfaced to the originating client as a
 // reload, same as ErrPathNotFound.
 var ErrChapterMoveLimit = errors.New("store: chapter move limit exceeded")
+
+// MaxChaptersPerUser caps how many chapters a single user may own. Like
+// MaxMovesPerChapter this is the stock value; a user's effective cap is
+// this times their limit_multiplier. Enforced server-side in
+// CreateChapter (the only path that creates chapters).
+const MaxChaptersPerUser = 20
+
+// ErrChapterLimit is returned when creating a chapter would push a user
+// past their effective chapters-per-user cap.
+var ErrChapterLimit = errors.New("store: chapter count limit exceeded")
+
+// ownerLimitMultiplier returns a user's quota multiplier, clamped to a
+// floor of 1 so a stray 0/NULL never collapses the caps to zero. A
+// missing user row is treated as the stock multiplier rather than an
+// error: the limit checks are a soft guard, not an auth gate.
+func (db *DB) ownerLimitMultiplier(ctx context.Context, ownerID string) (int, error) {
+	var mult int
+	err := db.pool.QueryRow(ctx,
+		`SELECT limit_multiplier FROM users WHERE token_id = $1`,
+		ownerID).Scan(&mult)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 1, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	if mult < 1 {
+		mult = 1
+	}
+	return mult, nil
+}
+
+// chapterOwnerMultiplier returns the quota multiplier of the user who
+// owns the given chapter, resolved via the chapter's owner_id. Used by
+// move inserts, which carry a chapter id but not an owner id. A chapter
+// whose owner row is missing falls back to the stock multiplier (1).
+func (db *DB) chapterOwnerMultiplier(ctx context.Context, chapterID string) (int, error) {
+	var mult int
+	err := db.pool.QueryRow(ctx, `
+		SELECT u.limit_multiplier
+		FROM chapters c
+		JOIN users u ON u.token_id = c.owner_id
+		WHERE c.uuid = $1
+	`, chapterID).Scan(&mult)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 1, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	if mult < 1 {
+		mult = 1
+	}
+	return mult, nil
+}
+
+// chapterCountByOwner returns how many chapters a user currently owns.
+func (db *DB) chapterCountByOwner(ctx context.Context, ownerID string) (int, error) {
+	var n int
+	err := db.pool.QueryRow(ctx,
+		`SELECT count(*) FROM chapters WHERE owner_id = $1`,
+		ownerID).Scan(&n)
+	return n, err
+}
 
 // MaxCommentChars caps a single move's comment. Enforced server-side by
 // truncating (in the ws dispatch layer, which then broadcasts the
@@ -149,11 +229,15 @@ func (db *DB) AddMoveToChapter(ctx context.Context, event domain.MoveEvent) erro
 		return err
 	}
 	if !exists {
+		mult, err := db.chapterOwnerMultiplier(ctx, event.ChapterID)
+		if err != nil {
+			return err
+		}
 		n, err := db.chapterMoveCount(ctx, event.ChapterID)
 		if err != nil {
 			return err
 		}
-		if n >= MaxMovesPerChapter {
+		if n >= MaxMovesPerChapter*mult {
 			return ErrChapterMoveLimit
 		}
 	}
