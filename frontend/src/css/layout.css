@@ -58,9 +58,9 @@
 }
 
 #header .header-peer {
-  height: 1.25rem;
-  width: 1.25rem;
-  border-radius: 9999px;
+  height: 1.5rem;
+  width: 1.5rem;
+  border-radius: 0.375rem;
 }
 
 /* Signed-in user: avatar + name. */
@@ -71,8 +71,8 @@
 }
 
 #header .header-avatar {
-  height: 1.25rem;
-  width: 1.25rem;
+  height: 1.5rem;
+  width: 1.5rem;
   border-radius: 0.375rem;
 }
 
