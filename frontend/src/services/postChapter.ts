@@ -1,6 +1,7 @@
 import type { Chapter } from '../types/training';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore } from '../store/state';
+import { fetchRepertoire } from './repertoire';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -32,12 +33,19 @@ export async function postChapter(chapter: Chapter): Promise<void> {
         root: chapter.root,
       }),
     });
-    if (!res.ok) {
+    if (res.status == 413) {
       // 413 => over the per-chapter move cap; other codes => transient.
       // Either way the local copy is now divergent: resync from server.
-      console.error('postChapter: http', res.status);
-      const { fetchRepertoire } = await import('./repertoire');
+      alert('Chapter exceeds move cap. Email jacokyle01@gmail.com to request extra capacity');
+      // fetch actual state
       await fetchRepertoire();
+    } else if (res.status == 409) {
+      // 409 => chapter exceeds per-repertoire chapter cap
+      alert('Repertoire exceeds chapter limit. Email jacokyle01@gmail.com to request extra capacity');
+      // fetch actual state
+      await fetchRepertoire();
+    } else {
+      console.error(res.text, 'unexpected error occured...');
     }
   } catch (err) {
     console.error('postChapter: failed', err);

@@ -30,41 +30,47 @@ export function downloadTextFile(content: string, filename: string, mimeType = '
     -> PGN can consist of one or more chapters 
     -> PGN can be "annotated", which means it has training metadata attached that must be parsed
   */
-export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Chapter => {
-  // const root = rootFromPgn(rawPgn, asColor);
-
-  // const chapter: Chapter = {
-  //   id: crypto.randomUUID(),
-  //   root: root,
-  //   name: name,
-  //   trainAs: asColor,
-  // };
-  // return chapter;
-
+// Returns null when the PGN can't be parsed (malformed syntax, no game,
+// or an illegal/unparseable move). The user is alerted; callers must
+// handle the null rather than assuming a chapter came back.
+export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Chapter | null => {
   const context = trainingContext(asColor || 'white');
-
-  let moves = parsePgn(rawPgn)[0].moves;
   let enabledCount = 0;
-  moves = transform(moves, context, (context, data) => {
-    const move = parseSan(context.pos, data.san);
-    // assume the move is playable
-    context.pos.play(move!);
-    context.ply++;
-    context.trainable = !context.trainable; // moves by opposite color are not trainable
-    // idCount++;/
+  let moves;
+  try {
+    // parsePgn returns one game per `[Event]`; we only import the first.
+    const game = parsePgn(rawPgn)[0];
+    if (!game) {
+      throw new Error('no game found in PGN');
+    }
+    moves = transform(game.moves, context, (context, data) => {
+      const move = parseSan(context.pos, data.san);
+      // parseSan returns undefined for a move that's illegal in the
+      // current position (or unparseable SAN) — bail on the whole import.
+      if (!move) {
+        throw new Error(`illegal or unparseable move: ${data.san}`);
+      }
+      context.pos.play(move);
+      context.ply++;
+      context.trainable = !context.trainable; // moves by opposite color are not trainable
 
-    // add training types to each node
-    if (!context.trainable) enabledCount++;
-    return {
-      ...data,
-      id: scalachessCharPair(move),
-      fen: makeFen(context.pos.toSetup()),
-      comment: data.comments?.join('|') || '', //TODO should handle multi comments ..
-      ply: context.ply,
-      training: {},
-      enabled: !context.trainable,
-    };
-  });
+      // add training types to each node
+      if (!context.trainable) enabledCount++;
+      return {
+        ...data,
+        id: scalachessCharPair(move),
+        fen: makeFen(context.pos.toSetup()),
+        comment: data.comments?.join('|') || '', //TODO should handle multi comments ..
+        ply: context.ply,
+        training: {},
+        enabled: !context.trainable,
+      };
+    });
+  } catch (e) {
+    console.error('pgn parse error', e);
+    alert('Error: Invalid PGN');
+    return null;
+  }
 
   return {
     name,
@@ -87,59 +93,6 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
     lastDueCount: 0, //TODO
   };
 };
-
-//TODO should be combined with function above
-// can return more values
-export const annotatePgn = (rawPgn: string, asColor: Color): Node<TrainingData> => {
-  const context = trainingContext(asColor || 'white');
-
-  return transform(parsePgn(rawPgn)[0].moves, context, (context, data) => {
-    const move = parseSan(context.pos, data.san);
-    // assume the move is playable
-    context.pos.play(move!);
-    context.ply++;
-    context.trainable = !context.trainable; // moves by opposite color are not trainable
-    // idCount++;/
-
-    // add training types to each node
-    return {
-      ...data,
-      id: scalachessCharPair(move),
-      fen: makeFen(context.pos.toSetup()),
-      comment: data.comments?.join('|') || '', //TODO should handle multi comments ..
-      ply: context.ply,
-      training: {},
-      enabled: !context.trainable,
-    };
-  });
-};
-
-// export const rootFromPgn = (
-//   rawPgn: string,
-//   asColor: Color,
-// ): {
-//   root: TrainableNode;
-// } => {
-//   // don't allow multiple games in one PGN
-//   const parsedRoot: Node<PgnNodeData> = parsePgn(rawPgn).at(0).moves;
-//   const { moves } = annotateMoves(parsedRoot, asColor);
-//   // put initial position first
-//   //TODO do something about mainline, etc..
-//   const root: TrainableNode = {
-//     data: {
-//       comment: '',
-//       fen: INITIAL_BOARD_FEN,
-//       id: '',
-//       ply: 0,
-//       san: '',
-//       //TODO shortcut for disabled
-//       enabled: false,
-//       training: {},
-//     },
-//     children: moves.children,
-//   };
-//   return root;
-// };
 
 export function repertoireAsJson(chapters: Chapter[]): string {
   return JSON.stringify(

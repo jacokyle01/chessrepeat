@@ -46,6 +46,9 @@ const AddToRepertoireModal: React.FC = () => {
     const color = selectedColor || 'white';
 
     const chapter = chapterFromPgn(pgn, color, name);
+    // chapterFromPgn alerts and returns null on a parse error; keep the
+    // modal open so the user can fix the PGN rather than silently closing.
+    if (!chapter) return;
     addNewChapter(chapter);
     setShowModal(false);
   };
