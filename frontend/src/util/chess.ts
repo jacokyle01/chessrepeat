@@ -17,6 +17,7 @@ export const fenToDests = (fen: string): Dests => {
 // expose this as a clickable destination should also accept the king
 // king→two-squares form via castlingKingTwoSquare below.
 export const calcTarget = (fen: string, san: string): Key[] => {
+  console.log("fen", fen, "san", san)
   const pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap();
   const move = parseSan(pos, san);
   return chessgroundMove(move!);

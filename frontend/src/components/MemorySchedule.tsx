@@ -17,12 +17,12 @@ const Schedule: React.FC = () => {
         </div>
 
         <a
-          href="https://github.com/jacokyle01/chessrepeat#-insights"
+          href="https://github.com/jacokyle01/chessrepeat#spaced-repetition-in-chessrepeat"
           target="_blank"
           rel="noopener noreferrer"
           title="Learn how the memory schedule works"
           aria-label="Learn how the memory schedule works"
-          className="ml-auto text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-gray-600 hover:text-gray-800 transition-colors mb-auto my-1"
         >
           <CircleHelp className="w-4 h-4" />
         </a>
