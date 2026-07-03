@@ -45,5 +45,6 @@ export function reviewCard(card: Card, correct: boolean, now = new Date()): Card
   const f = getScheduler();
   const scheduling = f.repeat(card, now);
   const rating = correct ? Rating.Good : Rating.Again;
+  console.log(scheduling)
   return scheduling[rating].card;
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CircleXIcon } from 'lucide-react';
+import { CircleHelp, CircleXIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import Divider from '../common/Divider';
 import ToggleGroup from '../common/ToggleGroup';
@@ -36,7 +36,19 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
       </button>
 
       <div className="settings-header">
-        <h2>Training Settings</h2>
+        <h2>
+          Training Settings
+          <a
+            href="https://github.com/jacokyle01/chessrepeat#-spaced-repetition-explained"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Learn how training settings work"
+            aria-label="Learn how training settings work"
+            className="settings-help-link"
+          >
+            <CircleHelp style={{ width: '1.1rem', height: '1.1rem' }} />
+          </a>
+        </h2>
         <p>Configure spaced repetition and display preferences.</p>
       </div>
       <Divider label="Next move" />
