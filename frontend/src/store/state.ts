@@ -84,13 +84,13 @@ interface TrainerState {
   repertoireIndex: number;
   setRepertoireIndex: (i: number) => void;
 
-  trainableContext: TrainableContext | undefined;
+  trainableContext: TrainableContext | null;
   setTrainableContext: (t: TrainableContext) => void;
 
   selectedPath: string;
   setSelectedPath: (p: string) => void;
 
-  selectedNode: ChildNode<TrainingData>;
+  selectedNode: ChildNode<TrainingData> | null;
   setSelectedNode: (n: any) => void;
 
   showingHint: boolean;
@@ -536,6 +536,7 @@ export const useTrainerStore = create<TrainerState>()(
           userTip: 'empty',
           cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
           selectedNode: null,
+          trainableContext: null
         });
       },
 
@@ -851,7 +852,8 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       addNewChapterLocally: async (chapter: Chapter) => {
-        const { repertoire } = get();
+        const { repertoire, clearChapterContext } = get();
+        clearChapterContext();
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
           //TODO more sophisticated chapter adding, user1 and user2 may see different orderings

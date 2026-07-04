@@ -222,7 +222,10 @@ export const Chessrepeat = () => {
   /*
   The current move we're training
   */
+
+  //TODO Fix logic here..  
   const targetDest = (): Key[] => {
+    // console.log("selectedNode fen", selectedNode?.data.fen)
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
     const uci = calcTarget(selectedNode?.data.fen || initial, targetNode.data.san!);
     return uci;
