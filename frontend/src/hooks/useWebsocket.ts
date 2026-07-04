@@ -109,8 +109,6 @@ export function useWebsocket() {
             addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
             break;
           case 'reload':
-            // Server rejected one of our mutations because it targeted a
-            // path it doesn't have — our tree drifted. Resync over HTTP.
             void fetchRepertoire();
             break;
           case 'node_deleted':

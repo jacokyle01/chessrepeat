@@ -237,13 +237,15 @@
 
 /* scale training-controls buttons with the board width via container queries.
    id selector (#training-controls) outranks Tailwind utility classes. */
-#training-controls button {
+#training-controls button,
+#comment-popout-btn {
   font-size: clamp(0.7rem, 2.75cqi, 1.125rem);
   padding: clamp(0.25rem, 1.25cqi, 0.5rem) clamp(0.5rem, 2.75cqi, 1rem);
   gap: clamp(0.25rem, 1.25cqi, 0.5rem);
 }
 
-#training-controls button svg {
+#training-controls button svg,
+#comment-popout-btn svg {
   width: clamp(14px, 4.25cqi, 22px);
   height: clamp(14px, 4.25cqi, 22px);
 }

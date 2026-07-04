@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CircleXIcon, MessageSquareTextIcon } from 'lucide-react';
+import { CircleXIcon, MessageSquareShare, MessageSquareTextIcon } from 'lucide-react';
 import { useTrainerStore, MAX_COMMENT_CHARS } from '../store/state';
 
 /**
@@ -48,16 +48,18 @@ const MobileCommentPopout: React.FC = () => {
   const isDirty = draft !== comment;
 
   return (
-    <div className="md:hidden inline-flex rounded-b-xl bg-white p-1">
+    <div className="md:hidden inline-flex rounded-b-xl bg-white shadow-md p-1">
       <button
+        id="comment-popout-btn"
         type="button"
         onClick={openEditor}
         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+          transition-all duration-200
+          bg-white text-amber-600 shadow-md ring-1 ring-amber-500"
         aria-label="View move comment"
         title="View move comment"
       >
-        <MessageSquareTextIcon size={18} />
+        <MessageSquareShare size={18} />
         Comment
       </button>
 

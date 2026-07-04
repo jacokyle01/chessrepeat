@@ -44,8 +44,8 @@ export async function postChapter(chapter: Chapter): Promise<void> {
       alert('Repertoire exceeds chapter limit. Email jacokyle01@gmail.com to request extra capacity');
       // fetch actual state
       await fetchRepertoire();
-    } else {
-      console.error(res.text, 'unexpected error occured...');
+    } else if (!res.ok) {
+      console.error(res.text(), 'unexpected error occured...');
     }
   } catch (err) {
     console.error('postChapter: failed', err);

@@ -1,6 +1,6 @@
 import React from 'react';
 import InsightChart from './InsightChart';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, CircleHelp } from 'lucide-react';
 
 const Schedule: React.FC = () => {
   return (
@@ -15,6 +15,17 @@ const Schedule: React.FC = () => {
             Next 20 weeks
           </span>
         </div>
+
+        <a
+          href="https://github.com/jacokyle01/chessrepeat#spaced-repetition-in-chessrepeat"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Learn how the memory schedule works"
+          aria-label="Learn how the memory schedule works"
+          className="text-gray-600 hover:text-gray-800 transition-colors mb-auto my-1"
+        >
+          <CircleHelp className="w-4 h-4" />
+        </a>
       </div>
 
       <div id="chart-wrap" className="pl-0 pr-2 w-full">

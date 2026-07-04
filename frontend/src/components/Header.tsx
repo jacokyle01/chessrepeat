@@ -1,5 +1,5 @@
 import { SiDiscord, SiGithub } from 'react-icons/si';
-import { Bug, Globe, LogIn, LogOut, User } from 'lucide-react';
+import { BookOpen, Bug, Globe, LogIn, LogOut, User } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore, type Peer } from '../store/state';
 
@@ -48,6 +48,17 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
       >
         <span>view github</span>
         <SiGithub />
+      </a>
+
+      <a
+        href="https://github.com/jacokyle01/chessrepeat#readme"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Read the docs"
+        className="header-link"
+      >
+        <span>docs</span>
+        <BookOpen />
       </a>
 
       <a

@@ -3,16 +3,16 @@ import { CircleXIcon, TrashIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-rea
 import { useTrainerStore } from '../../store/state';
 
 interface EditChapterModalProps {
-  chapterIndex: number;
+  chapterId: string;
   onClose: () => void;
 }
 
-const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterIndex, onClose }) => {
+const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose }) => {
   const repertoire = useTrainerStore((s) => s.repertoire);
   const renameChapter = useTrainerStore((s) => s.renameChapter);
   const deleteChapterAt = useTrainerStore((s) => s.deleteChapterAt);
 
-  const chapter = repertoire[chapterIndex];
+  const chapter = repertoire.find((c) => c.uuid === chapterId);
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [draftName, setDraftName] = useState(chapter?.name || '');
@@ -46,7 +46,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterIndex, onClo
 
     setRenameError(null);
     try {
-      await renameChapter(chapterIndex, next);
+      await renameChapter(chapterId, next);
       setIsRenaming(false);
     } catch (err: any) {
       setRenameError(err?.message ?? 'Failed to rename chapter.');
@@ -59,7 +59,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterIndex, onClo
   };
 
   const handleDelete = async () => {
-    await deleteChapterAt(chapterIndex);
+    await deleteChapterAt(chapterId);
     onClose();
   };
 

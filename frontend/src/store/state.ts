@@ -54,10 +54,15 @@ function currentUserKey(): string | null {
   return auth.user?.username ?? (!auth.isAuthenticated() ? PLAYGROUND_KEY : null);
 }
 
-// function persistChapter(chapter: Chapter) {
-//   if 
-// }
+// Resolve the currently selected chapter from a repertoire + selection id.
+// Returns undefined when nothing is selected or the id is stale.
+function selectedChapterOf(repertoire: Chapter[], id: string | null): Chapter | undefined {
+  return id == null ? undefined : repertoire.find((c) => c.uuid === id);
+}
 
+// function persistChapter(chapter: Chapter) {
+//   if
+// }
 
 import { userCard } from '../util/userCard';
 export { userCard };
@@ -68,9 +73,8 @@ export { userCard };
 // before round-tripping.
 export const MAX_COMMENT_CHARS = 1000;
 
-const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter of a chessrepeat repertoire. You can add your own chapter by clicking "Add to Repertoire" and selecting a PGN (game file) to import. Then, you can train your own openings with spaced repetition! Click "Learn" to see positions for the first time, then click "Recall" to train them after increasingly long intervals of time.
-Spaced repetition can help you memorize new openings more efficiently and effectively than other techniques.
-Enjoy! } 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# *`;
+const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter. To train your own openings, click "add" and choose a PGN (opening file) to train. chessrepeat uses spaced repetition to schedule your reviews after you learn a move. Enjoy!} 
+2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# *`;
 
 interface TrainerState {
   /* UI Flags */
@@ -83,16 +87,18 @@ interface TrainerState {
   repertoire: Chapter[];
   setRepertoire: (r: Chapter[]) => Promise<void>; // now async (writes per chapter)
 
-  repertoireIndex: number;
-  setRepertoireIndex: (i: number) => void;
+  // uuid of the currently selected/active chapter, or null when none is
+  // selected (empty repertoire, or the selected chapter was deleted).
+  selectedChapterId: string | null;
+  setSelectedChapterId: (id: string | null) => void;
 
-  trainableContext: TrainableContext | undefined;
+  trainableContext: TrainableContext | null;
   setTrainableContext: (t: TrainableContext) => void;
 
   selectedPath: string;
   setSelectedPath: (p: string) => void;
 
-  selectedNode: ChildNode<TrainingData>;
+  selectedNode: ChildNode<TrainingData> | null;
   setSelectedNode: (n: any) => void;
 
   showingHint: boolean;
@@ -154,8 +160,8 @@ interface TrainerState {
   updateTrainingRemote: (chapterId: string, path: string, username: string, card: Card) => void;
   addNewChapter: (chapter: Chapter) => Promise<void>;
   addNewChapterLocally: (chapter: Chapter) => Promise<void>;
-  renameChapter: (index: number, name: string) => void;
-  deleteChapterAt: (index: number) => void;
+  renameChapter: (chapterId: string, name: string) => void;
+  deleteChapterAt: (chapterId: string) => void;
   deleteChapterRemote: (chapterId: string) => void;
 }
 
@@ -235,15 +241,21 @@ export const useTrainerStore = create<TrainerState>()(
       // in-memory only; loaded via hydrateRepertoireFromIDB
       repertoire: [],
       setRepertoire: async (repertoire) => {
-        // update memory first
-        set({ repertoire });
+        // update memory first; keep the active selection if it still exists,
+        // otherwise fall back to the first chapter (or none when empty).
+        set((state) => ({
+          repertoire,
+          selectedChapterId: repertoire.some((c) => c.uuid === state.selectedChapterId)
+            ? state.selectedChapterId
+            : (repertoire[0]?.uuid ?? null),
+        }));
 
         // persist per-chapter (NOT via zustand persist)
         await persistAllChapters(repertoire);
       },
 
-      repertoireIndex: 0,
-      setRepertoireIndex: (i) => set({ repertoireIndex: i }),
+      selectedChapterId: null,
+      setSelectedChapterId: (id) => set({ selectedChapterId: id }),
 
       trainableContext: undefined,
       setTrainableContext: (t) => set({ trainableContext: t }),
@@ -301,9 +313,9 @@ export const useTrainerStore = create<TrainerState>()(
         })),
 
       // ---- inside create(...) actions ----
-      renameChapter: async (chapterIndex: number, newName: string) => {
+      renameChapter: async (chapterId: string, newName: string) => {
         const { repertoire, socket } = get();
-        const chapter = repertoire[chapterIndex];
+        const chapter = repertoire.find((c) => c.uuid === chapterId);
         if (!chapter) return;
 
         const cid = chapter.uuid;
@@ -311,7 +323,8 @@ export const useTrainerStore = create<TrainerState>()(
         // update in-memory optimistically (touch only that chapter)
         set((state) => {
           const next = state.repertoire.slice();
-          next[chapterIndex] = { ...next[chapterIndex], name: newName };
+          const idx = next.findIndex((c) => c.uuid === chapterId);
+          if (idx !== -1) next[idx] = { ...next[idx], name: newName };
           return { repertoire: next };
         });
 
@@ -327,29 +340,31 @@ export const useTrainerStore = create<TrainerState>()(
         }
       },
 
-      deleteChapterAt: async (chapterIndex: number) => {
-        const { repertoire, repertoireIndex, socket } = get();
-        const chapter = repertoire[chapterIndex];
-        if (!chapter) return;
+      deleteChapterAt: async (chapterId: string) => {
+        const { repertoire, selectedChapterId, socket } = get();
+        const idx = repertoire.findIndex((c) => c.uuid === chapterId);
+        if (idx === -1) return;
 
-        const cid = chapter.uuid;
+        const cid = chapterId;
 
         const nextRepertoire = repertoire.slice();
-        nextRepertoire.splice(chapterIndex, 1);
+        nextRepertoire.splice(idx, 1);
 
-        let nextIndex = repertoireIndex;
-        if (nextRepertoire.length === 0) nextIndex = 0;
-        else if (chapterIndex < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
-        else if (chapterIndex === repertoireIndex)
-          nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+        // If we deleted the active chapter, select a neighbor (the chapter
+        // that slid into its slot, clamped to the end) — or nothing when the
+        // repertoire is now empty. Deleting a background chapter leaves the
+        // current selection and training view untouched.
+        const clearingActive = selectedChapterId === chapterId;
+        const nextSelected = clearingActive
+          ? (nextRepertoire[Math.min(idx, nextRepertoire.length - 1)]?.uuid ?? null)
+          : selectedChapterId;
 
         set({
           repertoire: nextRepertoire,
-          repertoireIndex: nextIndex,
-          selectedPath: '',
-          selectedNode: null,
-          trainableContext: null as any,
-          userTip: 'empty',
+          selectedChapterId: nextSelected,
+          ...(clearingActive
+            ? { selectedPath: '', selectedNode: null, trainableContext: null as any, userTip: 'empty' }
+            : {}),
         });
 
         // playground state lives in IDB; authenticated state lives on the
@@ -366,25 +381,23 @@ export const useTrainerStore = create<TrainerState>()(
 
       // handle a chapter_deleted event received from another client
       deleteChapterRemote: (chapterId: string) => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, selectedChapterId } = get();
         const idx = repertoire.findIndex((c) => c.uuid === chapterId);
         if (idx === -1) return;
 
         const nextRepertoire = repertoire.slice();
         nextRepertoire.splice(idx, 1);
 
-        // mirror deleteChapterAt's index-fixup so the active selection
-        // doesn't fall off the end when a remote peer drops a chapter
-        // that's behind ours, or the one we're currently viewing.
-        let nextIndex = repertoireIndex;
-        if (nextRepertoire.length === 0) nextIndex = 0;
-        else if (idx < repertoireIndex) nextIndex = Math.max(0, repertoireIndex - 1);
-        else if (idx === repertoireIndex) nextIndex = Math.min(repertoireIndex, nextRepertoire.length - 1);
+        // mirror deleteChapterAt: if a remote peer drops the chapter we're
+        // viewing, select a neighbor; otherwise the selection is unaffected.
+        const clearingActive = selectedChapterId === chapterId;
+        const nextSelected = clearingActive
+          ? (nextRepertoire[Math.min(idx, nextRepertoire.length - 1)]?.uuid ?? null)
+          : selectedChapterId;
 
-        const clearingActive = idx === repertoireIndex;
         set({
           repertoire: nextRepertoire,
-          repertoireIndex: nextIndex,
+          selectedChapterId: nextSelected,
           ...(clearingActive
             ? { selectedPath: '', selectedNode: null, trainableContext: null as any, userTip: 'empty' }
             : {}),
@@ -411,20 +424,32 @@ export const useTrainerStore = create<TrainerState>()(
           if (ch) chapters.push(ch);
         }
 
-        set({ repertoire: chapters });
+        //sort
+        //TODO refactor (fetch repertoire has similiar logic)
+        const sortChapters = (ch1: Chapter, ch2: Chapter): number => {
+          if (ch1.trainAs != ch2.trainAs) {
+            return ch1.trainAs == 'white' ? -1 : 1;
+          }
+          return ch1.uuid.localeCompare(ch2.uuid);
+        };
+
+        chapters.sort(sortChapters);
+
+        set({ repertoire: chapters, selectedChapterId: chapters[0]?.uuid ?? null });
       },
 
       jump: (path) => {
-        const { repertoire, repertoireIndex } = get();
-        const root = repertoire[repertoireIndex]?.root;
+        const { repertoire, selectedChapterId } = get();
+        const root = selectedChapterOf(repertoire, selectedChapterId)?.root;
         if (!root) return;
         const nodeList = getNodeList(root, path);
         set({ selectedPath: path, selectedNode: nodeList.at(-1) });
       },
 
       deleteLine: async (path) => {
-        const { repertoire, repertoireIndex, selectedPath, jump, updateDueCounts, socket } = get();
-        const chapter = repertoire[repertoireIndex];
+        const { repertoire, selectedChapterId, selectedPath, jump, updateDueCounts, socket } = get();
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
+        if (!chapter) return;
         const root = chapter.root;
         const node = nodeAtPath(root, path);
         if (!node) {
@@ -451,7 +476,8 @@ export const useTrainerStore = create<TrainerState>()(
 
         set((state) => {
           const next = state.repertoire.slice();
-          next[repertoireIndex] = { ...next[repertoireIndex] };
+          const idx = next.findIndex((c) => c.uuid === chapter.uuid);
+          if (idx !== -1) next[idx] = { ...next[idx] };
           return { repertoire: next };
         });
 
@@ -472,9 +498,9 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       setNextTrainablePosition: () => {
-        const { trainingMethod: method, repertoireIndex, repertoire, searchConfig } = get();
-        if (repertoireIndex === -1 || method === 'edit') return null;
-        const chapter = repertoire[repertoireIndex];
+        const { trainingMethod: method, selectedChapterId, repertoire, searchConfig } = get();
+        if (method === 'edit') return null;
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter) return;
         const root = chapter.root;
 
@@ -496,9 +522,9 @@ export const useTrainerStore = create<TrainerState>()(
 
       // get milliseconds til due for each node
       updateDueCounts: () => {
-        const { repertoire, repertoireIndex } = get();
+        const { repertoire, selectedChapterId } = get();
         const key = currentUserKey();
-        const chapter = repertoire[repertoireIndex];
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter || !key) return;
 
         let dueSummary = [];
@@ -527,12 +553,13 @@ export const useTrainerStore = create<TrainerState>()(
           userTip: 'empty',
           cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
           selectedNode: null,
+          trainableContext: null,
         });
       },
 
       setCommentAt: async (comment: string, path: string) => {
-        const { repertoire, repertoireIndex, socket } = get();
-        const chapter = repertoire[repertoireIndex];
+        const { repertoire, selectedChapterId, socket } = get();
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter) return;
         const node = nodeAtPath(chapter.root, path);
         if (!node) {
@@ -586,9 +613,9 @@ export const useTrainerStore = create<TrainerState>()(
         seeing a node for the first time
       */
       learn: async () => {
-        const { repertoire, repertoireIndex, trainableContext, socket } = get();
+        const { repertoire, selectedChapterId, trainableContext, socket } = get();
         const key = currentUserKey();
-        const chapter = repertoire[repertoireIndex];
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
         const targetNode = trainableContext?.targetMove;
         if (!chapter || !targetNode || !key) return;
         const card = createCard();
@@ -622,10 +649,10 @@ export const useTrainerStore = create<TrainerState>()(
         Update node's card based on the result of a training
       */
       train: (correct: boolean) => {
-        const { repertoire, repertoireIndex, trainableContext, socket } = get();
+        const { repertoire, selectedChapterId, trainableContext, socket } = get();
         const key = currentUserKey();
         const targetNode = trainableContext?.targetMove;
-        const chapter = repertoire[repertoireIndex];
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter || !targetNode || !key) return null;
 
         const oldCard = userCard(targetNode.data, key);
@@ -653,8 +680,8 @@ export const useTrainerStore = create<TrainerState>()(
 
       guess: (san: string): TrainingOutcome => {
         // console.log('guess', san);
-        const { repertoire, repertoireIndex, selectedPath, trainableContext, trainingMethod } = get();
-        const chapter = repertoire[repertoireIndex];
+        const { repertoire, selectedChapterId, selectedPath, trainableContext, trainingMethod } = get();
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter) return;
 
         const root = chapter.root;
@@ -662,7 +689,7 @@ export const useTrainerStore = create<TrainerState>()(
         if (pathToTrain == null) return;
 
         const trainableNodeList: ChildNode<TrainingData>[] = getNodeList(root, pathToTrain);
-        if (repertoireIndex === -1 || !trainableNodeList || trainingMethod === 'learn') return;
+        if (!trainableNodeList || trainingMethod === 'learn') return;
 
         const possibleMoves = trainableNodeList.at(-1)!.children.map((_) => _.data.san);
         set({ lastGuess: san });
@@ -760,8 +787,8 @@ export const useTrainerStore = create<TrainerState>()(
         Send move over via POST for now
       */
       makeMove: async (san: string) => {
-        const { selectedNode, repertoire, repertoireIndex, selectedPath, trainingMethod } = get();
-        const chapter = repertoire[repertoireIndex];
+        const { selectedNode, repertoire, selectedChapterId, selectedPath, trainingMethod } = get();
+        const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter || !selectedNode) return;
 
         const fen = selectedNode.data.fen;
@@ -854,7 +881,12 @@ export const useTrainerStore = create<TrainerState>()(
             break;
         }
 
-        set({ repertoire: newRepertoire });
+        // Keep the current selection stable; if nothing was selected yet
+        // (e.g. the seed example chapter on first load), select the new one.
+        set((state) => ({
+          repertoire: newRepertoire,
+          selectedChapterId: state.selectedChapterId ?? chapter.uuid,
+        }));
         if (!useAuthStore.getState().isAuthenticated()) {
           const cid = chapter.uuid;
           await writeChapter(cid, chapter);
@@ -872,7 +904,7 @@ export const useTrainerStore = create<TrainerState>()(
 
       // ✅ CRITICAL: do NOT persist repertoire anymore (it lives as per-chapter blobs)
       partialize: (state) => ({
-        // repertoireIndex: state.repertoireIndex,
+        // selectedChapterId: state.selectedChapterId,
         // trainingConfig: state.searchConfig,
         // selectedPath: state.selectedPath,
         // searchConfig: state.searchConfig,

@@ -31,8 +31,12 @@ const Controls = () => {
   const lastGuess = useTrainerStore.getState().lastGuess;
 
   const repertoire = useTrainerStore().repertoire;
-  const repertoireIndex = useTrainerStore().repertoireIndex;
-  const name = repertoire[repertoireIndex]?.name || '';
+  const selectedChapterId = useTrainerStore().selectedChapterId;
+  const name = repertoire.find((c) => c.uuid === selectedChapterId)?.name || '';
+
+  // Nudge new users toward their first review: when the seeded example
+  // chapter is selected but no training mode is active yet, make Learn pop.
+  const promptExample = !method && name === 'Example Chapter';
 
   //TODO difference between handleLearn and setting mode to learn?
   return (
@@ -68,9 +72,10 @@ const Controls = () => {
           ${
             method === 'learn'
               ? 'bg-white text-brand-blue-light shadow-md ring-1 ring-brand-blue-light'
-              : 'text-slate-500 hover:text-brand-blue-light hover:bg-slate-200'
+              : promptExample
+                ? 'bg-brand-blue text-white shadow-md ring-2 ring-brand-blue animate-ring-pulse'
+                : 'text-slate-500 hover:text-brand-blue-light hover:bg-slate-200'
           }
-          ${!method && name === 'Example Chapter' ? 'animate-ring-pulse' : ''}
         `}
         >
           <GraduationCap size={18} />

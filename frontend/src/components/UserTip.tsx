@@ -20,6 +20,7 @@ type TipProps = {
   titleClassName?: string;
   descriptionClassName?: string;
   actions?: TipAction[];
+  grayIcon?: boolean;
 };
 
 const Tip = ({
@@ -29,11 +30,14 @@ const Tip = ({
   titleClassName = 'font-bold text-base md:text-lg text-gray-800',
   descriptionClassName = 'text-md text-gray-600',
   actions,
+  grayIcon = true,
 }: TipProps) => (
   <div className="bg-white flex flex-col items-center py-4 md:px-6 border border-gray-300 rounded-lg shadow-md">
     <div className="inline-flex items-center gap-2 md:gap-3">
       <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className="text-gray-500 p-1.5 md:p-2 rounded-md">{icon}</div>
+        <div className={`text-gray-500 p-1.5 md:p-2 rounded-md ${grayIcon ? 'bg-gray-100' : ''}`}>
+          {icon}
+        </div>
       </div>
       <div className="text-start flex flex-col">
         <span className={titleClassName}>{title}</span>
@@ -75,7 +79,7 @@ const Unselected = () => (
 );
 
 export const UserTip = () => {
-  const { userTip, repertoire, repertoireIndex, trainingMethod, trainableContext, lastGuess } =
+  const { userTip, repertoire, selectedChapterId, trainingMethod, trainableContext, lastGuess } =
     useTrainerStore();
   const train = useTrainerStore((s) => s.train);
   const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
@@ -86,7 +90,8 @@ export const UserTip = () => {
   if (!trainingMethod) return <Unselected />;
   if (trainingMethod == 'edit') return null;
 
-  const chapter = repertoire[repertoireIndex];
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
+  if (!chapter) return null;
   const san = trainableContext?.targetMove?.data.san;
   const isWhite = chapter.trainAs == 'white';
   switch (userTip) {
@@ -122,6 +127,7 @@ export const UserTip = () => {
           icon={<LucideRepeat2 className="w-8 h-8 md:w-12 md:h-12" color={'gold'} />}
           title={`${lastGuess} is an alternate move`}
           description="Try playing a different move"
+          grayIcon={false}
         />
       );
     case 'fail':
@@ -129,6 +135,7 @@ export const UserTip = () => {
         <Tip
           icon={<div className="text-red-500 text-2xl md:text-4xl">✗</div>}
           title={`${lastGuess} is incorrect`}
+          grayIcon={false}
           description={`${isWhite ? 'White' : 'Black'} plays ${san}`}
           actions={[
             {

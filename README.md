@@ -1,57 +1,36 @@
 # chessrepeat
-A website to train chess openings using spaced repetition.
 
-## Prerequisites
+chessrepeat is a free, open source chess opening training platform.
 
-- [Node.js](https://nodejs.org/) (v23+)
-- [Go](https://go.dev/) (1.26+)
-- [MongoDB](https://www.mongodb.com/) running locally or remotely
+It features real-time, collaborative opening training, move scheduling with spaced repetition, a playground mode
+to train without logging in, and an intuitive, functional interface to edit your repertoire and surface 
+training progress.
 
-## Setup
+chessrepeat is built with a [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+frontend and [Go](https://go.dev/) backend. It makes use of [WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
+for real-time, collaborative training and [PostgreSQL](https://www.postgresql.org/) for the database. The
+frontend is served via [Cloudflare](https://www.cloudflare.com/) and the backend runs in a
+[Docker](https://www.docker.com/) container on an [OVHcloud](https://www.ovhcloud.com/) VPS served with
+[Nginx](https://nginx.org/). Authentication is handled with [Google OAuth](https://developers.google.com/identity/protocols/oauth2).
+The frontend leverages [chessground](https://github.com/lichess-org/chessground) for the UI and
+[chessops](https://github.com/niklasf/chessops) for chess logic.
 
-### Backend
 
-```bash
-cd backend
-```
 
-Create a `.env` file:
 
-```
-MONGO_URI=mongodb://localhost:27017
-MONGO_DB=chessrepeat
-```
 
-Install dependencies and run:
+![chessrepeat — training a repertoire](docs/images/site.png)
+<!-- placeholder: full-app screenshot showing the board mid-drill with the move tree on the side -->
 
-```bash
-go mod download
-go run .
-```
+---
 
-The server starts at `http://localhost:8080`.
+### Spaced Repetition in chessrepeat
 
-### Frontend
+chessrepeat schedules your reviews with [**spaced repetition**](https://en.wikipedia.org/wiki/Spaced_repetition),
+which rewards correct guesses with reviews that are scheduled at increasingly longer intervals (in 1 day, 3 days, a week, etc...). The goal here is to minimize the amount of time you spend reviewing moves that you already know. 
 
-```bash
-cd frontend
-```
+More specifically, chessrepeat uses the [**FSRS**](https://github.com/open-spaced-repetition/ts-fsrs) algorithm to
+schedule moves. We store a *stability* and *difficulty* number in each move and use them to approximate when a move
+should be next trained. 
 
-Create a `.env` file:
-
-```
-VITE_GOOGLE_CLIENT_ID=<your Google OAuth client ID>
-```
-
-Install dependencies and run:
-
-```bash
-npm install
-npm run dev
-```
-
-The dev server starts at `http://localhost:5173`.
-
-## Google OAuth
-
-To enable login, create a Google OAuth 2.0 client ID at [console.cloud.google.com](https://console.cloud.google.com/apis/credentials) and set `VITE_GOOGLE_CLIENT_ID` in `frontend/.env`.
+Read more about FSRS [here](https://github.com/open-spaced-repetition/fsrs4anki/wiki)

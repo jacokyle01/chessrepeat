@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { CircleXIcon, UploadIcon, CheckCircle2, TreePalmIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
-import { chapterFromPgn } from '../../util/io';
+import { chapterFromImport, chapterFromPgn } from '../../util/io';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
 // import { importJSON } from '../../util/importJSON'; // <- assume this exists
@@ -125,7 +125,9 @@ const AddToRepertoireModal: React.FC = () => {
 
       console.log('pars', parsed.chapters);
       for (const chapter of parsed.chapters) {
-        await addNewChapter(chapter);
+        // Assign a fresh uuid so imported chapters never collide with
+        // existing ones (exports strip the uuid).
+        await addNewChapter(chapterFromImport(chapter));
       }
       resetJsonState();
       setShowModal(false);

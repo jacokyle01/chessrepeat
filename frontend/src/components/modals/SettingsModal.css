@@ -48,6 +48,20 @@
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-help-link {
+  display: inline-flex;
+  align-items: center;
+  color: #9ca3af;
+  transition: color 150ms;
+}
+
+.settings-help-link:hover {
+  color: #4b5563;
 }
 
 .settings-header p {
