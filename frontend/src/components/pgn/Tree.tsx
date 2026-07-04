@@ -335,8 +335,8 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   const isContextSelected = path === contextSelectedPath;
   const activeClass = path === selectedPath ? 'bg-brand-blue rounded-md active' : '';
 
-  const { repertoire, repertoireIndex } = useTrainerStore.getState();
-  const chapter = repertoire[repertoireIndex];
+  const { repertoire, selectedChapterId } = useTrainerStore.getState();
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   if (!chapter) return;
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
@@ -363,8 +363,8 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
 
   const path = opts.parentPath + node.data.id;
 
-  const { repertoire, repertoireIndex } = useTrainerStore.getState();
-  const chapter = repertoire[repertoireIndex];
+  const { repertoire, selectedChapterId } = useTrainerStore.getState();
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   if (!chapter) return;
 
   const nodeFromPath = nodeAtPath(chapter.root, path);
@@ -511,9 +511,9 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
 }
 
 function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  let repertoire = useTrainerStore.getState().repertoire;
-  let repertoireIndex = useTrainerStore.getState().repertoireIndex;
-  const chapter = repertoire[repertoireIndex];
+  const { repertoire, selectedChapterId } = useTrainerStore.getState();
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
+  if (!chapter) return null;
   const root = chapter.root;
 
   const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
@@ -639,9 +639,9 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
 function BottomCommentEditor() {
   const { editingPath } = useContext(CommentEditContext);
   const repertoire = useTrainerStore((s) => s.repertoire);
-  const repertoireIndex = useTrainerStore((s) => s.repertoireIndex);
+  const selectedChapterId = useTrainerStore((s) => s.selectedChapterId);
   if (editingPath === null) return null;
-  const chapter = repertoire[repertoireIndex];
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   if (!chapter) return null;
   const node = nodeAtPath(chapter.root, editingPath);
   if (!node) return null;
@@ -656,10 +656,9 @@ function BottomCommentEditor() {
 function ChildMoveButtons() {
   const jump = useTrainerStore((s) => s.jump);
   const selectedPath = useTrainerStore((s) => s.selectedPath);
-  const repertoire = useTrainerStore.getState().repertoire;
-  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
+  const { repertoire, selectedChapterId } = useTrainerStore.getState();
   const trainingMethod = useTrainerStore.getState().trainingMethod;
-  const chapter = repertoire[repertoireIndex];
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   if (trainingMethod != 'edit' || !chapter) return null;
 
   const node = selectedPath ? nodeAtPath(chapter.root, selectedPath) : chapter.root;
@@ -737,9 +736,8 @@ export default function PgnTree({ setActiveMoveId }) {
     }
   };
 
-  const repertoire = useTrainerStore.getState().repertoire;
-  const repertoireIndex = useTrainerStore.getState().repertoireIndex;
-  const chapter = repertoire[repertoireIndex];
+  const { repertoire, selectedChapterId } = useTrainerStore.getState();
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   if (!chapter) return;
   let root = chapter.root;
   if (!root) return;

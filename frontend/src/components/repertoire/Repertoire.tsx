@@ -27,18 +27,19 @@ import { useAuthStore } from '../../store/auth';
 import { viewUserRepertoire } from '../../services/collaborators';
 
 export const ChapterRow = ({ entry, index, id }) => {
-  const setRepertoireIndex = useStore(useTrainerStore, (s) => s.setRepertoireIndex);
+  const setSelectedChapterId = useStore(useTrainerStore, (s) => s.setSelectedChapterId);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const updateDueCounts = useTrainerStore().updateDueCounts;
-  const repertoireIndex = useTrainerStore().repertoireIndex;
+  const selectedChapterId = useTrainerStore().selectedChapterId;
   const [editOpen, setEditOpen] = useState(false);
   const meta = entry;
   const name = entry.name;
+  const isSelected = selectedChapterId === entry.uuid;
 
   //TODO dont change if already on this chapter..
   //TODO dont clear all chapter context? maybe dont change trainingMethod
   const handleChangeChapter = () => {
-    setRepertoireIndex(index);
+    setSelectedChapterId(entry.uuid);
     clearChapterContext();
     updateDueCounts();
   };
@@ -58,7 +59,7 @@ export const ChapterRow = ({ entry, index, id }) => {
             className="z-50"
             onClick={(e) => e.stopPropagation()}
           >
-            <EditChapterModal chapterIndex={index} onClose={() => setEditOpen(false)} />
+            <EditChapterModal chapterId={entry.uuid} onClose={() => setEditOpen(false)} />
           </div>
         </div>
       )}
@@ -66,13 +67,13 @@ export const ChapterRow = ({ entry, index, id }) => {
       <div
         id="chapter-wrap"
         onClick={handleChangeChapter}
-        className={repertoireIndex === index ? 'bg-cyan-50' : ''}
+        className={isSelected ? 'bg-cyan-50' : ''}
       >
         <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-2 py-0.5">
           <span className="font-bold pr-3 text-brand-blue flex-shrink-0">{index + 1}</span>
 
           <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
-            <span className={`text-sm truncate leading-none ${repertoireIndex === index ? 'font-bold' : ''}`}>{name}</span>
+            <span className={`text-sm truncate leading-none ${isSelected ? 'font-bold' : ''}`}>{name}</span>
             <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
           </h3>
 

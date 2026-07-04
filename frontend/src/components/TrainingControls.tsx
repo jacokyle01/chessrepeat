@@ -31,8 +31,8 @@ const Controls = () => {
   const lastGuess = useTrainerStore.getState().lastGuess;
 
   const repertoire = useTrainerStore().repertoire;
-  const repertoireIndex = useTrainerStore().repertoireIndex;
-  const name = repertoire[repertoireIndex]?.name || '';
+  const selectedChapterId = useTrainerStore().selectedChapterId;
+  const name = repertoire.find((c) => c.uuid === selectedChapterId)?.name || '';
 
   //TODO difference between handleLearn and setting mode to learn?
   return (

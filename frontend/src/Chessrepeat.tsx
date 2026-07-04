@@ -88,7 +88,7 @@ export const Chessrepeat = () => {
 
     repertoire,
     setRepertoire,
-    repertoireIndex,
+    selectedChapterId,
 
     showingHint,
     userTip,
@@ -206,7 +206,7 @@ export const Chessrepeat = () => {
   const closePromo = () => setPendingPromo(null);
 
   // TODO should be in different component?
-  const chapter = repertoire[repertoireIndex];
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   const isEditing = trainingMethod == 'edit';
 
   // automatically select root node of chapter. fires on chapter change or page reload.
@@ -291,8 +291,8 @@ export const Chessrepeat = () => {
   const [box, setBox] = useState<{ x: number; y: number; time: string } | null>(null);
 
   const showBoxAtSquare = (square: string, time: number) => {
-    const chapter = repertoire[repertoireIndex];
-    if (!containerRef.current) return;
+    const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
+    if (!chapter || !containerRef.current) return;
     const bounds = containerRef.current.getBoundingClientRect();
     const coords = squareToCoords(square, bounds, chapter.trainAs);
 
@@ -304,10 +304,9 @@ export const Chessrepeat = () => {
 
   //TODO refactor common logic here
   const prevMoveIfExists = () => {
-    let repertoire = useTrainerStore.getState().repertoire;
-    let repertoireIndex = useTrainerStore.getState().repertoireIndex;
+    const { repertoire, selectedChapterId } = useTrainerStore.getState();
 
-    const chapter = repertoire[repertoireIndex];
+    const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
     if (!chapter) return undefined;
     const root = chapter.root;
     const nodeList = getNodeList(root, selectedPath);

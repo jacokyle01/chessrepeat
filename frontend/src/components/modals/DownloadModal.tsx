@@ -9,8 +9,8 @@ type ExportFormat = 'json' | 'pgn';
 
 const DownloadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const repertoire = useTrainerStore((state) => state.repertoire);
-  const repertoireIndex = useTrainerStore((state) => state.repertoireIndex);
-  const chapter = repertoire[repertoireIndex];
+  const selectedChapterId = useTrainerStore((state) => state.selectedChapterId);
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
 
   const [scope, setScope] = useState<DownloadScope>('repertoire');
   const [format, setFormat] = useState<ExportFormat>('json');

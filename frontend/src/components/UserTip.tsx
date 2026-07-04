@@ -79,7 +79,7 @@ const Unselected = () => (
 );
 
 export const UserTip = () => {
-  const { userTip, repertoire, repertoireIndex, trainingMethod, trainableContext, lastGuess } =
+  const { userTip, repertoire, selectedChapterId, trainingMethod, trainableContext, lastGuess } =
     useTrainerStore();
   const train = useTrainerStore((s) => s.train);
   const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
@@ -90,7 +90,8 @@ export const UserTip = () => {
   if (!trainingMethod) return <Unselected />;
   if (trainingMethod == 'edit') return null;
 
-  const chapter = repertoire[repertoireIndex];
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
+  if (!chapter) return null;
   const san = trainableContext?.targetMove?.data.san;
   const isWhite = chapter.trainAs == 'white';
   switch (userTip) {
