@@ -169,6 +169,10 @@
     'pgn'
     'repertoire'
     'schedule';
+  /* breathing room so the last row (memory schedule) isn't flush against the
+     scroll-container edge and clipped. Mirrors the desktop/middle layouts,
+     which already reserve bottom padding. */
+  padding-bottom: 1rem;
 }
 
 /* grid area assignments – min-width:0 lets children shrink inside 1fr columns */

@@ -35,6 +35,9 @@ body {
   width: 100vw;
   overflow: hidden; /* Prevents scrolling on the whole page */
   font-family: 'Fira Sans', 'Roboto', sans-serif;
+  /* Match .app-root so no white shows through any gap at the top/bottom
+     (mobile dvh/vh mismatch, header margin, sub-pixel rounding, overscroll). */
+  background: #d6d9df;
 }
 * {
   margin: 0;
