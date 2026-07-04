@@ -553,7 +553,7 @@ export const useTrainerStore = create<TrainerState>()(
           userTip: 'empty',
           cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
           selectedNode: null,
-          trainableContext: null
+          trainableContext: null,
         });
       },
 
@@ -869,8 +869,7 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       addNewChapterLocally: async (chapter: Chapter) => {
-        const { repertoire, clearChapterContext } = get();
-        clearChapterContext();
+        const { repertoire } = get();
         let newRepertoire: Chapter[];
         switch (chapter.trainAs) {
           //TODO more sophisticated chapter adding, user1 and user2 may see different orderings

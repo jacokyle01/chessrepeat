@@ -94,14 +94,34 @@ export const chapterFromPgn = (rawPgn: string, asColor: Color, name: string): Ch
   };
 };
 
+// A chapter's uuid identifies it within *one* device/account's repertoire,
+// so it's never exported. On import we mint a fresh uuid (see
+// chapterFromImport) — that way an imported backup can't collide with or
+// overwrite an existing chapter. Works the same whether the caller passes a
+// single chapter or the whole repertoire.
 export function repertoireAsJson(chapters: Chapter[]): string {
+  const exported = chapters.map((chapter) => {
+    const copy: Partial<Chapter> = { ...chapter };
+    delete copy.uuid;
+    return copy;
+  });
   return JSON.stringify(
     {
-      chapters,
+      chapters: exported,
     },
     null,
     2, // pretty print
   );
+}
+
+// Shape a chapter parsed from an imported JSON backup into a store-ready
+// Chapter, always assigning a fresh uuid (any uuid present in the source
+// JSON is discarded).
+export function chapterFromImport(raw: any): Chapter {
+  return {
+    ...raw,
+    uuid: crypto.randomUUID(),
+  } as Chapter;
 }
 
 //

@@ -1,3 +1,6 @@
+//TODO clean up this file, context menu handling in general.. 
+
+
 import React, { createContext, useRef, useState, useContext, useMemo } from 'react';
 import { ContextMenu } from 'primereact/contextmenu';
 import { useTrainerStore } from '../../store/state';
@@ -37,10 +40,21 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
     cm.current?.show(e);
   }
 
-  function hideMenu() {
-    (cm.current as any)?.hide();
+  // Clear the highlighted path whenever the menu closes — from a menu-item
+  // action, an outside click, or Escape. This is wired to <ContextMenu onHide>,
+  // which PrimeReact calls from *inside* its own hide(); it must NOT call
+  // hide() again or it would recurse into onHide until the stack overflows
+  // (which threw before the state ever got reset — leaving the move highlighted
+  // after adding a comment).
+  function handleHide() {
     setContextSelectedPath(null);
     setContextSan('');
+  }
+
+  // Imperative close for menu-item actions. Triggers the ContextMenu's own
+  // hide(), which fires onHide -> handleHide to clear the highlight state.
+  function hideMenu() {
+    (cm.current as any)?.hide();
   }
 
   const modelWithHeader = useMemo<MenuItem[]>(() => {
@@ -72,7 +86,7 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
       <ContextMenu
         model={modelWithHeader}
         ref={cm}
-        onHide={hideMenu}
+        onHide={handleHide}
         pt={{
           root: {
             className:
