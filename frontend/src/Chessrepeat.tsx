@@ -345,6 +345,8 @@ export const Chessrepeat = () => {
           case 'learn':
             learn();
             setNextTrainablePosition();
+            console.log("update")
+            updateDueCounts();
             break;
           case 'recall':
             if (userTip == 'fail') {
@@ -446,27 +448,37 @@ export const Chessrepeat = () => {
                     text-gray-700 shadow-lg opacity-0 transition-opacity duration-150
                     group-hover:opacity-100"
                 >
-                  <div className="flex items-center gap-2 py-0.5">
-                    <GraduationCap size={14} className="text-sky-700" />
-                    <span className="flex-1">To learn</span>
-                    <span className="font-mono font-semibold">{chapter.unseenCount}</span>
-                  </div>
-                  <div className="flex items-center gap-2 py-0.5">
-                    <History size={14} className="text-blue-800" />
-                    <span className="flex-1">Due</span>
-                    <span className="font-mono font-semibold">{chapter.lastDueCount}</span>
-                  </div>
-                  <div className="flex items-center gap-2 py-0.5">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-gray-200" />
-                    <span className="flex-1">Learned</span>
-                    <span className="font-mono font-semibold">
-                      {chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 border-t border-gray-100 pt-1">
-                    <span className="flex-1 font-semibold">Total</span>
-                    <span className="font-mono font-semibold">{chapter.enabledCount}</span>
-                  </div>
+                  <table className="border-separate border-spacing-x-2 border-spacing-y-0.5">
+                    <tbody>
+                      <tr>
+                        <td className="align-middle">
+                          <GraduationCap size={14} className="text-sky-700" />
+                        </td>
+                        <td className="text-left">Learned</td>
+                        <td className="text-right font-mono font-semibold">
+                          {chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount}
+                        </td>
+                        <td className="text-right font-mono text-gray-400">
+                          {Math.round(
+                            ((chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount) /
+                              chapter.enabledCount) *
+                              100,
+                          )}
+                          %
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="align-middle">
+                          <History size={14} className="text-blue-800" />
+                        </td>
+                        <td className="text-left">Due Now</td>
+                        <td className="text-right font-mono font-semibold">{chapter.lastDueCount}</td>
+                        <td className="text-right font-mono text-gray-400">
+                          {Math.round((chapter.lastDueCount / chapter.enabledCount) * 100)}%
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
