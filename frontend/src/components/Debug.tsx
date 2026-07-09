@@ -10,9 +10,14 @@ export const Debug: React.FC = () => {
   const selectedPath = useTrainerStore.getState().selectedPath;
   const TrainingMethod = useTrainerStore.getState().trainingMethod;
 
+  const { repertoire, selectedChapterId } = useTrainerStore.getState();
+
+  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
+  if (!chapter) return undefined;
   console.log(targetMove?.data?.fen);
   return (
     <div className="absolute bottom-0 p-15">
+      <div>{`chapter ${chapter.unseenCount}`}</div>
       <div>{`TrainingPath ${trainingPath}`}</div>
       <div>{`selectedPath ${selectedPath}`}</div>
       <div>{`TrainingMethod ${TrainingMethod}`}</div>

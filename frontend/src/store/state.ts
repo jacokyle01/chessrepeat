@@ -150,8 +150,8 @@ interface TrainerState {
   setCommentRemote: (chapterId: string, path: string, comment: string) => void;
   updateDueCounts: () => void;
   setNextTrainablePosition: () => void;
-  learn: () => void;
-  train: (correct: boolean) => number;
+  learn: () => Promise<void>;
+  train: (correct: boolean) => Promise<number | null>;
   guess: (san: string) => TrainingOutcome;
 
   // higher-level ops
@@ -536,7 +536,7 @@ export const useTrainerStore = create<TrainerState>()(
           if (!card) return;
 
           const msTilDue = new Date(card.due).getTime() - Date.now();
-          if (msTilDue < 0) {
+          if (msTilDue <= 0) {
             countDueNow++;
           }
           dueSummary.push(msTilDue);
@@ -618,6 +618,18 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = selectedChapterOf(repertoire, selectedChapterId);
         const targetNode = trainableContext?.targetMove;
         if (!chapter || !targetNode || !key) return;
+
+        // The target move may have been deleted by another client since we
+        // computed this trainable position. Writing a card onto a node that's
+        // no longer in the tree would silently drift us from the server, so
+        // verify it still exists and resync the whole repertoire if not.
+        const targetPath = trainableContext.startingPath + targetNode.data.id;
+        if (!nodeAtPath(chapter.root, targetPath)) {
+          console.warn('learn: target move not found, reloading', { targetPath });
+          await fetchRepertoire();
+          return;
+        }
+
         const card = createCard();
         if (!targetNode.data.training) targetNode.data.training = {};
         targetNode.data.training[key] = card;
@@ -632,7 +644,6 @@ export const useTrainerStore = create<TrainerState>()(
           // by path equality, so sending the parent path used to anchor
           // the card on the wrong row and the card "disappeared" on the
           // next reload.
-          const targetPath = trainableContext.startingPath + targetNode.data.id;
           socket.send(
             JSON.stringify({
               type: 'training_updated',
@@ -648,12 +659,23 @@ export const useTrainerStore = create<TrainerState>()(
       /*
         Update node's card based on the result of a training
       */
-      train: (correct: boolean) => {
+      train: async (correct: boolean) => {
         const { repertoire, selectedChapterId, trainableContext, socket } = get();
         const key = currentUserKey();
         const targetNode = trainableContext?.targetMove;
         const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter || !targetNode || !key) return null;
+
+        // The target move may have been deleted by another client since we
+        // computed this trainable position. Reviewing a card on a node that's
+        // no longer in the tree would silently drift us from the server, so
+        // verify it still exists and resync the whole repertoire if not.
+        const targetPath = trainableContext.startingPath + targetNode.data.id;
+        if (!nodeAtPath(chapter.root, targetPath)) {
+          console.warn('train: target move not found, reloading', { targetPath });
+          await fetchRepertoire();
+          return null;
+        }
 
         const oldCard = userCard(targetNode.data, key);
         if (!oldCard) return null;
@@ -663,7 +685,6 @@ export const useTrainerStore = create<TrainerState>()(
 
         if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
           // Target move's path (see learn() comment above).
-          const targetPath = trainableContext.startingPath + targetNode.data.id;
           socket.send(
             JSON.stringify({
               type: 'training_updated',

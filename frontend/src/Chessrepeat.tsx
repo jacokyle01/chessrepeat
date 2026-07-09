@@ -223,7 +223,7 @@ export const Chessrepeat = () => {
   The current move we're training
   */
 
-  //TODO Fix logic here..  
+  //TODO Fix logic here..
   const targetDest = (): Key[] => {
     // console.log("selectedNode fen", selectedNode?.data.fen)
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
@@ -335,7 +335,7 @@ export const Chessrepeat = () => {
   const prevMove = prevMoveIfExists();
   const lastMove = selectedNode ? prevMove : undefined;
 
-  const finishMove = (san: string, meta: MoveMetadata, to: Key) => {
+  const finishMove = async (san: string, meta: MoveMetadata, to: Key) => {
     if (!isEditing) {
       meta.captured ? sounds.capture.play().catch(console.error) : sounds.move.play().catch(console.error);
 
@@ -343,22 +343,21 @@ export const Chessrepeat = () => {
         updateDueCounts();
         switch (trainingMethod) {
           case 'learn':
-            learn();
+            await learn();
             setNextTrainablePosition();
-            console.log("update")
-            updateDueCounts();
             break;
           case 'recall':
             if (userTip == 'fail') {
-              train(false);
+              await train(false);
               setNextTrainablePosition();
               return;
             }
             setLastGuess(san);
             switch (guess(san)) {
               case 'success': {
-                const secsUntilDue = train(true);
-                showBoxAtSquare(to, secsUntilDue);
+                const secsUntilDue = await train(true);
+                // null when the move was deleted under us (train resynced instead)
+                if (secsUntilDue != null) showBoxAtSquare(to, secsUntilDue);
                 setNextTrainablePosition();
                 break;
               }
@@ -377,7 +376,7 @@ export const Chessrepeat = () => {
     }
   };
 
-  const onAfterMove = (from: Key, to: Key, meta: MoveMetadata) => {
+  const onAfterMove = async (from: Key, to: Key, meta: MoveMetadata) => {
     const fenBefore = selectedNode?.data.fen || initial;
 
     // If a promo is already open, ignore additional moves (defensive)
@@ -392,7 +391,7 @@ export const Chessrepeat = () => {
 
     // Normal move
     const san = chessgroundToSan(fenBefore, from, to);
-    finishMove(san, meta, to);
+    await finishMove(san, meta, to);
     updateDueCounts();
   };
 
@@ -428,94 +427,89 @@ export const Chessrepeat = () => {
           {/* BOARD */}
           <div className="area-board" id="board-wrap">
             <div className="board-card">
-            {chapter && chapter.enabledCount > 0 && (
-              <div className="group relative">
-                <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200 cursor-default">
-                  <div
-                    className="h-full bg-brand-blue-light"
-                    style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
-                  />
-                  <div
-                    className="h-full bg-brand-blue"
-                    style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
-                  />
-                </div>
+              {chapter && chapter.enabledCount > 0 && (
+                <div className="group relative">
+                  <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200 cursor-default">
+                    <div
+                      className="h-full bg-brand-blue-light"
+                      style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
+                    />
+                    <div
+                      className="h-full bg-brand-blue"
+                      style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
+                    />
+                  </div>
 
-                {/* Breakdown tooltip on hover */}
-                <div
-                  className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2
+                  {/* Breakdown tooltip on hover */}
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2
                     whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-2 text-xs
                     text-gray-700 shadow-lg opacity-0 transition-opacity duration-150
                     group-hover:opacity-100"
-                >
-                  <table className="border-separate border-spacing-x-2 border-spacing-y-0.5">
-                    <tbody>
-                      <tr>
-                        <td className="align-middle">
-                          <GraduationCap size={14} className="text-sky-700" />
-                        </td>
-                        <td className="text-left">Learned</td>
-                        <td className="text-right font-mono font-semibold">
-                          {chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount}
-                        </td>
-                        <td className="text-right font-mono text-gray-400">
-                          {Math.round(
-                            ((chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount) /
-                              chapter.enabledCount) *
-                              100,
-                          )}
-                          %
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="align-middle">
-                          <History size={14} className="text-blue-800" />
-                        </td>
-                        <td className="text-left">Due Now</td>
-                        <td className="text-right font-mono font-semibold">{chapter.lastDueCount}</td>
-                        <td className="text-right font-mono text-gray-400">
-                          {Math.round((chapter.lastDueCount / chapter.enabledCount) * 100)}%
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  >
+                    <table className="border-separate border-spacing-x-2 border-spacing-y-0.5">
+                      <tbody>
+                        <tr>
+                          <td className="align-middle">
+                            <GraduationCap size={14} className="text-sky-700" />
+                          </td>
+                          <td className="text-left">To Learn</td>
+                          <td className="text-right font-mono font-semibold">
+                            {chapter.unseenCount}
+                          </td>
+                          <td className="text-right font-mono text-gray-400">
+                            {Math.round((chapter.unseenCount / chapter.enabledCount) * 100)}%
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="align-middle">
+                            <History size={14} className="text-blue-800" />
+                          </td>
+                          <td className="text-left">Due Now</td>
+                          <td className="text-right font-mono font-semibold">{chapter.lastDueCount}</td>
+                          <td className="text-right font-mono text-gray-400">
+                            {Math.round((chapter.lastDueCount / chapter.enabledCount) * 100)}%
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
-            <div ref={containerRef}>
-              <Chessground
-                orientation={chapter?.trainAs || 'white'}
-                fen={selectedNode?.data.fen || initial}
-                turnColor={turn}
-                lastMove={lastMove}
-                movable={{
-                  free: false,
-                  color: turn,
-                  dests: calculateDests(),
-                  events: { after: onAfterMove },
-                }}
-                drawable={{ autoShapes: createShapes() }}
-              />
-              {pendingPromo && (
-                <PromotionOverlay
-                  dest={pendingPromo.to}
-                  color={promotionColorFromFen(pendingPromo.fenBefore)}
-                  orientation={chapter?.trainAs || 'white'}
-                  onCancel={closePromo}
-                  requiredRole={
-                    trainingMethod === 'learn'
-                      ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
-                      : undefined
-                  }
-                  onPick={(role: PromoRole) => {
-                    const { fenBefore, from, to, meta } = pendingPromo;
-                    closePromo();
-                    const san = chessgroundToSan(fenBefore, from, to, role);
-                    finishMove(san, meta, to);
-                  }}
-                />
               )}
-            </div>
+              <div ref={containerRef}>
+                <Chessground
+                  orientation={chapter?.trainAs || 'white'}
+                  fen={selectedNode?.data.fen || initial}
+                  turnColor={turn}
+                  lastMove={lastMove}
+                  movable={{
+                    free: false,
+                    color: turn,
+                    dests: calculateDests(),
+                    events: { after: onAfterMove },
+                  }}
+                  drawable={{ autoShapes: createShapes() }}
+                />
+                {pendingPromo && (
+                  <PromotionOverlay
+                    dest={pendingPromo.to}
+                    color={promotionColorFromFen(pendingPromo.fenBefore)}
+                    orientation={chapter?.trainAs || 'white'}
+                    onCancel={closePromo}
+                    requiredRole={
+                      trainingMethod === 'learn'
+                        ? promoRoleFromSan(useTrainerStore.getState().trainableContext?.targetMove?.data?.san)
+                        : undefined
+                    }
+                    onPick={(role: PromoRole) => {
+                      const { fenBefore, from, to, meta } = pendingPromo;
+                      closePromo();
+                      const san = chessgroundToSan(fenBefore, from, to, role);
+                      finishMove(san, meta, to);
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             {/* CONTROLS — part of the same board panel, always directly

@@ -135,7 +135,12 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
           </>
         ) : (
           showSignIn && (
-            <button type="button" onClick={openLogin} className="header-link" title="Sign in">
+            <button
+              type="button"
+              onClick={openLogin}
+              className="header-link header-signin"
+              title="Sign in"
+            >
               <span>sign in</span>
               <LogIn />
             </button>

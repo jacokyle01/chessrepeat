@@ -98,10 +98,9 @@ type subscriber struct {
 	// burn CPU/DB by flooding the connection. Allocated per-connection
 	// so one chatty peer can't starve another.
 	readBudget *ratelimit.Bucket
-	// lastSeenAt is the unix-nano timestamp of the most recent inbound
-	// message (any type — pings, mutations, anything). The liveness
-	// watcher kicks the subscriber if this falls outside idleTimeout.
-	// atomic because reader (writes) and watcher (reads) run concurrently.
+	// updated after client sends an operation to server
+	// if currentTime - `lastSeenAt` < `livenessCheckInterval` after timer fires,
+	//	kick subscriber
 	lastSeenAt atomic.Int64
 }
 
