@@ -150,8 +150,8 @@ interface TrainerState {
   setCommentRemote: (chapterId: string, path: string, comment: string) => void;
   updateDueCounts: () => void;
   setNextTrainablePosition: () => void;
-  learn: () => Promise<void>;
-  train: (correct: boolean) => Promise<number | null>;
+  learn: () => void;
+  train: (correct: boolean) => number | null;
   guess: (san: string) => TrainingOutcome;
 
   // higher-level ops
@@ -612,7 +612,7 @@ export const useTrainerStore = create<TrainerState>()(
         Initialize card training data upon
         seeing a node for the first time
       */
-      learn: async () => {
+      learn: () => {
         const { repertoire, selectedChapterId, trainableContext, socket } = get();
         const key = currentUserKey();
         const chapter = selectedChapterOf(repertoire, selectedChapterId);
@@ -626,7 +626,7 @@ export const useTrainerStore = create<TrainerState>()(
         const targetPath = trainableContext.startingPath + targetNode.data.id;
         if (!nodeAtPath(chapter.root, targetPath)) {
           console.warn('learn: target move not found, reloading', { targetPath });
-          await fetchRepertoire();
+          void fetchRepertoire();
           return;
         }
 
@@ -634,7 +634,7 @@ export const useTrainerStore = create<TrainerState>()(
         if (!targetNode.data.training) targetNode.data.training = {};
         targetNode.data.training[key] = card;
         chapter.unseenCount--;
-        await persistChapter(chapter);
+        void persistChapter(chapter);
 
         if (useAuthStore.getState().isAuthenticated() && socket && socket.readyState === WebSocket.OPEN) {
           // Wire path must be the *target move's* path, not the parent's
@@ -659,7 +659,7 @@ export const useTrainerStore = create<TrainerState>()(
       /*
         Update node's card based on the result of a training
       */
-      train: async (correct: boolean) => {
+      train: (correct: boolean) => {
         const { repertoire, selectedChapterId, trainableContext, socket } = get();
         const key = currentUserKey();
         const targetNode = trainableContext?.targetMove;
@@ -673,7 +673,7 @@ export const useTrainerStore = create<TrainerState>()(
         const targetPath = trainableContext.startingPath + targetNode.data.id;
         if (!nodeAtPath(chapter.root, targetPath)) {
           console.warn('train: target move not found, reloading', { targetPath });
-          await fetchRepertoire();
+          void fetchRepertoire();
           return null;
         }
 

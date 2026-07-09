@@ -335,7 +335,7 @@ export const Chessrepeat = () => {
   const prevMove = prevMoveIfExists();
   const lastMove = selectedNode ? prevMove : undefined;
 
-  const finishMove = async (san: string, meta: MoveMetadata, to: Key) => {
+  const finishMove = (san: string, meta: MoveMetadata, to: Key) => {
     if (!isEditing) {
       meta.captured ? sounds.capture.play().catch(console.error) : sounds.move.play().catch(console.error);
 
@@ -343,19 +343,19 @@ export const Chessrepeat = () => {
         updateDueCounts();
         switch (trainingMethod) {
           case 'learn':
-            await learn();
+            learn();
             setNextTrainablePosition();
             break;
           case 'recall':
             if (userTip == 'fail') {
-              await train(false);
+              train(false);
               setNextTrainablePosition();
               return;
             }
             setLastGuess(san);
             switch (guess(san)) {
               case 'success': {
-                const secsUntilDue = await train(true);
+                const secsUntilDue = train(true);
                 // null when the move was deleted under us (train resynced instead)
                 if (secsUntilDue != null) showBoxAtSquare(to, secsUntilDue);
                 setNextTrainablePosition();
