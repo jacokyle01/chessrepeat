@@ -59,9 +59,6 @@ type ChapterDeleteEvent struct {
 	ChapterID string `json:"chapterId"`
 }
 
-// ChapterEvent is the payload of POST /chapter. Counts (enabled/unseen)
-// are derived client-side from the tree and per-user training cards, so
-// they no longer travel on the wire or live in the chapters table.
 type ChapterEvent struct {
 	Type      string          `json:"type"`      // "chapter_created"
 	ChapterID string          `json:"chapterId"` // TODO uuid? //TODO create server-side??

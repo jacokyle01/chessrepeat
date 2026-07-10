@@ -499,7 +499,7 @@ export const useTrainerStore = create<TrainerState>()(
 
       setNextTrainablePosition: () => {
         const { trainingMethod: method, selectedChapterId, repertoire, searchConfig } = get();
-        if (method === 'edit') return null;
+        if (!method || method === 'edit') return null;
         const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter) return;
         const root = chapter.root;

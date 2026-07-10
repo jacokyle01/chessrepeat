@@ -36,6 +36,8 @@ export function useWebsocket() {
     deleteNodeRemote,
     updateTrainingRemote,
     setCommentRemote,
+    clearChapterContext,
+    setNextTrainablePosition
   } = useTrainerStore();
 
   useEffect(() => {
@@ -109,7 +111,9 @@ export function useWebsocket() {
             addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
             break;
           case 'reload':
+            clearChapterContext();
             void fetchRepertoire();
+            setNextTrainablePosition();
             break;
           case 'node_deleted':
             deleteNodeRemote(payload.chapterId, payload.path);
