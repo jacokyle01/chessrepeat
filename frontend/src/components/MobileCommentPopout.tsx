@@ -73,7 +73,7 @@ const MobileCommentPopout: React.FC = () => {
           <dialog
             open
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                       border-none bg-white rounded-lg shadow-lg w-full max-w-md p-4"
+                       border-none bg-white rounded-lg shadow-lg w-[calc(100%-2rem)] max-w-md p-4"
           >
             <button
               className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-8 w-8

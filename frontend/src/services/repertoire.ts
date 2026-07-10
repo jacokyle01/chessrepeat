@@ -26,6 +26,7 @@ export type FetchRepertoireResult = {
 // server response carries the session's user, so we hydrate auth and
 // author from it before installing the chapters.
 export async function fetchRepertoire(): Promise<FetchRepertoireResult> {
+  console.log("fetch repetoire")
   const store = useTrainerStore.getState();
   const { repertoireAuthor } = store;
   const url = repertoireAuthor

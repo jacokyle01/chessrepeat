@@ -1,7 +1,7 @@
 name: deploy
 
 # On push to main: tests run on the VPS via a self-hosted runner; if
-# they pass, the backend image is built on GitHub-hosted infra and
+# they pass, the backend image is built and
 # pushed to GHCR; the VPS-side runner then pulls the image and
 # restarts the docker-compose stack in place.
 #
@@ -19,25 +19,8 @@ env:
   BACKEND_IMAGE: ${{ github.repository }}-backend
 
 jobs:
-  # PR-only quick test on GitHub-hosted infra.
-  test-pr:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
-      - name: vet
-        working-directory: backend
-        run: go vet ./...
-      - name: test
-        working-directory: backend
-        run: go test ./...
-
-  # Real gate for deploys: tests run on the VPS itself.
-  test-on-vps:
+  # run tests before deploy.
+  test:
     if: github.event_name == 'push'
     runs-on: [self-hosted, chessrepeat-vps]
     steps:
@@ -55,7 +38,7 @@ jobs:
 
   build-and-push:
     if: github.event_name == 'push'
-    needs: test-on-vps
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read

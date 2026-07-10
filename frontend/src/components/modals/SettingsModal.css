@@ -4,7 +4,9 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 50;
-  width: 100%;
+  /* leave a margin on each side on narrow viewports so the close button,
+     which hangs off the right edge (right: -0.75rem), isn't clipped. */
+  width: calc(100% - 2rem);
   max-width: 28rem;
   border: none;
   background: #fff;

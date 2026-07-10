@@ -118,8 +118,8 @@
 }
 
 #header .header-link svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
   flex-shrink: 0;
 }
 
@@ -142,9 +142,14 @@
     display: none;
   }
 
+  /* the sign-in label always stays visible, even at the narrowest width. */
+  #header .header-signin span {
+    display: inline;
+  }
+
   #header .header-link svg {
-    width: 0.78em;
-    height: 0.78em;
+    width: 0.95em;
+    height: 0.95em;
   }
 }
 
