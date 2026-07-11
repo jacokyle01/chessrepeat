@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useTrainerStore } from '../store/state';
-import { fetchRepertoire } from '../services/repertoire';
 
 const WS_URL = import.meta.env.VITE_API_URL.replace(/^http/, 'ws');
 
@@ -36,8 +35,7 @@ export function useWebsocket() {
     deleteNodeRemote,
     updateTrainingRemote,
     setCommentRemote,
-    clearChapterContext,
-    setNextTrainablePosition
+    resyncAndRestore,
   } = useTrainerStore();
 
   useEffect(() => {
@@ -111,9 +109,7 @@ export function useWebsocket() {
             addMove(payload.chapterId, payload.path, { data: payload.move, children: [] });
             break;
           case 'reload':
-            clearChapterContext();
-            void fetchRepertoire();
-            setNextTrainablePosition();
+            void resyncAndRestore();
             break;
           case 'node_deleted':
             deleteNodeRemote(payload.chapterId, payload.path);

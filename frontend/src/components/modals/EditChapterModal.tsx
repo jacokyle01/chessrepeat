@@ -67,7 +67,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose 
     <dialog
       open
       className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20
-                 border-none bg-white rounded-lg shadow-lg w-full max-w-md"
+                 border-none bg-white rounded-lg shadow-lg w-[calc(100%-2rem)] max-w-md"
     >
       {/* Close Button */}
       <button

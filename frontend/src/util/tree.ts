@@ -68,7 +68,7 @@ export function updateRecursive(
   }
 }
 
-const nodeAtPathOrNull = (root: TrainableNode, path: string): TrainableNode | undefined =>
+export const nodeAtPathOrNull = (root: TrainableNode, path: string): TrainableNode | undefined =>
   nodeAtPathOrNullFrom(root, path);
 
 function nodeAtPathOrNullFrom(node: TrainableNode, path: string): TrainableNode | undefined {
