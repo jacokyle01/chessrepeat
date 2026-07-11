@@ -1,13 +1,5 @@
 name: deploy
 
-# On push to main: tests run on the VPS via a self-hosted runner; if
-# they pass, the backend image is built and
-# pushed to GHCR; the VPS-side runner then pulls the image and
-# restarts the docker-compose stack in place.
-#
-# On PR: a lightweight test job runs on a GitHub-hosted runner so
-# merging doesn't depend on the VPS being up.
-
 on:
   push:
     branches: [main]
@@ -69,13 +61,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: stage compose files into deploy dir
-        # The runner is on the VPS, so we just copy the live config
-        # into ${VPS_PATH}. No rsync, no SSH.
         run: |
           set -euo pipefail
           install -d "${{ secrets.VPS_PATH }}"
           cp docker-compose.yml "${{ secrets.VPS_PATH }}/"
           cp backend/schema.sql "${{ secrets.VPS_PATH }}/"
+          # The db-backup service bind-mounts this; ship it alongside
+          # compose (install -m preserves the executable bit).
+          install -m 0755 healthcheck-ping.sh "${{ secrets.VPS_PATH }}/"
       - name: pull image and restart
         run: |
           set -euo pipefail
