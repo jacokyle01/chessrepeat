@@ -10,8 +10,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Postgres runs every *.sql in this directory once, on the very
-      # first boot of an empty data volume. Subsequent deploys skip it.
       - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
@@ -28,12 +26,50 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       LISTEN_ADDR: ":8080"
       COOKIE_SECURE: "true"
-      # Apex domain shared by SPA and API so the non-secret hint cookie
-      # is visible to the SPA across sibling subdomains (e.g. SPA at
-      # chessrepeat.com, API at api.chessrepeat.com).
+      #chessrepeat.com, api.chessrepeat.com 
       HINT_COOKIE_DOMAIN: ${HINT_COOKIE_DOMAIN}
     ports:
       - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# daily db backup sidecar to r2 or s3 
+  db-backup:
+    image: tiredofit/db-backup:${DB_BACKUP_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+
+      # which db on docker n/w 
+      DB01_TYPE: pgsql
+      DB01_HOST: postgres
+      DB01_PORT: 5432
+      DB01_NAME: ${POSTGRES_DB}
+      DB01_USER: ${POSTGRES_USER}
+      DB01_PASS: ${POSTGRES_PASSWORD}
+
+      DB01_BACKUP_INTERVAL: 1440        # minutes between runs (1440 = daily)
+      DB01_BACKUP_BEGIN: "0200"         # HHMM of the first run
+      DB01_CLEANUP_TIME: 10080 # 7 days 
+
+      DB01_BACKUP_LOCATION: S3
+      DB01_S3_BUCKET: ${R2_BUCKET}
+      DB01_S3_KEY_ID: ${R2_ACCESS_KEY_ID}
+      DB01_S3_KEY_SECRET: ${R2_SECRET_ACCESS_KEY}
+      DB01_S3_HOST: ${R2_ENDPOINT}      
+      DB01_S3_REGION: auto              
+      DB01_S3_PROTOCOL: https
+      DB01_S3_PATH: postgres # key prefix within the bucket
+
+      DB01_ENCRYPT: "TRUE"
+      DB01_ENCRYPT_PASSPHRASE: ${BACKUP_ENCRYPT_PASSPHRASE}
+
+      # ping on success
+      DB01_POST_SCRIPT: /scripts/healthcheck-ping.sh
+      BACKUP_HEALTHCHECK_URL: ${BACKUP_HEALTHCHECK_URL:-}
+    volumes:
+      - ./healthcheck-ping.sh:/scripts/healthcheck-ping.sh:ro
     depends_on:
       postgres:
         condition: service_healthy

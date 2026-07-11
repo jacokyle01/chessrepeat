@@ -14,7 +14,7 @@ import {
   TrainingOutcome,
 } from '../types/training';
 import { ChildNode } from 'chessops/pgn';
-import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, updateAt } from '../util/tree';
+import { deleteNodeAt, forEachNode, getNodeList, nodeAtPath, nodeAtPathOrNull, updateAt } from '../util/tree';
 import { contains, init } from '../util/path';
 import { computeDueCounts, computeNextTrainableNode } from '../util/training';
 import { colorFromPly, positionFromFen } from '../util/chess';
@@ -150,6 +150,7 @@ interface TrainerState {
   setCommentRemote: (chapterId: string, path: string, comment: string) => void;
   updateDueCounts: () => void;
   setNextTrainablePosition: () => void;
+  resyncAndRestore: () => Promise<void>;
   learn: () => void;
   train: (correct: boolean) => number | null;
   guess: (san: string) => TrainingOutcome;
@@ -456,7 +457,7 @@ export const useTrainerStore = create<TrainerState>()(
           // The path we're asked to delete isn't in our local tree —
           // we've drifted from the server. Resync rather than no-op.
           console.warn('deleteLine: path not found, reloading', { path });
-          await fetchRepertoire();
+          await get().resyncAndRestore();
           return;
         }
 
@@ -499,7 +500,7 @@ export const useTrainerStore = create<TrainerState>()(
 
       setNextTrainablePosition: () => {
         const { trainingMethod: method, selectedChapterId, repertoire, searchConfig } = get();
-        if (method === 'edit') return null;
+        if (!method || method === 'edit') return null;
         const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter) return;
         const root = chapter.root;
@@ -518,6 +519,28 @@ export const useTrainerStore = create<TrainerState>()(
             userTip: method,
           });
         }
+      },
+
+      // fetch repertoire, rebuild lost training data
+      resyncAndRestore: async () => {
+        const savedPath = get().selectedPath;
+
+        // These point into the tree fetchRepertoire is about to throw away.
+        set({ selectedNode: null, trainableContext: null });
+
+        await fetchRepertoire();
+
+        const { repertoire, selectedChapterId, jump, setNextTrainablePosition } = get();
+        const root = selectedChapterOf(repertoire, selectedChapterId)?.root;
+
+        // try to recover path if possible, might not be if other client deleted current line
+        if (root && savedPath && nodeAtPathOrNull(root, savedPath)) {
+          jump(savedPath);
+        } else {
+          set({ selectedPath: '', selectedNode: null });
+        }
+
+        setNextTrainablePosition();
       },
 
       // get milliseconds til due for each node
@@ -566,7 +589,7 @@ export const useTrainerStore = create<TrainerState>()(
           // Commenting on a path our tree doesn't have — we've drifted
           // from the server. Resync rather than silently dropping it.
           console.warn('setCommentAt: path not found, reloading', { path });
-          await fetchRepertoire();
+          await get().resyncAndRestore();
           return;
         }
         // Defensive cap: the textarea already enforces maxLength, but
@@ -626,7 +649,7 @@ export const useTrainerStore = create<TrainerState>()(
         const targetPath = trainableContext.startingPath + targetNode.data.id;
         if (!nodeAtPath(chapter.root, targetPath)) {
           console.warn('learn: target move not found, reloading', { targetPath });
-          void fetchRepertoire();
+          void get().resyncAndRestore();
           return;
         }
 
@@ -673,7 +696,7 @@ export const useTrainerStore = create<TrainerState>()(
         const targetPath = trainableContext.startingPath + targetNode.data.id;
         if (!nodeAtPath(chapter.root, targetPath)) {
           console.warn('train: target move not found, reloading', { targetPath });
-          void fetchRepertoire();
+          void get().resyncAndRestore();
           return null;
         }
 
@@ -741,7 +764,7 @@ export const useTrainerStore = create<TrainerState>()(
           // tree has drifted from the server's. Don't persist an
           // orphan; resync the whole repertoire over HTTP instead.
           console.warn('addMove: path not found, reloading', { chapterId, path });
-          await fetchRepertoire();
+          await get().resyncAndRestore();
           return;
         }
 
@@ -780,7 +803,10 @@ export const useTrainerStore = create<TrainerState>()(
         });
 
         // if we were viewing a node inside the deleted subtree, jump to the parent
-        if (contains(selectedPath, path)) jump(init(path));
+        if (contains(selectedPath, path)) {
+          jump(init(path));
+          get().setNextTrainablePosition(); // recalculate trainable position -- we might have deleted node we're training
+        }
       },
 
       // handle a training_updated event received from another client

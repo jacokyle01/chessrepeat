@@ -1,5 +1,3 @@
--- chessrepeat Postgres schema.
--- Apply once before the server boots:
 --   psql "$POSTGRES_URL" -f schema.sql
 
 CREATE TABLE users (
@@ -7,10 +5,6 @@ CREATE TABLE users (
     username TEXT UNIQUE,
     email TEXT NOT NULL,
     picture TEXT NOT NULL DEFAULT '',
-    -- Per-user quota multiplier. The default move-per-chapter and
-    -- chapters-per-user caps are multiplied by this to get the user's
-    -- effective limits (1 = stock limits). Bump it to grant a user a
-    -- larger repertoire without changing the global defaults.
     limit_multiplier INT NOT NULL DEFAULT 1
 );
 
@@ -54,9 +48,7 @@ CREATE TABLE moves (
     enabled BOOL NOT NULL,
     PRIMARY KEY (chapter_id, path)
 );
--- text_pattern_ops makes `path LIKE 'prefix%'` index-eligible, which is
--- what DeleteNodeFromChapter / SetEnabledRecursive need to avoid a
--- chapter-wide scan.
+x
 CREATE INDEX moves_chapter_path_prefix ON moves (
     chapter_id,
     path text_pattern_ops

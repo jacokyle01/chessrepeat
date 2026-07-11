@@ -214,9 +214,6 @@ export const Chessrepeat = () => {
     if (chapter?.root) setSelectedNode(chapter.root);
   }, [chapter?.root]);
 
-  //TODO hints
-  //TODO fail
-
   const [chessPosition, error] = positionFromFen(selectedNode?.data.fen || initial);
   const turn = chessPosition?.turn || 'white';
   /*
@@ -225,6 +222,7 @@ export const Chessrepeat = () => {
 
   //TODO Fix logic here..
   const targetDest = (): Key[] => {
+    console.log("SELECTED NODE", selectedNode)
     // console.log("selectedNode fen", selectedNode?.data.fen)
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
     const uci = calcTarget(selectedNode?.data.fen || initial, targetNode.data.san!);
@@ -454,9 +452,7 @@ export const Chessrepeat = () => {
                             <GraduationCap size={14} className="text-sky-700" />
                           </td>
                           <td className="text-left">To Learn</td>
-                          <td className="text-right font-mono font-semibold">
-                            {chapter.unseenCount}
-                          </td>
+                          <td className="text-right font-mono font-semibold">{chapter.unseenCount}</td>
                           <td className="text-right font-mono text-gray-400">
                             {Math.round((chapter.unseenCount / chapter.enabledCount) * 100)}%
                           </td>

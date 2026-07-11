@@ -205,13 +205,61 @@ migration tool.
 - **Update Caddy config** = edit `Caddyfile` at the repo root, push;
   next deploy bundles it.
 
+## Backups
+
+Daily logical backups run as the `db-backup` sidecar in the compose
+stack (`tiredofit/db-backup`): once every 24h it `pg_dump`s the DB,
+GPG-encrypts the dump (it holds user emails), and uploads it to
+**Cloudflare R2**. Retention is 7 days (`DB01_CLEANUP_TIME`). Because
+it's part of the compose file, it ships and redeploys with everything
+else — no host cron, no state outside `.env`.
+
+### One-time R2 setup
+
+1. Cloudflare dashboard → **R2** → create a bucket, e.g.
+   `chessrepeat-backups`.
+2. R2 → **Manage API Tokens** → create a token scoped to that bucket
+   with **Object Read & Write**. Note the Access Key ID, Secret Access
+   Key, and the account endpoint host (`<accountid>.r2.cloudflarestorage.com`).
+3. On the VPS, fill the backup block in `/opt/chessrepeat/.env`
+   (see `.env.example`): `R2_BUCKET`, `R2_ENDPOINT`,
+   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `BACKUP_ENCRYPT_PASSPHRASE`.
+4. **Store `BACKUP_ENCRYPT_PASSPHRASE` in a password manager too** — if
+   the VPS is lost and the passphrase lived only in its `.env`, the
+   offsite backups can't be decrypted.
+5. (Optional) create a check at healthchecks.io expecting a daily ping
+   and put its URL in `BACKUP_HEALTHCHECK_URL` so a silently-failing
+   backup alerts you.
+6. `docker compose up -d db-backup` (or let the next deploy do it).
+   Force an immediate run to verify: `docker compose exec db-backup backup-now`,
+   then check `docker compose logs db-backup` and confirm an object
+   landed in the R2 bucket.
+7. (Recommended) add an R2 **lifecycle rule** to expire objects older
+   than ~30 days as a backstop to the container-side retention.
+
+### Restore
+
+```sh
+# 1. Pull the desired dump from R2 (rclone/aws-cli/dashboard), e.g. into ./restore/
+# 2. Decrypt (GPG symmetric, same passphrase):
+gpg --batch --passphrase "$BACKUP_ENCRYPT_PASSPHRASE" \
+    --decrypt chessrepeat_<timestamp>.sql.gz.gpg > dump.sql.gz
+gunzip dump.sql.gz
+# 3. Restore into a running Postgres (test against a throwaway DB first):
+docker compose exec -T postgres \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < dump.sql
+```
+
+> **Test your restore.** A backup you've never restored isn't a backup.
+> Do one full decrypt + restore into a throwaway database now, and
+> repeat periodically. Adjust the decrypt/extension steps to match the
+> image's actual output format (`docker compose logs db-backup` shows
+> the filename it wrote).
+
 ## Things that aren't in this setup yet
 
 - **`/healthz`**: the smoke-test step expects this endpoint; add a
   trivial handler returning 200.
-- **Backups**: `pgdata` is a docker volume on a single VPS. Add
-  `pg_dump` on a cron + offsite copy before you have data you care
-  about.
 - **Migrations**: `schema.sql` only runs on first init. For schema
   changes after launch, switch to golang-migrate or atlas.
 - **Monitoring**: no Prometheus / log shipping yet.
