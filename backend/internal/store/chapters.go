@@ -580,17 +580,7 @@ func flattenTree(root domain.ChapterTreeNode) map[string]domain.TrainingData {
 	return moves
 }
 
-// buildTree reconstructs a tree of ChapterTreeNode from a flat
-// path->TrainingData map. Paths are sorted by length so parents are
-// always created before children. Each ID is a fixed-length 2-char
-// string (from scalachessCharPair), so the parent of path P is
-// P[:len(P)-2].
-//
-// Children are stored as []*ChapterTreeNode (see the type's doc): each
-// node is heap-allocated once and nodeMap holds that stable pointer.
-// An earlier version stored &parent.Children[i] into nodeMap, which
-// silently dropped subtrees when a parent's slice reallocated and
-// orphaned every previously-taken element pointer.
+// reconstructs a tree from a flat path --> node map
 func buildTree(moves map[string]domain.TrainingData) domain.ChapterTreeNode {
 	paths := make([]string, 0, len(moves))
 	for p := range moves {
@@ -617,7 +607,8 @@ func buildTree(moves map[string]domain.TrainingData) domain.ChapterTreeNode {
 			Children: []*domain.ChapterTreeNode{},
 		}
 
-		parentPath := p[:len(p)-2]
+		runes := []rune(p)
+		parentPath := string(runes[:len(runes)-2])
 		parent, ok := nodeMap[parentPath]
 		if !ok {
 			parent = root
