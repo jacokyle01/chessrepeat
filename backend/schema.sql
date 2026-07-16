@@ -48,7 +48,7 @@ CREATE TABLE moves (
     enabled BOOL NOT NULL,
     PRIMARY KEY (chapter_id, path)
 );
-x
+
 CREATE INDEX moves_chapter_path_prefix ON moves (
     chapter_id,
     path text_pattern_ops
