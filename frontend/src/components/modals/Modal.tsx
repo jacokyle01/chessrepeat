@@ -5,10 +5,12 @@ export const Modal: React.FC<{
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-}> = ({ open, onClose, title, children }) => {
+  /** Tailwind z-index class; override to stack above another open modal. */
+  zClassName?: string;
+}> = ({ open, onClose, title, children, zClassName = 'z-50' }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/25 z-50">
+    <div className={`fixed inset-0 flex items-center justify-center bg-black/25 ${zClassName}`}>
       <div className="bg-white rounded-xl shadow-lg p-6 w-96 relative">
         <h2 className="text-lg font-semibold mb-4">{title}</h2>
         <div>{children}</div>

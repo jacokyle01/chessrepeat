@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CircleXIcon, UploadIcon, CheckCircle2, TreePalmIcon } from 'lucide-react';
+import { CircleXIcon, UploadIcon, CheckCircle2, TreePalmIcon, TriangleAlertIcon, CloudAlertIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import { chapterFromImport, chapterFromPgn } from '../../util/io';
 import { Chapter } from '../../types/training';
@@ -29,6 +29,24 @@ const AddToRepertoireModal: React.FC = () => {
 
   // Whether this chapter will be saved locally or to the server
   const isLoggedIn = useAuthStore().isAuthenticated();
+  const openLogin = useAuthStore((s) => s.openLogin);
+
+  const SignedOutNotice = () => (
+    <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 mb-2">
+      <CloudAlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+      <p className="text-sm leading-snug text-amber-900">
+        You're using chessrepeat signed out.{' '}
+        <button
+          type="button"
+          onClick={openLogin}
+          className="font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950"
+        >
+          Log in
+        </button>{' '}
+        to save your repertoire to the cloud and train anywhere.
+      </p>
+    </div>
+  );
 
   const resetJsonState = () => {
     setJsonText('');
@@ -255,12 +273,7 @@ const AddToRepertoireModal: React.FC = () => {
                 </label>
               </div>
             </div>
-            {!isLoggedIn && (
-              <span className="text-sm text-red-400">
-                User not logged in — chapter will be saved locally; log in to save to the server and train
-                anywhere
-              </span>
-            )}
+            {!isLoggedIn && <SignedOutNotice />}
 
             <button
               type="submit"
@@ -307,12 +320,7 @@ const AddToRepertoireModal: React.FC = () => {
             </div>
 
             {jsonError ? <div className="mb-3 text-sm text-red-600">{jsonError}</div> : null}
-            {!isLoggedIn && (
-              <span className="text-sm text-red-400">
-                User not logged in — chapter will be saved locally; log in to save to the server and train
-                anywhere
-              </span>
-            )}
+            {!isLoggedIn && <SignedOutNotice />}
 
             <div className="flex gap-2">
               <button
