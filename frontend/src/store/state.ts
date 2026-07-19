@@ -771,7 +771,7 @@ export const useTrainerStore = create<TrainerState>()(
         if (node.data.enabled) chapter.enabledCount++;
         if (!userCard(node.data)) chapter.unseenCount++;
         set({ repertoire }); // we have to do this to trigger a state update
-        await persistChapter(chapter);
+        void persistChapter(chapter);
       },
 
       // handle a node_deleted event received from another client via websocket
@@ -876,7 +876,7 @@ export const useTrainerStore = create<TrainerState>()(
           //TODO why void?
 
           if (!useAuthStore.getState().isAuthenticated()) {
-            await persistChapter(chapter);
+            void persistChapter(chapter);
           } else {
             console.log('try send over socket');
             const { socket } = get();
@@ -902,8 +902,6 @@ export const useTrainerStore = create<TrainerState>()(
 
           set({ selectedNode: movingTo, selectedPath: newPath });
         }
-        // persist only this chapter
-        await persistChapter(chapter);
       },
       // TODO should network actions be in state?
 

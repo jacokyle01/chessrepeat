@@ -177,7 +177,10 @@ export function CollaboratorsPanel({
                   aria-label="Permission"
                 >
                   <option value="edit">edit</option>
-                  <option value="train">train</option>
+                  {/* TODO: re-enable once the training-collaborator UI is built.
+                      Temporarily hidden so new collaborators can only be added
+                      with "edit" access as a stopgap. */}
+                  {/* <option value="train">train</option> */}
                 </select>
                 <button
                   type="submit"
