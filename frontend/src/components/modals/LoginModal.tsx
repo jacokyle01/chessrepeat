@@ -67,7 +67,7 @@ export function LoginModal() {
   const canSubmit = checkState === 'available';
 
   return (
-    <Modal open={showLogin} onClose={dismiss} title="Sign in">
+    <Modal open={showLogin} onClose={dismiss} title="Sign in" zClassName="z-[1100]">
       <div className="flex flex-col items-center">
         <GoogleLoginButton
           onNeedsUsername={(idToken) => setPendingSignup({ idToken })}
