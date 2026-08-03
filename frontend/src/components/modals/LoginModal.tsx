@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal } from './Modal';
 import { GoogleLoginButton, applyLoginResponse } from '../GoogleLoginButton';
 import { useAuthStore } from '../../store/auth';
+import './LoginModal.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -67,22 +68,22 @@ export function LoginModal() {
   const canSubmit = checkState === 'available';
 
   return (
-    <Modal open={showLogin} onClose={dismiss} title="Sign in" zClassName="z-[1100]">
-      <div className="flex flex-col items-center">
+    <Modal open={showLogin} onClose={dismiss} title="Sign in" scrimClassName="is-stacked">
+      <div className="login-google">
         <GoogleLoginButton
           onNeedsUsername={(idToken) => setPendingSignup({ idToken })}
           onSuccess={(data) => applyLoginResponse(data)}
         />
         {!pendingSignup && (
-          <p className="mt-4 text-xs text-gray-500 text-center">
+          <p className="login-google-note">
             First time signing in? You'll be prompted to pick a username.
           </p>
         )}
       </div>
 
       {pendingSignup && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-800 mb-1">Pick a username</h3>
+        <div className="login-username">
+          <h3>Pick a username</h3>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -116,43 +117,39 @@ export function LoginModal() {
               }
             }}
           >
-            <div className="relative mb-1">
+            <div className="login-username-field">
               <input
                 type="text"
                 autoFocus
                 value={pendingUsername}
                 onChange={(e) => setPendingUsername(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 pr-9 text-sm"
                 placeholder="username"
                 aria-invalid={checkState === 'taken' || checkState === 'invalid'}
               />
-              <span
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm leading-none"
-                aria-live="polite"
-              >
+              <span className="login-username-status" aria-live="polite">
                 {checkState === 'pending' && (
-                  <span className="text-gray-400" title="Checking…">
+                  <span className="login-status-pending" title="Checking…">
                     …
                   </span>
                 )}
                 {checkState === 'available' && (
-                  <span className="text-green-600" title="Available">
+                  <span className="login-status-available" title="Available">
                     ✓
                   </span>
                 )}
                 {checkState === 'taken' && (
-                  <span className="text-red-600" title="Taken">
+                  <span className="login-status-error" title="Taken">
                     ✕
                   </span>
                 )}
                 {checkState === 'invalid' && (
-                  <span className="text-red-600" title="3–20 chars, a–z 0–9 _">
+                  <span className="login-status-error" title="3–20 chars, a–z 0–9 _">
                     ✕
                   </span>
                 )}
               </span>
             </div>
-            <p className="text-xs text-gray-500 mb-4 h-4">
+            <p className="login-username-message">
               {checkState === 'invalid' && 'Use 3–20 chars: a–z, 0–9, underscore.'}
               {checkState === 'taken' && 'That username is taken.'}
               {checkState === 'available' && 'Username is available.'}
@@ -161,11 +158,7 @@ export function LoginModal() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className={
-                canSubmit
-                  ? 'w-full bg-emerald-600 text-white text-sm font-semibold py-2 rounded hover:bg-emerald-500 ring-2 ring-emerald-300'
-                  : 'w-full bg-slate-300 text-slate-500 text-sm font-semibold py-2 rounded cursor-not-allowed'
-              }
+              className="login-submit"
             >
               Continue
             </button>

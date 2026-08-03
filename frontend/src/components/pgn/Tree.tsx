@@ -13,6 +13,7 @@ import { ContextMenuProvider } from './ContextMenuProvider';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { TrainableNode } from '../../types/training';
 import { getNodeList, nodeAtPath, hasBranching } from '../../util/tree';
+import './Tree.css';
 export interface Opts {
   parentPath: string;
   isMainline: boolean;
@@ -62,7 +63,7 @@ const useMoveContextMenuItems = (path: string, data: TrainingData) => {
       template: () => (
         <button
           type="button"
-          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 active:bg-gray-200"
+          className="ctxmenu-item"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -70,7 +71,7 @@ const useMoveContextMenuItems = (path: string, data: TrainingData) => {
             hideMenu();
           }}
         >
-          <Trash2 className="w-4 h-4 text-gray-500" />
+          <Trash2 />
           Delete from here
         </button>
       ),
@@ -79,7 +80,7 @@ const useMoveContextMenuItems = (path: string, data: TrainingData) => {
       template: () => (
         <button
           type="button"
-          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 active:bg-gray-200"
+          className="ctxmenu-item"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -87,7 +88,7 @@ const useMoveContextMenuItems = (path: string, data: TrainingData) => {
             hideMenu();
           }}
         >
-          <PencilIcon className="w-4 h-4 text-gray-500" />
+          <PencilIcon />
           {data.comment ? 'Edit comment' : 'Add comment'}
         </button>
       ),
@@ -103,7 +104,7 @@ const useCommentContextMenuItems = (path: string) => {
       template: () => (
         <button
           type="button"
-          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 active:bg-gray-200"
+          className="ctxmenu-item"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -111,7 +112,7 @@ const useCommentContextMenuItems = (path: string) => {
             hideMenu();
           }}
         >
-          <PencilIcon className="w-4 h-4 text-gray-500" />
+          <PencilIcon />
           Edit comment
         </button>
       ),
@@ -164,7 +165,7 @@ function CommentEditor({ path, initial }: { path: string; initial: string }) {
 
   return (
     <div
-      className="flex flex-col gap-1 w-full"
+      className="comment-editor"
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -188,26 +189,12 @@ function CommentEditor({ path, initial }: { path: string; initial: string }) {
             save();
           }
         }}
-        className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2 resize-none focus:outline-none focus:ring-1 focus:ring-brand-blue"
       />
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={cancel}
-          className="text-xs px-2 py-0.5 text-gray-500 hover:text-gray-700"
-        >
+      <div className="comment-editor-actions">
+        <button type="button" onClick={cancel} className="comment-editor-cancel">
           Cancel
         </button>
-        <button
-          type="button"
-          onClick={save}
-          disabled={!isDirty}
-          className={`text-xs font-semibold px-2 py-0.5 rounded transition ${
-            isDirty
-              ? 'bg-brand-blue text-white hover:brightness-110'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
+        <button type="button" onClick={save} disabled={!isDirty} className="comment-editor-save">
           Save
         </button>
       </div>
@@ -235,29 +222,22 @@ function RenderComment({
 
   const displayText = isTruncated && !expanded ? truncated : comment;
   const isCommentOfActiveMove = path === selectedPath;
-  const selectedClass = isCommentOfActiveMove
-    ? 'text-brand-blue bg-blue-50 shadow-inner ring-1 ring-blue-200 text-gray-700'
-    : '';
 
   return (
     <span
-      className={`comment inline-block text-gray-500 break-words px-1 rounded cursor-pointer ${selectedClass}`}
+      className={`comment ${isCommentOfActiveMove ? 'is-current' : ''}`}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
       {displayText}
       {isTruncated && (
         <span
-          className="text-gray-500 bg-gray-200 rounded-md cursor-pointer ml-1 hover:underline"
+          className="comment-expand"
           onClick={(e) => {
             e.stopPropagation();
             setExpanded(!expanded);
           }}
         >
-          {expanded ? (
-            <ChevronsRightLeftIcon className="inline w-4 h-4" />
-          ) : (
-            <EllipsisIcon className="inline w-4 h-4" />
-          )}
+          {expanded ? <ChevronsRightLeftIcon /> : <EllipsisIcon />}
         </span>
       )}
     </span>
@@ -303,11 +283,7 @@ export const renderIndexText = (ply: number, withDots?: boolean): string =>
 
 //TODO maybe dont style this as if it was a real move?
 function EmptyMove() {
-  return (
-    <div className="empty move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0 leading-[27.65px] px-[7.9px] overflow-hidden font-bold text-gray-600">
-      ...
-    </div>
-  );
+  return <div className="move empty">...</div>;
 }
 
 export const plyToTurn = (ply: number): number => Math.floor((ply - 1) / 2) + 1;
@@ -317,7 +293,7 @@ export const renderIndex = (ply: number, withDots?: boolean): string =>
 
 function IndexNode(ply: number) {
   return (
-    <div className="index self-stretch flex items-center self-start basis-[13%] justify-center border-r bg-[#f9f9f9] text-[#999]">
+    <div className="index">
       {/* {renderIndex(ply, true)} */}
       {ply}
     </div>
@@ -333,7 +309,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   const selectedPath = useTrainerStore.getState().selectedPath;
 
   const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? 'bg-brand-blue rounded-md active' : '';
+  const activeClass = path === selectedPath ? 'active' : '';
 
   const { repertoire, selectedChapterId } = useTrainerStore.getState();
   const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
@@ -346,11 +322,7 @@ function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode
   return (
     <div
       data-path={path}
-      className={`move items-center self-start flex shadow-sm basis-[43.5%] shrink-0 grow-0
-        leading-[27.65px] px-[7.9px] pr-[4.74px] overflow-hidden font-bold
-        hover:bg-brand-blue-light hover:rounded-md select-none cursor-pointer
-        text-gray-700
-        ${activeClass} ${isContextSelected ? 'bg-orange-400' : ''} `}
+      className={`move ${activeClass} ${isContextSelected ? 'is-context-selected' : ''}`}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
       {node.data.san}
@@ -381,17 +353,12 @@ function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNod
   // const classes = nodeClasses(ctx, node, path);
 
   const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'bg-brand-blue rounded-md active' : '';
+  const activeClass = path == selectedPath ? 'active' : '';
 
   return (
     <span
       data-path={path}
-      className={`move variation inline-block max-w-full align-top
-  whitespace-normal break-words
-  px-[7.9px] pr-[4.74px]
-  hover:bg-brand-blue-light hover:rounded-md select-none cursor-pointer ${activeClass}
-  text-gray-700
-  `}
+      className={`move variation ${activeClass}`}
       onContextMenu={(e) => showMenu(e, items, path)}
     >
       {content}
@@ -415,7 +382,7 @@ function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts
 
 function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
   return (
-    <span className="inline">
+    <span className="line-inline">
       {'( '}
       <RenderMoveAndChildren
         ctx={ctx}
@@ -468,7 +435,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
     return (
       <span className="lines inline">
         {nodes.map((n) => (
-          <span className="inline" key={n.data.id}>
+          <span className="line-inline" key={n.data.id}>
             {'('}
             <RenderMoveAndChildren
               ctx={ctx}
@@ -491,7 +458,7 @@ export function RenderLines({ ctx, parentNode, nodes, opts }) {
     <div className={`lines ${!nodes[1] ? 'single' : ''}`}>
       {nodes.map((n) => {
         return (
-          <div className="line block relative ps-[7px]" key={n.data.id}>
+          <div className="line" key={n.data.id}>
             <div className="branch" />
             <RenderMoveAndChildren
               ctx={ctx}
@@ -584,7 +551,7 @@ function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; op
         )}
 
         {isWhite && false && <EmptyMove />}
-        <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
+        <div className="interrupt">
           {/* {commentTags} */}
           {/* ctx, main, conceal, true, opts.parentPath + main.id */}
           <RenderMainlineCommentsOf
@@ -647,7 +614,7 @@ function BottomCommentEditor() {
   if (!node) return null;
 
   return (
-    <div className="shrink-0 bg-white border-t border-gray-200 px-2 py-2">
+    <div className="tree-editor-dock">
       <CommentEditor key={editingPath} path={editingPath} initial={node.data.comment ?? ''} />
     </div>
   );
@@ -665,12 +632,12 @@ function ChildMoveButtons() {
   if (!node || node.children.length <= 1) return null;
 
   return (
-    <div className="shrink-0 bg-white border-t border-gray-200 px-2 py-1.5">
-      <div className="flex flex-wrap gap-1.5 justify-start">
+    <div className="tree-child-moves">
+      <div className="tree-child-moves-row">
         {node.children.map((child) => (
           <button
             key={child.data.id}
-            className="px-2.5 py-1 text-sm font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-blue-50 hover:border-brand-blue hover:text-brand-blue transition shadow-sm basis-[calc(50%-0.1875rem)]"
+            className="tree-child-move"
             onClick={() => jump(selectedPath + child.data.id)}
           >
             {renderIndex(child.data.ply, true)} {child.data.san}
@@ -758,14 +725,14 @@ export default function PgnTree({ setActiveMoveId }) {
   return (
     <CommentEditContext.Provider value={commentEditValue}>
     <ContextMenuProvider>
-      <div className="relative h-full flex flex-col bg-gray-100">
+      <div className="tree-panel">
         <div
           ref={scrollRef}
           onMouseDown={handleMouseDown}
-          className="tview2 tview2-column tree-scroll overflow-y-auto flex flex-row flex-wrap items-start bg-white min-h-0"
+          className="tview2 tview2-column tree-scroll tree-body"
         >
           {root.data.comment && (
-            <div className="interrupt flex-[0_0_100%] max-w-full bg-zebra border-t border-b border-border shadow-[inset_1px_1px_3px_rgba(0,0,0,0.2),_inset_-1px_-1px_3px_rgba(255,255,255,0.6)]">
+            <div className="interrupt">
               <RenderMainlineCommentsOf
                 ctx={ctx}
                 node={root}

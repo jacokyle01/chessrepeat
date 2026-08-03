@@ -1,0 +1,58 @@
+/* Edit / Learn / Recall pills hanging off the bottom of the board card.
+   Base pill geometry comes from .control-tab / .control-tab-btn in layout.css,
+   which also scales the type and padding with the board via container queries. */
+
+.training-controls-wrap {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+/* Hover only applies to a pill that isn't already the selected mode — the
+   active pill is meant to look pressed and stay put. */
+.training-btn:not(.is-active):not(.is-prompted):hover {
+  background: var(--c-slate-200);
+}
+
+.training-btn.is-active {
+  background: var(--c-surface);
+}
+
+/* EDIT */
+.training-btn-edit.is-active {
+  color: var(--c-slate-900);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--c-slate-300);
+}
+
+.training-btn-edit:not(.is-active):hover {
+  color: var(--c-slate-800);
+}
+
+/* LEARN */
+.training-btn-learn.is-active {
+  color: var(--c-brand-blue-light);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--c-brand-blue-light);
+}
+
+.training-btn-learn:not(.is-active):not(.is-prompted):hover {
+  color: var(--c-brand-blue-light);
+}
+
+/* First-run nudge: when the seeded example chapter is selected but no mode is
+   active yet, Learn pulses so it reads as the obvious next step. */
+.training-btn-learn.is-prompted {
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
+  box-shadow: var(--shadow-md), 0 0 0 2px var(--c-brand-blue);
+  animation: ring-pulse 1.5s ease-out infinite;
+}
+
+/* RECALL */
+.training-btn-recall.is-active {
+  color: var(--c-brand-blue);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--c-brand-blue);
+}
+
+.training-btn-recall:not(.is-active):hover {
+  color: var(--c-brand-blue);
+}

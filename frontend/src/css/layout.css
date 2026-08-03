@@ -7,6 +7,13 @@
    =========================== */
 
 /* ---------- root shell ---------- */
+.app-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
 .app-root {
   width: 100%;
   height: 100dvh;
@@ -61,6 +68,25 @@
   height: 1.5rem;
   width: 1.5rem;
   border-radius: 0.375rem;
+}
+
+/* Ring color encodes the peer's access: `train` collaborators get the light
+   blue, everyone with full access (owner, `edit`) gets the dark one. */
+#header .header-peer-edit {
+  box-shadow: 0 0 0 2px var(--c-brand-blue);
+}
+
+#header .header-peer-train {
+  box-shadow: 0 0 0 2px var(--c-brand-blue-light);
+}
+
+#header .header-username {
+  font-size: 0.875rem;
+}
+
+#header .header-user svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* Signed-in user: avatar + name. */
@@ -259,31 +285,120 @@
   height: clamp(14px, 4.25cqi, 22px);
 }
 
-/* settings button: matches Controls pill style */
-.settings-btn {
+/* The Edit/Learn/Recall group, the comment popout and the settings button all
+   hang off the bottom edge of the board card as white "tabs". */
+.control-tab {
   display: inline-flex;
+  flex-shrink: 0;
+  padding: 0.25rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: var(--c-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.control-tab-btn {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 0 0 0.75rem 0.75rem;
-  background: #fff;
-  color: #64748b; /* slate-500 */
-  border: none;
-  cursor: pointer;
+  border-radius: 0.5rem;
+  font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;
-  font-family: inherit;
+  background: transparent;
+  color: var(--c-slate-500);
   transition: all 200ms;
-  flex-shrink: 0;
 }
 
+/* settings button: matches Controls pill style */
 .settings-btn:hover {
-  color: #1e293b; /* slate-800 */
-  background: #e2e8f0; /* slate-200 */
+  color: var(--c-slate-800);
+  background: var(--c-slate-200);
 }
 
 .settings-btn:active {
   transform: scale(0.98);
+}
+
+/* ---------- shared panel chrome (chapter / repertoire / schedule) ---------- */
+.panel-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.panel-icon {
+  flex-shrink: 0;
+  display: flex;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: var(--c-gray-500);
+  background: var(--c-gray-200);
+}
+
+.panel-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.panel-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--c-gray-800);
+}
+
+/* two-line title block: name over a small uppercase count */
+.panel-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1;
+}
+
+.panel-titles .panel-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-subtitle {
+  margin-top: -0.125rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--c-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Icon-with-optional-label action in a panel header (add / download / copy). */
+.panel-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--c-slate-600);
+  transition: color 150ms, background-color 150ms;
+}
+
+.panel-action:hover:not(:disabled) {
+  color: var(--c-slate-800);
+  background: var(--c-gray-100);
+}
+
+.panel-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.panel-action:disabled {
+  color: var(--c-gray-300);
+  cursor: not-allowed;
 }
 
 /* pgn panel */
@@ -316,18 +431,11 @@
 .area-schedule {
 }
 
-/* when the repertoire card is narrow (e.g. 2-column middle layout),
-   collapse the "Learn"/"Recall" labels on each chapter row so only the
-   count remains. */
+/* The repertoire card is a query container; Repertoire.css collapses the
+   per-row labels once it gets narrow. */
 #repertoire {
   container-type: inline-size;
   container-name: repertoire;
-}
-
-@container repertoire (max-width: 340px) {
-  .chapter-btn-label {
-    display: none;
-  }
 }
 
 /* ---------- MIDDLE (768px – 1023px): two-column layout ----------
@@ -477,6 +585,11 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--c-backdrop);
   z-index: 10;
+}
+
+/* sits just under .settings-dialog (z-index 50) */
+.modal-backdrop-settings {
+  z-index: 40;
 }

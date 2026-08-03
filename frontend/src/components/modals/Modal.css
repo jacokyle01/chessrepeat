@@ -1,0 +1,42 @@
+/* Generic centered modal used by LoginModal. */
+
+.simple-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.25);
+}
+
+/* stacks above another modal that's already open */
+.simple-modal-scrim.is-stacked {
+  z-index: 1100;
+}
+
+.simple-modal-card {
+  position: relative;
+  width: 24rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  background: var(--c-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.simple-modal-card h2 {
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.simple-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: var(--c-gray-500);
+}
+
+.simple-modal-close:hover {
+  color: var(--c-gray-800);
+}

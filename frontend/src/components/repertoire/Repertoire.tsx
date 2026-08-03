@@ -25,6 +25,7 @@ import React, { useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
 import { viewUserRepertoire } from '../../services/collaborators';
+import './Repertoire.css';
 
 export const ChapterRow = ({ entry, index, id }) => {
   const setSelectedChapterId = useStore(useTrainerStore, (s) => s.setSelectedChapterId);
@@ -47,18 +48,8 @@ export const ChapterRow = ({ entry, index, id }) => {
   return (
     <React.Fragment key={index}>
       {editOpen && (
-        <div
-          className="
-      fixed inset-0 z-40
-      bg-black/50 backdrop-blur-sm
-      flex items-center justify-center
-    "
-          onClick={() => setEditOpen(false)}
-        >
-          <div
-            className="z-50"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="chapter-edit-backdrop" onClick={() => setEditOpen(false)}>
+          <div className="chapter-edit-dialog-wrap" onClick={(e) => e.stopPropagation()}>
             <EditChapterModal chapterId={entry.uuid} onClose={() => setEditOpen(false)} />
           </div>
         </div>
@@ -67,36 +58,36 @@ export const ChapterRow = ({ entry, index, id }) => {
       <div
         id="chapter-wrap"
         onClick={handleChangeChapter}
-        className={isSelected ? 'bg-cyan-50' : ''}
+        className={`chapter-row ${isSelected ? 'is-selected' : ''}`}
       >
-        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-2 py-0.5">
-          <span className="font-bold pr-3 text-brand-blue flex-shrink-0">{index + 1}</span>
+        <div className="chapter">
+          <span className="chapter-index">{index + 1}</span>
 
-          <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
-            <span className={`text-sm truncate leading-none ${isSelected ? 'font-bold' : ''}`}>{name}</span>
-            <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
+          <h3 className="chapter-title">
+            <span className={`chapter-name ${isSelected ? 'is-selected' : ''}`}>{name}</span>
+            <span className="chapter-size">{meta.enabledCount}</span>
           </h3>
 
           {entry.unseenCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-brand-blue-light/40 text-sky-700 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
-              <span className="chapter-btn-label"><LucideGraduationCap size={18}/></span>{entry.unseenCount}
+            <button className="chapter-count chapter-count-unseen">
+              <span className="chapter-btn-label">
+                <LucideGraduationCap size={18} />
+              </span>
+              {entry.unseenCount}
             </button>
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-brand-blue/30 text-blue-800 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
-              <span className="chapter-btn-label"><LucideHistory size={18}/> </span>{entry.lastDueCount}
+            <button className="chapter-count chapter-count-due">
+              <span className="chapter-btn-label">
+                <LucideHistory size={18} />
+              </span>
+              {entry.lastDueCount}
             </button>
           )}
 
-          <div
-            id="edit-chapter"
-            className="ml-auto mr-2 text-slate-500 cursor-pointer flex-shrink-0"
-            onClick={() => setEditOpen(true)}
-          >
-            <div id="icon-wrap">
-              <Settings2Icon width={20} height={20}/>
-            </div>
+          <div id="edit-chapter" className="chapter-edit" onClick={() => setEditOpen(true)}>
+            <Settings2Icon width={20} height={20} />
           </div>
         </div>
       </div>
@@ -126,41 +117,38 @@ const Repertoire: React.FC = () => {
   });
 
   return (
-    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-md">
+    <div id="repertoire" className="repertoire-card">
       {/* fixed header */}
-      <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
+      <div className="panel-header">
         {viewingOther && authUsername ? (
           <button
             type="button"
             onClick={() => void viewUserRepertoire(authUsername)}
             aria-label="Back to my repertoire"
             title="Back to my repertoire"
-            className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded hover:text-gray-700 hover:bg-gray-300 transition"
+            className="panel-icon repertoire-back-btn"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
+            <ArrowLeftIcon />
           </button>
         ) : (
-          <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
-            <BookOpenIcon className="w-5 h-5" />
+          <div id="reperoire-icon-wrap" className="panel-icon">
+            <BookOpenIcon />
           </div>
         )}
-        <div className="flex flex-col leading-none min-w-0">
-          <span className="text-lg text-gray-800 font-semibold truncate">{title}</span>
-          <span className="-mt-0.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="panel-titles">
+          <span className="panel-title">{title}</span>
+          <span className="panel-subtitle">
             {repertoire.length} chapter{repertoire.length === 1 ? '' : 's'}
           </span>
         </div>
-
 
         <button
           type="button"
           onClick={() => setShowingAddToRepertoireMenu(true)}
           aria-label="Add to repertoire"
           title="Add to repertoire"
-          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
-            text-slate-600 hover:text-slate-800 hover:bg-gray-100
-            ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
-            >
+          className={`panel-action repertoire-add-btn ${isEmpty ? 'is-empty' : ''}`}
+        >
           <LucideUpload size={18} />
           <span className="chapter-btn-label">add</span>
         </button>
@@ -171,44 +159,36 @@ const Repertoire: React.FC = () => {
           disabled={isEmpty}
           aria-label="Download repertoire"
           title="Download repertoire"
-          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center ${
-            isEmpty
-            ? 'text-gray-300 cursor-not-allowed'
-            : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
-          }`}
-          >
-          <DownloadIcon className="w-[18px] h-[18px]" />
+          className="panel-action"
+        >
+          <DownloadIcon />
           <span className="chapter-btn-label">download</span>
         </button>
-          {isAuth ? (
-            <span className="shrink-0 ml-auto text-green-600" title="Synced">
-              <LucideCloudUpload size={18}/>
-            </span>
-          ) : (
-            <span className="shrink-0 ml-auto text-red-600" title="Offline — changes not synced">
-              <LucideCloudOff size={18}/>
-            </span>
-          )}
+        {isAuth ? (
+          <span className="repertoire-sync repertoire-sync-online" title="Synced">
+            <LucideCloudUpload size={18} />
+          </span>
+        ) : (
+          <span
+            className="repertoire-sync repertoire-sync-offline"
+            title="Offline — changes not synced"
+          >
+            <LucideCloudOff size={18} />
+          </span>
+        )}
       </div>
-      
+
       {/* ONLY THIS SCROLLS */}
-      <div
-        id="repertoire-wrap"
-        className="
-        repertoire-scroll
-        flex-1 min-h-0 overflow-y-auto pb-2
-        pr-1
-      "
-      >
-        <span className="font-semibold text-sm uppercase px-2 text-gray-600">White</span>
-        <div className="flex-row rounded-md">
+      <div id="repertoire-wrap" className="repertoire-scroll repertoire-list">
+        <span className="repertoire-group-label">White</span>
+        <div className="repertoire-group">
           {whiteEntries.map((entry, index) => (
             <ChapterRow id={entry.id} entry={entry} index={index} />
           ))}
         </div>
 
-        <span className="font-semibold text-sm uppercase px-2 text-gray-600">Black</span>
-        <div className="flex-row rounded-md">
+        <span className="repertoire-group-label">Black</span>
+        <div className="repertoire-group">
           {blackEntries.map((entry, index) => (
             <ChapterRow id={entry.id} entry={entry} index={index + whiteEntries.length} />
           ))}

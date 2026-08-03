@@ -1,0 +1,148 @@
+/* ===========================
+   Chrome shared by the app's dialogs.
+
+   Two shapes are in use:
+     - "sheet"  — a scrim that owns the click-outside, with a card centered
+                  inside it (Download, Collaborators).
+     - "dialog" — a bare <dialog> positioned over a separately-rendered
+                  .modal-backdrop, with a red close puck hanging off the
+                  corner (Add to Repertoire, Edit Chapter, Comment).
+   =========================== */
+
+/* ---------- sheet ---------- */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-backdrop);
+  backdrop-filter: blur(4px);
+}
+
+/* variant that pins the card near the top instead of centering it, for
+   panels tall enough that centering would push them off-screen */
+.modal-scrim-top {
+  align-items: flex-start;
+  padding-top: 5rem;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 24rem;
+  margin: 0 1rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--c-surface);
+  box-shadow: var(--shadow-2xl);
+}
+
+.modal-card-md {
+  max-width: 28rem;
+}
+
+.modal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.25rem 0.75rem;
+}
+
+.modal-card-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--c-gray-900);
+}
+
+.modal-close-x {
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  color: var(--c-gray-400);
+  transition: color 150ms, background-color 150ms;
+}
+
+.modal-close-x:hover {
+  color: var(--c-gray-600);
+  background: var(--c-gray-100);
+}
+
+.modal-card-body {
+  padding: 0 1.25rem 1.25rem;
+}
+
+/* vertical rhythm between the body's sections */
+.modal-card-body > * + * {
+  margin-top: 1.25rem;
+}
+
+.modal-section-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--c-gray-500);
+}
+
+/* ---------- dialog ---------- */
+.modal-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  /* leave a margin each side on narrow viewports so the close puck, which
+     hangs off the corner, isn't clipped */
+  width: calc(100% - 2rem);
+  max-width: 28rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--c-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-dialog-lg {
+  max-width: 32rem;
+}
+
+/* red close puck, hung off the dialog's top-right corner */
+.modal-close-puck {
+  position: absolute;
+  top: -0.75rem;
+  right: -0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: var(--c-red-500);
+  color: var(--c-surface);
+  box-shadow: var(--shadow-md);
+  transition: background-color 150ms;
+}
+
+.modal-close-puck:hover {
+  background: var(--c-red-600);
+}
+
+.modal-close-puck svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* ---------- shared form bits ---------- */
+.modal-text-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--c-gray-300);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.modal-hint {
+  font-size: 0.75rem;
+  color: var(--c-gray-500);
+}

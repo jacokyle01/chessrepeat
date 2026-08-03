@@ -58,6 +58,7 @@ import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import './css/layout.css';
+import './css/chessrepeat.css';
 import { Debug } from './components/Debug';
 import { useWebsocket } from './hooks/useWebsocket';
 import { useStartup } from './hooks/useStartup';
@@ -74,6 +75,15 @@ function promoRoleFromSan(san?: string): PromoRole | undefined {
   const map: Record<string, PromoRole> = { Q: 'queen', R: 'rook', B: 'bishop', N: 'knight' };
   return map[m[1]];
 }
+
+// The progress segments and the "+time" reward are positioned from live data,
+// which CSS can't derive on its own. Both hand the value over as a custom
+// property so the actual declarations stay in chessrepeat.css.
+const segmentWidth = (ratio: number): React.CSSProperties =>
+  ({ '--segment-width': `${ratio * 100}%` }) as React.CSSProperties;
+
+const rewardPosition = (x: number, y: number): React.CSSProperties =>
+  ({ '--reward-x': `${x - 5}px`, '--reward-y': `${y - 25}px` }) as React.CSSProperties;
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -426,44 +436,39 @@ export const Chessrepeat = () => {
           <div className="area-board" id="board-wrap">
             <div className="board-card">
               {chapter && chapter.enabledCount > 0 && (
-                <div className="group relative">
-                  <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200 cursor-default">
+                <div className="board-progress">
+                  <div className="board-progress-bar">
                     <div
-                      className="h-full bg-brand-blue-light"
-                      style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
+                      className="board-progress-unseen"
+                      style={segmentWidth(chapter.unseenCount / chapter.enabledCount)}
                     />
                     <div
-                      className="h-full bg-brand-blue"
-                      style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
+                      className="board-progress-due"
+                      style={segmentWidth(chapter.lastDueCount / chapter.enabledCount)}
                     />
                   </div>
 
                   {/* Breakdown tooltip on hover */}
-                  <div
-                    className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2
-                    whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-2 text-xs
-                    text-gray-700 shadow-lg opacity-0 transition-opacity duration-150
-                    group-hover:opacity-100"
-                  >
-                    <table className="border-separate border-spacing-x-2 border-spacing-y-0.5">
+                  <div className="board-progress-tooltip">
+                    <table>
                       <tbody>
                         <tr>
-                          <td className="align-middle">
-                            <GraduationCap size={14} className="text-sky-700" />
+                          <td className="cell-icon cell-icon-learn">
+                            <GraduationCap size={14} />
                           </td>
-                          <td className="text-left">To Learn</td>
-                          <td className="text-right font-mono font-semibold">{chapter.unseenCount}</td>
-                          <td className="text-right font-mono text-gray-400">
+                          <td className="cell-label">To Learn</td>
+                          <td className="cell-count">{chapter.unseenCount}</td>
+                          <td className="cell-percent">
                             {Math.round((chapter.unseenCount / chapter.enabledCount) * 100)}%
                           </td>
                         </tr>
                         <tr>
-                          <td className="align-middle">
-                            <History size={14} className="text-blue-800" />
+                          <td className="cell-icon cell-icon-due">
+                            <History size={14} />
                           </td>
-                          <td className="text-left">Due Now</td>
-                          <td className="text-right font-mono font-semibold">{chapter.lastDueCount}</td>
-                          <td className="text-right font-mono text-gray-400">
+                          <td className="cell-label">Due Now</td>
+                          <td className="cell-count">{chapter.lastDueCount}</td>
+                          <td className="cell-percent">
                             {Math.round((chapter.lastDueCount / chapter.enabledCount) * 100)}%
                           </td>
                         </tr>
@@ -511,16 +516,15 @@ export const Chessrepeat = () => {
             {/* CONTROLS — part of the same board panel, always directly
                 beneath the board (single grid area). */}
             <div className="area-controls">
-              <div className="flex items-start gap-1">
+              <div className="controls-group">
                 <Controls />
               </div>
               <MobileCommentPopout />
-              <div className="inline-flex rounded-b-xl bg-white shadow-md p-1">
+              <div className="control-tab">
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-                    transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                  className="control-tab-btn settings-btn"
                   aria-label="Settings"
                   title="Settings"
                 >
@@ -532,7 +536,7 @@ export const Chessrepeat = () => {
 
           {settingsOpen && (
             <>
-              <div className="modal-backdrop" style={{ zIndex: 40 }} onClick={() => setSettingsOpen(false)} />
+              <div className="modal-backdrop modal-backdrop-settings" onClick={() => setSettingsOpen(false)} />
               <SettingsModal setSettingsOpen={setSettingsOpen} />
             </>
           )}
@@ -543,16 +547,14 @@ export const Chessrepeat = () => {
           </div>
 
           {/* PGN TREE */}
-          <div className="area-pgn shadow-md" ref={movesContainerRef}>
+          <div className="area-pgn" ref={movesContainerRef}>
             {/* Header + tree: hidden on mobile during learn/recall */}
-            <div
-              className={`flex flex-col min-h-0 flex-1 overflow-hidden ${isTraining ? 'hidden md:flex' : ''}`}
-            >
-              <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
-                <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
-                  <FileIcon className="w-5 h-5" />
+            <div className={`pgn-panel-body ${isTraining ? 'is-training-hidden' : ''}`}>
+              <div className="panel-header">
+                <div className="panel-icon">
+                  <FileIcon />
                 </div>
-                <span className="text-gray-800 font-semibold text-lg">Chapter</span>
+                <span className="panel-title">Chapter</span>
                 {/* copy icon */}
                 <button
                   type="button"
@@ -563,16 +565,12 @@ export const Chessrepeat = () => {
                     setFenCopied(true);
                     setTimeout(() => setFenCopied(false), 1200);
                   }}
-                  className={`ml-auto p-1.5 rounded-md transition flex gap-1 text-sm items-end ${
-                    fenCopied
-                      ? 'bg-white text-green-600'
-                      : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
-                  }`}
+                  className={`copy-fen-btn ${fenCopied ? 'is-copied' : ''}`}
                   aria-label="Copy FEN"
                   title="Copy FEN"
                 >
                   <span>copy fen</span>
-                  {fenCopied ? <ClipboardCheck className="w-5 h-5" /> : <ClipboardCopy className="w-5 h-5" />}
+                  {fenCopied ? <ClipboardCheck /> : <ClipboardCopy />}
                 </button>
               </div>
               <div className="pgn-tree-scroll">
@@ -600,32 +598,8 @@ export const Chessrepeat = () => {
 
       {/* +time overlay */}
       {box && trainingMethod === 'recall' && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${box.x - 5}px`,
-            top: `${box.y - 25}px`,
-            pointerEvents: 'none',
-            transition: 'opacity 300ms ease',
-            zIndex: 10,
-            transform: 'rotate(45deg)',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              fontStyle: 'italic',
-              color: '#111',
-              padding: '2px 6px',
-              border: 'rgba(255,255,255,0.2)',
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.5px',
-              background: 'rgba(255,255,255,0.2)',
-            }}
-          >
-            +{box.time}
-          </div>
+        <div className="time-reward" style={rewardPosition(box.x, box.y)}>
+          <div className="time-reward-label">+{box.time}</div>
         </div>
       )}
     </MantineProvider>

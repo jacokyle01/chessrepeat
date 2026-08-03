@@ -2,6 +2,7 @@ import { parseSan } from 'chessops/san';
 import { useTrainerStore } from '../store/state';
 import { Chess } from 'chessops';
 import { INITIAL_BOARD_FEN, parseFen } from 'chessops/fen';
+import './Debug.css';
 
 export const Debug: React.FC = () => {
   const trainingPath = useTrainerStore.getState().trainableContext?.startingPath;
@@ -16,7 +17,7 @@ export const Debug: React.FC = () => {
   if (!chapter) return undefined;
   console.log(targetMove?.data?.fen);
   return (
-    <div className="absolute bottom-0 p-15">
+    <div className="debug-panel">
       <div>{`chapter ${chapter.unseenCount}`}</div>
       <div>{`TrainingPath ${trainingPath}`}</div>
       <div>{`selectedPath ${selectedPath}`}</div>

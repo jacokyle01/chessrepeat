@@ -1,0 +1,8 @@
+/* Wrapper chessground mounts into. It must be square and fill its column;
+   the board graphic itself is painted by the theme (.blue cg-board). */
+.chessground-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  background-size: cover;
+  background-position: center;
+}

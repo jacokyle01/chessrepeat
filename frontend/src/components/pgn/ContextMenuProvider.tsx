@@ -4,6 +4,7 @@
 import React, { createContext, useRef, useState, useContext, useMemo } from 'react';
 import { ContextMenu } from 'primereact/contextmenu';
 import { useTrainerStore } from '../../store/state';
+import './ContextMenuProvider.css';
 
 type MenuItem = {
   label: string;
@@ -66,13 +67,13 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
       return {
         ...it,
         template: (item: any) => (
-          <div className="flex items-center gap-2 px-3 py-2">
+          <div className="ctxmenu-item">
             {item.icon ? (
-              <span className={`${item.icon} text-gray-500 shrink-0`} />
+              <span className={`${item.icon} ctxmenu-item-icon`} />
             ) : (
-              <span className="w-4 shrink-0" />
+              <span className="ctxmenu-item-spacer" />
             )}
-            <span className="text-sm text-gray-900 leading-5 truncate">{item.label}</span>
+            <span className="ctxmenu-item-label">{item.label}</span>
           </div>
         ),
       };
@@ -88,20 +89,12 @@ export function ContextMenuProvider({ children }: { children: React.ReactNode })
         ref={cm}
         onHide={handleHide}
         pt={{
-          root: {
-            className:
-              'min-w-[240px] max-w-[92vw] rounded-xl border border-gray-200 bg-white/95 text-gray-900 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-white/80',
-          },
-          menu: { className: 'py-1' },
-          action: {
-            className:
-              'flex w-full items-center rounded-lg outline-none transition ' +
-              'hover:bg-gray-100 focus:bg-gray-100 active:bg-gray-200 ' +
-              'data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none',
-          },
-          label: { className: 'select-none' },
-          icon: { className: 'text-gray-500' },
-          separator: { className: 'my-1 border-t border-gray-200' },
+          root: { className: 'cr-ctxmenu' },
+          menu: { className: 'cr-ctxmenu-list' },
+          action: { className: 'cr-ctxmenu-action' },
+          label: { className: 'cr-ctxmenu-label' },
+          icon: { className: 'cr-ctxmenu-icon' },
+          separator: { className: 'cr-ctxmenu-separator' },
         }}
       />
       {children}

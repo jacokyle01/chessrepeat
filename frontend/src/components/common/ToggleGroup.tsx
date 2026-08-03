@@ -1,6 +1,7 @@
 
 
 import React, { useState } from 'react';
+import './ToggleGroup.css';
 
 interface ToggleGroupProps {
   label: string;
@@ -26,19 +27,13 @@ const ToggleGroup: React.FC<ToggleGroupProps> = ({
     : activeIndex;
 
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold mb-1">{label}</label>
-      <div className="flex rounded overflow-hidden border border-gray-300">
+    <div className="toggle-group">
+      <label className="toggle-group-label">{label}</label>
+      <div className="toggle-group-options">
         {labels.map((text, i) => (
           <button
             key={i}
-            className={`flex-1 px-3 py-1 text-sm font-medium transition ${
-              i === 0 ? 'rounded-l' : i === labels.length - 1 ? 'rounded-r' : ''
-            } ${
-              currentIndex === i
-                ? 'bg-brand-blue text-white'
-                : 'bg-white hover:bg-gray-100 text-gray-700'
-            }`}
+            className={`toggle-group-option ${currentIndex === i ? 'is-selected' : ''}`}
             onClick={() => {
               if (!isControlled) {
                 setActiveIndex(i);

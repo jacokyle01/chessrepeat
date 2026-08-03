@@ -75,7 +75,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
           type="button"
           onClick={onOpenCollaborators}
           title="Collaborators"
-          className="header-link relative"
+          className="header-link"
         >
           <span>collaborators</span>
           <Globe />
@@ -90,7 +90,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
               // (owner, edit) gets dark blue. Owner appears as a peer
               // only when a collaborator is viewing — same color as edit
               // since they have full access too.
-              const ring = u.permission === 'train' ? 'ring-brand-blue-light' : 'ring-brand-blue';
+              const ring = u.permission === 'train' ? 'header-peer-train' : 'header-peer-edit';
               return (
                 <img
                   key={u.username}
@@ -98,7 +98,7 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
                   alt={u.username}
                   title={`${u.username} (${u.permission})`}
                   referrerPolicy="no-referrer"
-                  className={`header-peer ring-2 ${ring}`}
+                  className={`header-peer ${ring}`}
                 />
               );
             })}
@@ -116,9 +116,9 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
                   className="header-avatar"
                 />
               ) : (
-                <User className="h-5 w-5" />
+                <User />
               )}
-              <span className="text-sm">{authUser.username ?? 'Unnamed'}</span>
+              <span className="header-username">{authUser.username ?? 'Unnamed'}</span>
             </span>
             <button
               type="button"

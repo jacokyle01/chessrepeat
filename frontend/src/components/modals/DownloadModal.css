@@ -1,0 +1,80 @@
+/* Export picker: scope (whole repertoire vs. current chapter) x format. */
+
+.download-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.download-option {
+  padding: 0.625rem 0.75rem;
+  border: 2px solid var(--c-gray-200);
+  border-radius: 0.5rem;
+  background: var(--c-surface);
+  color: var(--c-gray-700);
+  text-align: left;
+  font-size: 0.875rem;
+  transition: border-color 150ms, background-color 150ms, color 150ms;
+}
+
+.download-option:hover:not(:disabled):not(.is-selected) {
+  border-color: var(--c-gray-300);
+}
+
+.download-option.is-selected {
+  border-color: var(--c-brand-blue);
+  background: var(--c-blue-50);
+  color: var(--c-blue-900);
+}
+
+.download-option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.download-option-label {
+  font-weight: 600;
+}
+
+.download-option-sublabel {
+  margin-top: 0.125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--c-gray-500);
+}
+
+.download-submit {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: filter 150ms, transform 150ms;
+}
+
+.download-submit svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.download-submit:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.download-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.download-submit:disabled {
+  background: var(--c-gray-100);
+  color: var(--c-gray-400);
+  cursor: not-allowed;
+}

@@ -13,6 +13,7 @@ import {
   SquarePen,
 } from 'lucide-react';
 import { useTrainerStore } from '../store/state';
+import './TrainingControls.css';
 // import SettingsButton from './SettingsButton';
 // import { bookI, recallI, gearI } from './Icons'; // Update the path if necessary
 
@@ -40,20 +41,14 @@ const Controls = () => {
 
   //TODO difference between handleLearn and setting mode to learn?
   return (
-    <div className="flex justify-start items-start">
-      <div id="training-controls" className="inline-flex rounded-b-xl bg-white shadow-md p-1">
+    <div className="training-controls-wrap">
+      <div id="training-controls" className="control-tab">
         {/* EDIT */}
         <button
           onClick={() => setTrainingMethod('edit')}
-          className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200
-          ${
-            method === 'edit'
-              ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-300'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200'
-          }
-        `}
+          className={`control-tab-btn training-btn training-btn-edit ${
+            method === 'edit' ? 'is-active' : ''
+          }`}
         >
           <SquarePen size={18} />
           Edit
@@ -66,17 +61,9 @@ const Controls = () => {
             setNextTrainable();
             updateDueCounts();
           }}
-          className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200
-          ${
-            method === 'learn'
-              ? 'bg-white text-brand-blue-light shadow-md ring-1 ring-brand-blue-light'
-              : promptExample
-                ? 'bg-brand-blue text-white shadow-md ring-2 ring-brand-blue animate-ring-pulse'
-                : 'text-slate-500 hover:text-brand-blue-light hover:bg-slate-200'
-          }
-        `}
+          className={`control-tab-btn training-btn training-btn-learn ${
+            method === 'learn' ? 'is-active' : promptExample ? 'is-prompted' : ''
+          }`}
         >
           <GraduationCap size={18} />
           Learn
@@ -89,15 +76,9 @@ const Controls = () => {
             setNextTrainable();
             updateDueCounts();
           }}
-          className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200
-          ${
-            method === 'recall'
-              ? 'bg-white text-brand-blue shadow-md ring-1 ring-brand-blue'
-              : 'text-slate-500 hover:text-brand-blue hover:bg-slate-200'
-          }
-        `}
+          className={`control-tab-btn training-btn training-btn-recall ${
+            method === 'recall' ? 'is-active' : ''
+          }`}
         >
           <History size={18} />
           Recall

@@ -7,6 +7,7 @@ import {
   MousePointer,
   XIcon,
 } from 'lucide-react';
+import './UserTip.css';
 
 type TipAction = {
   label: ReactNode;
@@ -19,6 +20,8 @@ type TipProps = {
   description: string;
   titleClassName?: string;
   descriptionClassName?: string;
+  /** extra class on the icon wrapper, for tips whose glyph is sized differently */
+  iconClassName?: string;
   actions?: TipAction[];
   grayIcon?: boolean;
 };
@@ -27,32 +30,27 @@ const Tip = ({
   icon,
   title,
   description,
-  titleClassName = 'font-bold text-base md:text-lg text-gray-800',
-  descriptionClassName = 'text-md text-gray-600',
+  titleClassName = 'tip-title',
+  descriptionClassName = 'tip-description',
+  iconClassName = '',
   actions,
   grayIcon = true,
 }: TipProps) => (
-  <div className="bg-white flex flex-col items-center py-4 md:px-6 border border-gray-300 rounded-lg shadow-md">
-    <div className="inline-flex items-center gap-2 md:gap-3">
-      <div className="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
-        <div className={`text-gray-500 p-1.5 md:p-2 rounded-md ${grayIcon ? 'bg-gray-100' : ''}`}>
-          {icon}
-        </div>
+  <div className="tip">
+    <div className="tip-main">
+      <div className="tip-icon-slot">
+        <div className={`tip-icon ${grayIcon ? 'is-boxed' : ''} ${iconClassName}`}>{icon}</div>
       </div>
-      <div className="text-start flex flex-col">
+      <div className="tip-text">
         <span className={titleClassName}>{title}</span>
         <span className={descriptionClassName}>{description}</span>
       </div>
     </div>
 
     {actions && actions.length > 0 && (
-      <div className="flex flex-row items-center justify-center gap-1 md:gap-2 w-full px-2 md:px-4 pt-2 ">
+      <div className="tip-actions">
         {actions.map((action, i) => (
-          <button
-            key={i}
-            className="flex-1 py-1 hover:bg-gray-50 text-brand-blue rounded-md font-semibold text-xs md:text-sm whitespace-nowrap"
-            onClick={action.onClick}
-          >
+          <button key={i} className="tip-action" onClick={action.onClick}>
             {action.label}
           </button>
         ))}
@@ -63,7 +61,7 @@ const Tip = ({
 
 const EmptyRepertoire = () => (
   <Tip
-    icon={<GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+    icon={<GraduationCapIcon />}
     title="Repertoire is empty"
     description={'Click "Add to Repertoire" to get started!'}
   />
@@ -71,10 +69,10 @@ const EmptyRepertoire = () => (
 
 const Unselected = () => (
   <Tip
-    icon={<MousePointer className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+    icon={<MousePointer />}
     title="No training mode selected"
     description="Click Learn or Recall to start training"
-    descriptionClassName="text-xs md:text-md text-gray-600"
+    descriptionClassName="tip-description-small"
   />
 );
 
@@ -98,7 +96,7 @@ export const UserTip = () => {
     case 'recall':
       return (
         <Tip
-          icon={<HistoryIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+          icon={<HistoryIcon />}
           title="Play the move"
           description={`What does ${isWhite ? 'White' : 'Black'} play here?`}
         />
@@ -106,7 +104,7 @@ export const UserTip = () => {
     case 'learn':
       return (
         <Tip
-          icon={<GraduationCapIcon className="w-5 h-5 md:w-[35px] md:h-[35px]" />}
+          icon={<GraduationCapIcon />}
           title="Play the move"
           description={`${isWhite ? 'White' : 'Black'} plays ${san}`}
         />
@@ -114,17 +112,19 @@ export const UserTip = () => {
     case 'empty':
       return (
         <Tip
-          icon={<XIcon className="w-5 h-5 md:w-[25px] md:h-[25px]" />}
+          icon={<XIcon />}
+          iconClassName="tip-icon-small"
           title={`No more moves to ${trainingMethod}`}
           description="Try switching the training mode or modifying settings"
-          titleClassName="font-bold text-sm md:text-xl text-gray-600"
-          descriptionClassName="text-xs md:text-md text-gray-600"
+          titleClassName="tip-title-muted"
+          descriptionClassName="tip-description-small"
         />
       );
     case 'alternate':
       return (
         <Tip
-          icon={<LucideRepeat2 className="w-8 h-8 md:w-12 md:h-12" color={'gold'} />}
+          icon={<LucideRepeat2 color={'gold'} />}
+          iconClassName="tip-icon-alternate"
           title={`${lastGuess} is an alternate move`}
           description="Try playing a different move"
           grayIcon={false}
@@ -133,7 +133,7 @@ export const UserTip = () => {
     case 'fail':
       return (
         <Tip
-          icon={<div className="text-red-500 text-2xl md:text-4xl">✗</div>}
+          icon={<div className="tip-cross">✗</div>}
           title={`${lastGuess} is incorrect`}
           grayIcon={false}
           description={`${isWhite ? 'White' : 'Black'} plays ${san}`}
@@ -152,7 +152,7 @@ export const UserTip = () => {
             {
               label: (
                 <>
-                  ADD <span className="text-black">{lastGuess}</span>
+                  ADD <span className="tip-action-move">{lastGuess}</span>
                 </>
               ),
               onClick: () => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CalendarHeatmap, { ReactCalendarHeatmapValue } from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
+import './InsightChart.css';
 import { useTrainerStore } from '../store/state';
 import { AlarmCheckIcon } from 'lucide-react';
 
@@ -82,12 +83,12 @@ const InsightChart: React.FC = () => {
   }, [dueTimes]);
 
   if (!dueTimes || totalMoves === 0) {
-    return <div className="px-2 py-1 text-xs text-gray-400">No moves to chart yet.</div>;
+    return <div className="cr-heatmap-empty">No moves to chart yet.</div>;
   }
 
   return (
-    <div className="cr-heatmap font-sans text-xs w-full">
-      <div className="w-full pr-5">
+    <div className="cr-heatmap">
+      <div className="cr-heatmap-grid">
         <CalendarHeatmap
           startDate={startDate}
           endDate={endDate}
@@ -110,7 +111,7 @@ const InsightChart: React.FC = () => {
         />
       </div>
 
-      <div className="h-4 text-[11px] text-gray-700 pl-1 -mt-3">
+      <div className="cr-heatmap-readout">
         {hovered && (
           <>
             <strong>
@@ -127,26 +128,6 @@ const InsightChart: React.FC = () => {
           </>
         )}
       </div>
-{/* 
-      <div className="flex items-center gap-1 pl-1 pt-1 text-[13px]">
-        <AlarmCheckIcon className="w-4 h-4 text-gray-700" />
-        <span className="font-semibold text-gray-800">{dueNow}</span>
-        <span className="text-gray-600">moves due now</span>
-      </div> */}
-
-      <style>{`
-        .cr-heatmap .react-calendar-heatmap text { fill: #374151; font-size: 9px; font-weight: 600; }
-        .cr-heatmap .react-calendar-heatmap .react-calendar-heatmap-small-text { font-size: 8px; }
-        .cr-heatmap .react-calendar-heatmap-month-label { transform: translateY(3px); }
-        .cr-heatmap .react-calendar-heatmap rect { rx: 1; ry: 1; }
-        .cr-heatmap .react-calendar-heatmap rect.color-cr-0 { fill: #dfdfdf; }
-        .cr-heatmap .react-calendar-heatmap rect.color-cr-1 { fill: #c9deff; }
-        .cr-heatmap .react-calendar-heatmap rect.color-cr-2 { fill: #91bbff; }
-        .cr-heatmap .react-calendar-heatmap rect.color-cr-3 { fill: #6991ff; }
-        .cr-heatmap .react-calendar-heatmap rect.color-cr-4 { fill: #1856ff; }
-        .cr-heatmap .react-calendar-heatmap rect.cr-today { stroke: #3b82f6; stroke-width: 1.5; }
-        .cr-heatmap .react-calendar-heatmap rect:hover { stroke: #555; stroke-width: 1; cursor: pointer; }
-      `}</style>
     </div>
   );
 };

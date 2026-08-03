@@ -1,0 +1,6 @@
+/* Dev-only readout of the training context; not rendered in normal use. */
+.debug-panel {
+  position: absolute;
+  bottom: 0;
+  padding: 3.75rem;
+}

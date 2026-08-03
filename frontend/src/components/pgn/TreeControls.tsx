@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import { fromNodeList, init } from '../../util/path';
+import './TreeControls.css';
 const PgnControls = () => {
   const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
   const setSelectedNode = useTrainerStore((state) => state.setSelectedNode);
@@ -68,21 +69,18 @@ const PgnControls = () => {
   const atEnd =
     trainingMethod === 'edit' ? !selectedNode?.children?.[0] : selectedPath.length >= trainingPath.length;
 
-  const btnClass = (disabled: boolean) =>
-    `px-1 rounded-md ${disabled ? 'bg-gray-100 text-gray-300 cursor-default' : 'bg-gray-200 text-gray-700'}`;
-
   return (
-    <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto py-2">
-      <button onClick={first} disabled={atStart} className={btnClass(atStart)}>
+    <div id="pgn-control">
+      <button onClick={first} disabled={atStart} className="pgn-control-btn">
         {<ArrowBigLeftDashIcon size={30} />}
       </button>
-      <button onClick={prev} disabled={atStart} className={btnClass(atStart)}>
+      <button onClick={prev} disabled={atStart} className="pgn-control-btn">
         {<ArrowBigLeftIcon size={30} />}
       </button>
-      <button onClick={next} disabled={atEnd} className={btnClass(atEnd)}>
+      <button onClick={next} disabled={atEnd} className="pgn-control-btn">
         {<ArrowBigRightIcon size={30} />}
       </button>
-      <button onClick={last} disabled={atEnd} className={btnClass(atEnd)}>
+      <button onClick={last} disabled={atEnd} className="pgn-control-btn">
         {<ArrowBigRightDashIcon size={30} />}
       </button>
     </div>

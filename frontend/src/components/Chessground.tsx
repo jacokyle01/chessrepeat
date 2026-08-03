@@ -2,6 +2,7 @@ import { Chessground as NativeChessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import type { Config } from 'chessground/config';
 import { useEffect, useRef, useState } from 'react';
+import './Chessground.css';
 
 export function Chessground(props: Config & { setBoardFen?: (fen: string) => void }) {
   console.log("PROPS", props);
@@ -56,16 +57,5 @@ export function Chessground(props: Config & { setBoardFen?: (fen: string) => voi
     });
   }, [api, props]);
 
-  return (
-    <div
-      className="merida blue"
-      style={{
-        aspectRatio: 1,
-        width: '100%',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-      ref={ref}
-    />
-  );
+  return <div className="chessground-wrap merida blue" ref={ref} />;
 }

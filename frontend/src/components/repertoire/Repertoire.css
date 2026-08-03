@@ -1,0 +1,182 @@
+/* Chapter list panel. The card frame and the header row use the shared
+   .panel-* chrome from layout.css; everything below is list-specific.
+   layout.css also owns #repertoire's container query, which drops the
+   .chapter-btn-label icons when the card gets narrow. */
+
+.repertoire-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--c-gray-300);
+  border-radius: 0.5rem;
+  background: var(--c-surface);
+  box-shadow: var(--shadow-md);
+}
+
+/* Header icon doubles as a "back to my repertoire" button while viewing
+   someone else's, so it needs a hover state the plain .panel-icon lacks. */
+.repertoire-back-btn:hover {
+  color: var(--c-gray-700);
+  background: var(--c-gray-300);
+}
+
+/* Nothing imported yet — ring the add button so the empty state has an
+   obvious next step. */
+.repertoire-add-btn.is-empty {
+  box-shadow:
+    0 0 0 2px var(--c-surface),
+    0 0 0 6px rgb(250 204 21 / 0.5);
+}
+
+.repertoire-sync {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+}
+
+.repertoire-sync-online {
+  color: var(--c-green-600);
+}
+
+.repertoire-sync-offline {
+  color: var(--c-red-600);
+}
+
+/* ---------- scrolling chapter list ---------- */
+/* .repertoire-scroll (in style.css) supplies the scrollbar treatment. */
+.repertoire-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  padding-bottom: 0.5rem;
+}
+
+.repertoire-group-label {
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--c-gray-600);
+}
+
+.repertoire-group {
+  border-radius: 0.375rem;
+}
+
+/* ---------- one chapter row ---------- */
+.chapter-row.is-selected {
+  background: var(--c-cyan-50);
+}
+
+.chapter {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0.125rem 0 0.125rem 0.5rem;
+  cursor: pointer;
+}
+
+.chapter:hover {
+  background: var(--c-cyan-50);
+}
+
+.chapter-index {
+  flex-shrink: 0;
+  padding-right: 0.75rem;
+  font-weight: 700;
+  color: var(--c-brand-blue);
+}
+
+.chapter-title {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-end;
+  gap: 0.5rem;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 300;
+}
+
+.chapter-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.chapter-name.is-selected {
+  font-weight: 700;
+}
+
+.chapter-size {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-style: italic;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+/* due/unseen count badges */
+.chapter-count {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+  padding: 0 0.5rem;
+  border-radius: 0.375rem;
+  font-family: var(--font-roboto);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.chapter-count-unseen {
+  background: rgb(125 211 252 / 0.4);
+  color: var(--c-sky-700);
+}
+
+.chapter-count-due {
+  background: rgb(59 130 246 / 0.3);
+  color: var(--c-blue-800);
+}
+
+.chapter-btn-label {
+  display: flex;
+}
+
+/* When the card is narrow (e.g. the 2-column middle layout) drop the icon /
+   text label on each row and header action so only the count remains.
+   #repertoire establishes the `repertoire` container in layout.css. */
+@container repertoire (max-width: 340px) {
+  .chapter-btn-label {
+    display: none;
+  }
+}
+
+.chapter-edit {
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 0.5rem;
+  display: flex;
+  color: var(--c-slate-500);
+  cursor: pointer;
+}
+
+/* ---------- edit-chapter modal scrim ---------- */
+.chapter-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-backdrop);
+  backdrop-filter: blur(4px);
+}
+
+.chapter-edit-dialog-wrap {
+  z-index: 50;
+}
