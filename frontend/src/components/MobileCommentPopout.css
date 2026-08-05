@@ -11,11 +11,12 @@
   }
 }
 
-/* amber so it reads as a note rather than another training mode */
+/* amber so it reads as a note rather than another training mode; sits out of
+   its track like an active segment, since it's always the only one */
 #comment-popout-btn {
   background: var(--c-surface);
+  border-color: var(--c-amber-500);
   color: var(--c-amber-600);
-  box-shadow: var(--shadow-md), 0 0 0 1px var(--c-amber-500);
 }
 
 /* ---------- editor dialog ---------- */
@@ -35,7 +36,7 @@
   display: flex;
   padding: 0.25rem;
   border-radius: 0.25rem;
-  color: var(--c-gray-500);
+  color: var(--c-gray-600);
   background: var(--c-gray-200);
 }
 

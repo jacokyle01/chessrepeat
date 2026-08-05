@@ -4,7 +4,16 @@ import type { Config } from 'chessground/config';
 import { useEffect, useRef, useState } from 'react';
 import './Chessground.css';
 
-export function Chessground(props: Config & { setBoardFen?: (fen: string) => void }) {
+export function Chessground(
+  props: Config & {
+    setBoardFen?: (fen: string) => void;
+    /* Where chessground publishes ---cg-width/---cg-height. It rounds the
+       board down to a whole number of 8 device pixels, so anything that has
+       to line up with the board's real edge (the progress bar) needs those
+       vars on a shared ancestor, not on the board wrapper itself. */
+    dimensionsRef?: React.RefObject<HTMLElement | null>;
+  },
+) {
   console.log("PROPS", props);
   const [api, setApi] = useState<Api | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -25,7 +34,7 @@ export function Chessground(props: Config & { setBoardFen?: (fen: string) => voi
     } else {
       const chessgroundApi = NativeChessground(ref.current, {
         ...props,
-        addDimensionsCssVarsTo: ref.current,
+        addDimensionsCssVarsTo: props.dimensionsRef?.current ?? ref.current,
         events: {
           change: () => {
             if (props.setBoardFen && chessgroundApi) {

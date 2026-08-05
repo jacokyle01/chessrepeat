@@ -4,20 +4,7 @@
 // put logic into state
 // see en-crossaint
 
-import {
-  ArrowBigLeftDashIcon,
-  ArrowBigLeftIcon,
-  ArrowBigRightDashIcon,
-  ArrowBigRightIcon,
-  ArrowLeftToLineIcon,
-  ArrowRightToLineIcon,
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronRight,
-  MoveLeftIcon,
-  MoveRightIcon,
-} from 'lucide-react';
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import { fromNodeList, init } from '../../util/path';
 import './TreeControls.css';
@@ -70,18 +57,38 @@ const PgnControls = () => {
     trainingMethod === 'edit' ? !selectedNode?.children?.[0] : selectedPath.length >= trainingPath.length;
 
   return (
-    <div id="pgn-control">
-      <button onClick={first} disabled={atStart} className="pgn-control-btn">
-        {<ArrowBigLeftDashIcon size={30} />}
+    <div id="pgn-control" className="control-tab">
+      <button
+        onClick={first}
+        disabled={atStart}
+        aria-label="First move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronFirst size={20} />
       </button>
-      <button onClick={prev} disabled={atStart} className="pgn-control-btn">
-        {<ArrowBigLeftIcon size={30} />}
+      <button
+        onClick={prev}
+        disabled={atStart}
+        aria-label="Previous move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronLeft size={20} />
       </button>
-      <button onClick={next} disabled={atEnd} className="pgn-control-btn">
-        {<ArrowBigRightIcon size={30} />}
+      <button
+        onClick={next}
+        disabled={atEnd}
+        aria-label="Next move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronRight size={20} />
       </button>
-      <button onClick={last} disabled={atEnd} className="pgn-control-btn">
-        {<ArrowBigRightDashIcon size={30} />}
+      <button
+        onClick={last}
+        disabled={atEnd}
+        aria-label="Last move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronLast size={20} />
       </button>
     </div>
   );

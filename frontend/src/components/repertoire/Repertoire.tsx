@@ -13,15 +13,16 @@ import {
   LucideRepeat,
   LucideRepeat2,
   LucideUpload,
+  MenuIcon,
+  PencilIcon,
   PlusIcon,
-  Settings2Icon,
-  SettingsIcon,
+  TrashIcon,
 } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../store/state';
 import EditChapterModal from '../modals/EditChapterModal';
 import DownloadModal from '../modals/DownloadModal';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
 import { viewUserRepertoire } from '../../services/collaborators';
@@ -32,7 +33,12 @@ export const ChapterRow = ({ entry, index, id }) => {
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const updateDueCounts = useTrainerStore().updateDueCounts;
   const selectedChapterId = useTrainerStore().selectedChapterId;
-  const [editOpen, setEditOpen] = useState(false);
+  // null = closed; otherwise which action the modal opens on.
+  const [chapterAction, setChapterAction] = useState<'rename' | 'delete' | null>(null);
+  // Set on hover: the dropdown is position:fixed so the repertoire list's own
+  // scroll container can't clip it, which means it needs viewport coordinates.
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
   const meta = entry;
   const name = entry.name;
   const isSelected = selectedChapterId === entry.uuid;
@@ -45,12 +51,27 @@ export const ChapterRow = ({ entry, index, id }) => {
     updateDueCounts();
   };
 
+  const openMenu = () => {
+    const rect = menuBtnRef.current?.getBoundingClientRect();
+    // no gap between button and card: a dead strip would drop the hover
+    if (rect) setMenuAt({ x: rect.right, y: rect.bottom });
+  };
+
+  const openAction = (action: 'rename' | 'delete') => {
+    setMenuAt(null);
+    setChapterAction(action);
+  };
+
   return (
     <React.Fragment key={index}>
-      {editOpen && (
-        <div className="chapter-edit-backdrop" onClick={() => setEditOpen(false)}>
+      {chapterAction && (
+        <div className="chapter-edit-backdrop" onClick={() => setChapterAction(null)}>
           <div className="chapter-edit-dialog-wrap" onClick={(e) => e.stopPropagation()}>
-            <EditChapterModal chapterId={entry.uuid} onClose={() => setEditOpen(false)} />
+            <EditChapterModal
+              chapterId={entry.uuid}
+              initialAction={chapterAction}
+              onClose={() => setChapterAction(null)}
+            />
           </div>
         </div>
       )}
@@ -86,8 +107,54 @@ export const ChapterRow = ({ entry, index, id }) => {
             </button>
           )}
 
-          <div id="edit-chapter" className="chapter-edit" onClick={() => setEditOpen(true)}>
-            <Settings2Icon width={20} height={20} />
+          <div
+            className="chapter-menu"
+            onClick={(e) => e.stopPropagation()}
+            onMouseEnter={openMenu}
+            onMouseLeave={() => setMenuAt(null)}
+          >
+            <button
+              ref={menuBtnRef}
+              type="button"
+              className="chapter-menu-btn"
+              aria-haspopup="menu"
+              aria-label="Chapter options"
+              onFocus={openMenu}
+            >
+              <MenuIcon width={16} height={16} />
+            </button>
+
+            {menuAt && (
+              <div
+                role="menu"
+                className="chapter-menu-dropdown"
+                style={
+                  {
+                    '--menu-x': `${menuAt.x}px`,
+                    '--menu-y': `${menuAt.y}px`,
+                  } as React.CSSProperties
+                }
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="chapter-menu-item"
+                  onClick={() => openAction('rename')}
+                >
+                  <PencilIcon size={14} />
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="chapter-menu-item is-danger"
+                  onClick={() => openAction('delete')}
+                >
+                  <TrashIcon size={14} />
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -30,13 +30,4 @@
   font-weight: 600;
 }
 
-.simple-modal-close {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  color: var(--c-gray-500);
-}
-
-.simple-modal-close:hover {
-  color: var(--c-gray-800);
-}
+/* .simple-modal-close takes the shared close-button design in modals.css */

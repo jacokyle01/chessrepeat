@@ -24,8 +24,10 @@
   --c-brand-blue-light: #7dd3fc;
 
   /* page chrome */
-  --c-page-bg: #d6d9df;
-  --c-surface: #ffffff;
+  --c-page-bg: #fafafa;
+  /* not pure white: a hair of gray keeps cards from glaring against the
+     (now lighter) page, so the borders do the separating, not brightness. */
+  --c-surface: #fcfcfd;
   --c-backdrop: rgb(0 0 0 / 0.5);
 
   /* neutrals */
@@ -78,6 +80,18 @@
 
   --c-orange-400: #fb923c;
   --c-yellow-400: #facc15;
+
+  /* surface chrome: --c-recessed is the app's secondary gray (the segmented
+     track under the board, the selected chapter row), --c-hairline the faint
+     outline of a nested box, --c-line the outline of a raised card or chip. */
+  --c-recessed: #f3f3f3;
+  --c-hairline: var(--c-gray-200);
+  --c-line: var(--c-gray-300);
+  /* one width for every component frame — borders carry the separation now
+     that surfaces and page sit close in brightness */
+  /* whole pixels: Chrome floors fractional border widths to 1px at DPR 1,
+     so 1.5px would look unchanged on a non-retina display */
+  --border-w: 2px;
 
   /* elevation */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -169,7 +183,10 @@ button,
 [type='button'],
 [type='reset'],
 [type='submit'] {
-  -webkit-appearance: button;
+  /* `appearance: button` (what Tailwind's preflight used here) lets Chrome
+     paint its native control fill over an author background, so any styled
+     button came out gray-ish. Nothing in the app wants native chrome. */
+  appearance: none;
   background-color: transparent;
   background-image: none;
 }

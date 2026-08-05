@@ -1,4 +1,4 @@
-import React, { Dispatch, SetStateAction, useEffect } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Book,
   FilePenLineIcon,
@@ -39,12 +39,41 @@ const Controls = () => {
   // chapter is selected but no training mode is active yet, make Learn pop.
   const promptExample = !method && name === 'Example Chapter';
 
+  // The raised chip behind the active pill is positioned from the active
+  // button's own box, so it slides (and resizes) between modes. The buttons
+  // scale with the board via container queries, hence the ResizeObserver.
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const [chip, setChip] = useState<{ left: number; top: number; width: number; height: number } | null>(
+    null,
+  );
+
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    const measure = () => {
+      const btn = activeRef.current;
+      if (!btn) return setChip(null);
+      setChip({
+        left: btn.offsetLeft,
+        top: btn.offsetTop,
+        width: btn.offsetWidth,
+        height: btn.offsetHeight,
+      });
+    };
+    measure();
+    if (!track) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [method]);
+
   //TODO difference between handleLearn and setting mode to learn?
   return (
     <div className="training-controls-wrap">
-      <div id="training-controls" className="control-tab">
+      <div id="training-controls" className="control-tab" ref={trackRef}>
         {/* EDIT */}
         <button
+          ref={method === 'edit' ? activeRef : undefined}
           onClick={() => setTrainingMethod('edit')}
           className={`control-tab-btn training-btn training-btn-edit ${
             method === 'edit' ? 'is-active' : ''
@@ -56,6 +85,7 @@ const Controls = () => {
 
         {/* LEARN */}
         <button
+          ref={method === 'learn' ? activeRef : undefined}
           onClick={() => {
             setTrainingMethod('learn');
             setNextTrainable();
@@ -71,6 +101,7 @@ const Controls = () => {
 
         {/* RECALL */}
         <button
+          ref={method === 'recall' ? activeRef : undefined}
           onClick={() => {
             setTrainingMethod('recall');
             setNextTrainable();
@@ -83,6 +114,22 @@ const Controls = () => {
           <History size={18} />
           Recall
         </button>
+
+        <div
+          className="control-tab-chip"
+          role="presentation"
+          data-rendered={chip ? 'true' : 'false'}
+          style={
+            chip
+              ? ({
+                  '--active-tab-left': `${chip.left}px`,
+                  '--active-tab-top': `${chip.top}px`,
+                  '--active-tab-width': `${chip.width}px`,
+                  '--active-tab-height': `${chip.height}px`,
+                } as React.CSSProperties)
+              : undefined
+          }
+        />
       </div>
     </div>
   );

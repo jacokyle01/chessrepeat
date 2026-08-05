@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CircleXIcon, MessageSquareShare, MessageSquareTextIcon } from 'lucide-react';
+import { XIcon, MessageSquareShare, MessageSquareTextIcon } from 'lucide-react';
 import { useTrainerStore, MAX_COMMENT_CHARS } from '../store/state';
 import './modals/modals.css';
 import './MobileCommentPopout.css';
@@ -73,7 +73,7 @@ const MobileCommentPopout: React.FC = () => {
               onClick={() => setOpen(false)}
               type="button"
             >
-              <CircleXIcon />
+              <XIcon />
             </button>
 
             <div className="comment-popout-header">

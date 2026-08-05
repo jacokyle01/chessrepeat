@@ -19,7 +19,7 @@
   height: 1rem;
   border-radius: 9999px;
   background: var(--c-surface);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--c-line);
   transition: transform 150ms;
 }
 

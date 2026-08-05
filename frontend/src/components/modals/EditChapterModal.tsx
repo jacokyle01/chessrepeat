@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CircleXIcon, TrashIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-react';
+import { TrashIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import './modals.css';
 import './EditChapterModal.css';
@@ -7,19 +7,21 @@ import './EditChapterModal.css';
 interface EditChapterModalProps {
   chapterId: string;
   onClose: () => void;
+  /** Open straight into one action — the chapter row's menu picks it. */
+  initialAction?: 'rename' | 'delete';
 }
 
-const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose }) => {
+const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose, initialAction }) => {
   const repertoire = useTrainerStore((s) => s.repertoire);
   const renameChapter = useTrainerStore((s) => s.renameChapter);
   const deleteChapterAt = useTrainerStore((s) => s.deleteChapterAt);
 
   const chapter = repertoire.find((c) => c.uuid === chapterId);
 
-  const [isRenaming, setIsRenaming] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(initialAction === 'rename');
   const [draftName, setDraftName] = useState(chapter?.name || '');
   const [renameError, setRenameError] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(initialAction === 'delete');
 
   if (!chapter) return null;
 
@@ -69,7 +71,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose 
     <dialog open className="modal-dialog edit-chapter-dialog">
       {/* Close Button */}
       <button className="modal-close-puck" aria-label="Close" onClick={onClose} type="button">
-        <CircleXIcon />
+        <XIcon />
       </button>
 
       <div className="edit-chapter-body">

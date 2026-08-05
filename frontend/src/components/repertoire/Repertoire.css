@@ -8,17 +8,31 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  border: 1px solid var(--c-gray-300);
+  border: var(--border-w) solid var(--c-line);
   border-radius: 0.5rem;
   background: var(--c-surface);
-  box-shadow: var(--shadow-md);
 }
 
 /* Header icon doubles as a "back to my repertoire" button while viewing
    someone else's, so it needs a hover state the plain .panel-icon lacks. */
 .repertoire-back-btn:hover {
-  color: var(--c-gray-700);
+  color: var(--c-gray-900);
   background: var(--c-gray-300);
+}
+
+/* The primary action in the header: a solid blue button rather than the bare
+   icon treatment the other .panel-action buttons get. Doubled class beats
+   .panel-action, which layout.css defines later in the cascade. */
+.panel-action.repertoire-add-btn {
+  padding: 0.375rem 0.625rem;
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
+  font-weight: 700;
+}
+
+.panel-action.repertoire-add-btn:hover:not(:disabled) {
+  background: var(--c-blue-800);
+  color: var(--c-surface);
 }
 
 /* Nothing imported yet — ring the add button so the empty state has an
@@ -35,12 +49,14 @@
   display: flex;
 }
 
+/* Same blue pairing as everywhere else: full blue when synced, the light
+   blue when it isn't. */
 .repertoire-sync-online {
-  color: var(--c-green-600);
+  color: var(--c-brand-blue);
 }
 
 .repertoire-sync-offline {
-  color: var(--c-red-600);
+  color: var(--c-brand-blue-light);
 }
 
 /* ---------- scrolling chapter list ---------- */
@@ -66,8 +82,10 @@
 }
 
 /* ---------- one chapter row ---------- */
+/* Selection is a neutral pill — the only color in a row is the count icons. */
 .chapter-row.is-selected {
-  background: var(--c-cyan-50);
+  border-radius: 0.375rem;
+  background: var(--c-recessed);
 }
 
 .chapter {
@@ -79,14 +97,15 @@
 }
 
 .chapter:hover {
-  background: var(--c-cyan-50);
+  border-radius: 0.375rem;
+  background: var(--c-gray-100);
 }
 
 .chapter-index {
   flex-shrink: 0;
   padding-right: 0.75rem;
-  font-weight: 700;
-  color: var(--c-brand-blue);
+  font-weight: 400;
+  color: var(--c-gray-900);
 }
 
 .chapter-title {
@@ -127,12 +146,15 @@
   align-items: center;
   margin-right: 0.5rem;
   padding: 0 0.5rem;
-  border-radius: 0.375rem;
+  gap: 0.25rem;
+  border-radius: 9999px;
   font-family: var(--font-roboto);
   font-size: 0.875rem;
   font-weight: 500;
 }
 
+/* Light blue = still to learn, blue = due for recall, matching the segments
+   of the progress bar above the board. */
 .chapter-count-unseen {
   background: rgb(125 211 252 / 0.4);
   color: var(--c-sky-700);
@@ -156,13 +178,63 @@
   }
 }
 
-.chapter-edit {
+/* Hamburger at the end of the row, opening a hover menu of chapter actions.
+   Kept faint so it reads as an affordance, not a control. */
+.chapter-menu {
+  position: relative;
   flex-shrink: 0;
   margin-left: auto;
   margin-right: 0.5rem;
   display: flex;
-  color: var(--c-slate-500);
-  cursor: pointer;
+}
+
+.chapter-menu-btn {
+  display: flex;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  color: var(--c-gray-400);
+  transition: color 150ms, background 150ms;
+}
+
+.chapter-menu:hover .chapter-menu-btn {
+  color: var(--c-gray-800);
+}
+
+/* position: fixed (coordinates from the button's rect) so the repertoire
+   list's scroll container can't clip the menu on the bottom rows. */
+.chapter-menu-dropdown {
+  position: fixed;
+  left: var(--menu-x);
+  top: var(--menu-y);
+  z-index: 40;
+  transform: translateX(-100%);
+  min-width: 8rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem;
+  border: 1px solid var(--c-line);
+  border-radius: 0.5rem;
+  background: var(--c-surface);
+}
+
+.chapter-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--c-gray-700);
+  transition: background 150ms;
+}
+
+.chapter-menu-item:hover {
+  background: var(--c-recessed);
+}
+
+.chapter-menu-item.is-danger {
+  color: var(--c-red-600);
 }
 
 /* ---------- edit-chapter modal scrim ---------- */

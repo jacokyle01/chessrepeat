@@ -28,59 +28,50 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
         <span className="accent">repeat</span>
       </div>
 
-      <a
-        href="https://discord.gg/xhjra9W6Bh"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="Join our Discord"
-        className="header-link"
-      >
-        <span>join discord</span>
-        <SiDiscord />
-      </a>
-
-      <a
-        href="https://github.com/jacokyle01/chessrepeat"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="View on GitHub"
-        className="header-link"
-      >
-        <span>view github</span>
-        <SiGithub />
-      </a>
-
-      <a
-        href="https://github.com/jacokyle01/chessrepeat#readme"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="Read the docs"
-        className="header-link"
-      >
-        <span>docs</span>
-        <BookOpen />
-      </a>
-
-      <a
-        href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
-        title="Report a Bug"
-        className="header-link"
-      >
-        <span>report bug</span>
-        <Bug />
-      </a>
-
-      {authUser && onOpenCollaborators && (
-        <button
-          type="button"
-          onClick={onOpenCollaborators}
-          title="Collaborators"
-          className="header-link"
-        >
-          <span>collaborators</span>
-          <Globe />
-        </button>
-      )}
+      {/* Identity sits next to the wordmark; the links are pushed right. */}
+      <div className="header-auth">
+        {authUser ? (
+          <>
+            <span className="header-user">
+              {authUser.picture ? (
+                <img
+                  src={authUser.picture}
+                  alt={authUser.username ?? 'profile'}
+                  referrerPolicy="no-referrer"
+                  className="header-avatar"
+                />
+              ) : (
+                <User />
+              )}
+              <span className="header-username">{authUser.username ?? 'Unnamed'}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                clearAuth();
+                //TODO we don't need to reload but this make it easy ..
+                location.reload();
+              }}
+              title="Sign out"
+              className="header-link"
+            >
+              <LogOut />
+            </button>
+          </>
+        ) : (
+          showSignIn && (
+            <button
+              type="button"
+              onClick={openLogin}
+              className="header-link header-signin"
+              title="Sign in"
+            >
+              <span>sign in</span>
+              <LogIn />
+            </button>
+          )
+        )}
+      </div>
 
       <div className="header-actions">
         {peers.length > 0 && (
@@ -105,47 +96,59 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
           </div>
         )}
 
-        {authUser ? (
-          <>
-            <span className="header-user">
-              {authUser.picture ? (
-                <img
-                  src={authUser.picture}
-                  alt={authUser.username ?? 'profile'}
-                  referrerPolicy="no-referrer"
-                  className="header-avatar"
-                />
-              ) : (
-                <User />
-              )}
-              <span className="header-username">{authUser.username ?? 'Unnamed'}</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                clearAuth();
-                //TODO we don't need to reload but this make it easy ..  
-                location.reload();
-              }}
-              title="Sign out"
-              className="header-link"
-            >
-              <LogOut />
-            </button>
-          </>
-        ) : (
-          showSignIn && (
-            <button
-              type="button"
-              onClick={openLogin}
-              className="header-link header-signin"
-              title="Sign in"
-            >
-              <span>sign in</span>
-              <LogIn />
-            </button>
-          )
+        {authUser && onOpenCollaborators && (
+          <button
+            type="button"
+            onClick={onOpenCollaborators}
+            title="Collaborators"
+            className="header-link"
+          >
+            <span>collaborators</span>
+            <Globe />
+          </button>
         )}
+
+        <a
+          href="https://discord.gg/xhjra9W6Bh"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Join our Discord"
+          className="header-link"
+        >
+          <span>join discord</span>
+          <SiDiscord />
+        </a>
+
+        <a
+          href="https://github.com/jacokyle01/chessrepeat"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="View on GitHub"
+          className="header-link"
+        >
+          <span>view github</span>
+          <SiGithub />
+        </a>
+
+        <a
+          href="https://github.com/jacokyle01/chessrepeat#readme"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Read the docs"
+          className="header-link"
+        >
+          <span>docs</span>
+          <BookOpen />
+        </a>
+
+        <a
+          href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
+          title="Report a Bug"
+          className="header-link"
+        >
+          <span>report bug</span>
+          <Bug />
+        </a>
       </div>
     </div>
   );

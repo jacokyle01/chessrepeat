@@ -232,7 +232,7 @@ export const Chessrepeat = () => {
 
   //TODO Fix logic here..
   const targetDest = (): Key[] => {
-    console.log("SELECTED NODE", selectedNode)
+    console.log('SELECTED NODE', selectedNode);
     // console.log("selectedNode fen", selectedNode?.data.fen)
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
     const uci = calcTarget(selectedNode?.data.fen || initial, targetNode.data.san!);
@@ -296,6 +296,10 @@ export const Chessrepeat = () => {
   }
 
   const containerRef = useRef<HTMLDivElement>(null);
+  /* Chessground publishes the board's *rendered* width here (it floors the
+     board to a whole number of 8 device pixels), so the progress bar can
+     match the board's right edge instead of the card's. */
+  const boardCardRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<{ x: number; y: number; time: string } | null>(null);
 
   const showBoxAtSquare = (square: string, time: number) => {
@@ -434,7 +438,7 @@ export const Chessrepeat = () => {
         <div className="app-main">
           {/* BOARD */}
           <div className="area-board" id="board-wrap">
-            <div className="board-card">
+            <div className="board-card" ref={boardCardRef}>
               {chapter && chapter.enabledCount > 0 && (
                 <div className="board-progress">
                   <div className="board-progress-bar">
@@ -479,6 +483,7 @@ export const Chessrepeat = () => {
               )}
               <div ref={containerRef}>
                 <Chessground
+                  dimensionsRef={boardCardRef}
                   orientation={chapter?.trainAs || 'white'}
                   fen={selectedNode?.data.fen || initial}
                   turnColor={turn}
@@ -536,7 +541,10 @@ export const Chessrepeat = () => {
 
           {settingsOpen && (
             <>
-              <div className="modal-backdrop modal-backdrop-settings" onClick={() => setSettingsOpen(false)} />
+              <div
+                className="modal-backdrop modal-backdrop-settings"
+                onClick={() => setSettingsOpen(false)}
+              />
               <SettingsModal setSettingsOpen={setSettingsOpen} />
             </>
           )}
@@ -547,37 +555,39 @@ export const Chessrepeat = () => {
           </div>
 
           {/* PGN TREE */}
-          <div className="area-pgn" ref={movesContainerRef}>
-            {/* Header + tree: hidden on mobile during learn/recall */}
-            <div className={`pgn-panel-body ${isTraining ? 'is-training-hidden' : ''}`}>
-              <div className="panel-header">
-                <div className="panel-icon">
-                  <FileIcon />
+          <div className="area-pgn">
+            <div className="pgn-card" ref={movesContainerRef}>
+              {/* Header + tree: hidden on mobile during learn/recall */}
+              <div className={`pgn-panel-body ${isTraining ? 'is-training-hidden' : ''}`}>
+                <div className="panel-header">
+                  <div className="panel-icon">
+                    <FileIcon />
+                  </div>
+                  <span className="panel-title">Chapter</span>
+                  {/* copy icon */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
+                      if (!fen) return;
+                      await navigator.clipboard.writeText(fen);
+                      setFenCopied(true);
+                      setTimeout(() => setFenCopied(false), 1200);
+                    }}
+                    className={`copy-fen-btn ${fenCopied ? 'is-copied' : ''}`}
+                    aria-label="Copy FEN"
+                    title="Copy FEN"
+                  >
+                    <span>copy fen</span>
+                    {fenCopied ? <ClipboardCheck /> : <ClipboardCopy />}
+                  </button>
                 </div>
-                <span className="panel-title">Chapter</span>
-                {/* copy icon */}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
-                    if (!fen) return;
-                    await navigator.clipboard.writeText(fen);
-                    setFenCopied(true);
-                    setTimeout(() => setFenCopied(false), 1200);
-                  }}
-                  className={`copy-fen-btn ${fenCopied ? 'is-copied' : ''}`}
-                  aria-label="Copy FEN"
-                  title="Copy FEN"
-                >
-                  <span>copy fen</span>
-                  {fenCopied ? <ClipboardCheck /> : <ClipboardCopy />}
-                </button>
-              </div>
-              <div className="pgn-tree-scroll">
-                <PgnTree setActiveMoveId={setActiveMoveId} />
+                <div className="pgn-tree-scroll">
+                  <PgnTree setActiveMoveId={setActiveMoveId} />
+                </div>
               </div>
             </div>
-            {/* Controls + comment: mobile only during learn/recall */}
+            {/* Move navigation sits below the card, centered under it. */}
             <div className="pgn-controls-bar">
               <PgnControls />
             </div>

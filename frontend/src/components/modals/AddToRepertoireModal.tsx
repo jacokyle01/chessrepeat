@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CircleXIcon, UploadIcon, CheckCircle2, TreePalmIcon, TriangleAlertIcon, CloudAlertIcon } from 'lucide-react';
+import { XIcon, UploadIcon, CheckCircle2, TreePalmIcon, TriangleAlertIcon, CloudAlertIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import { chapterFromImport, chapterFromPgn } from '../../util/io';
 import { Chapter } from '../../types/training';
@@ -165,7 +165,7 @@ const AddToRepertoireModal: React.FC = () => {
         }}
         type="button"
       >
-        <CircleXIcon />
+        <XIcon />
       </button>
 
       {/* Heading + Tabs */}

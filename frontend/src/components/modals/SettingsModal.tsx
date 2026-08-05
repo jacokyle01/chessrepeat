@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { CircleHelp, CircleXIcon } from 'lucide-react';
+import { CircleHelp, XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import Divider from '../common/Divider';
 import ToggleGroup from '../common/ToggleGroup';
 import { NodeSearch } from '../../types/training';
 import { SrsConfig, defaultSrsConfig } from '../../util/srs';
+import './modals.css';
 import './SettingsModal.css';
 
 const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ setSettingsOpen }) => {
@@ -32,7 +33,7 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
         onClick={() => setSettingsOpen(false)}
         type="button"
       >
-        <CircleXIcon />
+        <XIcon />
       </button>
 
       <div className="settings-header">

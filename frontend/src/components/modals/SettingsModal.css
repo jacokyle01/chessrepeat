@@ -18,27 +18,7 @@
 }
 
 /* close button */
-.settings-close-btn {
-  position: absolute;
-  top: -0.75rem;
-  right: -0.75rem;
-  background: #ef4444;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: background 150ms;
-}
-
-.settings-close-btn:hover {
-  background: #dc2626;
-}
+/* .settings-close-btn takes the shared close-button design in modals.css */
 
 /* header */
 .settings-header {

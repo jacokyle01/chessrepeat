@@ -6,8 +6,14 @@
    =========================== */
 
 /* ---------- progress bar above the board ---------- */
+/* ---cg-width is chessground's rendered board width, published on
+   .board-card (see Chessrepeat.tsx). The board is floored to a whole number
+   of 8 device pixels, so 100% of the card would overhang its right edge by
+   up to 8px. */
 .board-progress {
   position: relative;
+  width: var(---cg-width, 100%);
+  margin-inline: auto;
 }
 
 .board-progress-bar {
@@ -119,6 +125,12 @@
    tip own the screen; from the two-column layout up it always shows. */
 @media (max-width: 767.98px) {
   .pgn-panel-body.is-training-hidden {
+    display: none;
+  }
+
+  /* the card holds only the (now hidden) body, so it would render as an
+     empty bordered box above the move navigation */
+  .pgn-card:has(> .pgn-panel-body.is-training-hidden) {
     display: none;
   }
 }
