@@ -1,22 +1,36 @@
 /* Phone-only tab between the training pills and the settings pill.
    On larger screens the comment already shows in the PGN tree, so the tab
-   is hidden from the two-column layout up. */
-.comment-popout-tab {
+   is hidden from the two-column layout up.
+
+   Both selectors carry .control-tab as well: that class sets
+   `display: inline-flex` at equal specificity, so without it whichever
+   stylesheet happened to load last would decide whether the tab shows. */
+.control-tab.comment-popout-tab {
   display: none;
 }
 
 @media (max-width: 767.98px) {
-  .comment-popout-tab {
+  .control-tab.comment-popout-tab {
     display: inline-flex;
   }
 }
 
-/* amber so it reads as a note rather than another training mode; sits out of
-   its track like an active segment, since it's always the only one */
-#comment-popout-btn {
+/* Reads as one of the group: the recessed grey track supplies the fill and the
+   pill itself is neutral and borderless, lifting into a chip on tap like the
+   Edit/Learn/Recall segments. Type matches them too. */
+.comment-popout-tab #comment-popout-btn {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--c-gray-500);
+}
+
+.comment-popout-tab #comment-popout-btn:hover {
+  color: var(--c-gray-800);
   background: var(--c-surface);
-  border-color: var(--c-amber-500);
-  color: var(--c-amber-600);
+}
+
+.comment-popout-tab #comment-popout-btn:active {
+  transform: scale(0.98);
 }
 
 /* ---------- editor dialog ---------- */

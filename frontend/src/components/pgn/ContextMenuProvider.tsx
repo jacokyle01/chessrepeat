@@ -7,9 +7,11 @@ import { useTrainerStore } from '../../store/state';
 import './ContextMenuProvider.css';
 
 type MenuItem = {
-  label: string;
+  // Items that supply their own `template` render the whole row themselves and
+  // need neither of these.
+  label?: string;
   icon?: string; // PrimeReact icon class e.g. "pi pi-trash"
-  command: () => void;
+  command?: () => void;
   disabled?: boolean;
   separator?: boolean;
   template?: (item: any) => React.ReactNode;

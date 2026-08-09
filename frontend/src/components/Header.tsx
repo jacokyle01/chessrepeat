@@ -1,5 +1,5 @@
 import { SiDiscord, SiGithub } from 'react-icons/si';
-import { BookOpen, Bug, Globe, LogIn, LogOut, User } from 'lucide-react';
+import { LogIn, LogOut, User } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { useTrainerStore, type Peer } from '../store/state';
 
@@ -8,10 +8,9 @@ interface Props {
   // on Chessrepeat; Login omits this.
   connectedUsers?: Peer[];
   incomingCollaboratorsCount?: number;
-  onOpenCollaborators?: () => void;
 }
 
-export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenCollaborators }: Props) {
+export function Header({ connectedUsers, incomingCollaboratorsCount = 0 }: Props) {
   const authUser = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const openLogin = useAuthStore((s) => s.openLogin);
@@ -28,10 +27,13 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
         <span className="accent">repeat</span>
       </div>
 
-      {/* Identity sits next to the wordmark; the links are pushed right. */}
+      {/* Identity sits next to the wordmark; the links are pushed right. Who
+          you are and the control that changes it live in one recessed track,
+          the same treatment the peer avatars and the board's segmented
+          controls get. */}
       <div className="header-auth">
         {authUser ? (
-          <>
+          <div className="header-identity">
             <span className="header-user">
               {authUser.picture ? (
                 <img
@@ -57,25 +59,29 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
             >
               <LogOut />
             </button>
-          </>
+          </div>
         ) : (
           showSignIn && (
-            <button
-              type="button"
-              onClick={openLogin}
-              className="header-link header-signin"
-              title="Sign in"
-            >
-              <span>sign in</span>
-              <LogIn />
-            </button>
+            <div className="header-identity">
+              <button
+                type="button"
+                onClick={openLogin}
+                className="header-link header-signin"
+                title="Sign in"
+              >
+                <span>sign in</span>
+                <LogIn />
+              </button>
+            </div>
           )
         )}
+
       </div>
 
       <div className="header-actions">
+        {/* Live view: just the faces of the people on this repertoire now. */}
         {peers.length > 0 && (
-          <div className="header-peers">
+          <div className="header-peers" title="Here now">
             {peers.map((u) => {
               // train collaborators get a light-blue ring; everyone else
               // (owner, edit) gets dark blue. Owner appears as a peer
@@ -94,18 +100,6 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
               );
             })}
           </div>
-        )}
-
-        {authUser && onOpenCollaborators && (
-          <button
-            type="button"
-            onClick={onOpenCollaborators}
-            title="Collaborators"
-            className="header-link"
-          >
-            <span>collaborators</span>
-            <Globe />
-          </button>
         )}
 
         <a
@@ -128,26 +122,6 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0, onOpenC
         >
           <span>view github</span>
           <SiGithub />
-        </a>
-
-        <a
-          href="https://github.com/jacokyle01/chessrepeat#readme"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Read the docs"
-          className="header-link"
-        >
-          <span>docs</span>
-          <BookOpen />
-        </a>
-
-        <a
-          href="mailto:jacokyle01@gmail.com?subject=Bug Report | chessrepeat"
-          title="Report a Bug"
-          className="header-link"
-        >
-          <span>report bug</span>
-          <Bug />
         </a>
       </div>
     </div>

@@ -415,7 +415,6 @@ export const Chessrepeat = () => {
         <Header
           connectedUsers={connectedUsers}
           incomingCollaboratorsCount={incomingCollaborators.length}
-          onOpenCollaborators={() => setCollaboratorsOpen(true)}
         />
 
         {showingAddToRepertoireMenu && (
@@ -596,7 +595,7 @@ export const Chessrepeat = () => {
           {/* SIDEBAR (repertoire + memory schedule) */}
           <div className="area-sidebar">
             <div className="area-repertoire">
-              <Repertoire />
+              <Repertoire onOpenCollaborators={() => setCollaboratorsOpen(true)} />
             </div>
 
             <div className="area-schedule">

@@ -18,7 +18,9 @@
   color: var(--c-gray-800);
 }
 
-/* ---------- rename ---------- */
+/* ---------- rename ----------
+   Input plus a single check, centred on each other. Cancelling is the
+   dialog's X, which saves too, so the row needs no second button. */
 .edit-chapter-rename {
   display: flex;
   align-items: center;
@@ -27,6 +29,7 @@
 
 .edit-chapter-rename input {
   flex: 1;
+  min-width: 0;
   border-bottom: 2px solid var(--c-brand-blue);
   background: transparent;
   font-size: 1.5rem;
@@ -38,35 +41,32 @@
   outline: none;
 }
 
-.edit-chapter-confirm,
-.edit-chapter-cancel {
-  padding: 0.375rem;
+.edit-chapter-confirm {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
   border-radius: 0.375rem;
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
   transition: all 150ms;
 }
 
-.edit-chapter-confirm svg,
-.edit-chapter-cancel svg {
-  width: 1rem;
-  height: 1rem;
+.edit-chapter-confirm svg {
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
-.edit-chapter-confirm {
-  background: var(--c-brand-blue);
-  color: var(--c-surface);
-}
-
-.edit-chapter-confirm:hover {
+.edit-chapter-confirm:hover:not(:disabled) {
   filter: brightness(1.1);
 }
 
-.edit-chapter-cancel {
-  border: 1px solid var(--c-gray-300);
-  color: var(--c-gray-500);
-}
-
-.edit-chapter-cancel:hover {
-  background: var(--c-gray-50);
+/* nothing to save yet — greyed out until the name actually changes */
+.edit-chapter-confirm:disabled {
+  background: var(--c-gray-200);
+  color: var(--c-gray-400);
+  cursor: not-allowed;
 }
 
 /* ---------- actions ---------- */

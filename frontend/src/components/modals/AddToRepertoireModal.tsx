@@ -190,10 +190,11 @@ const AddToRepertoireModal: React.FC = () => {
         </div>
       </div>
 
-      {/* Body */}
-      <div className="add-rep-body">
-        {tab === 'pgn' ? (
-          <form onSubmit={handleSubmitPgn}>
+      {/* Body — scrolls under the head, with the submit pinned below it so the
+          primary action stays reachable on short viewports. */}
+      {tab === 'pgn' ? (
+        <form onSubmit={handleSubmitPgn} className="add-rep-form">
+          <div className="add-rep-body">
             {/* Name */}
             <div className="add-rep-field">
               <label>Name</label>
@@ -246,13 +247,17 @@ const AddToRepertoireModal: React.FC = () => {
               </div>
             </div>
             {!isLoggedIn && <SignedOutNotice />}
+          </div>
 
+          <div className="add-rep-footer">
             <button type="submit" disabled={!selectedColor} className="add-rep-submit">
-              Add
+              Add to repertoire
             </button>
-          </form>
-        ) : (
-          <form onSubmit={handleImportJson}>
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={handleImportJson} className="add-rep-form">
+          <div className="add-rep-body">
             <p className="add-rep-json-intro">
               Import a JSON file of a repertoire or chapter that you've previously downloaded.{' '}
             </p>
@@ -285,7 +290,9 @@ const AddToRepertoireModal: React.FC = () => {
 
             {jsonError ? <div className="add-rep-json-error">{jsonError}</div> : null}
             {!isLoggedIn && <SignedOutNotice />}
+          </div>
 
+          <div className="add-rep-footer">
             <div className="add-rep-json-actions">
               <button type="button" onClick={resetJsonState} className="add-rep-clear-btn">
                 Clear
@@ -302,9 +309,9 @@ const AddToRepertoireModal: React.FC = () => {
                 </span>
               </button>
             </div>
-          </form>
-        )}
-      </div>
+          </div>
+        </form>
+      )}
     </dialog>
   );
 };

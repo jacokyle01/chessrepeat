@@ -11,6 +11,14 @@
   align-items: flex-start;
 }
 
+/* Type matches the panel-header actions (add / download): a fixed 0.875rem at
+   the body weight, instead of the board-scaled clamp the track's other
+   segments use. The padding and icons still scale with the board. */
+#training-controls .training-btn {
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
 /* Hover only applies to a pill that isn't already the selected mode — the
    active pill sits on the chip and stays put. Hover is text-only: a
    background would fight the recessed track. */

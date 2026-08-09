@@ -135,10 +135,11 @@
   }
 }
 
+/* Sits immediately after the "Chapter" title rather than being pushed to the
+   far end of the header, so it reads as an action on the chapter. */
 .copy-fen-btn {
-  margin-left: auto;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.25rem;
   padding: 0.375rem;
   border-radius: 0.375rem;

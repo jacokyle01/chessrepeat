@@ -10,6 +10,9 @@
    =========================== */
 
 /* ---------- sheet ---------- */
+/* The padding is what keeps a dialog clear of the viewport edges: the card
+   below is capped at 100% of the content box, so a tall one scrolls inside
+   itself rather than running to the top and bottom of the screen. */
 .modal-scrim {
   position: fixed;
   inset: 0;
@@ -17,6 +20,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 3rem 1rem;
   background: var(--c-backdrop);
   backdrop-filter: blur(4px);
 }
@@ -28,14 +32,17 @@
   padding-top: 5rem;
 }
 
+/* Same frame as the app's cards — 2px line, 0.5rem radius, surface fill. The
+   scrim is what lifts a dialog off the page here, so it takes no shadow; the
+   panels behind it don't have one either. */
 .modal-card {
   width: 100%;
   max-width: 24rem;
-  margin: 0 1rem;
-  overflow: hidden;
-  border-radius: 0.75rem;
+  max-height: 100%;
+  overflow: hidden auto;
+  border: var(--border-w) solid var(--c-line);
+  border-radius: 0.5rem;
   background: var(--c-surface);
-  box-shadow: var(--shadow-2xl);
 }
 
 .modal-card-md {
@@ -119,6 +126,8 @@
 }
 
 /* ---------- dialog ---------- */
+/* Centered by transform rather than by a flex parent, so the clearance top and
+   bottom comes from the height cap instead of a scrim's padding. */
 .modal-dialog {
   position: fixed;
   top: 50%;
@@ -128,10 +137,11 @@
   /* margin each side on narrow viewports */
   width: calc(100% - 2rem);
   max-width: 28rem;
-  border: none;
+  max-height: calc(100dvh - 6rem);
+  overflow: hidden auto;
+  border: var(--border-w) solid var(--c-line);
   border-radius: 0.5rem;
   background: var(--c-surface);
-  box-shadow: var(--shadow-lg);
 }
 
 .modal-dialog-lg {

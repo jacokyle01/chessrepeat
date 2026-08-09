@@ -1,6 +1,6 @@
 import React from 'react';
 import InsightChart from './InsightChart';
-import { CalendarIcon, CircleHelp } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import './MemorySchedule.css';
 
 const Schedule: React.FC = () => {
@@ -23,7 +23,9 @@ const Schedule: React.FC = () => {
           aria-label="Learn how the memory schedule works"
           className="schedule-help"
         >
-          <CircleHelp />
+          <span className="info-glyph" aria-hidden="true">
+            i
+          </span>
         </a>
       </div>
 

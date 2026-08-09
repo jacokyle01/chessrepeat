@@ -1,3 +1,5 @@
+/* Same frame and clearance as .modal-dialog in modals.css — this one predates
+   that class and still carries its own copy. */
 .settings-dialog {
   position: fixed;
   top: 50%;
@@ -8,10 +10,11 @@
      which hangs off the right edge (right: -0.75rem), isn't clipped. */
   width: calc(100% - 2rem);
   max-width: 28rem;
-  border: none;
-  background: #fff;
-  border-radius: 0.75rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-height: calc(100dvh - 6rem);
+  overflow: hidden auto;
+  border: var(--border-w) solid var(--c-line);
+  background: var(--c-surface);
+  border-radius: 0.5rem;
   padding: 0;
   margin: 0;
   font-family: inherit;
@@ -28,7 +31,7 @@
 .settings-header h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--c-gray-800);
   margin: 0;
   display: flex;
   align-items: center;
@@ -38,18 +41,18 @@
 .settings-help-link {
   display: inline-flex;
   align-items: center;
-  color: #9ca3af;
+  color: var(--c-gray-400);
   transition: color 150ms;
 }
 
 .settings-help-link:hover {
-  color: #4b5563;
+  color: var(--c-gray-600);
 }
 
 .settings-header p {
   margin: 0.25rem 0 0;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--c-gray-500);
 }
 
 /* body */
@@ -66,18 +69,18 @@
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--c-gray-700);
   margin-bottom: 0.5rem;
 }
 
 .settings-field input {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--c-gray-300);
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  color: #374151;
-  background: #fff;
+  color: var(--c-gray-700);
+  background: var(--c-surface);
   font-family: inherit;
   transition: border-color 150ms, box-shadow 150ms;
   box-sizing: border-box;
@@ -85,8 +88,8 @@
 
 .settings-field input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: var(--c-brand-blue);
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
 }
 
 /* stepper for "max moves to consider" */
@@ -98,15 +101,15 @@
 
 .settings-stepper button {
   padding: 0.125rem 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--c-gray-300);
   border-radius: 0.25rem;
-  background: #fff;
+  background: var(--c-surface);
   font-size: 0.875rem;
   font-weight: 500;
 }
 
 .settings-stepper button:hover {
-  background: #f3f4f6;
+  background: var(--c-gray-100);
 }
 
 .settings-stepper-value {
@@ -129,7 +132,7 @@
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
-  color: #d97706;
+  color: var(--c-amber-600);
   opacity: 0;
   pointer-events: none;
   transition: opacity 150ms;
@@ -140,15 +143,14 @@
   pointer-events: auto;
 }
 
-.settings-close-btn svg,
-.settings-help-link svg {
+.settings-close-btn svg {
   width: 1.25rem;
   height: 1.25rem;
 }
 
-.settings-help-link svg {
-  width: 1.1rem;
-  height: 1.1rem;
+/* a step up from the shared size — it sits beside a 1.5rem heading here */
+.settings-help-link .info-glyph {
+  font-size: 0.75rem;
 }
 
 /* done button */
@@ -159,8 +161,9 @@
   font-size: 1rem;
   font-weight: 700;
   font-family: inherit;
-  color: #fff;
-  background: #1f2937;
+  /* the app's primary fill, same as the repertoire's add button */
+  color: var(--c-surface);
+  background: var(--c-brand-blue);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -168,5 +171,5 @@
 }
 
 .settings-done-btn:hover {
-  background: #374151;
+  background: var(--c-blue-800);
 }

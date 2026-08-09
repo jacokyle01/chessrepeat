@@ -1,28 +1,28 @@
 //TODO repertoire and repertoire section in same file
 
+import { FaChessKing, FaRegChessKing } from 'react-icons/fa6';
 import {
   ArrowLeftIcon,
   BookOpenIcon,
+  CheckIcon,
   BookPlus,
+  ChevronRightIcon,
   DownloadIcon,
   FilePlus2Icon,
+  Globe,
   LucideCloudOff,
   LucideCloudUpload,
-  LucideGraduationCap,
-  LucideHistory,
   LucideRepeat,
   LucideRepeat2,
   LucideUpload,
-  MenuIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../store/state';
-import EditChapterModal from '../modals/EditChapterModal';
 import DownloadModal from '../modals/DownloadModal';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
 import { viewUserRepertoire } from '../../services/collaborators';
@@ -31,17 +31,22 @@ import './Repertoire.css';
 export const ChapterRow = ({ entry, index, id }) => {
   const setSelectedChapterId = useStore(useTrainerStore, (s) => s.setSelectedChapterId);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
+  const renameChapter = useTrainerStore((s) => s.renameChapter);
+  const deleteChapterAt = useTrainerStore((s) => s.deleteChapterAt);
   const updateDueCounts = useTrainerStore().updateDueCounts;
   const selectedChapterId = useTrainerStore().selectedChapterId;
-  // null = closed; otherwise which action the modal opens on.
-  const [chapterAction, setChapterAction] = useState<'rename' | 'delete' | null>(null);
-  // Set on hover: the dropdown is position:fixed so the repertoire list's own
-  // scroll container can't clip it, which means it needs viewport coordinates.
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
-  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  // The chapter's actions open as a row of their own directly below it, rather
+  // than as a popover. `view` is which face that row is showing; 'closed' means
+  // there is no row. Rename and delete are faces of the same row, so the whole
+  // flow stays inline in the list.
+  const [view, setView] = useState<'closed' | 'menu' | 'rename' | 'delete'>('closed');
+  const [draftName, setDraftName] = useState('');
+  const [renameError, setRenameError] = useState<string | null>(null);
   const meta = entry;
   const name = entry.name;
   const isSelected = selectedChapterId === entry.uuid;
+  const isOpen = view !== 'closed';
+  const actionsId = `chapter-actions-${entry.uuid}`;
 
   //TODO dont change if already on this chapter..
   //TODO dont clear all chapter context? maybe dont change trainingMethod
@@ -51,31 +56,59 @@ export const ChapterRow = ({ entry, index, id }) => {
     updateDueCounts();
   };
 
-  const openMenu = () => {
-    const rect = menuBtnRef.current?.getBoundingClientRect();
-    // no gap between button and card: a dead strip would drop the hover
-    if (rect) setMenuAt({ x: rect.right, y: rect.bottom });
+  const closeMenu = () => {
+    setView('closed');
+    setRenameError(null);
   };
 
-  const openAction = (action: 'rename' | 'delete') => {
-    setMenuAt(null);
-    setChapterAction(action);
+  const toggleMenu = () => {
+    if (isOpen) return closeMenu();
+    // always reopen on the menu itself, never on whatever panel was last used
+    setRenameError(null);
+    setView('menu');
+  };
+
+  // The row sits in the list rather than over it, so it doesn't need the
+  // click-outside / scroll / resize teardown a popover does — only Escape,
+  // which is the one dismissal a keyboard user expects to work from anywhere.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMenu();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen]);
+
+  const openRename = () => {
+    setDraftName(name);
+    setRenameError(null);
+    setView('rename');
+  };
+
+  const trimmedName = draftName.trim();
+  const canCommitRename = !!trimmedName && trimmedName !== name;
+
+  /** Save the pending name (if there is one) and close the menu. */
+  const commitRename = async () => {
+    if (!canCommitRename) return closeMenu();
+    setRenameError(null);
+    try {
+      await renameChapter(entry.uuid, trimmedName);
+      closeMenu();
+    } catch (err: any) {
+      // stay open on failure so the typed name isn't lost
+      setRenameError(err?.message ?? 'Failed to rename chapter.');
+    }
+  };
+
+  const handleDelete = async () => {
+    await deleteChapterAt(entry.uuid);
+    closeMenu();
   };
 
   return (
     <React.Fragment key={index}>
-      {chapterAction && (
-        <div className="chapter-edit-backdrop" onClick={() => setChapterAction(null)}>
-          <div className="chapter-edit-dialog-wrap" onClick={(e) => e.stopPropagation()}>
-            <EditChapterModal
-              chapterId={entry.uuid}
-              initialAction={chapterAction}
-              onClose={() => setChapterAction(null)}
-            />
-          </div>
-        </div>
-      )}
-
       <div
         id="chapter-wrap"
         onClick={handleChangeChapter}
@@ -86,83 +119,114 @@ export const ChapterRow = ({ entry, index, id }) => {
 
           <h3 className="chapter-title">
             <span className={`chapter-name ${isSelected ? 'is-selected' : ''}`}>{name}</span>
-            <span className="chapter-size">{meta.enabledCount}</span>
+            <span className="chapter-size">
+              {meta.enabledCount} move{meta.enabledCount === 1 ? '' : 's'}
+            </span>
           </h3>
 
+          {/* counts only — the color says which is which, the same way the
+              progress bar above the board does */}
           {entry.unseenCount > 0 && (
-            <button className="chapter-count chapter-count-unseen">
-              <span className="chapter-btn-label">
-                <LucideGraduationCap size={18} />
-              </span>
-              {entry.unseenCount}
-            </button>
+            <button className="chapter-count chapter-count-unseen">{entry.unseenCount}</button>
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="chapter-count chapter-count-due">
-              <span className="chapter-btn-label">
-                <LucideHistory size={18} />
-              </span>
-              {entry.lastDueCount}
-            </button>
+            <button className="chapter-count chapter-count-due">{entry.lastDueCount}</button>
           )}
 
-          <div
-            className="chapter-menu"
-            onClick={(e) => e.stopPropagation()}
-            onMouseEnter={openMenu}
-            onMouseLeave={() => setMenuAt(null)}
-          >
+          <div className="chapter-menu" onClick={(e) => e.stopPropagation()}>
             <button
-              ref={menuBtnRef}
               type="button"
-              className="chapter-menu-btn"
-              aria-haspopup="menu"
+              className={`chapter-menu-btn ${isOpen ? 'is-open' : ''}`}
+              aria-expanded={isOpen}
+              aria-controls={actionsId}
               aria-label="Chapter options"
-              onFocus={openMenu}
+              onClick={toggleMenu}
             >
-              <MenuIcon width={16} height={16} />
+              <ChevronRightIcon width={16} height={16} />
             </button>
-
-            {menuAt && (
-              <div
-                role="menu"
-                className="chapter-menu-dropdown"
-                style={
-                  {
-                    '--menu-x': `${menuAt.x}px`,
-                    '--menu-y': `${menuAt.y}px`,
-                  } as React.CSSProperties
-                }
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="chapter-menu-item"
-                  onClick={() => openAction('rename')}
-                >
-                  <PencilIcon size={14} />
-                  Rename
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="chapter-menu-item is-danger"
-                  onClick={() => openAction('delete')}
-                >
-                  <TrashIcon size={14} />
-                  Delete
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Actions get a row of their own under the chapter instead of a
+          floating menu, so nothing overlays the list and the bottom rows
+          can't be clipped by its scroll container. */}
+      {isOpen && (
+        <div id={actionsId} className={`chapter-actions is-${view}`}>
+          {view === 'menu' && (
+            <>
+              <button type="button" className="chapter-action-btn" onClick={openRename}>
+                <PencilIcon size={14} />
+                Rename
+              </button>
+              <button
+                type="button"
+                className="chapter-action-btn is-danger"
+                onClick={() => setView('delete')}
+              >
+                <TrashIcon size={14} />
+                Delete
+              </button>
+            </>
+          )}
+
+          {view === 'rename' && (
+            <div className="chapter-action-panel">
+              <div className="chapter-action-rename">
+                <input
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitRename();
+                    if (e.key === 'Escape') closeMenu();
+                  }}
+                  aria-label="Chapter name"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="chapter-action-confirm"
+                  onClick={commitRename}
+                  disabled={!canCommitRename}
+                  aria-label="Save name"
+                  title="Save name"
+                >
+                  <CheckIcon size={16} />
+                </button>
+              </div>
+              {renameError && <p className="chapter-action-error">{renameError}</p>}
+            </div>
+          )}
+
+          {view === 'delete' && (
+            <div className="chapter-action-panel">
+              <p className="chapter-action-warning">Delete this chapter? This cannot be undone.</p>
+              <div className="chapter-action-confirm-row">
+                <button
+                  type="button"
+                  className="chapter-action-confirm-no"
+                  onClick={() => setView('menu')}
+                >
+                  Cancel
+                </button>
+                <button type="button" className="chapter-action-confirm-yes" onClick={handleDelete}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </React.Fragment>
   );
 };
 
-const Repertoire: React.FC = () => {
+type RepertoireProps = {
+  onOpenCollaborators?: () => void;
+};
+
+const Repertoire: React.FC<RepertoireProps> = ({ onOpenCollaborators }) => {
   const whiteEntries: Chapter[] = [];
   const blackEntries: Chapter[] = [];
 
@@ -231,6 +295,21 @@ const Repertoire: React.FC = () => {
           <DownloadIcon />
           <span className="chapter-btn-label">download</span>
         </button>
+
+        {/* Sharing is a repertoire action, so it sits with the other two rather
+            than up in the app bar. */}
+        {isAuth && onOpenCollaborators && (
+          <button
+            type="button"
+            onClick={onOpenCollaborators}
+            aria-label="Share repertoire"
+            title="Share repertoire"
+            className="panel-action"
+          >
+            <Globe />
+            <span className="chapter-btn-label">share</span>
+          </button>
+        )}
         {isAuth ? (
           <span className="repertoire-sync repertoire-sync-online" title="Synced">
             <LucideCloudUpload size={18} />
@@ -247,14 +326,24 @@ const Repertoire: React.FC = () => {
 
       {/* ONLY THIS SCROLLS */}
       <div id="repertoire-wrap" className="repertoire-scroll repertoire-list">
-        <span className="repertoire-group-label">White</span>
+        {/* Outline king for white, filled for black — the same way a chess
+            diagram distinguishes the two sides. */}
+        <div className="repertoire-group-label">
+          <FaRegChessKing />
+          White
+        </div>
+        <hr className="repertoire-group-rule" />
         <div className="repertoire-group">
           {whiteEntries.map((entry, index) => (
             <ChapterRow id={entry.id} entry={entry} index={index} />
           ))}
         </div>
 
-        <span className="repertoire-group-label">Black</span>
+        <div className="repertoire-group-label">
+          <FaChessKing />
+          Black
+        </div>
+        <hr className="repertoire-group-rule" />
         <div className="repertoire-group">
           {blackEntries.map((entry, index) => (
             <ChapterRow id={entry.id} entry={entry} index={index + whiteEntries.length} />

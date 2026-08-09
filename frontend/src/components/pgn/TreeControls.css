@@ -1,19 +1,28 @@
-/* first / prev / next / last navigation under the move tree. Same flat
-   segmented pattern as the controls under the board: a recessed track holding
-   borderless buttons that lift into a white chip on hover. */
+/* first / prev / next / last navigation under the move tree. Unlike the
+   controls under the board — one recessed track holding borderless buttons —
+   each arrow here carries its own recessed chip and the track itself doesn't
+   paint, so the page shows through as a white gutter between them. */
 #pgn-control {
   align-self: center;
   margin: 0.75rem auto;
-  gap: 0.75rem;
+  padding: 0;
+  gap: 0.5rem;
+  background: transparent;
 }
 
+/* the wider padding gives the arrows room inside their own chips */
 .pgn-control-btn {
+  padding-inline: 1rem;
+  border-radius: 0.375rem;
+  background: var(--c-recessed);
   color: var(--c-gray-600);
 }
 
+/* the chips are already the recessed gray, so hover darkens instead of
+   lifting to white the way the board controls do */
 .pgn-control-btn:hover:not(:disabled) {
   color: var(--c-gray-900);
-  background: var(--c-surface);
+  background: var(--c-gray-200);
 }
 
 .pgn-control-btn:active:not(:disabled) {
@@ -22,6 +31,6 @@
 
 .pgn-control-btn:disabled {
   color: var(--c-gray-400);
-  background: transparent;
+  background: var(--c-recessed);
   cursor: default;
 }

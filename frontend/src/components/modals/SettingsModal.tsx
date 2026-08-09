@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CircleHelp, XIcon } from 'lucide-react';
+import { XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import Divider from '../common/Divider';
 import ToggleGroup from '../common/ToggleGroup';
@@ -47,7 +47,9 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
             aria-label="Learn how training settings work"
             className="settings-help-link"
           >
-            <CircleHelp />
+            <span className="info-glyph" aria-hidden="true">
+              i
+            </span>
           </a>
         </h2>
         <p>Configure spaced repetition and display preferences.</p>

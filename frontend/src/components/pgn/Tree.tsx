@@ -1,12 +1,20 @@
-// TODO: comments:
-// TODO use primereact icons instead?
-//TODO fix off-by-one bug with ply (compare w/ lichess)
-//TODO adjust scrollheight automatically when clicking a move
-//TODO fix formatting. use retroLine?
+// The chapter move list, arranged the way lichess' `tview2-column` arranges it
+// (ui/analyse/src/treeView/columnView.ts + inlineView.ts):
+//
+//   - the mainline is a flat run of cells in one wrapping flex row: a narrow
+//     move-number cell before every white move, then the moves themselves;
+//   - anything that breaks the mainline (a comment, a set of sidelines) is an
+//     `.interrupt` taking a full-width row. When the interrupted move was
+//     white's, an empty cell fills black's slot before the interrupt and a
+//     fresh index + empty cell re-open the row after it, so black's reply
+//     stays in the right column;
+//   - sidelines nest as `.lines > .line`, and a lone short sub-variation is
+//     folded into parentheses inline after its first move instead of nesting.
+//
+// Disclosure (collapsing) and forced variations aren't part of chessrepeat's
+// data model, so those branches of the lichess code are left out.
 import { useTrainerStore, MAX_COMMENT_CHARS } from '../../store/state';
 import { useAppContextMenu } from './ContextMenuProvider';
-
-// import { path as treePath, ops as treeOps, type TreeWrapper } from '../tree/tree';
 
 import { ContextMenuProvider } from './ContextMenuProvider';
 
@@ -14,21 +22,22 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { TrainableNode } from '../../types/training';
 import { getNodeList, nodeAtPath, hasBranching } from '../../util/tree';
 import './Tree.css';
-export interface Opts {
+
+/** Everything a node needs to know about where it sits, mirroring lichess' `Args`. */
+export interface Args {
   parentPath: string;
+  parentNode: TrainableNode;
   isMainline: boolean;
-  depth: number;
-  inline?: TrainableNode;
-  withIndex?: boolean;
-  truncate?: number;
+  /** the sideline this node belongs to renders its siblings in parentheses */
+  parenthetical?: boolean;
 }
 
 export interface Ctx {
   truncateComments: boolean;
   currentPath: string | undefined;
+  /** children to draw: all of them in edit mode, only the trained line otherwise */
+  visibleChildren: (node: TrainableNode) => TrainableNode[];
 }
-
-const isEmpty = (a: any | undefined): boolean => !a || a.length === 0;
 
 //TODO right clicking these should provide more training info
 //TODO disable line option
@@ -122,17 +131,15 @@ const useCommentContextMenuItems = (path: string) => {
 
 const MAX_LEN_MAINLINE_COMMENT = 300;
 const MAX_LEN_INLINE_COMMENT = 200;
-const MAX_BRANCH_DEPTH = 5; //TODO can conditionally shrink this on mobile?
+
+/** lichess' `parenthetical`: exactly two continuations, the second one short and straight. */
+const isParenthetical = (children: TrainableNode[]): boolean =>
+  !children[2] && !!children[1] && !hasBranching(children[1], 6);
 
 // COMMENTS
 
 function truncateComment(text: string, len: number, ctx: Ctx) {
   return ctx.truncateComments && text.length > len ? text.slice(0, len) : text;
-}
-
-function enrichText(text: string): string {
-  // Replace with actual formatting logic (links, markdown, etc.)
-  return text;
 }
 
 // -------------------------
@@ -214,7 +221,7 @@ function RenderComment({
   maxLength: number;
 }) {
   const [expanded, setExpanded] = useState(false); //TODO can we do this with a class instead? OPTIMIZATION
-  const selectedPath = useTrainerStore.getState().selectedPath;
+  const selectedPath = useTrainerStore((s) => s.selectedPath);
   const { showMenu } = useAppContextMenu();
   const items = useCommentContextMenuItems(path);
   const truncated = truncateComment(comment, maxLength, ctx);
@@ -226,7 +233,7 @@ function RenderComment({
   return (
     <span
       className={`comment ${isCommentOfActiveMove ? 'is-current' : ''}`}
-      onContextMenu={(e) => showMenu(e, items, path)}
+      onContextMenu={(e) => showMenu(e, items, path, '')}
     >
       {displayText}
       {isTruncated && (
@@ -252,23 +259,8 @@ export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: Tr
   );
 }
 
-//TODO conceal?
-export function RenderMainlineCommentsOf({
-  ctx,
-  node,
-  // conceal,
-  withColor,
-  path,
-}: {
-  ctx: Ctx;
-  node: TrainableNode;
-  // conceal?: Conceal;
-  withColor: boolean;
-  path: string;
-}) {
+export function RenderMainlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: TrainableNode; path: string }) {
   if (!node.data.comment) return null;
-
-  const colorClass = withColor ? (node.data.ply % 2 === 0 ? ' black' : ' white') : '';
 
   return (
     <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={MAX_LEN_MAINLINE_COMMENT} />
@@ -277,330 +269,170 @@ export function RenderMainlineCommentsOf({
 
 // END COMMENTS
 
-//TODO
-export const renderIndexText = (ply: number, withDots?: boolean): string =>
-  plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
-
-//TODO maybe dont style this as if it was a real move?
-function EmptyMove() {
-  return <div className="move empty">...</div>;
-}
-
 export const plyToTurn = (ply: number): number => Math.floor((ply - 1) / 2) + 1;
 
 export const renderIndex = (ply: number, withDots?: boolean): string =>
   plyToTurn(ply) + (withDots ? (ply % 2 === 1 ? '.' : '...') : '');
 
-function IndexNode(ply: number) {
-  return (
-    <div className="index">
-      {/* {renderIndex(ply, true)} */}
-      {ply}
-    </div>
-  );
+/** the move-number gutter cell that opens a mainline row */
+function IndexCell({ ply }: { ply: number }) {
+  return <div className="index">{renderIndex(ply, false)}</div>;
 }
 
-function RenderMainlineMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  // console.log("delete node F", deleteNode);
-  const { showMenu, contextSelectedPath } = useAppContextMenu();
-  const jump = useTrainerStore((s) => s.jump);
-
-  const path = opts.parentPath + node.data.id;
-  const selectedPath = useTrainerStore.getState().selectedPath;
-
-  const isContextSelected = path === contextSelectedPath;
-  const activeClass = path === selectedPath ? 'active' : '';
-
-  const { repertoire, selectedChapterId } = useTrainerStore.getState();
-  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
-  if (!chapter) return;
-
-  const nodeFromPath = nodeAtPath(chapter.root, path);
-
-  const items = useMoveContextMenuItems(path, nodeFromPath.data);
-
-  return (
-    <div
-      data-path={path}
-      className={`move ${activeClass} ${isContextSelected ? 'is-context-selected' : ''}`}
-      onContextMenu={(e) => showMenu(e, items, path)}
-    >
-      {node.data.san}
-    </div>
-  );
+/** placeholder holding a colour's slot so the next move lands in its own column */
+function EmptyMove() {
+  return <div className="move empty">...</div>;
 }
 
-function RenderVariationMove({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
+function MoveNode({ node, args }: { node: TrainableNode; args: Args }) {
   const { showMenu, contextSelectedPath } = useAppContextMenu();
+  const selectedPath = useTrainerStore((s) => s.selectedPath);
+  const { isMainline, parentNode, parenthetical } = args;
 
-  const path = opts.parentPath + node.data.id;
+  const path = args.parentPath + node.data.id;
+  const items = useMoveContextMenuItems(path, node.data);
 
-  const { repertoire, selectedChapterId } = useTrainerStore.getState();
-  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
-  if (!chapter) return;
+  // Mainline moves get their number from the gutter cell; sideline moves carry
+  // it inline — always for white, and for black whenever the move opens a
+  // branch that isn't the first of a parenthesised pair.
+  const withIndex =
+    !isMainline &&
+    (node.data.ply % 2 === 1 ||
+      (parentNode.children.length > 1 && (!parenthetical || parentNode.children[0] !== node)));
 
-  const nodeFromPath = nodeAtPath(chapter.root, path);
-  const items = useMoveContextMenuItems(path, nodeFromPath.data);
-  const withIndex = opts.withIndex || node.data.ply % 2 === 1;
+  const classes = [
+    'move',
+    isMainline ? '' : 'variation',
+    path === selectedPath ? 'active' : '',
+    path === contextSelectedPath ? 'is-context-selected' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   const content = (
     <>
-      {/* // TODO here */}
-      {/* {withIndex && `${Math.floor(node.ply / 2) + 1}. `} */}
-      {withIndex && renderIndex(node.data.ply, true)}
+      {withIndex && <span className="index">{renderIndex(node.data.ply, true)}</span>}
       {node.data.san}
     </>
   );
-  // const classes = nodeClasses(ctx, node, path);
+  const onContextMenu = (e: React.MouseEvent) => showMenu(e, items, path, node.data.san);
 
-  const selectedPath = useTrainerStore.getState().selectedPath;
-  const activeClass = path == selectedPath ? 'active' : '';
-
-  return (
-    <span
-      data-path={path}
-      className={`move variation ${activeClass}`}
-      onContextMenu={(e) => showMenu(e, items, path)}
-    >
+  return isMainline ? (
+    <div data-path={path} className={classes} onContextMenu={onContextMenu}>
+      {content}
+    </div>
+  ) : (
+    <span data-path={path} className={classes} onContextMenu={onContextMenu}>
       {content}
     </span>
   );
 }
 
-type RenderMainlineMoveOfProps = {
-  ctx: Ctx;
-  node: TrainableNode;
-  opts: Opts;
-};
+/**
+ * A block of sidelines branching off `args.parentNode`. Renders as parentheses
+ * when the parent said so, otherwise as a stack of connected `.line` rows.
+ */
+function Lines({ ctx, nodes, args }: { ctx: Ctx; nodes: TrainableNode[]; args: Args }) {
+  if (!nodes.length) return null;
 
-function RenderMoveOf({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  return opts.isMainline ? (
-    <RenderMainlineMove ctx={ctx} node={node} opts={opts} />
-  ) : (
-    <RenderVariationMove ctx={ctx} node={node} opts={opts} />
-  );
-}
+  const lineArgs: Args = {
+    parentPath: args.parentPath,
+    parentNode: args.parentNode,
+    isMainline: false,
+  };
 
-function RenderInline({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  return (
-    <span className="line-inline">
-      {'( '}
-      <RenderMoveAndChildren
-        ctx={ctx}
-        node={node}
-        opts={{
-          ...opts,
-          withIndex: true,
-          isMainline: false,
-          inline: undefined,
-        }}
-      />
-      {' ) '}
-    </span>
-  );
-}
-
-function RenderMoveAndChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  const path = opts.parentPath + node.data.id;
-  if (opts.truncate === 0)
+  if (!args.isMainline && args.parenthetical)
     return (
-      <div>
-        <span>[...]</span>
-      </div>
-    );
-
-  return (
-    <>
-      <RenderMoveOf ctx={ctx} node={node} opts={opts} />
-
-      {/* {RenderInlineCommentsOf(ctx, node, path)} */}
-      <RenderInlineCommentsOf ctx={ctx} node={node} path={path}></RenderInlineCommentsOf>
-      {opts.inline && <RenderInline ctx={ctx} node={opts.inline} opts={opts} />}
-      <RenderChildren
-        ctx={ctx}
-        node={node}
-        opts={{
-          parentPath: path,
-          isMainline: opts.isMainline,
-          depth: opts.depth,
-          truncate: opts.truncate ? opts.truncate - 1 : undefined,
-        }}
-      />
-    </>
-  );
-}
-
-export function RenderLines({ ctx, parentNode, nodes, opts }) {
-  // At high depth, render variations inline with parens instead of nested branches
-  if (opts.depth >= MAX_BRANCH_DEPTH) {
-    return (
-      <span className="lines inline">
-        {nodes.map((n) => (
-          <span className="line-inline" key={n.data.id}>
-            {'('}
-            <RenderMoveAndChildren
-              ctx={ctx}
-              node={n}
-              opts={{
-                parentPath: opts.parentPath,
-                isMainline: false,
-                depth: opts.depth + 1,
-                withIndex: true,
-              }}
-            />
-            {')'}
-          </span>
-        ))}
+      <span className="inline">
+        <SidelineNodes ctx={ctx} nodes={nodes} args={lineArgs} />
       </span>
     );
-  }
 
   return (
-    <div className={`lines ${!nodes[1] ? 'single' : ''}`}>
-      {nodes.map((n) => {
-        return (
-          <div className="line" key={n.data.id}>
-            <div className="branch" />
-            <RenderMoveAndChildren
-              ctx={ctx}
-              node={n}
-              opts={{
-                parentPath: opts.parentPath,
-                isMainline: false,
-                depth: opts.depth + 1,
-                withIndex: true,
-              }}
-            />
-          </div>
-        );
-      })}
+    <div className={`lines${nodes[1] ? '' : ' single'}`}>
+      {nodes.map((n) => (
+        <div className="line" key={n.data.id}>
+          <div className="branch" />
+          <SidelineNodes ctx={ctx} nodes={[n]} args={lineArgs} />
+        </div>
+      ))}
     </div>
   );
 }
 
-function RenderChildren({ ctx, node, opts }: { ctx: Ctx; node: TrainableNode; opts: Opts }) {
-  const { repertoire, selectedChapterId } = useTrainerStore.getState();
-  const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
-  if (!chapter) return null;
-  const root = chapter.root;
+/**
+ * One sideline: the head move, then its continuation, then its siblings —
+ * except when the parent is parenthetical, in which case the siblings come
+ * first so they read as `1. e4 (1. d4) 1... e5`.
+ */
+function SidelineNodes({ ctx, nodes, args }: { ctx: Ctx; nodes: TrainableNode[]; args: Args }) {
+  const [child, ...siblings] = nodes;
+  if (!child) return null;
 
-  const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
-  const path: TrainableNode[] = getNodeList(root, pathToTrain);
+  const path = args.parentPath + child.data.id;
+  const children = ctx.visibleChildren(child);
+  const childArgs: Args = {
+    parentPath: path,
+    parentNode: child,
+    isMainline: false,
+    parenthetical: isParenthetical(children),
+  };
+  const siblingLines = <Lines ctx={ctx} nodes={siblings} args={args} />;
 
-  const method = useTrainerStore.getState().trainingMethod;
+  return (
+    <>
+      <MoveNode node={child} args={args} />
+      <RenderInlineCommentsOf ctx={ctx} node={child} path={path} />
+      {args.parenthetical && siblingLines}
+      {children.length < 2 || childArgs.parenthetical ? (
+        <SidelineNodes ctx={ctx} nodes={children} args={childArgs} />
+      ) : (
+        <Lines ctx={ctx} nodes={children} args={childArgs} />
+      )}
+      {!args.parenthetical && siblingLines}
+    </>
+  );
+}
 
-  // console.log('node', node);
-  const ply = node.data.ply;
-  const cs = node.children.filter((x, i) => {
-    // console.log('x.san', x.san, 'vs', path[ply + 1].san);
-    return (
-      method == 'edit' ||
-      (ply < path.length - 1 && x.data.san == path[ply + 1].data.san && (ctx.showComputer || !x.comp))
-    );
-  });
-  const main = cs[0];
-  if (!main) return null;
+/**
+ * The mainline, laid out as a flat run of flex cells. `nodes[0]` continues the
+ * mainline; the rest are sidelines that get pushed into an `.interrupt`.
+ */
+function ColumnNodes({ ctx, nodes, args }: { ctx: Ctx; nodes: TrainableNode[]; args: Args }) {
+  const [child, ...siblings] = nodes;
+  if (!child) return null;
 
-  if (opts.isMainline) {
-    const isWhite = main.data.ply % 2 === 1;
+  const childPath = args.parentPath + child.data.id;
+  const isWhite = child.data.ply % 2 === 1;
+  const children = ctx.visibleChildren(child);
+  const interrupted = siblings.length > 0 || !!child.data.comment;
 
-    //TODO why is this different than lichess ?  math.floor(..) line
-    //TODO force variation?
-    if (!cs[1] && !main.data.comment && true) {
-      return (
+  return (
+    <>
+      {isWhite && <IndexCell ply={child.data.ply} />}
+      <MoveNode node={child} args={args} />
+      {interrupted && (
         <>
-          {isWhite && IndexNode(Math.floor(main.data.ply / 2) + 1)}
-          <RenderMoveAndChildren
-            ctx={ctx}
-            node={main}
-            opts={{
-              parentPath: opts.parentPath,
-              isMainline: true,
-              depth: opts.depth,
-            }}
-          />
+          {isWhite && <EmptyMove />}
+          <div className="interrupt">
+            <RenderMainlineCommentsOf ctx={ctx} node={child} path={childPath} />
+            <Lines ctx={ctx} nodes={siblings} args={args} />
+          </div>
+          {isWhite && children.length > 0 && (
+            <>
+              <IndexCell ply={child.data.ply} />
+              <EmptyMove />
+            </>
+          )}
         </>
-      );
-    }
-
-    const mainChildren = (
-      <RenderChildren
+      )}
+      <ColumnNodes
         ctx={ctx}
-        node={main}
-        opts={{
-          parentPath: opts.parentPath + main.data.id,
-          isMainline: true,
-          depth: opts.depth,
-        }}
+        nodes={children}
+        args={{ parentPath: childPath, parentNode: child, isMainline: true }}
       />
-    );
-    const mainHasChildren = main.children[0];
-    // Not entering here
-    return (
-      <>
-        {isWhite && IndexNode(Math.floor(main.data.ply / 2) + 1)}
-        {!main.forceVariation && (
-          <RenderMoveOf
-            ctx={ctx}
-            node={main}
-            opts={{
-              parentPath: opts.parentPath,
-              isMainline: true,
-              depth: opts.depth,
-            }}
-          />
-        )}
-
-        {isWhite && false && <EmptyMove />}
-        <div className="interrupt">
-          {/* {commentTags} */}
-          {/* ctx, main, conceal, true, opts.parentPath + main.id */}
-          <RenderMainlineCommentsOf
-            ctx={ctx}
-            node={main}
-            withColor={true}
-            path={opts.parentPath + main.data.id}
-          />
-          {/* ^^^^ COMPONENT */}
-          <RenderLines
-            ctx={ctx}
-            parentNode={node}
-            nodes={cs.slice(1)}
-            opts={{
-              parentPath: opts.parentPath,
-              isMainline: !main.forceVariation,
-              depth: opts.depth,
-              // noConceal: true,
-            }}
-          />
-        </div>
-        {isWhite && mainHasChildren && IndexNode(Math.floor(main.data.ply / 2) + 1)}
-        {isWhite && mainHasChildren && <EmptyMove />}
-        {mainChildren}
-      </>
-    );
-  }
-
-  if (!cs[1]) {
-    return <RenderMoveAndChildren ctx={ctx} node={cs[0]} opts={opts} />;
-  }
-
-  // Inline rendering: exactly 2 branches, second branch has no sub-branching within 6 moves
-  if (cs[1] && !cs[2] && !hasBranching(cs[1], 6)) {
-    return (
-      <RenderMoveAndChildren
-        ctx={ctx}
-        node={cs[0]}
-        opts={{
-          parentPath: opts.parentPath,
-          isMainline: false,
-          depth: opts.depth,
-          inline: cs[1],
-        }}
-      />
-    );
-  }
-
-  return <RenderLines ctx={ctx} parentNode={node} nodes={cs} opts={opts} />;
+    </>
+  );
 }
 
 function BottomCommentEditor() {
@@ -653,6 +485,9 @@ export default function PgnTree({ setActiveMoveId }) {
   const jump = useTrainerStore((s) => s.jump);
   const selectedPath = useTrainerStore((s) => s.selectedPath);
   const trainingMethod = useTrainerStore((s) => s.trainingMethod);
+  const repertoire = useTrainerStore((s) => s.repertoire);
+  const selectedChapterId = useTrainerStore((s) => s.selectedChapterId);
+  const trainableContext = useTrainerStore((s) => s.trainableContext);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [editingPath, setEditingPath] = useState<string | null>(null);
 
@@ -692,64 +527,66 @@ export default function PgnTree({ setActiveMoveId }) {
       const path = el.getAttribute('data-path');
       if (path) {
         setActiveMoveId(el.id);
-        // ctrl.userJump(path); // your navigation logic
-        // ctrl.redraw();
-        // console.log('PATH', path);
         jump(path);
-
         break;
       }
       el = el.parentElement!;
     }
   };
 
-  const { repertoire, selectedChapterId } = useTrainerStore.getState();
   const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   if (!chapter) return;
-  let root = chapter.root;
+  const root = chapter.root;
   if (!root) return;
-  // console.log("ROOT", root);
-  // console.log('root path');
-  // TODO conditionally use path or root, depending on context
 
-  // TODO ???
-  // TODO handle multiple root nodes, possibly upon PGN import... (dont allow chapter w/ multiple roots)
+  // Outside of edit mode only the line being trained is on screen, so children
+  // are filtered down to the one that continues it.
+  const trainingLine: TrainableNode[] = getNodeList(root, trainableContext?.startingPath || '');
+  const visibleChildren = (node: TrainableNode): TrainableNode[] => {
+    if (trainingMethod === 'edit') return node.children;
+    const ply = node.data.ply;
+    if (ply >= trainingLine.length - 1) return [];
+    return node.children.filter((c) => c.data.san === trainingLine[ply + 1].data.san);
+  };
 
   const ctx: Ctx = {
     currentPath: '',
     truncateComments: true,
+    visibleChildren,
   };
 
-  //TODO should be false
-  // const blackStarts = (root.data.ply & 1) === 1;
+  const blackStarts = (root.data.ply & 1) === 1;
+
   return (
     <CommentEditContext.Provider value={commentEditValue}>
-    <ContextMenuProvider>
-      <div className="tree-panel">
-        <div
-          ref={scrollRef}
-          onMouseDown={handleMouseDown}
-          className="tview2 tview2-column tree-scroll tree-body"
-        >
-          {root.data.comment && (
-            <div className="interrupt">
-              <RenderMainlineCommentsOf
-                ctx={ctx}
-                node={root}
-                withColor={false}
-                path={''}
-              ></RenderMainlineCommentsOf>
-            </div>
-          )}
-          {/* {blackStarts && root.ply}
-          {blackStarts && <EmptyMove />} */}
-          <RenderChildren ctx={ctx} node={root} opts={{ parentPath: '', isMainline: true, depth: 0 }} />
+      <ContextMenuProvider>
+        <div className="tree-panel">
+          <div
+            ref={scrollRef}
+            onMouseDown={handleMouseDown}
+            className="tview2 tview2-column tree-scroll tree-body"
+          >
+            {root.data.comment && (
+              <div className="interrupt">
+                <RenderMainlineCommentsOf ctx={ctx} node={root} path={''} />
+              </div>
+            )}
+            {blackStarts && (
+              <>
+                <IndexCell ply={root.data.ply} />
+                <EmptyMove />
+              </>
+            )}
+            <ColumnNodes
+              ctx={ctx}
+              nodes={visibleChildren(root)}
+              args={{ parentPath: '', parentNode: root, isMainline: true }}
+            />
+          </div>
+          <BottomCommentEditor />
+          <ChildMoveButtons />
         </div>
-        <BottomCommentEditor />
-        <ChildMoveButtons />
-      </div>
-    </ContextMenuProvider>
+      </ContextMenuProvider>
     </CommentEditContext.Provider>
   );
 }
-//TODO what is a comment tag?

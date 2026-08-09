@@ -29,10 +29,11 @@
   color: var(--c-gray-700);
 }
 
+/* month names down the top and weekday names down the side */
 .cr-heatmap .react-calendar-heatmap text {
   fill: var(--c-gray-700);
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .cr-heatmap .react-calendar-heatmap .react-calendar-heatmap-small-text {

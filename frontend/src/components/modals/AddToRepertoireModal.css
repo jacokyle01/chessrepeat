@@ -1,14 +1,45 @@
 /* Import dialog — a PGN paste/upload tab and a JSON-backup restore tab. */
 
 /* Stacks above every other modal: it can be opened from the repertoire panel
-   while the login prompt is already up. */
-.add-rep-dialog {
+   while the login prompt is already up.
+
+   Head / scrolling body / pinned footer, capped at the viewport height: the
+   PGN tab is tall enough to overflow a short window, and the dialog is
+   centered with a transform, so without this the submit button falls off the
+   bottom of the screen with no way to scroll to it. */
+.modal-dialog.add-rep-dialog {
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  /* the same clearance every other dialog leaves top and bottom */
+  max-height: calc(100dvh - 6rem);
+  overflow: hidden;
+}
+
+.add-rep-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .add-rep-head {
+  flex-shrink: 0;
   padding: 1.5rem;
   border-bottom: 1px solid var(--c-gray-200);
+}
+
+/* the only part that scrolls */
+.add-rep-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.add-rep-footer {
+  flex-shrink: 0;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--c-gray-200);
+  background: var(--c-surface);
 }
 
 .add-rep-head h2 {

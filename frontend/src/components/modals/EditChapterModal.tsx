@@ -31,35 +31,27 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose,
     setIsRenaming(true);
   };
 
-  const cancelRename = () => {
-    setRenameError(null);
-    setDraftName(chapter.name);
-    setIsRenaming(false);
-  };
+  const trimmedName = draftName.trim();
+  // The check is only offered once there's an actual change to commit.
+  const canCommitRename = !!trimmedName && trimmedName !== chapter.name;
 
-  const commitRename = async () => {
-    const next = draftName.trim();
-    if (!next) {
-      setRenameError('Name cannot be empty.');
-      return;
-    }
-    if (next === chapter.name) {
-      setIsRenaming(false);
-      return;
-    }
-
+  /** Save the pending rename (if any) and close. Both the check and the
+      dialog's X land here, so leaving the modal never drops an edit. */
+  const commitRenameAndClose = async () => {
+    if (!isRenaming || !canCommitRename) return onClose();
     setRenameError(null);
     try {
-      await renameChapter(chapterId, next);
-      setIsRenaming(false);
+      await renameChapter(chapterId, trimmedName);
+      onClose();
     } catch (err: any) {
+      // stay open on failure so the name isn't silently lost
       setRenameError(err?.message ?? 'Failed to rename chapter.');
     }
   };
 
   const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') commitRename();
-    if (e.key === 'Escape') cancelRename();
+    if (e.key === 'Enter') commitRenameAndClose();
+    if (e.key === 'Escape') onClose();
   };
 
   const handleDelete = async () => {
@@ -69,8 +61,13 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose,
 
   return (
     <dialog open className="modal-dialog edit-chapter-dialog">
-      {/* Close Button */}
-      <button className="modal-close-puck" aria-label="Close" onClick={onClose} type="button">
+      {/* Close Button — saves the rename on the way out */}
+      <button
+        className="modal-close-puck"
+        aria-label="Close"
+        onClick={commitRenameAndClose}
+        type="button"
+      >
         <XIcon />
       </button>
 
@@ -85,19 +82,13 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose,
             />
             <button
               className="edit-chapter-confirm"
-              onClick={commitRename}
+              onClick={commitRenameAndClose}
+              disabled={!canCommitRename}
               type="button"
-              aria-label="Confirm rename"
+              aria-label="Save name"
+              title="Save name"
             >
               <CheckIcon />
-            </button>
-            <button
-              className="edit-chapter-cancel"
-              onClick={cancelRename}
-              type="button"
-              aria-label="Cancel rename"
-            >
-              <XIcon />
             </button>
           </div>
         ) : (
