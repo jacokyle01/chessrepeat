@@ -133,9 +133,8 @@ export const UserTip = () => {
     case 'fail':
       return (
         <Tip
-          icon={<div className="tip-cross">✗</div>}
+          icon={<XIcon className="tip-cross" />}
           title={`${lastGuess} is incorrect`}
-          grayIcon={false}
           description={`${isWhite ? 'White' : 'Black'} plays ${san}`}
           actions={[
             {

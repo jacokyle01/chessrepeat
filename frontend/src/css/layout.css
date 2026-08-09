@@ -59,6 +59,16 @@
   margin-bottom: 0.25rem;
 }
 
+/* The two recessed tracks are taller than what's inside them by their own
+   0.375rem of padding. Bottom-aligned by box like every other leaf, that
+   padding lifts the avatar, name and peer faces a notch above the wordmark and
+   links they're meant to sit level with. Pulling each box down by that padding
+   aligns what you actually see — their contents — instead of their edges. */
+#header .header-identity,
+#header .header-peers {
+  margin-bottom: -0.125rem;
+}
+
 /* Identity track: avatar, name and the sign-in / sign-out control in one
    recessed pill, the same object the peer avatars sit in. The track is the
    item that aligns in the bar, so its contents drop the shared margin and
@@ -526,10 +536,12 @@
   justify-content: center;
 }
 
-/* keep the moves off the card's border on every side */
+/* Keeps the moves off the card's border, except on the left, where the filled
+   move-number gutter runs flush to the card edge, and on top, where the first
+   row sits directly under the header's hairline. */
 .pgn-tree-scroll {
   max-height: 30vh;
-  padding: 0.5rem;
+  padding: 0 0.5rem 0.5rem 0;
   overflow-y: auto;
 }
 

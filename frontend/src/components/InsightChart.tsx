@@ -82,9 +82,10 @@ const InsightChart: React.FC = () => {
     return { values: vals, startDate: today, endDate: end, maxCount: max, totalMoves, dueNow, todayKey };
   }, [dueTimes]);
 
-  if (!dueTimes || totalMoves === 0) {
-    return <div className="cr-heatmap-empty">No moves to chart yet.</div>;
-  }
+  // With nothing scheduled the grid still draws — every cell just sits at the
+  // empty color — so the calendar is always on screen and the "no moves" note
+  // goes in the readout strip instead of replacing it.
+  const isEmpty = totalMoves === 0;
 
   return (
     <div className="cr-heatmap">
@@ -112,7 +113,7 @@ const InsightChart: React.FC = () => {
       </div>
 
       <div className="cr-heatmap-readout">
-        {hovered && (
+        {hovered ? (
           <>
             <strong>
               {hovered.count} move{hovered.count !== 1 ? 's' : ''}
@@ -126,6 +127,8 @@ const InsightChart: React.FC = () => {
                   day: 'numeric',
                 })}`}
           </>
+        ) : (
+          isEmpty && <span className="cr-heatmap-empty">No moves to chart yet.</span>
         )}
       </div>
     </div>

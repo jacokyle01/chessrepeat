@@ -28,7 +28,7 @@ import { useAuthStore } from '../../store/auth';
 import { viewUserRepertoire } from '../../services/collaborators';
 import './Repertoire.css';
 
-export const ChapterRow = ({ entry, index, id }) => {
+export const ChapterRow = ({ entry, index }) => {
   const setSelectedChapterId = useStore(useTrainerStore, (s) => s.setSelectedChapterId);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const renameChapter = useTrainerStore((s) => s.renameChapter);
@@ -117,6 +117,12 @@ export const ChapterRow = ({ entry, index, id }) => {
         <div className="chapter">
           <span className="chapter-index">{index + 1}</span>
 
+          {/* Outline king for white, filled for black — the same way a chess
+              diagram distinguishes the two sides. */}
+          <span className="chapter-side" title={`Trained as ${entry.trainAs}`}>
+            {entry.trainAs === 'white' ? <FaRegChessKing /> : <FaChessKing />}
+          </span>
+
           <h3 className="chapter-title">
             <span className={`chapter-name ${isSelected ? 'is-selected' : ''}`}>{name}</span>
             <span className="chapter-size">
@@ -127,11 +133,18 @@ export const ChapterRow = ({ entry, index, id }) => {
           {/* counts only — the color says which is which, the same way the
               progress bar above the board does */}
           {entry.unseenCount > 0 && (
-            <button className="chapter-count chapter-count-unseen">{entry.unseenCount}</button>
+            <button className="chapter-count chapter-count-unseen" title={`Learn ${entry.unseenCount} moves`}>
+              {entry.unseenCount}
+            </button>
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="chapter-count chapter-count-due">{entry.lastDueCount}</button>
+            <button
+              className="chapter-count chapter-count-due"
+              title={`Recall ${entry.lastDueCount} moves`}
+            >
+              {entry.lastDueCount}
+            </button>
           )}
 
           <div className="chapter-menu" onClick={(e) => e.stopPropagation()}>
@@ -203,11 +216,7 @@ export const ChapterRow = ({ entry, index, id }) => {
             <div className="chapter-action-panel">
               <p className="chapter-action-warning">Delete this chapter? This cannot be undone.</p>
               <div className="chapter-action-confirm-row">
-                <button
-                  type="button"
-                  className="chapter-action-confirm-no"
-                  onClick={() => setView('menu')}
-                >
+                <button type="button" className="chapter-action-confirm-no" onClick={() => setView('menu')}>
                   Cancel
                 </button>
                 <button type="button" className="chapter-action-confirm-yes" onClick={handleDelete}>
@@ -315,10 +324,7 @@ const Repertoire: React.FC<RepertoireProps> = ({ onOpenCollaborators }) => {
             <LucideCloudUpload size={18} />
           </span>
         ) : (
-          <span
-            className="repertoire-sync repertoire-sync-offline"
-            title="Offline — changes not synced"
-          >
+          <span className="repertoire-sync repertoire-sync-offline" title="Offline — changes not synced">
             <LucideCloudOff size={18} />
           </span>
         )}
@@ -326,27 +332,11 @@ const Repertoire: React.FC<RepertoireProps> = ({ onOpenCollaborators }) => {
 
       {/* ONLY THIS SCROLLS */}
       <div id="repertoire-wrap" className="repertoire-scroll repertoire-list">
-        {/* Outline king for white, filled for black — the same way a chess
-            diagram distinguishes the two sides. */}
-        <div className="repertoire-group-label">
-          <FaRegChessKing />
-          White
-        </div>
-        <hr className="repertoire-group-rule" />
+        {/* One list rather than a section per side: each row carries its own
+            king, so the white chapters simply come first. */}
         <div className="repertoire-group">
-          {whiteEntries.map((entry, index) => (
-            <ChapterRow id={entry.id} entry={entry} index={index} />
-          ))}
-        </div>
-
-        <div className="repertoire-group-label">
-          <FaChessKing />
-          Black
-        </div>
-        <hr className="repertoire-group-rule" />
-        <div className="repertoire-group">
-          {blackEntries.map((entry, index) => (
-            <ChapterRow id={entry.id} entry={entry} index={index + whiteEntries.length} />
+          {[...whiteEntries, ...blackEntries].map((entry, index) => (
+            <ChapterRow key={entry.uuid} entry={entry} index={index} />
           ))}
         </div>
       </div>

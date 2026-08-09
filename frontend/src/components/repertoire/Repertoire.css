@@ -13,6 +13,11 @@
   background: var(--c-surface);
 }
 
+/* Closes the header off from the chapters scrolling under it. */
+.repertoire-card .panel-header {
+  border-bottom: 1px solid var(--c-hairline);
+}
+
 /* Header icon doubles as a "back to my repertoire" button while viewing
    someone else's, so it needs a hover state the plain .panel-icon lacks. */
 .repertoire-back-btn:hover {
@@ -69,35 +74,16 @@
   padding-bottom: 0.5rem;
 }
 
-/* Divider row naming the side its chapters are trained as. A grey band rather
-   than a bare label, so it reads as a break in the list. */
-.repertoire-group-label {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  background: var(--c-recessed);
-  /* same type as the Edit / Learn / Recall segments under the board */
-  font-size: 0.875rem;
-  font-weight: 400;
-  color: var(--c-gray-700);
-}
-
-.repertoire-group-label svg {
-  width: 0.875rem;
-  height: 0.875rem;
-  color: var(--c-gray-800);
-}
-
-/* closes the band off from the chapters below it */
-.repertoire-group-rule {
-  height: 0;
-  margin: 0 0 0.25rem;
-  border-top: 1px solid var(--c-line);
-}
-
+/* Square and unframed — the rows run edge to edge inside the card, with only
+   the hairlines between them separating one from the next. */
 .repertoire-group {
-  border-radius: 0.375rem;
+  margin: 0;
+  background: var(--c-surface);
+}
+
+/* a side with no chapters would otherwise leave an empty bordered sliver */
+.repertoire-group:empty {
+  display: none;
 }
 
 /* ---------- one chapter row ---------- */
@@ -116,10 +102,10 @@
   border-bottom: none;
 }
 
-/* Selection is a neutral pill — the only color in a row is the count icons. */
+/* Selection is a gray band running the row's full width — square, like every
+   row. Hover sits a step lighter so the two never read as the same state. */
 .chapter-row.is-selected {
-  border-radius: 0.375rem;
-  background: var(--c-recessed);
+  background: var(--c-gray-100);
 }
 
 /* Everything in a row is centered on one axis — index, name, count pill, the
@@ -133,8 +119,23 @@
 }
 
 .chapter:hover {
-  border-radius: 0.375rem;
-  background: var(--c-gray-100);
+  background: var(--c-gray-50);
+}
+
+/* The side the chapter is trained as, between the row number and the name:
+   outline king for white, filled for black. This is what the per-side group
+   headers used to say, moved onto the rows themselves. */
+.chapter-side {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-right: 0.5rem;
+  color: var(--c-gray-800);
+}
+
+.chapter-side svg {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 /* Row number — same type as the chapter name it precedes, in a fixed column
@@ -168,10 +169,12 @@
   white-space: nowrap;
   font-size: 0.875rem;
   line-height: 1;
+  color: var(--c-gray-700);
 }
 
 .chapter-name.is-selected {
   font-weight: 600;
+  color: var(--c-gray-900);
 }
 
 /* the chapter's move count — a small grey pill so it reads as metadata
@@ -201,20 +204,20 @@
   gap: 0.0625rem;
   border-radius: 9999px;
   font-family: var(--font-roboto);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
-/* Light blue = still to learn, blue = due for recall, matching the segments
-   of the progress bar above the board. */
+/* Light blue = still to learn, blue = due for recall — the same two fills the
+   progress bar above the board uses, at full strength rather than tinted. */
 .chapter-count-unseen {
-  background: rgb(125 211 252 / 0.4);
-  color: var(--c-sky-700);
+  background: var(--c-brand-blue-light);
+  color: var(--c-surface);
 }
 
 .chapter-count-due {
-  background: rgb(59 130 246 / 0.3);
-  color: var(--c-blue-800);
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
 }
 
 .chapter-btn-label {

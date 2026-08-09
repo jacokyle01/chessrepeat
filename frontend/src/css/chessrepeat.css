@@ -49,6 +49,9 @@
   left: 50%;
   top: 100%;
   z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   margin-top: 0.5rem;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -65,6 +68,21 @@
 
 .board-progress:hover .board-progress-tooltip {
   opacity: 1;
+}
+
+/* The same three shares the bar shows, as a pie over the chapter's total. The
+   slice angles come in as custom properties; the unclaimed remainder keeps the
+   bar's track color, so pie and bar read as one picture. */
+.board-progress-pie {
+  flex-shrink: 0;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--c-brand-blue-light) 0 var(--unseen-end, 0deg),
+    var(--c-brand-blue) 0 var(--due-end, 0deg),
+    var(--c-gray-200) 0
+  );
 }
 
 .board-progress-tooltip table {
@@ -87,6 +105,10 @@
 
 .board-progress-tooltip .cell-icon-due svg {
   color: var(--c-blue-800);
+}
+
+.board-progress-tooltip .cell-icon-known svg {
+  color: var(--c-gray-400);
 }
 
 .board-progress-tooltip .cell-label {
@@ -113,6 +135,11 @@
 }
 
 /* ---------- chapter (pgn) panel ---------- */
+/* Closes the header off from the move tree scrolling under it. */
+.pgn-card .panel-header {
+  border-bottom: 1px solid var(--c-hairline);
+}
+
 .pgn-panel-body {
   display: flex;
   flex-direction: column;
@@ -135,9 +162,10 @@
   }
 }
 
-/* Sits immediately after the "Chapter" title rather than being pushed to the
-   far end of the header, so it reads as an action on the chapter. */
-.copy-fen-btn {
+/* Sit immediately after the "Chapter" title rather than being pushed to the
+   far end of the header, so they read as actions on the chapter. */
+.copy-fen-btn,
+.toggle-comments-btn {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -148,12 +176,14 @@
   transition: color 150ms, background-color 150ms;
 }
 
-.copy-fen-btn svg {
+.copy-fen-btn svg,
+.toggle-comments-btn svg {
   width: 1.25rem;
   height: 1.25rem;
 }
 
-.copy-fen-btn:hover {
+.copy-fen-btn:hover,
+.toggle-comments-btn:hover {
   color: var(--c-slate-800);
   background: var(--c-gray-100);
 }

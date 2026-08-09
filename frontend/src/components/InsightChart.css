@@ -8,9 +8,9 @@
   font-size: 0.75rem;
 }
 
+/* The "nothing scheduled" note. It shares the readout strip with the hovered-
+   day label, so it takes that strip's size and only sets its own dimmer color. */
 .cr-heatmap-empty {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
   color: var(--c-gray-400);
 }
 

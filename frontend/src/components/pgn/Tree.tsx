@@ -34,6 +34,8 @@ export interface Args {
 
 export interface Ctx {
   truncateComments: boolean;
+  /** false hides every comment in the tree, mainline and sideline alike */
+  showComments: boolean;
   currentPath: string | undefined;
   /** children to draw: all of them in edit mode, only the trained line otherwise */
   visibleChildren: (node: TrainableNode) => TrainableNode[];
@@ -252,7 +254,7 @@ function RenderComment({
 }
 
 export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: TrainableNode; path: string }) {
-  if (!node.data.comment) return null;
+  if (!ctx.showComments || !node.data.comment) return null;
 
   return (
     <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={MAX_LEN_INLINE_COMMENT} />
@@ -260,7 +262,7 @@ export function RenderInlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: Tr
 }
 
 export function RenderMainlineCommentsOf({ ctx, node, path }: { ctx: Ctx; node: TrainableNode; path: string }) {
-  if (!node.data.comment) return null;
+  if (!ctx.showComments || !node.data.comment) return null;
 
   return (
     <RenderComment comment={node.data.comment} ctx={ctx} path={path} maxLength={MAX_LEN_MAINLINE_COMMENT} />
@@ -405,7 +407,9 @@ function ColumnNodes({ ctx, nodes, args }: { ctx: Ctx; nodes: TrainableNode[]; a
   const childPath = args.parentPath + child.data.id;
   const isWhite = child.data.ply % 2 === 1;
   const children = ctx.visibleChildren(child);
-  const interrupted = siblings.length > 0 || !!child.data.comment;
+  // With comments hidden a commented move no longer breaks the mainline row,
+  // so the empty cells and re-opened index around the interrupt go away too.
+  const interrupted = siblings.length > 0 || (ctx.showComments && !!child.data.comment);
 
   return (
     <>
@@ -481,7 +485,7 @@ function ChildMoveButtons() {
 }
 
 //TODO function should be part of state
-export default function PgnTree({ setActiveMoveId }) {
+export default function PgnTree({ setActiveMoveId, showComments = true }) {
   const jump = useTrainerStore((s) => s.jump);
   const selectedPath = useTrainerStore((s) => s.selectedPath);
   const trainingMethod = useTrainerStore((s) => s.trainingMethod);
@@ -552,6 +556,7 @@ export default function PgnTree({ setActiveMoveId }) {
   const ctx: Ctx = {
     currentPath: '',
     truncateComments: true,
+    showComments,
     visibleChildren,
   };
 
@@ -566,7 +571,7 @@ export default function PgnTree({ setActiveMoveId }) {
             onMouseDown={handleMouseDown}
             className="tview2 tview2-column tree-scroll tree-body"
           >
-            {root.data.comment && (
+            {showComments && root.data.comment && (
               <div className="interrupt">
                 <RenderMainlineCommentsOf ctx={ctx} node={root} path={''} />
               </div>

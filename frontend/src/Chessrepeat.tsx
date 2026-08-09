@@ -5,7 +5,7 @@ import { Chessground } from './components/Chessground';
 import Controls from './components/TrainingControls';
 import MobileCommentPopout from './components/MobileCommentPopout';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode } from 'chessops/pgn';
 import { Chess } from 'chessops';
@@ -24,12 +24,15 @@ import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
 import {
+  Check,
   ClipboardCheck,
   ClipboardCopy,
   FileIcon,
   FolderCog2Icon,
   GraduationCap,
   History,
+  MessageSquareOff,
+  MessageSquareText,
   NetworkIcon,
 } from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
@@ -84,6 +87,15 @@ const segmentWidth = (ratio: number): React.CSSProperties =>
 
 const rewardPosition = (x: number, y: number): React.CSSProperties =>
   ({ '--reward-x': `${x - 5}px`, '--reward-y': `${y - 25}px` }) as React.CSSProperties;
+
+// The hover pie shares the bar's split, so it takes the same two ratios and
+// hands over the angles where each slice ends; whatever is left of the circle
+// is the "known" remainder.
+const pieSlices = (unseenRatio: number, dueRatio: number): React.CSSProperties =>
+  ({
+    '--unseen-end': `${unseenRatio * 360}deg`,
+    '--due-end': `${(unseenRatio + dueRatio) * 360}deg`,
+  }) as React.CSSProperties;
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -176,22 +188,31 @@ export const Chessrepeat = () => {
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fenCopied, setFenCopied] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const movesContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollActiveIntoView = useCallback(() => {
+    const activeEl = movesContainerRef.current?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl) return;
+
+    activeEl.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+    });
+  }, []);
+
+  // Hiding or showing comments reflows the whole tree without changing any
+  // move's class, so the observer below never fires — bring the selected move
+  // back on screen by hand, a frame later so the new layout has settled.
+  useEffect(() => {
+    const frame = requestAnimationFrame(scrollActiveIntoView);
+    return () => cancelAnimationFrame(frame);
+  }, [showComments, scrollActiveIntoView]);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
     const container = movesContainerRef.current;
     if (!container) return;
-
-    const scrollActiveIntoView = () => {
-      const activeEl = container.querySelector('.active') as HTMLElement | null;
-      if (!activeEl) return;
-
-      activeEl.scrollIntoView({
-        block: 'nearest',
-        inline: 'nearest',
-      });
-    };
 
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -209,7 +230,7 @@ export const Chessrepeat = () => {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [scrollActiveIntoView]);
 
   const [pendingPromo, setPendingPromo] = useState<PendingPromotion | null>(null);
 
@@ -218,6 +239,11 @@ export const Chessrepeat = () => {
   // TODO should be in different component?
   const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   const isEditing = trainingMethod == 'edit';
+
+  // whatever the bar leaves uncoloured: seen moves that aren't due yet
+  const knownCount = chapter
+    ? Math.max(0, chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount)
+    : 0;
 
   // automatically select root node of chapter. fires on chapter change or page reload.
   useEffect(() => {
@@ -412,10 +438,7 @@ export const Chessrepeat = () => {
     <MantineProvider>
       {/* <Debug /> */}
       <div className="app-root">
-        <Header
-          connectedUsers={connectedUsers}
-          incomingCollaboratorsCount={incomingCollaborators.length}
-        />
+        <Header connectedUsers={connectedUsers} incomingCollaboratorsCount={incomingCollaborators.length} />
 
         {showingAddToRepertoireMenu && (
           <>
@@ -451,8 +474,16 @@ export const Chessrepeat = () => {
                     />
                   </div>
 
-                  {/* Breakdown tooltip on hover */}
+                  {/* Breakdown tooltip on hover: the same split as the bar, as a
+                      pie over the chapter's total, with the counts beside it. */}
                   <div className="board-progress-tooltip">
+                    <div
+                      className="board-progress-pie"
+                      style={pieSlices(
+                        chapter.unseenCount / chapter.enabledCount,
+                        chapter.lastDueCount / chapter.enabledCount,
+                      )}
+                    />
                     <table>
                       <tbody>
                         <tr>
@@ -473,6 +504,16 @@ export const Chessrepeat = () => {
                           <td className="cell-count">{chapter.lastDueCount}</td>
                           <td className="cell-percent">
                             {Math.round((chapter.lastDueCount / chapter.enabledCount) * 100)}%
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="cell-icon cell-icon-known">
+                            <Check size={14} />
+                          </td>
+                          <td className="cell-label">Known</td>
+                          <td className="cell-count">{knownCount}</td>
+                          <td className="cell-percent">
+                            {Math.round((knownCount / chapter.enabledCount) * 100)}%
                           </td>
                         </tr>
                       </tbody>
@@ -562,7 +603,12 @@ export const Chessrepeat = () => {
                   <div className="panel-icon">
                     <FileIcon />
                   </div>
-                  <span className="panel-title">Chapter</span>
+                  <div className="panel-titles">
+                    <span className="panel-title">Chapter</span>
+                    <span className="panel-subtitle">
+                      {chapter?.enabledCount ?? 0} move{chapter?.enabledCount === 1 ? '' : 's'}
+                    </span>
+                  </div>
                   {/* copy icon */}
                   <button
                     type="button"
@@ -577,12 +623,23 @@ export const Chessrepeat = () => {
                     aria-label="Copy FEN"
                     title="Copy FEN"
                   >
-                    <span>copy fen</span>
                     {fenCopied ? <ClipboardCheck /> : <ClipboardCopy />}
+                    <span>copy fen</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowComments((v) => !v)}
+                    className="toggle-comments-btn"
+                    aria-pressed={!showComments}
+                    aria-label={showComments ? 'Hide comments' : 'Show comments'}
+                    title={showComments ? 'Hide comments' : 'Show comments'}
+                  >
+                    {showComments ? <MessageSquareOff /> : <MessageSquareText />}
+                    <span>{showComments ? 'hide comments' : 'show comments'}</span>
                   </button>
                 </div>
                 <div className="pgn-tree-scroll">
-                  <PgnTree setActiveMoveId={setActiveMoveId} />
+                  <PgnTree setActiveMoveId={setActiveMoveId} showComments={showComments} />
                 </div>
               </div>
             </div>

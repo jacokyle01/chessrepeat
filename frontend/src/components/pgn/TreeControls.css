@@ -29,8 +29,9 @@
   transform: scale(0.98);
 }
 
+/* An arrow is either a live gray chip or nothing at all — no grayed-out chip
+   in between. `visibility` rather than `display` so the button keeps its slot
+   and the remaining arrows stay put instead of sliding as you walk the tree. */
 .pgn-control-btn:disabled {
-  color: var(--c-gray-400);
-  background: var(--c-recessed);
-  cursor: default;
+  visibility: hidden;
 }

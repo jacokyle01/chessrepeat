@@ -104,10 +104,11 @@
   color: #000;
 }
 
-/* ---------- the ✗ shown when a guess was wrong ---------- */
+/* ---------- the ✗ shown when a guess was wrong ----------
+   Sized by the shared `.tip-icon svg` rules like every other glyph, and boxed
+   on the same gray — only the color says it's a miss. */
 .tip-cross {
   color: var(--c-red-500);
-  font-size: 1.5rem;
 }
 
 /* ---------- alternate-move icon, which is gold rather than gray ---------- */
@@ -164,14 +165,27 @@
 
   .tip-actions {
     gap: 0.5rem;
-    padding: 0.5rem 1rem 0;
+    padding: 0.375rem 1rem 0;
   }
 
   .tip-action {
     font-size: 0.875rem;
   }
 
-  .tip-cross {
-    font-size: 2.25rem;
+  /* The tip that carries actions is the tallest one, and it shares a squeezed
+     grid row with the board. Tighten it so it fits the row rather than making
+     `.area-usertip` scroll. */
+  .tip:has(.tip-actions) {
+    padding: 0.625rem 1.5rem;
+  }
+
+  .tip:has(.tip-actions) .tip-icon-slot {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .tip:has(.tip-actions) .tip-icon svg {
+    width: 26px;
+    height: 26px;
   }
 }

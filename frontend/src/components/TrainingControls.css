@@ -32,10 +32,12 @@
 
 /* First-run nudge: when the seeded example chapter is selected but no mode is
    active yet, Learn pulses so it reads as the obvious next step. The chip is
-   hidden in this state, so the pill carries its own fill. */
+   hidden in this state, so the pill carries its own fill — the app's blue,
+   with the ring set to match it. */
 .training-btn-learn.is-prompted {
-  background: var(--c-gray-900);
-  border-color: var(--c-gray-900);
+  --ring-pulse: rgb(59 130 246 / 0.5); /* --c-brand-blue at half alpha */
+  background: var(--c-brand-blue);
+  border-color: var(--c-brand-blue);
   color: var(--c-surface);
   animation: ring-pulse 1.5s ease-out infinite;
 }

@@ -1,15 +1,17 @@
-/* Neutral attention pulse — the ring takes the element's own color. */
+/* Attention pulse. The ring color comes from --ring-pulse on the element
+   itself, so each caller matches it to its own fill; the dark default is the
+   fallback for anything that doesn't set one. */
 @keyframes ring-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgb(17 24 39 / 0.5);
+    box-shadow: 0 0 0 0 var(--ring-pulse, rgb(17 24 39 / 0.5));
     transform: scale(1);
   }
   70% {
-    box-shadow: 0 0 0 14px rgb(17 24 39 / 0);
+    box-shadow: 0 0 0 14px transparent;
     transform: scale(1.06);
   }
   100% {
-    box-shadow: 0 0 0 0 rgb(17 24 39 / 0);
+    box-shadow: 0 0 0 0 transparent;
     transform: scale(1);
   }
 }
@@ -296,13 +298,14 @@ cg-board piece.fading {
   border: 2px solid currentColor;
   border-radius: 50%;
   font-family: var(--font-sans);
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 700;
   /* the box does the vertical centering; a line box of its own would fight it */
   line-height: 1;
   /* 'i' has no descender, so its ink sits high in a line box that reserves
-     room for one — half this padding drops it back onto the circle's center */
-  padding-top: 0.12em;
+     room for one. With border-box sizing this padding shifts the letter down
+     by half its value — just enough to drop the ink onto the circle's center. */
+  padding-top: 0.05em;
   user-select: none;
 }
 
@@ -320,14 +323,14 @@ cg-board piece.fading {
    nearest equivalent; Chrome skips it and is styled by the pseudos. */
 @supports not selector(::-webkit-scrollbar) {
   * {
-    scrollbar-width: auto;
+    scrollbar-width: thin;
     scrollbar-color: #9ca3af transparent; /* gray-400 */
   }
 }
 
 *::-webkit-scrollbar {
-  width: 14px;
-  height: 14px;
+  width: 9px;
+  height: 9px;
 }
 
 *::-webkit-scrollbar-track {
@@ -336,12 +339,12 @@ cg-board piece.fading {
 
 *::-webkit-scrollbar-thumb {
   background: #9ca3af; /* gray-400 */
-  /* The transparent border insets the thumb inside the 14px gutter. Since the
+  /* The transparent border insets the thumb inside the 9px gutter. Since the
      background is clipped to the content box, the visible corner radius is
-     this radius minus the border width — 6px here reads as ~3px. */
-  border: 3px solid transparent;
+     this radius minus the border width — 5px here reads as ~3px. */
+  border: 2px solid transparent;
   background-clip: content-box;
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
