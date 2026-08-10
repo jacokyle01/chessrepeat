@@ -25,10 +25,23 @@ import DownloadModal from '../modals/DownloadModal';
 import React, { useEffect, useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
+import { useThemeStore } from '../../store/theme';
 import { viewUserRepertoire } from '../../services/collaborators';
 import './Repertoire.css';
 
+// Which king glyph stands for a side, given the color the glyph is drawn in.
+//
+// The convention is about ink, not about the label: the *filled* king is
+// whichever side matches the ink, because a solid shape reads as that color
+// and a hollow one reads as the background showing through. On a light page
+// the ink is dark, so filled = black and outline = white. Invert the page and
+// the ink goes light, so the same two glyphs now say the opposite thing —
+// hence the swap rather than a second icon set.
+const kingFor = (side: 'white' | 'black', isDark: boolean) =>
+  (side === 'black') !== isDark ? FaChessKing : FaRegChessKing;
+
 export const ChapterRow = ({ entry, index }) => {
+  const isDark = useThemeStore((s) => s.theme === 'dark');
   const setSelectedChapterId = useStore(useTrainerStore, (s) => s.setSelectedChapterId);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
   const renameChapter = useTrainerStore((s) => s.renameChapter);
@@ -46,6 +59,7 @@ export const ChapterRow = ({ entry, index }) => {
   const name = entry.name;
   const isSelected = selectedChapterId === entry.uuid;
   const isOpen = view !== 'closed';
+  const SideKing = kingFor(entry.trainAs, isDark);
   const actionsId = `chapter-actions-${entry.uuid}`;
 
   //TODO dont change if already on this chapter..
@@ -117,10 +131,10 @@ export const ChapterRow = ({ entry, index }) => {
         <div className="chapter">
           <span className="chapter-index">{index + 1}</span>
 
-          {/* Outline king for white, filled for black — the same way a chess
-              diagram distinguishes the two sides. */}
+          {/* The same way a chess diagram distinguishes the two sides — which
+              glyph means which flips with the theme, see kingFor. */}
           <span className="chapter-side" title={`Trained as ${entry.trainAs}`}>
-            {entry.trainAs === 'white' ? <FaRegChessKing /> : <FaChessKing />}
+            <SideKing />
           </span>
 
           <h3 className="chapter-title">
