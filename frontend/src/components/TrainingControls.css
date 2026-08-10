@@ -41,6 +41,6 @@
   --ring-pulse-out: rgb(59 130 246 / 0); /* fade out in blue, not toward black */
   background: var(--c-brand-blue);
   border-color: var(--c-brand-blue);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
   animation: ring-pulse 1.5s ease-out infinite;
 }

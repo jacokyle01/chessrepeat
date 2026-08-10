@@ -96,7 +96,7 @@
   padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
   background: var(--c-brand-blue);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
   font-size: 0.75rem;
   font-weight: 600;
   transition: filter 150ms;

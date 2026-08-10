@@ -23,7 +23,7 @@
 .promo-card {
   padding: 0.75rem;
   border-radius: 0.75rem;
-  background: rgb(255 255 255 / 0.9);
+  background: var(--c-glass);
   box-shadow: var(--shadow-xl);
 }
 
@@ -38,12 +38,12 @@
   width: 56px;
   height: 56px;
   border-radius: 0.5rem;
-  background: rgb(0 0 0 / 0.05);
+  background: var(--c-well);
   transition: background-color 150ms;
 }
 
 .promo-option:hover:not(:disabled) {
-  background: rgb(0 0 0 / 0.1);
+  background: var(--c-well-hover);
 }
 
 /* While learning, only the piece the line actually promotes to is selectable. */

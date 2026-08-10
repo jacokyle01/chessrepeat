@@ -23,8 +23,8 @@
 
 .download-option.is-selected {
   border-color: var(--c-brand-blue);
-  background: var(--c-blue-50);
-  color: var(--c-blue-900);
+  background: var(--c-info-bg);
+  color: var(--c-info-fg);
 }
 
 .download-option:disabled {
@@ -54,7 +54,7 @@
   padding: 0.625rem 1rem;
   border-radius: 0.5rem;
   background: var(--c-brand-blue);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
   font-size: 0.875rem;
   font-weight: 600;
   transition: filter 150ms, transform 150ms;

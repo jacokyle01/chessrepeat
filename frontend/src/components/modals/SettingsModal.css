@@ -162,7 +162,7 @@
   font-weight: 700;
   font-family: inherit;
   /* the app's primary fill, same as the repertoire's add button */
-  color: var(--c-surface);
+  color: var(--c-on-accent);
   background: var(--c-brand-blue);
   border: none;
   border-radius: 0.5rem;
@@ -171,5 +171,5 @@
 }
 
 .settings-done-btn:hover {
-  background: var(--c-blue-800);
+  background: var(--c-accent-strong);
 }

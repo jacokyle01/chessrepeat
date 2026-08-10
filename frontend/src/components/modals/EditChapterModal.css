@@ -49,7 +49,7 @@
   padding: 0.5rem;
   border-radius: 0.375rem;
   background: var(--c-brand-blue);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
   transition: all 150ms;
 }
 
@@ -106,7 +106,7 @@
 
 .edit-chapter-delete-btn {
   background: var(--c-red-500);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
 }
 
 .edit-chapter-delete-btn:hover {
@@ -133,7 +133,7 @@
 
 .edit-chapter-confirm-yes {
   background: var(--c-red-600);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
 }
 
 .edit-chapter-confirm-yes:hover {

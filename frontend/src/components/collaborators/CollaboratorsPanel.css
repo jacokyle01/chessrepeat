@@ -100,7 +100,7 @@
 
 .collab-badge-edit {
   background: var(--c-brand-blue);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
 }
 
 .collab-badge-train {
@@ -135,15 +135,18 @@
   gap: 0.375rem;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
-  background: var(--c-slate-800);
-  color: var(--c-surface);
+  /* the app's primary fill, same as the repertoire's add button and the
+     settings dialog's save — this is the affirmative action of its form */
+  background: var(--c-brand-blue);
+  color: var(--c-on-accent);
   font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
+  transition: background 150ms;
 }
 
 .collab-add-btn:hover {
-  background: var(--c-slate-700);
+  background: var(--c-accent-strong);
 }
 
 /* ---------- result message ---------- */

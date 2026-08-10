@@ -29,14 +29,20 @@
   height: 2rem;
 }
 
+/* Same two tokens as .panel-icon in layout.css — the boxed glyph in a panel
+   header (the calendar on the schedule, the book on the repertoire). This tip
+   sits directly under those panels, so a glyph a step lighter read as a
+   different kind of object. Keep the pair in sync with that rule; matching by
+   token rather than by value is what holds it together in both themes.
+   Geometry stays local: this one is larger and grows again at 768px. */
 .tip-icon {
   padding: 0.375rem;
   border-radius: 0.375rem;
-  color: var(--c-gray-500);
+  color: var(--c-gray-600);
 }
 
 .tip-icon.is-boxed {
-  background: var(--c-gray-100);
+  background: var(--c-gray-200);
 }
 
 .tip-icon svg {
@@ -101,7 +107,7 @@
 
 /* the guessed move quoted inside the "ADD <move>" action */
 .tip-action-move {
-  color: #000;
+  color: var(--c-gray-900);
 }
 
 /* ---------- the ✗ shown when a guess was wrong ----------
