@@ -10,6 +10,24 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Opening Training | chessrepeat.com</title>
+
+    <!-- Resolve the theme before the first paint. This is inline and in <head>
+         on purpose: anything deferred to the module bundle runs after the
+         browser has already painted, which is a full white frame before a dark
+         page. Kept in sync with src/store/theme.ts, which reads the key below
+         and stamps the same attribute for every change after this one. -->
+    <script>
+      (function () {
+        var theme;
+        try {
+          theme = localStorage.getItem('chessrepeat:theme');
+        } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
     <script src="https://accounts.google.com/gsi/client" async defer></script>

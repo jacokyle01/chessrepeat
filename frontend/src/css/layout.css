@@ -190,7 +190,7 @@
 }
 
 #header > .logo-wrap .accent {
-  color: #57534e;
+  color: var(--c-wordmark-accent);
 }
 
 /* Lighter than the wordmark so the links read as secondary chrome. */
@@ -444,6 +444,8 @@
   padding: 0.75rem;
 }
 
+/* The color pair here is shared with .tip-icon (UserTip.css) — change both
+   together, or the tip's glyph stops matching the panel headers above it. */
 .panel-icon {
   flex-shrink: 0;
   display: flex;

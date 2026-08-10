@@ -9,14 +9,14 @@
   max-width: 92vw;
   border: 1px solid var(--c-gray-200);
   border-radius: 0.75rem;
-  background: rgb(255 255 255 / 0.95);
+  background: var(--c-glass-strong);
   color: var(--c-gray-900);
   box-shadow: var(--shadow-xl);
 }
 
 @supports (backdrop-filter: blur(0)) {
   .cr-ctxmenu {
-    background: rgb(255 255 255 / 0.8);
+    background: var(--c-glass-hover);
     backdrop-filter: blur(8px);
   }
 }

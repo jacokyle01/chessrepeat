@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/auth';
+import { useThemeStore } from '../store/theme';
 import { useTrainerStore } from '../store/state';
 import { parseChapters } from '../util/chapters';
 
@@ -31,6 +32,7 @@ export function applyLoginResponse(data: any) {
 
 export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
   const [ready, setReady] = useState(false);
+  const theme = useThemeStore((s) => s.theme);
   const updateDueCounts = useTrainerStore().updateDueCounts;
 
   useEffect(() => {
@@ -74,14 +76,17 @@ export function GoogleLoginButton({ onNeedsUsername, onSuccess }: Props) {
     setReady(true);
   }, []);
 
+  // Google renders this button itself, so it can't inherit the palette — it
+  // only takes one of its own named themes. Re-rendered on a theme change
+  // because renderButton bakes the look in at call time.
   useEffect(() => {
     if (!ready) return;
     // @ts-ignore
     window.google.accounts.id.renderButton(document.getElementById('gbtn'), {
-      theme: 'outline',
+      theme: theme === 'dark' ? 'filled_black' : 'outline',
       size: 'large',
     });
-  }, [ready]);
+  }, [ready, theme]);
 
   return <div id="gbtn" />;
 }

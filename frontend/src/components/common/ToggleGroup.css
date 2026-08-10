@@ -33,5 +33,5 @@
 
 .toggle-group-option.is-selected {
   background: var(--c-brand-blue);
-  color: var(--c-surface);
+  color: var(--c-on-accent);
 }

@@ -51,23 +51,23 @@
 
 /* five buckets, empty -> busiest day in the window */
 .cr-heatmap .react-calendar-heatmap rect.color-cr-0 {
-  fill: #dfdfdf;
+  fill: var(--c-heat-0);
 }
 
 .cr-heatmap .react-calendar-heatmap rect.color-cr-1 {
-  fill: #c9deff;
+  fill: var(--c-heat-1);
 }
 
 .cr-heatmap .react-calendar-heatmap rect.color-cr-2 {
-  fill: #91bbff;
+  fill: var(--c-heat-2);
 }
 
 .cr-heatmap .react-calendar-heatmap rect.color-cr-3 {
-  fill: #6991ff;
+  fill: var(--c-heat-3);
 }
 
 .cr-heatmap .react-calendar-heatmap rect.color-cr-4 {
-  fill: #1856ff;
+  fill: var(--c-heat-4);
 }
 
 .cr-heatmap .react-calendar-heatmap rect.cr-today {
@@ -76,7 +76,7 @@
 }
 
 .cr-heatmap .react-calendar-heatmap rect:hover {
-  stroke: #555;
+  stroke: var(--c-heat-hover);
   stroke-width: 1;
   cursor: pointer;
 }

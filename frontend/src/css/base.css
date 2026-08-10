@@ -8,9 +8,20 @@
 
    Must be imported first (see main.tsx) — everything else expects the reset
    to already be in place and overrides it by source order.
+
+   Themes: the block below is light, and the `[data-theme='dark']` block at the
+   bottom of this file redefines the same names for dark. No other stylesheet
+   knows a theme exists — they all read tokens, so a theme is only ever a new
+   set of values here. Anything you add elsewhere must go through a token, or
+   it will be a light-mode color stranded on a dark page.
    =========================== */
 
 :root {
+  /* Tells the browser which way the page reads, so the controls it paints
+     itself — inputs, textareas, selects, the range slider, the Firefox
+     scrollbar — follow the theme instead of staying white. */
+  color-scheme: light;
+
   /* fonts (previously tailwind.config.js -> theme.extend.fontFamily) */
   --font-sans: 'Fira Sans', 'Roboto', sans-serif;
   --font-roboto: 'Roboto', sans-serif;
@@ -81,6 +92,69 @@
   --c-orange-400: #fb923c;
   --c-yellow-400: #facc15;
 
+  /* ---------- roles ----------
+     A ramp step can only hold one value per theme, so any step the app uses
+     for two jobs that move in opposite directions between light and dark has
+     to be split in two here first. Each name below is one job. */
+
+  /* Text and icons sitting on a saturated fill (the brand blue, the red of a
+     destructive confirm, the green of a submit). Those fills stay put across
+     themes, so this can't be --c-surface — that one goes dark and would take
+     the label with it. */
+  --c-on-accent: var(--c-surface);
+
+  /* The heavier step of the brand blue, for hovering a button already filled
+     with it. "Heavier" means darker on a light page and lighter on a dark one,
+     which is why it isn't just --c-blue-800. */
+  --c-accent-strong: var(--c-blue-800);
+
+  /* Callout tints — a pale wash of a hue, its outline, and the text that sits
+     on it. Grouped because the wash and its text have to move together: on a
+     dark page the wash goes dark and the text has to go light, while the same
+     ramp step used as text on a light-blue badge must stay dark. */
+  --c-info-bg: var(--c-blue-50);
+  --c-info-line: var(--c-blue-200);
+  --c-info-fg: var(--c-blue-900);
+  /* the lighter, brand-colored text used on the wash where it reads as an
+     accent rather than as body copy (a move comment, a hovered sideline) */
+  --c-info-accent: var(--c-brand-blue);
+
+  --c-warn-bg: var(--c-amber-50);
+  --c-warn-line: var(--c-amber-300);
+  --c-warn-icon: var(--c-amber-500);
+  --c-warn-fg: var(--c-amber-900);
+  --c-warn-fg-strong: var(--c-amber-950);
+
+  --c-success-bg: var(--c-green-50);
+  --c-success-line: var(--c-green-200);
+  --c-success-fg: var(--c-green-800);
+
+  /* Translucent fills. The first two are cards that let what's behind them
+     show through (the promotion chooser over the board, the move context
+     menu); the last two are the faint inset wells inside them. All four
+     invert — a white veil and a black well become a black veil and a white
+     well — so they can't be written as literal rgb() at the use site. */
+  --c-glass: rgb(255 255 255 / 0.9);
+  --c-glass-strong: rgb(255 255 255 / 0.95);
+  --c-glass-hover: rgb(255 255 255 / 0.8);
+  --c-well: rgb(0 0 0 / 0.05);
+  --c-well-hover: rgb(0 0 0 / 0.1);
+
+  /* the second half of the wordmark, and the thumb of every scrollbar */
+  --c-wordmark-accent: #57534e;
+  --c-scrollbar: var(--c-gray-400);
+  --c-scrollbar-hover: var(--c-gray-500);
+
+  /* Due-count heatmap, empty day -> busiest day in the window. Its own scale
+     rather than the blue ramp above: it has to stay legible as five distinct
+     steps, which the ramp's spacing doesn't give. */
+  --c-heat-0: #dfdfdf;
+  --c-heat-1: #c9deff;
+  --c-heat-2: #91bbff;
+  --c-heat-3: #6991ff;
+  --c-heat-4: #1856ff;
+  --c-heat-hover: #555;
+
   /* surface chrome: --c-recessed is the app's secondary gray (the segmented
      track under the board, the selected chapter row), --c-hairline the faint
      outline of a nested box, --c-line the outline of a raised card or chip. */
@@ -100,6 +174,145 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+/* ===========================
+   Dark theme
+
+   Same names, other values. `data-theme` is written on <html> — by the inline
+   script in index.html before first paint, and by the theme store after that
+   (src/store/theme.ts) — so there is no light frame to flash through.
+
+   The neutral ramps are *reversed* rather than replaced: 50 becomes the
+   darkest step and 900 the lightest. That is what makes the rest of the app
+   come along for free — every `color: var(--c-gray-800)` is text and turns
+   light, every `background: var(--c-gray-100)` is a fill and turns dark, with
+   no per-rule dark variants anywhere. It only holds because the app uses the
+   ramp by role (pale = fill, deep = ink); the few places that broke the rule
+   were split into named roles above before this block was written.
+
+   The accents are *not* reversed — a fill that stays put across themes (the
+   brand blue, the reds and greens of a confirm) keeps its value, and only the
+   washes and the text on them flip.
+   =========================== */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Page chrome keeps the light theme's ordering — recessed sits below the
+     page, surface above it — so a sunken track still reads as sunken and a
+     card still reads as raised, just measured downward from a dark page. */
+  --c-page-bg: #14171c;
+  --c-surface: #1c2027;
+  --c-recessed: #0f1216;
+  /* deeper than the light scrim: a 50% black over an already-dark page barely
+     separates the dialog from what's behind it */
+  --c-backdrop: rgb(0 0 0 / 0.7);
+
+  /* Anything absent from this block inherits from :root unchanged, and that is
+     deliberate for two kinds of token: the ones that already hold up on a dark
+     page (the brand blues, the emerald fills, the yellow attention ring), and
+     every role defined as `var(--c-<ramp>-<step>)` up there — a role like that
+     re-resolves against the steps below on its own, so restating it here would
+     only be a second copy to keep in sync. */
+
+  /* neutrals, reversed. Slightly blued rather than a literal flip of the light
+     ramp: neutral grays go muddy against the blue-black page. */
+  --c-gray-50: #171a20;
+  --c-gray-100: #1f242c;
+  --c-gray-200: #2b313b;
+  --c-gray-300: #3b434f;
+  /* the ramp's midpoint is the one step that reads the same either way */
+  --c-gray-400: #6b7280;
+  --c-gray-500: #9199a6;
+  --c-gray-600: #b4bcc8;
+  --c-gray-700: #d3d9e1;
+  --c-gray-800: #e6eaef;
+  --c-gray-900: #f4f6f9;
+
+  --c-slate-200: #2b313b;
+  --c-slate-300: #3b434f;
+  --c-slate-500: #94a3b8;
+  --c-slate-600: #b6c0cd;
+  --c-slate-700: #d6dde6;
+  --c-slate-800: #e8edf3;
+  --c-slate-900: #f4f7fa;
+
+  /* Accents. The pale steps (50, 200) become dark washes and the deep steps
+     (800, 900) become light ink — except --c-blue-900, which is text on the
+     light-blue peer badge and so has to stay dark. */
+  --c-blue-50: #16233a;
+  --c-blue-200: #3b5f96;
+  --c-blue-800: #60a5fa;
+  --c-blue-900: #1e3a8a;
+  --c-sky-700: #60c5f5;
+  --c-cyan-50: #0d2a2f;
+
+  --c-green-50: #0f2418;
+  --c-green-200: #1f4d33;
+  --c-green-600: #22c55e;
+  --c-green-700: #16a34a;
+  --c-green-800: #86efac;
+  --c-emerald-300: #34d399;
+
+  --c-red-500: #f87171;
+  --c-red-600: #ef4444;
+  --c-red-700: #dc2626;
+
+  --c-amber-50: #2a1f08;
+  --c-amber-300: #6b4e12;
+  --c-amber-500: #fbbf24;
+  --c-amber-600: #fbbf24;
+  --c-amber-900: #fcd9a0;
+  --c-amber-950: #fef3c7;
+
+  --c-orange-400: #c2610c;
+
+  /* ---------- roles ---------- */
+
+  /* Near-white rather than the surface, which is now dark: this is the label
+     on a blue/red/green fill, and those fills did not move. */
+  --c-on-accent: #f8fafc;
+  /* "heavier" is lighter here — a darker blue on a dark page reads as
+     disabled, not as hovered */
+  --c-accent-strong: #60a5fa;
+
+  /* Only the two info roles the reversed ramp doesn't already land on: the
+     wash's outline wants more separation from the wash than blue-200 gives,
+     and the accent has to lift off a dark wash instead of a pale one. The warn
+     and success sets need nothing — their ramp steps flipped above. */
+  --c-info-line: #2b4a7a;
+  --c-info-fg: #bfdbfe;
+  --c-info-accent: #93c5fd;
+
+  /* the veils invert with the page: a white card over the board becomes a
+     dark one, and the wells inside it are lit rather than shaded */
+  --c-glass: rgb(28 32 39 / 0.92);
+  --c-glass-strong: rgb(28 32 39 / 0.96);
+  --c-glass-hover: rgb(28 32 39 / 0.85);
+  --c-well: rgb(255 255 255 / 0.06);
+  --c-well-hover: rgb(255 255 255 / 0.12);
+
+  --c-wordmark-accent: #a8a29e;
+  --c-scrollbar: #454c58;
+  --c-scrollbar-hover: #5d6673;
+
+  /* The heatmap's empty day has to sit *under* the card it's drawn on, the way
+     #dfdfdf does on white; the four filled steps climb to the same blue. */
+  --c-heat-0: #262c35;
+  --c-heat-1: #24406e;
+  --c-heat-2: #2f5ca8;
+  --c-heat-3: #3f7ce0;
+  --c-heat-4: #6ea8ff;
+  --c-heat-hover: #cbd5e1;
+
+  /* A shadow tuned for a white page is invisible on a dark one; these are the
+     same geometry at an alpha that still reads. */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.55);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.6);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.8);
 }
 
 /* ---------- reset ---------- */

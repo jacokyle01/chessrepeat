@@ -1,6 +1,7 @@
 import { SiDiscord, SiGithub } from 'react-icons/si';
-import { LogIn, LogOut, User } from 'lucide-react';
+import { LogIn, LogOut, Moon, Sun, User } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import { useThemeStore } from '../store/theme';
 import { useTrainerStore, type Peer } from '../store/state';
 
 interface Props {
@@ -11,6 +12,10 @@ interface Props {
 }
 
 export function Header({ connectedUsers, incomingCollaboratorsCount = 0 }: Props) {
+  const theme = useThemeStore((s) => s.theme);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const isDark = theme === 'dark';
+
   const authUser = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const openLogin = useAuthStore((s) => s.openLogin);
@@ -103,6 +108,22 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0 }: Props
       </div>
 
       <div className="header-actions">
+        {/* Labelled by what it switches *to*, the way "hide comments" is, so
+            the icon and the words say the same thing. First in the cluster, so
+            the dot separator falls between it and the links rather than
+            before it. */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="header-link"
+          aria-pressed={isDark}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <span>{isDark ? 'light mode' : 'dark mode'}</span>
+          {isDark ? <Sun /> : <Moon />}
+        </button>
+
         <a
           href="https://discord.gg/xhjra9W6Bh"
           target="_blank"
