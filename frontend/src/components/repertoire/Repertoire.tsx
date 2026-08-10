@@ -139,10 +139,7 @@ export const ChapterRow = ({ entry, index }) => {
           )}
 
           {entry.lastDueCount > 0 && (
-            <button
-              className="chapter-count chapter-count-due"
-              title={`Recall ${entry.lastDueCount} moves`}
-            >
+            <button className="chapter-count chapter-count-due" title={`Recall ${entry.lastDueCount} moves`}>
               {entry.lastDueCount}
             </button>
           )}
@@ -316,7 +313,7 @@ const Repertoire: React.FC<RepertoireProps> = ({ onOpenCollaborators }) => {
             className="panel-action"
           >
             <Globe />
-            <span className="chapter-btn-label">share</span>
+            <span className="chapter-btn-label">sharing</span>
           </button>
         )}
         {isAuth ? (

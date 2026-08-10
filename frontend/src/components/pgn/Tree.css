@@ -16,12 +16,16 @@
   height: 100%;
 }
 
+/* The tree's scrollport. Its right padding is what holds the moves off the
+   scrollbar — put on the wrapper instead, it would push the whole scrollport,
+   and its bar, in from the card's edge. */
 .tree-body {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-items: flex-start;
   min-height: 0;
+  padding-right: 0.5rem;
   overflow-y: auto;
 }
 

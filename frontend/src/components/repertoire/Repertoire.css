@@ -13,9 +13,17 @@
   background: var(--c-surface);
 }
 
-/* Closes the header off from the chapters scrolling under it. */
+/* Closes the header off from the chapters scrolling under it. Tighter gaps
+   than the shared chrome: this header carries three labelled actions plus the
+   sync marker, so it runs out of room before any other panel's does. */
 .repertoire-card .panel-header {
+  gap: 0.375rem;
   border-bottom: 1px solid var(--c-hairline);
+}
+
+.repertoire-card .panel-action {
+  gap: 0.1875rem;
+  padding: 0.375rem 0.25rem;
 }
 
 /* Header icon doubles as a "back to my repertoire" button while viewing
@@ -118,8 +126,10 @@
   cursor: pointer;
 }
 
+/* Darker than the selected row's fill: hover is momentary and under the
+   pointer, so it can be the stronger of the two without shouting. */
 .chapter:hover {
-  background: var(--c-gray-50);
+  background: var(--c-gray-200);
 }
 
 /* The side the chapter is trained as, between the row number and the name:
@@ -226,8 +236,10 @@
 
 /* When the card is narrow (e.g. the 2-column middle layout) drop the icon /
    text label on each row and header action so only the count remains.
-   #repertoire establishes the `repertoire` container in layout.css. */
-@container repertoire (max-width: 340px) {
+   #repertoire establishes the `repertoire` container in layout.css.
+   The threshold covers the longest label set the header can carry — "sharing"
+   is two characters wider than the "share" this was first tuned for. */
+@container repertoire (max-width: 380px) {
   .chapter-btn-label {
     display: none;
   }

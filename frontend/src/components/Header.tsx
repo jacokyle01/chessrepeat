@@ -76,10 +76,9 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0 }: Props
           )
         )}
 
-      </div>
-
-      <div className="header-actions">
-        {/* Live view: just the faces of the people on this repertoire now. */}
+        {/* Live view: just the faces of the people on this repertoire now.
+            Sits with the identity on the left rather than in the right-hand
+            link cluster — it's about who's here, not somewhere to go. */}
         {peers.length > 0 && (
           <div className="header-peers" title="Here now">
             {peers.map((u) => {
@@ -101,7 +100,9 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0 }: Props
             })}
           </div>
         )}
+      </div>
 
+      <div className="header-actions">
         <a
           href="https://discord.gg/xhjra9W6Bh"
           target="_blank"

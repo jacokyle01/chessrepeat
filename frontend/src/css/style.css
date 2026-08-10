@@ -1,17 +1,27 @@
 /* Attention pulse. The ring color comes from --ring-pulse on the element
    itself, so each caller matches it to its own fill; the dark default is the
-   fallback for anything that doesn't set one. */
+   fallback for anything that doesn't set one. --ring-pulse-out is where that
+   ring fades to: leave it and the ring fades through transparent *black*,
+   which greys the color out on the way; set it to the same hue at zero alpha
+   and the ring keeps its color the whole way. */
 @keyframes ring-pulse {
   0% {
     box-shadow: 0 0 0 0 var(--ring-pulse, rgb(17 24 39 / 0.5));
     transform: scale(1);
   }
-  70% {
-    box-shadow: 0 0 0 14px transparent;
+  /* A ring that only ever grows-and-fades is invisible at both ends and faint
+     in between — it peaked around 17% alpha. Snapping out to a solid ring
+     first gives the eye something to catch before the fade starts. */
+  18% {
+    box-shadow: 0 0 0 4px var(--ring-pulse, rgb(17 24 39 / 0.5));
     transform: scale(1.06);
   }
+  70% {
+    box-shadow: 0 0 0 15px var(--ring-pulse-out, transparent);
+    transform: scale(1);
+  }
   100% {
-    box-shadow: 0 0 0 0 transparent;
+    box-shadow: 0 0 0 0 var(--ring-pulse-out, transparent);
     transform: scale(1);
   }
 }

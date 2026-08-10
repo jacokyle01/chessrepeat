@@ -73,6 +73,11 @@ export { userCard };
 // before round-tripping.
 export const MAX_COMMENT_CHARS = 1000;
 
+/** Name given to the chapter seeded for first-time playground users. The
+ *  training controls key their "start here" nudge off it, so it has to be one
+ *  constant rather than the same literal written in two places. */
+export const EXAMPLE_CHAPTER_NAME = 'Example Chapter';
+
 const EXAMPLE_PGN = `1. e4 e5 { This is an example chapter. To train your own openings, click "add" and choose a PGN (opening file) to train. chessrepeat uses spaced repetition to schedule your reviews after you learn a move. Enjoy!} 
 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# *`;
 
@@ -414,7 +419,7 @@ export const useTrainerStore = create<TrainerState>()(
 
         if (!ids.length) {
           // Seed example chapter for new playground users
-          const exampleChapter = chapterFromPgn(EXAMPLE_PGN, 'white', 'Example Chapter');
+          const exampleChapter = chapterFromPgn(EXAMPLE_PGN, 'white', EXAMPLE_CHAPTER_NAME);
           if (exampleChapter) await addNewChapterLocally(exampleChapter);
           return;
         }

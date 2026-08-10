@@ -35,7 +35,10 @@
    hidden in this state, so the pill carries its own fill — the app's blue,
    with the ring set to match it. */
 .training-btn-learn.is-prompted {
-  --ring-pulse: rgb(59 130 246 / 0.5); /* --c-brand-blue at half alpha */
+  /* Near-opaque at the start of the cycle: the ring sits on the pale recessed
+     track, where a half-alpha blue barely registered. */
+  --ring-pulse: rgb(59 130 246 / 0.85);
+  --ring-pulse-out: rgb(59 130 246 / 0); /* fade out in blue, not toward black */
   background: var(--c-brand-blue);
   border-color: var(--c-brand-blue);
   color: var(--c-surface);
