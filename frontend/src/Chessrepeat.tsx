@@ -5,7 +5,7 @@ import { Chessground } from './components/Chessground';
 import Controls from './components/TrainingControls';
 import MobileCommentPopout from './components/MobileCommentPopout';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import Repertoire from './components/repertoire/Repertoire';
 import { ChildNode } from 'chessops/pgn';
 import { Chess } from 'chessops';
@@ -30,6 +30,8 @@ import {
   FolderCog2Icon,
   GraduationCap,
   History,
+  MessageSquareOff,
+  MessageSquareText,
   NetworkIcon,
 } from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
@@ -58,6 +60,7 @@ import { getNodeList } from './util/tree';
 import { PendingPromotion } from './types/types';
 import { PromoRole, PromotionOverlay } from './components/PromotionOverlay';
 import './css/layout.css';
+import './css/chessrepeat.css';
 import { Debug } from './components/Debug';
 import { useWebsocket } from './hooks/useWebsocket';
 import { useStartup } from './hooks/useStartup';
@@ -74,6 +77,24 @@ function promoRoleFromSan(san?: string): PromoRole | undefined {
   const map: Record<string, PromoRole> = { Q: 'queen', R: 'rook', B: 'bishop', N: 'knight' };
   return map[m[1]];
 }
+
+// The progress segments and the "+time" reward are positioned from live data,
+// which CSS can't derive on its own. Both hand the value over as a custom
+// property so the actual declarations stay in chessrepeat.css.
+const segmentWidth = (ratio: number): React.CSSProperties =>
+  ({ '--segment-width': `${ratio * 100}%` }) as React.CSSProperties;
+
+const rewardPosition = (x: number, y: number): React.CSSProperties =>
+  ({ '--reward-x': `${x - 5}px`, '--reward-y': `${y - 25}px` }) as React.CSSProperties;
+
+// The hover pie shares the bar's split, so it takes the same two ratios and
+// hands over the angles where each slice ends; whatever is left of the circle
+// is the "known" remainder.
+const pieSlices = (unseenRatio: number, dueRatio: number): React.CSSProperties =>
+  ({
+    '--unseen-end': `${unseenRatio * 360}deg`,
+    '--due-end': `${(unseenRatio + dueRatio) * 360}deg`,
+  }) as React.CSSProperties;
 
 //TODO better sound handling, separate sound for check?
 const SOUNDS = {
@@ -166,22 +187,31 @@ export const Chessrepeat = () => {
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fenCopied, setFenCopied] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const movesContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollActiveIntoView = useCallback(() => {
+    const activeEl = movesContainerRef.current?.querySelector('.active') as HTMLElement | null;
+    if (!activeEl) return;
+
+    activeEl.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+    });
+  }, []);
+
+  // Hiding or showing comments reflows the whole tree without changing any
+  // move's class, so the observer below never fires — bring the selected move
+  // back on screen by hand, a frame later so the new layout has settled.
+  useEffect(() => {
+    const frame = requestAnimationFrame(scrollActiveIntoView);
+    return () => cancelAnimationFrame(frame);
+  }, [showComments, scrollActiveIntoView]);
 
   //TODO this can be a useEffect in PGNtree. when current move changes, adjust view
   useEffect(() => {
     const container = movesContainerRef.current;
     if (!container) return;
-
-    const scrollActiveIntoView = () => {
-      const activeEl = container.querySelector('.active') as HTMLElement | null;
-      if (!activeEl) return;
-
-      activeEl.scrollIntoView({
-        block: 'nearest',
-        inline: 'nearest',
-      });
-    };
 
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -199,7 +229,7 @@ export const Chessrepeat = () => {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [scrollActiveIntoView]);
 
   const [pendingPromo, setPendingPromo] = useState<PendingPromotion | null>(null);
 
@@ -222,7 +252,7 @@ export const Chessrepeat = () => {
 
   //TODO Fix logic here..
   const targetDest = (): Key[] => {
-    console.log("SELECTED NODE", selectedNode)
+    console.log('SELECTED NODE', selectedNode);
     // console.log("selectedNode fen", selectedNode?.data.fen)
     const targetNode = useTrainerStore.getState().trainableContext.targetMove;
     const uci = calcTarget(selectedNode?.data.fen || initial, targetNode.data.san!);
@@ -286,6 +316,10 @@ export const Chessrepeat = () => {
   }
 
   const containerRef = useRef<HTMLDivElement>(null);
+  /* Chessground publishes the board's *rendered* width here (it floors the
+     board to a whole number of 8 device pixels), so the progress bar can
+     match the board's right edge instead of the card's. */
+  const boardCardRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<{ x: number; y: number; time: string } | null>(null);
 
   const showBoxAtSquare = (square: string, time: number) => {
@@ -398,11 +432,7 @@ export const Chessrepeat = () => {
     <MantineProvider>
       {/* <Debug /> */}
       <div className="app-root">
-        <Header
-          connectedUsers={connectedUsers}
-          incomingCollaboratorsCount={incomingCollaborators.length}
-          onOpenCollaborators={() => setCollaboratorsOpen(true)}
-        />
+        <Header connectedUsers={connectedUsers} incomingCollaboratorsCount={incomingCollaborators.length} />
 
         {showingAddToRepertoireMenu && (
           <>
@@ -424,46 +454,49 @@ export const Chessrepeat = () => {
         <div className="app-main">
           {/* BOARD */}
           <div className="area-board" id="board-wrap">
-            <div className="board-card">
+            <div className="board-card" ref={boardCardRef}>
               {chapter && chapter.enabledCount > 0 && (
-                <div className="group relative">
-                  <div className="flex h-2 w-full overflow-hidden rounded-md bg-gray-200 cursor-default">
+                <div className="board-progress">
+                  <div className="board-progress-bar">
                     <div
-                      className="h-full bg-brand-blue-light"
-                      style={{ width: `${(chapter.unseenCount / chapter.enabledCount) * 100}%` }}
+                      className="board-progress-unseen"
+                      style={segmentWidth(chapter.unseenCount / chapter.enabledCount)}
                     />
                     <div
-                      className="h-full bg-brand-blue"
-                      style={{ width: `${(chapter.lastDueCount / chapter.enabledCount) * 100}%` }}
+                      className="board-progress-due"
+                      style={segmentWidth(chapter.lastDueCount / chapter.enabledCount)}
                     />
                   </div>
 
-                  {/* Breakdown tooltip on hover */}
-                  <div
-                    className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2
-                    whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-2 text-xs
-                    text-gray-700 shadow-lg opacity-0 transition-opacity duration-150
-                    group-hover:opacity-100"
-                  >
-                    <table className="border-separate border-spacing-x-2 border-spacing-y-0.5">
+                  {/* Breakdown tooltip on hover: the same split as the bar, as a
+                      pie over the chapter's total, with the counts beside it. */}
+                  <div className="board-progress-tooltip">
+                    <div
+                      className="board-progress-pie"
+                      style={pieSlices(
+                        chapter.unseenCount / chapter.enabledCount,
+                        chapter.lastDueCount / chapter.enabledCount,
+                      )}
+                    />
+                    <table>
                       <tbody>
                         <tr>
-                          <td className="align-middle">
-                            <GraduationCap size={14} className="text-sky-700" />
+                          <td className="cell-icon cell-icon-learn">
+                            <GraduationCap size={14} />
                           </td>
-                          <td className="text-left">To Learn</td>
-                          <td className="text-right font-mono font-semibold">{chapter.unseenCount}</td>
-                          <td className="text-right font-mono text-gray-400">
+                          <td className="cell-label">To Learn</td>
+                          <td className="cell-count">{chapter.unseenCount}</td>
+                          <td className="cell-percent">
                             {Math.round((chapter.unseenCount / chapter.enabledCount) * 100)}%
                           </td>
                         </tr>
                         <tr>
-                          <td className="align-middle">
-                            <History size={14} className="text-blue-800" />
+                          <td className="cell-icon cell-icon-due">
+                            <History size={14} />
                           </td>
-                          <td className="text-left">Due Now</td>
-                          <td className="text-right font-mono font-semibold">{chapter.lastDueCount}</td>
-                          <td className="text-right font-mono text-gray-400">
+                          <td className="cell-label">Due Now</td>
+                          <td className="cell-count">{chapter.lastDueCount}</td>
+                          <td className="cell-percent">
                             {Math.round((chapter.lastDueCount / chapter.enabledCount) * 100)}%
                           </td>
                         </tr>
@@ -474,6 +507,7 @@ export const Chessrepeat = () => {
               )}
               <div ref={containerRef}>
                 <Chessground
+                  dimensionsRef={boardCardRef}
                   orientation={chapter?.trainAs || 'white'}
                   fen={selectedNode?.data.fen || initial}
                   turnColor={turn}
@@ -511,16 +545,15 @@ export const Chessrepeat = () => {
             {/* CONTROLS — part of the same board panel, always directly
                 beneath the board (single grid area). */}
             <div className="area-controls">
-              <div className="flex items-start gap-1">
+              <div className="controls-group">
                 <Controls />
               </div>
               <MobileCommentPopout />
-              <div className="inline-flex rounded-b-xl bg-white shadow-md p-1">
+              <div className="control-tab">
                 <button
                   type="button"
                   onClick={() => setSettingsOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-                    transition-all duration-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
+                  className="control-tab-btn settings-btn"
                   aria-label="Settings"
                   title="Settings"
                 >
@@ -532,7 +565,10 @@ export const Chessrepeat = () => {
 
           {settingsOpen && (
             <>
-              <div className="modal-backdrop" style={{ zIndex: 40 }} onClick={() => setSettingsOpen(false)} />
+              <div
+                className="modal-backdrop modal-backdrop-settings"
+                onClick={() => setSettingsOpen(false)}
+              />
               <SettingsModal setSettingsOpen={setSettingsOpen} />
             </>
           )}
@@ -543,43 +579,55 @@ export const Chessrepeat = () => {
           </div>
 
           {/* PGN TREE */}
-          <div className="area-pgn shadow-md" ref={movesContainerRef}>
-            {/* Header + tree: hidden on mobile during learn/recall */}
-            <div
-              className={`flex flex-col min-h-0 flex-1 overflow-hidden ${isTraining ? 'hidden md:flex' : ''}`}
-            >
-              <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
-                <div id="reperoire-icon-wrap" className="text-gray-500 bg-gray-200 p-1 rounded">
-                  <FileIcon className="w-5 h-5" />
+          <div className="area-pgn">
+            <div className="pgn-card" ref={movesContainerRef}>
+              {/* Header + tree: hidden on mobile during learn/recall */}
+              <div className={`pgn-panel-body ${isTraining ? 'is-training-hidden' : ''}`}>
+                <div className="panel-header">
+                  <div className="panel-icon">
+                    <FileIcon />
+                  </div>
+                  <div className="panel-titles">
+                    <span className="panel-title">Chapter</span>
+                    <span className="panel-subtitle">
+                      {chapter?.enabledCount ?? 0} move{chapter?.enabledCount === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  {/* copy icon */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
+                      if (!fen) return;
+                      await navigator.clipboard.writeText(fen);
+                      setFenCopied(true);
+                      setTimeout(() => setFenCopied(false), 1200);
+                    }}
+                    className={`copy-fen-btn ${fenCopied ? 'is-copied' : ''}`}
+                    aria-label="Copy FEN"
+                    title="Copy FEN"
+                  >
+                    {fenCopied ? <ClipboardCheck /> : <ClipboardCopy />}
+                    <span>copy fen</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowComments((v) => !v)}
+                    className="toggle-comments-btn"
+                    aria-pressed={!showComments}
+                    aria-label={showComments ? 'Hide comments' : 'Show comments'}
+                    title={showComments ? 'Hide comments' : 'Show comments'}
+                  >
+                    {showComments ? <MessageSquareOff /> : <MessageSquareText />}
+                    <span>{showComments ? 'hide comments' : 'show comments'}</span>
+                  </button>
                 </div>
-                <span className="text-gray-800 font-semibold text-lg">Chapter</span>
-                {/* copy icon */}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
-                    if (!fen) return;
-                    await navigator.clipboard.writeText(fen);
-                    setFenCopied(true);
-                    setTimeout(() => setFenCopied(false), 1200);
-                  }}
-                  className={`ml-auto p-1.5 rounded-md transition flex gap-1 text-sm items-end ${
-                    fenCopied
-                      ? 'bg-white text-green-600'
-                      : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
-                  }`}
-                  aria-label="Copy FEN"
-                  title="Copy FEN"
-                >
-                  <span>copy fen</span>
-                  {fenCopied ? <ClipboardCheck className="w-5 h-5" /> : <ClipboardCopy className="w-5 h-5" />}
-                </button>
-              </div>
-              <div className="pgn-tree-scroll">
-                <PgnTree setActiveMoveId={setActiveMoveId} />
+                <div className="pgn-tree-scroll">
+                  <PgnTree setActiveMoveId={setActiveMoveId} showComments={showComments} />
+                </div>
               </div>
             </div>
-            {/* Controls + comment: mobile only during learn/recall */}
+            {/* Move navigation sits below the card, centered under it. */}
             <div className="pgn-controls-bar">
               <PgnControls />
             </div>
@@ -588,7 +636,7 @@ export const Chessrepeat = () => {
           {/* SIDEBAR (repertoire + memory schedule) */}
           <div className="area-sidebar">
             <div className="area-repertoire">
-              <Repertoire />
+              <Repertoire onOpenCollaborators={() => setCollaboratorsOpen(true)} />
             </div>
 
             <div className="area-schedule">
@@ -600,32 +648,8 @@ export const Chessrepeat = () => {
 
       {/* +time overlay */}
       {box && trainingMethod === 'recall' && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${box.x - 5}px`,
-            top: `${box.y - 25}px`,
-            pointerEvents: 'none',
-            transition: 'opacity 300ms ease',
-            zIndex: 10,
-            transform: 'rotate(45deg)',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              fontStyle: 'italic',
-              color: '#111',
-              padding: '2px 6px',
-              border: 'rgba(255,255,255,0.2)',
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.5px',
-              background: 'rgba(255,255,255,0.2)',
-            }}
-          >
-            +{box.time}
-          </div>
+        <div className="time-reward" style={rewardPosition(box.x, box.y)}>
+          <div className="time-reward-label">+{box.time}</div>
         </div>
       )}
     </MantineProvider>

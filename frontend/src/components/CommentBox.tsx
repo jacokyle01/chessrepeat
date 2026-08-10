@@ -1,4 +1,5 @@
 import { useTrainerStore } from '../store/state';
+import './CommentBox.css';
 
 export const CommentBox = () => {
   const selectedNode = useTrainerStore((s) => s.selectedNode);
@@ -7,8 +8,6 @@ export const CommentBox = () => {
   if (!comment) return null;
 
   return (
-    <div className="px-3 py-2 text-sm text-brand-blue bg-blue-50 rounded-md ring-1 ring-blue-200">
-      {comment}
-    </div>
+    <div className="comment-box">{comment}</div>
   );
 };

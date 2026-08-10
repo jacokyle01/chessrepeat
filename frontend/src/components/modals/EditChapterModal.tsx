@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
-import { CircleXIcon, TrashIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-react';
+import { TrashIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
+import './modals.css';
+import './EditChapterModal.css';
 
 interface EditChapterModalProps {
   chapterId: string;
   onClose: () => void;
+  /** Open straight into one action — the chapter row's menu picks it. */
+  initialAction?: 'rename' | 'delete';
 }
 
-const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose }) => {
+const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose, initialAction }) => {
   const repertoire = useTrainerStore((s) => s.repertoire);
   const renameChapter = useTrainerStore((s) => s.renameChapter);
   const deleteChapterAt = useTrainerStore((s) => s.deleteChapterAt);
 
   const chapter = repertoire.find((c) => c.uuid === chapterId);
 
-  const [isRenaming, setIsRenaming] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(initialAction === 'rename');
   const [draftName, setDraftName] = useState(chapter?.name || '');
   const [renameError, setRenameError] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(initialAction === 'delete');
 
   if (!chapter) return null;
 
@@ -27,35 +31,27 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose 
     setIsRenaming(true);
   };
 
-  const cancelRename = () => {
-    setRenameError(null);
-    setDraftName(chapter.name);
-    setIsRenaming(false);
-  };
+  const trimmedName = draftName.trim();
+  // The check is only offered once there's an actual change to commit.
+  const canCommitRename = !!trimmedName && trimmedName !== chapter.name;
 
-  const commitRename = async () => {
-    const next = draftName.trim();
-    if (!next) {
-      setRenameError('Name cannot be empty.');
-      return;
-    }
-    if (next === chapter.name) {
-      setIsRenaming(false);
-      return;
-    }
-
+  /** Save the pending rename (if any) and close. Both the check and the
+      dialog's X land here, so leaving the modal never drops an edit. */
+  const commitRenameAndClose = async () => {
+    if (!isRenaming || !canCommitRename) return onClose();
     setRenameError(null);
     try {
-      await renameChapter(chapterId, next);
-      setIsRenaming(false);
+      await renameChapter(chapterId, trimmedName);
+      onClose();
     } catch (err: any) {
+      // stay open on failure so the name isn't silently lost
       setRenameError(err?.message ?? 'Failed to rename chapter.');
     }
   };
 
   const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') commitRename();
-    if (e.key === 'Escape') cancelRename();
+    if (e.key === 'Enter') commitRenameAndClose();
+    if (e.key === 'Escape') onClose();
   };
 
   const handleDelete = async () => {
@@ -64,87 +60,70 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose 
   };
 
   return (
-    <dialog
-      open
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20
-                 border-none bg-white rounded-lg shadow-lg w-[calc(100%-2rem)] max-w-md"
-    >
-      {/* Close Button */}
+    <dialog open className="modal-dialog edit-chapter-dialog">
+      {/* Close Button — saves the rename on the way out */}
       <button
-        className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-8 w-8
-                   flex items-center justify-center shadow-md hover:bg-red-600"
+        className="modal-close-puck"
         aria-label="Close"
-        onClick={onClose}
+        onClick={commitRenameAndClose}
         type="button"
       >
-        <CircleXIcon className="w-5 h-5" />
+        <XIcon />
       </button>
 
-      <div className="p-6">
+      <div className="edit-chapter-body">
         {isRenaming ? (
-          <div className="flex items-center gap-2">
+          <div className="edit-chapter-rename">
             <input
-              className="flex-1 text-2xl font-semibold text-gray-800 border-b-2 border-brand-blue
-                         focus:outline-none bg-transparent"
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               onKeyDown={handleRenameKeyDown}
               autoFocus
             />
             <button
-              className="p-1.5 rounded-md bg-brand-blue hover:brightness-110 text-white transition"
-              onClick={commitRename}
+              className="edit-chapter-confirm"
+              onClick={commitRenameAndClose}
+              disabled={!canCommitRename}
               type="button"
-              aria-label="Confirm rename"
+              aria-label="Save name"
+              title="Save name"
             >
-              <CheckIcon className="w-4 h-4" />
-            </button>
-            <button
-              className="p-1.5 rounded-md border border-gray-300 text-gray-500 hover:bg-gray-50 transition"
-              onClick={cancelRename}
-              type="button"
-              aria-label="Cancel rename"
-            >
-              <XIcon className="w-4 h-4" />
+              <CheckIcon />
             </button>
           </div>
         ) : (
-          <h2 className="text-2xl font-bold text-gray-800 truncate">{chapter.name}</h2>
+          <h2 className="edit-chapter-title">{chapter.name}</h2>
         )}
-        {renameError && <div className="mt-2 text-sm text-red-600">{renameError}</div>}
+        {renameError && <div className="edit-chapter-error">{renameError}</div>}
 
         {!isRenaming && (
-          <div className="mt-6 flex gap-3">
+          <div className="edit-chapter-actions">
             <button
               onClick={startRename}
               type="button"
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              className="edit-chapter-action edit-chapter-rename-btn"
             >
-              <PencilIcon className="w-4 h-4" />
+              <PencilIcon />
               Rename
             </button>
             {!confirmDelete ? (
               <button
                 onClick={() => setConfirmDelete(true)}
                 type="button"
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 transition"
+                className="edit-chapter-action edit-chapter-delete-btn"
               >
-                <TrashIcon className="w-4 h-4" />
+                <TrashIcon />
                 Delete
               </button>
             ) : (
-              <div className="flex-1 flex items-center gap-2">
-                <button
-                  onClick={handleDelete}
-                  type="button"
-                  className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition"
-                >
+              <div className="edit-chapter-confirm-row">
+                <button onClick={handleDelete} type="button" className="edit-chapter-confirm-yes">
                   Confirm
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
                   type="button"
-                  className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                  className="edit-chapter-confirm-no"
                 >
                   Cancel
                 </button>
@@ -153,7 +132,7 @@ const EditChapterModal: React.FC<EditChapterModalProps> = ({ chapterId, onClose 
           </div>
         )}
         {confirmDelete && !isRenaming && (
-          <div className="mt-3 text-sm text-red-600">Delete this chapter? This cannot be undone.</div>
+          <div className="edit-chapter-warning">Delete this chapter? This cannot be undone.</div>
         )}
       </div>
     </dialog>

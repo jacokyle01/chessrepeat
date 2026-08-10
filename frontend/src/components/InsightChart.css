@@ -1,0 +1,82 @@
+/* Heatmap of upcoming due counts, built on react-calendar-heatmap.
+   The library ships its own base stylesheet (imported by the component);
+   everything here re-skins it to the app palette. */
+
+.cr-heatmap {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+}
+
+/* The "nothing scheduled" note. It shares the readout strip with the hovered-
+   day label, so it takes that strip's size and only sets its own dimmer color. */
+.cr-heatmap-empty {
+  color: var(--c-gray-400);
+}
+
+.cr-heatmap-grid {
+  width: 100%;
+  padding-right: 1.25rem;
+}
+
+/* Fixed-height strip under the grid holding the hovered-day readout, so the
+   card doesn't jump as the label appears and disappears. */
+.cr-heatmap-readout {
+  height: 1rem;
+  margin-top: -0.75rem;
+  padding-left: 0.25rem;
+  font-size: 11px;
+  color: var(--c-gray-700);
+}
+
+/* month names down the top and weekday names down the side */
+.cr-heatmap .react-calendar-heatmap text {
+  fill: var(--c-gray-700);
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.cr-heatmap .react-calendar-heatmap .react-calendar-heatmap-small-text {
+  font-size: 8px;
+}
+
+.cr-heatmap .react-calendar-heatmap-month-label {
+  transform: translateY(3px);
+}
+
+.cr-heatmap .react-calendar-heatmap rect {
+  rx: 1;
+  ry: 1;
+}
+
+/* five buckets, empty -> busiest day in the window */
+.cr-heatmap .react-calendar-heatmap rect.color-cr-0 {
+  fill: #dfdfdf;
+}
+
+.cr-heatmap .react-calendar-heatmap rect.color-cr-1 {
+  fill: #c9deff;
+}
+
+.cr-heatmap .react-calendar-heatmap rect.color-cr-2 {
+  fill: #91bbff;
+}
+
+.cr-heatmap .react-calendar-heatmap rect.color-cr-3 {
+  fill: #6991ff;
+}
+
+.cr-heatmap .react-calendar-heatmap rect.color-cr-4 {
+  fill: #1856ff;
+}
+
+.cr-heatmap .react-calendar-heatmap rect.cr-today {
+  stroke: var(--c-brand-blue);
+  stroke-width: 1.5;
+}
+
+.cr-heatmap .react-calendar-heatmap rect:hover {
+  stroke: #555;
+  stroke-width: 1;
+  cursor: pointer;
+}

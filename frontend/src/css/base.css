@@ -1,0 +1,251 @@
+/* ===========================
+   Design tokens + element reset
+
+   This file replaces what Tailwind used to provide: the `preflight` reset
+   (normalize + opinionated defaults) and the palette that the utility
+   classes encoded. Every color the app uses is named here once so the rest
+   of the stylesheets read as intent rather than hex codes.
+
+   Must be imported first (see main.tsx) — everything else expects the reset
+   to already be in place and overrides it by source order.
+   =========================== */
+
+:root {
+  /* fonts (previously tailwind.config.js -> theme.extend.fontFamily) */
+  --font-sans: 'Fira Sans', 'Roboto', sans-serif;
+  --font-roboto: 'Roboto', sans-serif;
+  --font-condensed: 'Roboto Condensed', 'Roboto', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+
+  /* Canonical app blues — source of truth is the progress bar above the
+     board (light = sky-300, dark = blue-500). */
+  --c-brand-blue: #3b82f6;
+  --c-brand-blue-light: #7dd3fc;
+
+  /* page chrome */
+  --c-page-bg: #fafafa;
+  /* not pure white: a hair of gray keeps cards from glaring against the
+     (now lighter) page, so the borders do the separating, not brightness. */
+  --c-surface: #fcfcfd;
+  --c-backdrop: rgb(0 0 0 / 0.5);
+
+  /* neutrals */
+  --c-gray-50: #f9fafb;
+  --c-gray-100: #f3f4f6;
+  --c-gray-200: #e5e7eb;
+  --c-gray-300: #d1d5db;
+  --c-gray-400: #9ca3af;
+  --c-gray-500: #6b7280;
+  --c-gray-600: #4b5563;
+  --c-gray-700: #374151;
+  --c-gray-800: #1f2937;
+  --c-gray-900: #111827;
+
+  --c-slate-200: #e2e8f0;
+  --c-slate-300: #cbd5e1;
+  --c-slate-500: #64748b;
+  --c-slate-600: #475569;
+  --c-slate-700: #334155;
+  --c-slate-800: #1e293b;
+  --c-slate-900: #0f172a;
+
+  /* accents */
+  --c-blue-50: #eff6ff;
+  --c-blue-200: #bfdbfe;
+  --c-blue-800: #1e40af;
+  --c-blue-900: #1e3a8a;
+  --c-sky-700: #0369a1;
+  --c-cyan-50: #ecfeff;
+
+  --c-green-50: #f0fdf4;
+  --c-green-200: #bbf7d0;
+  --c-green-600: #16a34a;
+  --c-green-700: #15803d;
+  --c-green-800: #166534;
+  --c-emerald-300: #6ee7b7;
+  --c-emerald-500: #10b981;
+  --c-emerald-600: #059669;
+
+  --c-red-500: #ef4444;
+  --c-red-600: #dc2626;
+  --c-red-700: #b91c1c;
+
+  --c-amber-50: #fffbeb;
+  --c-amber-300: #fcd34d;
+  --c-amber-500: #f59e0b;
+  --c-amber-600: #d97706;
+  --c-amber-900: #78350f;
+  --c-amber-950: #451a03;
+
+  --c-orange-400: #fb923c;
+  --c-yellow-400: #facc15;
+
+  /* surface chrome: --c-recessed is the app's secondary gray (the segmented
+     track under the board, the selected chapter row), --c-hairline the faint
+     outline of a nested box, --c-line the outline of a raised card or chip. */
+  --c-recessed: #f3f3f3;
+  --c-hairline: var(--c-gray-200);
+  --c-line: var(--c-gray-300);
+  /* one width for every component frame — borders carry the separation now
+     that surfaces and page sit close in brightness */
+  /* whole pixels: Chrome floors fractional border widths to 1px at DPR 1,
+     so 1.5px would look unchanged on a non-retina display */
+  --border-w: 2px;
+
+  /* elevation */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+/* ---------- reset ---------- */
+
+/* Zero-width solid border on everything: rules below only ever have to set a
+   width/color, and no UA default border (dialog, input, fieldset, button)
+   leaks through. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border: 0 solid var(--c-gray-200);
+}
+
+html {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+}
+
+body {
+  line-height: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-size: 1em;
+}
+
+table {
+  text-indent: 0;
+  border-color: inherit;
+  border-collapse: collapse;
+}
+
+/* form controls inherit typography instead of falling back to the UA's */
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+button,
+select {
+  text-transform: none;
+}
+
+button,
+[type='button'],
+[type='reset'],
+[type='submit'] {
+  /* `appearance: button` (what Tailwind's preflight used here) lets Chrome
+     paint its native control fill over an author background, so any styled
+     button came out gray-ish. Nothing in the app wants native chrome. */
+  appearance: none;
+  background-color: transparent;
+  background-image: none;
+}
+
+button,
+[role='button'] {
+  cursor: pointer;
+}
+
+:disabled {
+  cursor: default;
+}
+
+textarea {
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+  color: var(--c-gray-400);
+}
+
+fieldset,
+legend {
+  margin: 0;
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+dialog {
+  padding: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+  vertical-align: middle;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+[hidden] {
+  display: none;
+}

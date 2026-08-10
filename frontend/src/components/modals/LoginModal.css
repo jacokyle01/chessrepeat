@@ -1,0 +1,93 @@
+/* Google sign-in, plus the username picker shown on first sign-up. */
+
+.login-google {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-google-note {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--c-gray-500);
+  text-align: center;
+}
+
+/* ---------- username picker ---------- */
+.login-username {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--c-gray-200);
+}
+
+.login-username h3 {
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-gray-800);
+}
+
+.login-username-field {
+  position: relative;
+  margin-bottom: 0.25rem;
+}
+
+.login-username-field input {
+  width: 100%;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  border: 1px solid var(--c-gray-300);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* availability indicator pinned inside the field's right edge */
+.login-username-status {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.login-status-pending {
+  color: var(--c-gray-400);
+}
+
+.login-status-available {
+  color: var(--c-green-600);
+}
+
+.login-status-error {
+  color: var(--c-red-600);
+}
+
+/* Reserves a line so the form doesn't jump as the message changes. */
+.login-username-message {
+  height: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+  color: var(--c-gray-500);
+}
+
+.login-submit {
+  width: 100%;
+  padding: 0.5rem 0;
+  border-radius: 0.25rem;
+  background: var(--c-emerald-600);
+  color: var(--c-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 0 0 2px var(--c-emerald-300);
+}
+
+.login-submit:hover:not(:disabled) {
+  background: var(--c-emerald-500);
+}
+
+.login-submit:disabled {
+  background: var(--c-slate-300);
+  color: var(--c-slate-500);
+  box-shadow: none;
+  cursor: not-allowed;
+}

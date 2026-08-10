@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { CircleHelp, CircleXIcon } from 'lucide-react';
+import { XIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import Divider from '../common/Divider';
 import ToggleGroup from '../common/ToggleGroup';
 import { NodeSearch } from '../../types/training';
 import { SrsConfig, defaultSrsConfig } from '../../util/srs';
+import './modals.css';
 import './SettingsModal.css';
 
 const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ setSettingsOpen }) => {
@@ -32,7 +33,7 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
         onClick={() => setSettingsOpen(false)}
         type="button"
       >
-        <CircleXIcon style={{ width: '1.25rem', height: '1.25rem' }} />
+        <XIcon />
       </button>
 
       <div className="settings-header">
@@ -46,7 +47,9 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
             aria-label="Learn how training settings work"
             className="settings-help-link"
           >
-            <CircleHelp style={{ width: '1.1rem', height: '1.1rem' }} />
+            <span className="info-glyph" aria-hidden="true">
+              i
+            </span>
           </a>
         </h2>
         <p>Configure spaced repetition and display preferences.</p>
@@ -63,20 +66,10 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
 
         <div className="settings-field">
           <label>Max moves to consider</label>
-          <div className="flex items-center gap-1">
-            <button
-              className="px-2 py-0.5 rounded border border-gray-300 bg-white text-sm font-medium hover:bg-gray-100"
-              onClick={() => setDraft({ ...draft, limit: Math.max(1, draft.limit - 1) })}
-            >
-              -
-            </button>
-            <span className="min-w-[2rem] text-center text-sm font-medium">{draft.limit}</span>
-            <button
-              className="px-2 py-0.5 rounded border border-gray-300 bg-white text-sm font-medium hover:bg-gray-100"
-              onClick={() => setDraft({ ...draft, limit: draft.limit + 1 })}
-            >
-              +
-            </button>
+          <div className="settings-stepper">
+            <button onClick={() => setDraft({ ...draft, limit: Math.max(1, draft.limit - 1) })}>-</button>
+            <span className="settings-stepper-value">{draft.limit}</span>
+            <button onClick={() => setDraft({ ...draft, limit: draft.limit + 1 })}>+</button>
           </div>
         </div>
 
@@ -124,10 +117,8 @@ const SettingsModal: React.FC<{ setSettingsOpen: (b: boolean) => void }> = ({ se
           onChange={(val) => setSrsDraft({ ...srsDraft, enable_short_term: val === 'On' })}
         />
 
-        <div className="relative h-6">
-          <span
-            className={`absolute inset-0 flex items-center justify-center text-xs text-amber-600 transition-opacity duration-150 ${isDirty ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          >
+        <div className="settings-dirty-slot">
+          <span className={`settings-dirty-notice ${isDirty ? 'is-visible' : ''}`}>
             Unsaved changes
           </span>
         </div>

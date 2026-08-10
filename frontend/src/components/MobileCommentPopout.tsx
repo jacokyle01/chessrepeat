@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CircleXIcon, MessageSquareShare, MessageSquareTextIcon } from 'lucide-react';
+import { XIcon, MessageSquareShare, MessageSquareTextIcon } from 'lucide-react';
 import { useTrainerStore, MAX_COMMENT_CHARS } from '../store/state';
+import './modals/modals.css';
+import './MobileCommentPopout.css';
 
 /**
  * Mobile-only affordance shown during learn/recall when the current move
@@ -48,14 +50,12 @@ const MobileCommentPopout: React.FC = () => {
   const isDirty = draft !== comment;
 
   return (
-    <div className="md:hidden inline-flex rounded-b-xl bg-white shadow-md p-1">
+    <div className="control-tab comment-popout-tab">
       <button
         id="comment-popout-btn"
         type="button"
         onClick={openEditor}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200
-          bg-white text-amber-600 shadow-md ring-1 ring-amber-500"
+        className="control-tab-btn"
         aria-label="View move comment"
         title="View move comment"
       >
@@ -65,31 +65,22 @@ const MobileCommentPopout: React.FC = () => {
 
       {open && (
         <>
-          <div
-            className="modal-backdrop"
-            style={{ zIndex: 40 }}
-            onClick={() => setOpen(false)}
-          />
-          <dialog
-            open
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                       border-none bg-white rounded-lg shadow-lg w-[calc(100%-2rem)] max-w-md p-4"
-          >
+          <div className="modal-backdrop modal-backdrop-settings" onClick={() => setOpen(false)} />
+          <dialog open className="modal-dialog comment-popout-dialog">
             <button
-              className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-8 w-8
-                         flex items-center justify-center shadow-md hover:bg-red-600"
+              className="modal-close-puck"
               aria-label="Close"
               onClick={() => setOpen(false)}
               type="button"
             >
-              <CircleXIcon className="w-5 h-5" />
+              <XIcon />
             </button>
 
-            <div className="flex items-center gap-2 mb-3">
-              <div className="text-gray-500 bg-gray-200 p-1 rounded">
+            <div className="comment-popout-header">
+              <div className="comment-popout-icon">
                 <MessageSquareTextIcon size={20} />
               </div>
-              <span className="text-gray-800 font-semibold text-lg">Comment</span>
+              <span className="comment-popout-title">Comment</span>
             </div>
 
             <textarea
@@ -112,27 +103,18 @@ const MobileCommentPopout: React.FC = () => {
                   save();
                 }
               }}
-              className="w-full text-sm text-gray-700 rounded-md border border-gray-300 p-2
-                         resize-none focus:outline-none focus:ring-1 focus:ring-brand-blue"
+              className="comment-popout-textarea"
             />
 
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-xs px-3 py-1 text-gray-500 hover:text-gray-700"
-              >
+            <div className="comment-popout-actions">
+              <button type="button" onClick={() => setOpen(false)} className="comment-popout-cancel">
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={save}
                 disabled={!isDirty}
-                className={`text-xs font-semibold px-3 py-1 rounded transition ${
-                  isDirty
-                    ? 'bg-brand-blue text-white hover:brightness-110'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+                className="comment-popout-save"
               >
                 Save
               </button>

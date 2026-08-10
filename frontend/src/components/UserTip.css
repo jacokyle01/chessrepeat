@@ -1,0 +1,191 @@
+/* The coaching card under the board: what to play, whether the last guess was
+   right, and (on a miss) what to do about it.
+
+   Everything scales up at the 768px breakpoint, matching where the layout
+   goes from a single stacked column to two columns and the tip stops
+   competing with the board for width. */
+
+.tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
+  border: var(--border-w) solid var(--c-line);
+  border-radius: 0.5rem;
+  background: var(--c-surface);
+}
+
+.tip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tip-icon-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.tip-icon {
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  color: var(--c-gray-500);
+}
+
+.tip-icon.is-boxed {
+  background: var(--c-gray-100);
+}
+
+.tip-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.tip-text {
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+}
+
+/* ---------- title / description variants ---------- */
+.tip-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-gray-800);
+}
+
+/* used by the "no more moves" tip, which is a status rather than a prompt */
+.tip-title-muted {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--c-gray-600);
+}
+
+.tip-description {
+  font-size: 1rem;
+  color: var(--c-gray-600);
+}
+
+.tip-description-small {
+  font-size: 0.75rem;
+  color: var(--c-gray-600);
+}
+
+/* ---------- actions (continue / undo / add) ---------- */
+.tip-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.5rem 0.5rem 0;
+}
+
+.tip-action {
+  flex: 1;
+  padding: 0.25rem 0;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--c-brand-blue);
+  white-space: nowrap;
+}
+
+.tip-action:hover {
+  background: var(--c-gray-50);
+}
+
+/* the guessed move quoted inside the "ADD <move>" action */
+.tip-action-move {
+  color: #000;
+}
+
+/* ---------- the ✗ shown when a guess was wrong ----------
+   Sized by the shared `.tip-icon svg` rules like every other glyph, and boxed
+   on the same gray — only the color says it's a miss. */
+.tip-cross {
+  color: var(--c-red-500);
+}
+
+/* ---------- alternate-move icon, which is gold rather than gray ---------- */
+.tip-icon-alternate svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+@media (min-width: 768px) {
+  .tip {
+    padding: 1rem 1.5rem;
+  }
+
+  .tip-main {
+    gap: 0.75rem;
+  }
+
+  .tip-icon-slot {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .tip-icon {
+    padding: 0.5rem;
+  }
+
+  .tip-icon svg {
+    width: 35px;
+    height: 35px;
+  }
+
+  /* the "no more moves" ✕ stays a size down from the training icons */
+  .tip-icon-small svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .tip-icon-alternate svg {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .tip-title {
+    font-size: 1.125rem;
+  }
+
+  .tip-title-muted {
+    font-size: 1.25rem;
+  }
+
+  .tip-description-small {
+    font-size: 1rem;
+  }
+
+  .tip-actions {
+    gap: 0.5rem;
+    padding: 0.375rem 1rem 0;
+  }
+
+  .tip-action {
+    font-size: 0.875rem;
+  }
+
+  /* The tip that carries actions is the tallest one, and it shares a squeezed
+     grid row with the board. Tighten it so it fits the row rather than making
+     `.area-usertip` scroll. */
+  .tip:has(.tip-actions) {
+    padding: 0.625rem 1.5rem;
+  }
+
+  .tip:has(.tip-actions) .tip-icon-slot {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .tip:has(.tip-actions) .tip-icon svg {
+    width: 26px;
+    height: 26px;
+  }
+}

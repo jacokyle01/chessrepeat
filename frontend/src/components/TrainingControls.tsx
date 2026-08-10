@@ -1,4 +1,4 @@
-import React, { Dispatch, SetStateAction, useEffect } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Book,
   FilePenLineIcon,
@@ -12,7 +12,8 @@ import {
   Settings2,
   SquarePen,
 } from 'lucide-react';
-import { useTrainerStore } from '../store/state';
+import { EXAMPLE_CHAPTER_NAME, useTrainerStore } from '../store/state';
+import './TrainingControls.css';
 // import SettingsButton from './SettingsButton';
 // import { bookI, recallI, gearI } from './Icons'; // Update the path if necessary
 
@@ -24,36 +25,64 @@ import { useTrainerStore } from '../store/state';
 
 const Controls = () => {
   const setTrainingMethod = useTrainerStore((s) => s.setTrainingMethod);
-  const method = useTrainerStore.getState().trainingMethod;
+  // Subscribed, not read off getState(): getState() returns whatever the store
+  // holds at render time without registering a dependency, so this component
+  // only saw a mode change if some *other* subscription happened to re-render
+  // it first — which is exactly the window the Learn nudge lives in.
+  const method = useTrainerStore((s) => s.trainingMethod);
   const setNextTrainable = useTrainerStore((s) => s.setNextTrainablePosition);
   const updateDueCounts = useTrainerStore((s) => s.updateDueCounts);
 
-  const lastGuess = useTrainerStore.getState().lastGuess;
-
-  const repertoire = useTrainerStore().repertoire;
-  const selectedChapterId = useTrainerStore().selectedChapterId;
+  const repertoire = useTrainerStore((s) => s.repertoire);
+  const selectedChapterId = useTrainerStore((s) => s.selectedChapterId);
   const name = repertoire.find((c) => c.uuid === selectedChapterId)?.name || '';
 
   // Nudge new users toward their first review: when the seeded example
   // chapter is selected but no training mode is active yet, make Learn pop.
-  const promptExample = !method && name === 'Example Chapter';
+  // Compared loosely — the name survives an IDB round trip and a server fetch,
+  // and an exact match would silently drop the nudge over a stray space.
+  const promptExample =
+    !method && name.trim().toLowerCase() === EXAMPLE_CHAPTER_NAME.toLowerCase();
+
+  // The raised chip behind the active pill is positioned from the active
+  // button's own box, so it slides (and resizes) between modes. The buttons
+  // scale with the board via container queries, hence the ResizeObserver.
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const [chip, setChip] = useState<{ left: number; top: number; width: number; height: number } | null>(
+    null,
+  );
+
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    const measure = () => {
+      const btn = activeRef.current;
+      if (!btn) return setChip(null);
+      setChip({
+        left: btn.offsetLeft,
+        top: btn.offsetTop,
+        width: btn.offsetWidth,
+        height: btn.offsetHeight,
+      });
+    };
+    measure();
+    if (!track) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [method]);
 
   //TODO difference between handleLearn and setting mode to learn?
   return (
-    <div className="flex justify-start items-start">
-      <div id="training-controls" className="inline-flex rounded-b-xl bg-white shadow-md p-1">
+    <div className="training-controls-wrap">
+      <div id="training-controls" className="control-tab" ref={trackRef}>
         {/* EDIT */}
         <button
+          ref={method === 'edit' ? activeRef : undefined}
           onClick={() => setTrainingMethod('edit')}
-          className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200
-          ${
-            method === 'edit'
-              ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-300'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200'
-          }
-        `}
+          className={`control-tab-btn training-btn training-btn-edit ${
+            method === 'edit' ? 'is-active' : ''
+          }`}
         >
           <SquarePen size={18} />
           Edit
@@ -61,22 +90,15 @@ const Controls = () => {
 
         {/* LEARN */}
         <button
+          ref={method === 'learn' ? activeRef : undefined}
           onClick={() => {
             setTrainingMethod('learn');
             setNextTrainable();
             updateDueCounts();
           }}
-          className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200
-          ${
-            method === 'learn'
-              ? 'bg-white text-brand-blue-light shadow-md ring-1 ring-brand-blue-light'
-              : promptExample
-                ? 'bg-brand-blue text-white shadow-md ring-2 ring-brand-blue animate-ring-pulse'
-                : 'text-slate-500 hover:text-brand-blue-light hover:bg-slate-200'
-          }
-        `}
+          className={`control-tab-btn training-btn training-btn-learn ${
+            method === 'learn' ? 'is-active' : promptExample ? 'is-prompted' : ''
+          }`}
         >
           <GraduationCap size={18} />
           Learn
@@ -84,24 +106,35 @@ const Controls = () => {
 
         {/* RECALL */}
         <button
+          ref={method === 'recall' ? activeRef : undefined}
           onClick={() => {
             setTrainingMethod('recall');
             setNextTrainable();
             updateDueCounts();
           }}
-          className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
-          transition-all duration-200
-          ${
-            method === 'recall'
-              ? 'bg-white text-brand-blue shadow-md ring-1 ring-brand-blue'
-              : 'text-slate-500 hover:text-brand-blue hover:bg-slate-200'
-          }
-        `}
+          className={`control-tab-btn training-btn training-btn-recall ${
+            method === 'recall' ? 'is-active' : ''
+          }`}
         >
           <History size={18} />
           Recall
         </button>
+
+        <div
+          className="control-tab-chip"
+          role="presentation"
+          data-rendered={chip ? 'true' : 'false'}
+          style={
+            chip
+              ? ({
+                  '--active-tab-left': `${chip.left}px`,
+                  '--active-tab-top': `${chip.top}px`,
+                  '--active-tab-width': `${chip.width}px`,
+                  '--active-tab-height': `${chip.height}px`,
+                } as React.CSSProperties)
+              : undefined
+          }
+        />
       </div>
     </div>
   );

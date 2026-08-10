@@ -4,22 +4,10 @@
 // put logic into state
 // see en-crossaint
 
-import {
-  ArrowBigLeftDashIcon,
-  ArrowBigLeftIcon,
-  ArrowBigRightDashIcon,
-  ArrowBigRightIcon,
-  ArrowLeftToLineIcon,
-  ArrowRightToLineIcon,
-  ChevronFirst,
-  ChevronLast,
-  ChevronLeft,
-  ChevronRight,
-  MoveLeftIcon,
-  MoveRightIcon,
-} from 'lucide-react';
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import { fromNodeList, init } from '../../util/path';
+import './TreeControls.css';
 const PgnControls = () => {
   const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
   const setSelectedNode = useTrainerStore((state) => state.setSelectedNode);
@@ -68,22 +56,39 @@ const PgnControls = () => {
   const atEnd =
     trainingMethod === 'edit' ? !selectedNode?.children?.[0] : selectedPath.length >= trainingPath.length;
 
-  const btnClass = (disabled: boolean) =>
-    `px-1 rounded-md ${disabled ? 'bg-gray-100 text-gray-300 cursor-default' : 'bg-gray-200 text-gray-700'}`;
-
   return (
-    <div id="pgn-control" className="flex justify-between w-1/2 mt-3 items-center m-auto py-2">
-      <button onClick={first} disabled={atStart} className={btnClass(atStart)}>
-        {<ArrowBigLeftDashIcon size={30} />}
+    <div id="pgn-control" className="control-tab">
+      <button
+        onClick={first}
+        disabled={atStart}
+        aria-label="First move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronFirst size={20} />
       </button>
-      <button onClick={prev} disabled={atStart} className={btnClass(atStart)}>
-        {<ArrowBigLeftIcon size={30} />}
+      <button
+        onClick={prev}
+        disabled={atStart}
+        aria-label="Previous move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronLeft size={20} />
       </button>
-      <button onClick={next} disabled={atEnd} className={btnClass(atEnd)}>
-        {<ArrowBigRightIcon size={30} />}
+      <button
+        onClick={next}
+        disabled={atEnd}
+        aria-label="Next move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronRight size={20} />
       </button>
-      <button onClick={last} disabled={atEnd} className={btnClass(atEnd)}>
-        {<ArrowBigRightDashIcon size={30} />}
+      <button
+        onClick={last}
+        disabled={atEnd}
+        aria-label="Last move"
+        className="control-tab-btn pgn-control-btn"
+      >
+        <ChevronLast size={20} />
       </button>
     </div>
   );

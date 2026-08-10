@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { CircleXIcon, UploadIcon, CheckCircle2, TreePalmIcon, TriangleAlertIcon, CloudAlertIcon } from 'lucide-react';
+import { XIcon, UploadIcon, CheckCircle2, TreePalmIcon, TriangleAlertIcon, CloudAlertIcon } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
 import { chapterFromImport, chapterFromPgn } from '../../util/io';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
+import './modals.css';
+import './AddToRepertoireModal.css';
 // import { importJSON } from '../../util/importJSON'; // <- assume this exists
 
 type ImportTab = 'pgn' | 'json';
@@ -32,15 +34,11 @@ const AddToRepertoireModal: React.FC = () => {
   const openLogin = useAuthStore((s) => s.openLogin);
 
   const SignedOutNotice = () => (
-    <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 mb-2">
-      <CloudAlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-      <p className="text-sm leading-snug text-amber-900">
+    <div className="add-rep-signed-out">
+      <CloudAlertIcon />
+      <p>
         You're using chessrepeat signed out.{' '}
-        <button
-          type="button"
-          onClick={openLogin}
-          className="font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950"
-        >
+        <button type="button" onClick={openLogin}>
           Log in
         </button>{' '}
         to save your repertoire to the cloud and train anywhere.
@@ -156,15 +154,10 @@ const AddToRepertoireModal: React.FC = () => {
     }
   };
   return (
-    <dialog
-      open
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000]
-                 border-none bg-white rounded-lg shadow-lg w-[calc(100%-2rem)] max-w-lg"
-    >
+    <dialog open className="modal-dialog modal-dialog-lg add-rep-dialog">
       {/* Close button */}
       <button
-        className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full h-8 w-8
-                   flex items-center justify-center shadow-md hover:bg-red-600"
+        className="modal-close-puck"
         aria-label="Close"
         onClick={() => {
           resetJsonState();
@@ -172,184 +165,153 @@ const AddToRepertoireModal: React.FC = () => {
         }}
         type="button"
       >
-        <CircleXIcon className="w-5 h-5" />
+        <XIcon />
       </button>
 
       {/* Heading + Tabs */}
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-800">Add to Repertoire</h2>
+      <div className="add-rep-head">
+        <h2>Add to Repertoire</h2>
 
-        <div className="mt-4 inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+        <div className="add-rep-tabs">
           <button
             type="button"
             onClick={() => setTab('pgn')}
-            className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-              tab === 'pgn' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`add-rep-tab ${tab === 'pgn' ? 'is-active' : ''}`}
           >
             PGN
           </button>
           <button
             type="button"
             onClick={() => setTab('json')}
-            className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
-              tab === 'json' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`add-rep-tab ${tab === 'json' ? 'is-active' : ''}`}
           >
             JSON
           </button>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="p-6">
-        {tab === 'pgn' ? (
-          <form onSubmit={handleSubmitPgn}>
+      {/* Body — scrolls under the head, with the submit pinned below it so the
+          primary action stays reachable on short viewports. */}
+      {tab === 'pgn' ? (
+        <form onSubmit={handleSubmitPgn} className="add-rep-form">
+          <div className="add-rep-body">
             {/* Name */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-base font-semibold mb-2">Name</label>
-              <input
-                id="name"
-                ref={nameRef}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight
-                           focus:outline-none focus:shadow-outline"
-              />
+            <div className="add-rep-field">
+              <label>Name</label>
+              <input id="name" ref={nameRef} className="add-rep-name-input" />
             </div>
 
             {/* PGN */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-base font-semibold mb-2">PGN</label>
+            <div className="add-rep-field">
+              <label>PGN</label>
               <textarea
                 id="pgn"
                 ref={pgnRef}
                 rows={4}
                 placeholder={'Enter PGN...\nex. 1. d4 d5 2. c4 c6'}
-                className="shadow block w-full text-sm text-gray-700 rounded-lg border border-gray-300 p-3"
+                className="add-rep-pgn-input"
               />
               <input
                 id="fileInput"
                 type="file"
                 accept=".txt,.pgn"
                 onChange={handlePgnFileChange}
-                className="mt-2 text-sm"
+                className="add-rep-file-input"
               />
             </div>
 
             {/* Train As */}
-            <div className="mb-5">
-              <label className="block text-gray-700 text-base font-semibold mb-3">Train as</label>
-              <div className="flex">
-                <label className="flex-1">
+            <div className="add-rep-train-as">
+              <label>Train as</label>
+              <div className="add-rep-colors">
+                <label className="add-rep-color">
                   <input
                     id="colorWhite"
                     type="radio"
                     name="color"
                     value="white"
-                    className="hidden peer"
                     onChange={() => setSelectedColor('white')}
                   />
-                  <span
-                    className="block text-center py-3 text-lg font-medium bg-gray-200 text-gray-800 rounded-l-lg
-                               peer-checked:bg-gray-700 peer-checked:text-white cursor-pointer transition"
-                  >
-                    White
-                  </span>
+                  <span className="add-rep-color-label">White</span>
                 </label>
-                <label className="flex-1">
+                <label className="add-rep-color">
                   <input
                     id="colorBlack"
                     type="radio"
                     name="color"
                     value="black"
-                    className="hidden peer"
                     onChange={() => setSelectedColor('black')}
                   />
-                  <span
-                    className="block text-center py-3 text-lg font-medium bg-gray-200 text-gray-800 rounded-r-lg
-                               peer-checked:bg-gray-700 peer-checked:text-white cursor-pointer transition"
-                  >
-                    Black
-                  </span>
+                  <span className="add-rep-color-label">Black</span>
                 </label>
               </div>
             </div>
             {!isLoggedIn && <SignedOutNotice />}
+          </div>
 
-            <button
-              type="submit"
-              disabled={!selectedColor}
-              className={`w-full text-lg font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition ${
-                selectedColor
-                  ? 'bg-brand-blue hover:brightness-110 text-white'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              Add
+          <div className="add-rep-footer">
+            <button type="submit" disabled={!selectedColor} className="add-rep-submit">
+              Add to repertoire
             </button>
-          </form>
-        ) : (
-          <form onSubmit={handleImportJson}>
-            <p className="text-sm text-gray-500 mb-4">
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={handleImportJson} className="add-rep-form">
+          <div className="add-rep-body">
+            <p className="add-rep-json-intro">
               Import a JSON file of a repertoire or chapter that you've previously downloaded.{' '}
             </p>
 
-            <div className="mb-4">
-              <label className="block text-gray-700 text-base font-semibold mb-2">File (.json)</label>
+            <div className="add-rep-field">
+              <label>File (.json)</label>
               <input
                 ref={jsonFileRef}
                 type="file"
                 accept="application/json,.json"
                 onChange={handleJsonFileChange}
-                className="text-sm"
+                className="add-rep-file-input"
               />
 
               {/* Loaded indicator (no content preview) */}
-              <div className="mt-3">
+              <div className="add-rep-json-status">
                 {jsonLoaded ? (
-                  <div className="inline-flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="font-medium">Loaded</span>
+                  <div className="add-rep-json-loaded">
+                    <CheckCircle2 />
+                    <strong>Loaded</strong>
                     {jsonFilename ? (
-                      <span className="text-green-700/80 truncate">— {jsonFilename}</span>
+                      <span className="add-rep-json-filename">— {jsonFilename}</span>
                     ) : null}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500">No file loaded yet.</div>
+                  <div className="add-rep-json-idle">No file loaded yet.</div>
                 )}
               </div>
             </div>
 
-            {jsonError ? <div className="mb-3 text-sm text-red-600">{jsonError}</div> : null}
+            {jsonError ? <div className="add-rep-json-error">{jsonError}</div> : null}
             {!isLoggedIn && <SignedOutNotice />}
+          </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={resetJsonState}
-                className="flex-1 rounded py-2 px-4 font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
+          <div className="add-rep-footer">
+            <div className="add-rep-json-actions">
+              <button type="button" onClick={resetJsonState} className="add-rep-clear-btn">
                 Clear
               </button>
 
               <button
                 type="submit"
                 disabled={isImportingJson || !jsonLoaded}
-                className={`flex-1 text-lg font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition
-                ${
-                  isImportingJson || !jsonLoaded
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
+                className="add-rep-import-btn"
               >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <UploadIcon className="w-5 h-5" />
+                <span>
+                  <UploadIcon />
                   {isImportingJson ? 'Importing...' : 'Import'}
                 </span>
               </button>
             </div>
-          </form>
-        )}
-      </div>
+          </div>
+        </form>
+      )}
     </dialog>
   );
 };

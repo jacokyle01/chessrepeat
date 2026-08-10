@@ -1,0 +1,107 @@
+/* Right-click menu on a move / comment in the PGN tree.
+
+   PrimeReact's ContextMenu ships unstyled here (we never import its theme),
+   so these classes — wired up through the component's `pt` prop — are the
+   entire look of the menu. */
+
+.cr-ctxmenu {
+  min-width: 240px;
+  max-width: 92vw;
+  border: 1px solid var(--c-gray-200);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.95);
+  color: var(--c-gray-900);
+  box-shadow: var(--shadow-xl);
+}
+
+@supports (backdrop-filter: blur(0)) {
+  .cr-ctxmenu {
+    background: rgb(255 255 255 / 0.8);
+    backdrop-filter: blur(8px);
+  }
+}
+
+.cr-ctxmenu-list {
+  padding: 0.25rem 0;
+}
+
+.cr-ctxmenu-action {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border-radius: 0.5rem;
+  outline: none;
+  transition: background-color 150ms;
+}
+
+.cr-ctxmenu-action:hover,
+.cr-ctxmenu-action:focus {
+  background: var(--c-gray-100);
+}
+
+.cr-ctxmenu-action:active {
+  background: var(--c-gray-200);
+}
+
+.cr-ctxmenu-action[data-disabled='true'] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.cr-ctxmenu-label {
+  user-select: none;
+}
+
+.cr-ctxmenu-icon {
+  color: var(--c-gray-500);
+}
+
+.cr-ctxmenu-separator {
+  margin: 0.25rem 0;
+  border-top: 1px solid var(--c-gray-200);
+}
+
+/* ---------- menu rows ---------- */
+/* Shared by the default row rendered here and the custom rows the tree
+   supplies (delete line, edit comment). */
+.ctxmenu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--c-gray-900);
+}
+
+.ctxmenu-item:hover {
+  background: var(--c-gray-100);
+}
+
+.ctxmenu-item:active {
+  background: var(--c-gray-200);
+}
+
+.ctxmenu-item svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--c-gray-500);
+}
+
+/* placeholder keeping labels aligned when a row has no icon */
+.ctxmenu-item-spacer {
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+.ctxmenu-item-icon {
+  flex-shrink: 0;
+  color: var(--c-gray-500);
+}
+
+.ctxmenu-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25rem;
+}

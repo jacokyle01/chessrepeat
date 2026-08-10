@@ -1,0 +1,40 @@
+/* Generic centered modal used by LoginModal. */
+
+/* same scrim treatment as the sheets in modals.css, including the clearance
+   the card is capped against */
+.simple-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background: var(--c-backdrop);
+  backdrop-filter: blur(4px);
+}
+
+/* stacks above another modal that's already open */
+.simple-modal-scrim.is-stacked {
+  z-index: 1100;
+}
+
+.simple-modal-card {
+  position: relative;
+  width: 24rem;
+  max-width: 100%;
+  max-height: 100%;
+  padding: 1.5rem;
+  overflow: hidden auto;
+  border: var(--border-w) solid var(--c-line);
+  border-radius: 0.5rem;
+  background: var(--c-surface);
+}
+
+.simple-modal-card h2 {
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* .simple-modal-close takes the shared close-button design in modals.css */

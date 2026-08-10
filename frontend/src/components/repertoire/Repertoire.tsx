@@ -1,40 +1,52 @@
 //TODO repertoire and repertoire section in same file
 
+import { FaChessKing, FaRegChessKing } from 'react-icons/fa6';
 import {
   ArrowLeftIcon,
   BookOpenIcon,
+  CheckIcon,
   BookPlus,
+  ChevronRightIcon,
   DownloadIcon,
   FilePlus2Icon,
+  Globe,
   LucideCloudOff,
   LucideCloudUpload,
-  LucideGraduationCap,
-  LucideHistory,
   LucideRepeat,
   LucideRepeat2,
   LucideUpload,
+  PencilIcon,
   PlusIcon,
-  Settings2Icon,
-  SettingsIcon,
+  TrashIcon,
 } from 'lucide-react';
 import { useStore } from 'zustand';
 import { useTrainerStore } from '../../store/state';
-import EditChapterModal from '../modals/EditChapterModal';
 import DownloadModal from '../modals/DownloadModal';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Chapter } from '../../types/training';
 import { useAuthStore } from '../../store/auth';
 import { viewUserRepertoire } from '../../services/collaborators';
+import './Repertoire.css';
 
-export const ChapterRow = ({ entry, index, id }) => {
+export const ChapterRow = ({ entry, index }) => {
   const setSelectedChapterId = useStore(useTrainerStore, (s) => s.setSelectedChapterId);
   const clearChapterContext = useTrainerStore((s) => s.clearChapterContext);
+  const renameChapter = useTrainerStore((s) => s.renameChapter);
+  const deleteChapterAt = useTrainerStore((s) => s.deleteChapterAt);
   const updateDueCounts = useTrainerStore().updateDueCounts;
   const selectedChapterId = useTrainerStore().selectedChapterId;
-  const [editOpen, setEditOpen] = useState(false);
+  // The chapter's actions open as a row of their own directly below it, rather
+  // than as a popover. `view` is which face that row is showing; 'closed' means
+  // there is no row. Rename and delete are faces of the same row, so the whole
+  // flow stays inline in the list.
+  const [view, setView] = useState<'closed' | 'menu' | 'rename' | 'delete'>('closed');
+  const [draftName, setDraftName] = useState('');
+  const [renameError, setRenameError] = useState<string | null>(null);
   const meta = entry;
   const name = entry.name;
   const isSelected = selectedChapterId === entry.uuid;
+  const isOpen = view !== 'closed';
+  const actionsId = `chapter-actions-${entry.uuid}`;
 
   //TODO dont change if already on this chapter..
   //TODO dont clear all chapter context? maybe dont change trainingMethod
@@ -44,67 +56,183 @@ export const ChapterRow = ({ entry, index, id }) => {
     updateDueCounts();
   };
 
+  const closeMenu = () => {
+    setView('closed');
+    setRenameError(null);
+  };
+
+  const toggleMenu = () => {
+    if (isOpen) return closeMenu();
+    // always reopen on the menu itself, never on whatever panel was last used
+    setRenameError(null);
+    setView('menu');
+  };
+
+  // The row sits in the list rather than over it, so it doesn't need the
+  // click-outside / scroll / resize teardown a popover does — only Escape,
+  // which is the one dismissal a keyboard user expects to work from anywhere.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMenu();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen]);
+
+  const openRename = () => {
+    setDraftName(name);
+    setRenameError(null);
+    setView('rename');
+  };
+
+  const trimmedName = draftName.trim();
+  const canCommitRename = !!trimmedName && trimmedName !== name;
+
+  /** Save the pending name (if there is one) and close the menu. */
+  const commitRename = async () => {
+    if (!canCommitRename) return closeMenu();
+    setRenameError(null);
+    try {
+      await renameChapter(entry.uuid, trimmedName);
+      closeMenu();
+    } catch (err: any) {
+      // stay open on failure so the typed name isn't lost
+      setRenameError(err?.message ?? 'Failed to rename chapter.');
+    }
+  };
+
+  const handleDelete = async () => {
+    await deleteChapterAt(entry.uuid);
+    closeMenu();
+  };
+
   return (
     <React.Fragment key={index}>
-      {editOpen && (
-        <div
-          className="
-      fixed inset-0 z-40
-      bg-black/50 backdrop-blur-sm
-      flex items-center justify-center
-    "
-          onClick={() => setEditOpen(false)}
-        >
-          <div
-            className="z-50"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <EditChapterModal chapterId={entry.uuid} onClose={() => setEditOpen(false)} />
-          </div>
-        </div>
-      )}
-
       <div
         id="chapter-wrap"
         onClick={handleChangeChapter}
-        className={isSelected ? 'bg-cyan-50' : ''}
+        className={`chapter-row ${isSelected ? 'is-selected' : ''}`}
       >
-        <div className="chapter flex items-center justify-around hover:bg-cyan-50 pl-2 py-0.5">
-          <span className="font-bold pr-3 text-brand-blue flex-shrink-0">{index + 1}</span>
+        <div className="chapter">
+          <span className="chapter-index">{index + 1}</span>
 
-          <h3 className="text-md font-light flex flex-1 min-w-0 gap-2 whitespace-nowrap items-end">
-            <span className={`text-sm truncate leading-none ${isSelected ? 'font-bold' : ''}`}>{name}</span>
-            <span className="text-xs italic font-mono flex-shrink-0 leading-none">{meta.enabledCount}</span>
+          {/* Outline king for white, filled for black — the same way a chess
+              diagram distinguishes the two sides. */}
+          <span className="chapter-side" title={`Trained as ${entry.trainAs}`}>
+            {entry.trainAs === 'white' ? <FaRegChessKing /> : <FaChessKing />}
+          </span>
+
+          <h3 className="chapter-title">
+            <span className={`chapter-name ${isSelected ? 'is-selected' : ''}`}>{name}</span>
+            <span className="chapter-size">
+              {meta.enabledCount} move{meta.enabledCount === 1 ? '' : 's'}
+            </span>
           </h3>
 
+          {/* counts only — the color says which is which, the same way the
+              progress bar above the board does */}
           {entry.unseenCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-brand-blue-light/40 text-sky-700 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
-              <span className="chapter-btn-label"><LucideGraduationCap size={18}/></span>{entry.unseenCount}
+            <button className="chapter-count chapter-count-unseen" title={`Learn ${entry.unseenCount} moves`}>
+              {entry.unseenCount}
             </button>
           )}
 
           {entry.lastDueCount > 0 && (
-            <button className="font-roboto text-sm font-medium bg-brand-blue/30 text-blue-800 rounded-md px-2 mr-2 flex-shrink-0 flex items-center">
-              <span className="chapter-btn-label"><LucideHistory size={18}/> </span>{entry.lastDueCount}
+            <button className="chapter-count chapter-count-due" title={`Recall ${entry.lastDueCount} moves`}>
+              {entry.lastDueCount}
             </button>
           )}
 
-          <div
-            id="edit-chapter"
-            className="ml-auto mr-2 text-slate-500 cursor-pointer flex-shrink-0"
-            onClick={() => setEditOpen(true)}
-          >
-            <div id="icon-wrap">
-              <Settings2Icon width={20} height={20}/>
-            </div>
+          <div className="chapter-menu" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={`chapter-menu-btn ${isOpen ? 'is-open' : ''}`}
+              aria-expanded={isOpen}
+              aria-controls={actionsId}
+              aria-label="Chapter options"
+              onClick={toggleMenu}
+            >
+              <ChevronRightIcon width={16} height={16} />
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Actions get a row of their own under the chapter instead of a
+          floating menu, so nothing overlays the list and the bottom rows
+          can't be clipped by its scroll container. */}
+      {isOpen && (
+        <div id={actionsId} className={`chapter-actions is-${view}`}>
+          {view === 'menu' && (
+            <>
+              <button type="button" className="chapter-action-btn" onClick={openRename}>
+                <PencilIcon size={14} />
+                Rename
+              </button>
+              <button
+                type="button"
+                className="chapter-action-btn is-danger"
+                onClick={() => setView('delete')}
+              >
+                <TrashIcon size={14} />
+                Delete
+              </button>
+            </>
+          )}
+
+          {view === 'rename' && (
+            <div className="chapter-action-panel">
+              <div className="chapter-action-rename">
+                <input
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitRename();
+                    if (e.key === 'Escape') closeMenu();
+                  }}
+                  aria-label="Chapter name"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="chapter-action-confirm"
+                  onClick={commitRename}
+                  disabled={!canCommitRename}
+                  aria-label="Save name"
+                  title="Save name"
+                >
+                  <CheckIcon size={16} />
+                </button>
+              </div>
+              {renameError && <p className="chapter-action-error">{renameError}</p>}
+            </div>
+          )}
+
+          {view === 'delete' && (
+            <div className="chapter-action-panel">
+              <p className="chapter-action-warning">Delete this chapter? This cannot be undone.</p>
+              <div className="chapter-action-confirm-row">
+                <button type="button" className="chapter-action-confirm-no" onClick={() => setView('menu')}>
+                  Cancel
+                </button>
+                <button type="button" className="chapter-action-confirm-yes" onClick={handleDelete}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </React.Fragment>
   );
 };
 
-const Repertoire: React.FC = () => {
+type RepertoireProps = {
+  onOpenCollaborators?: () => void;
+};
+
+const Repertoire: React.FC<RepertoireProps> = ({ onOpenCollaborators }) => {
   const whiteEntries: Chapter[] = [];
   const blackEntries: Chapter[] = [];
 
@@ -126,41 +254,38 @@ const Repertoire: React.FC = () => {
   });
 
   return (
-    <div id="repertoire" className="flex flex-1 flex-col min-h-0 rounded-lg border border-gray-300 bg-white shadow-md">
+    <div id="repertoire" className="repertoire-card">
       {/* fixed header */}
-      <div id="repertoire-header" className="shrink-0 flex flex-row items-center p-3 gap-2">
+      <div className="panel-header">
         {viewingOther && authUsername ? (
           <button
             type="button"
             onClick={() => void viewUserRepertoire(authUsername)}
             aria-label="Back to my repertoire"
             title="Back to my repertoire"
-            className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded hover:text-gray-700 hover:bg-gray-300 transition"
+            className="panel-icon repertoire-back-btn"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
+            <ArrowLeftIcon />
           </button>
         ) : (
-          <div id="reperoire-icon-wrap" className="shrink-0 text-gray-500 bg-gray-200 p-1 rounded">
-            <BookOpenIcon className="w-5 h-5" />
+          <div id="reperoire-icon-wrap" className="panel-icon">
+            <BookOpenIcon />
           </div>
         )}
-        <div className="flex flex-col leading-none min-w-0">
-          <span className="text-lg text-gray-800 font-semibold truncate">{title}</span>
-          <span className="-mt-0.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="panel-titles">
+          <span className="panel-title">{title}</span>
+          <span className="panel-subtitle">
             {repertoire.length} chapter{repertoire.length === 1 ? '' : 's'}
           </span>
         </div>
-
 
         <button
           type="button"
           onClick={() => setShowingAddToRepertoireMenu(true)}
           aria-label="Add to repertoire"
           title="Add to repertoire"
-          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center
-            text-slate-600 hover:text-slate-800 hover:bg-gray-100
-            ${isEmpty ? 'ring-4 ring-yellow-400/50 ring-offset-2 ring-offset-white' : ''}`}
-            >
+          className={`panel-action repertoire-add-btn ${isEmpty ? 'is-empty' : ''}`}
+        >
           <LucideUpload size={18} />
           <span className="chapter-btn-label">add</span>
         </button>
@@ -171,46 +296,44 @@ const Repertoire: React.FC = () => {
           disabled={isEmpty}
           aria-label="Download repertoire"
           title="Download repertoire"
-          className={`shrink-0 p-1.5 rounded-md transition flex gap-1 text-sm items-center ${
-            isEmpty
-            ? 'text-gray-300 cursor-not-allowed'
-            : 'text-slate-600 hover:text-slate-800 hover:bg-gray-100'
-          }`}
-          >
-          <DownloadIcon className="w-[18px] h-[18px]" />
+          className="panel-action"
+        >
+          <DownloadIcon />
           <span className="chapter-btn-label">download</span>
         </button>
-          {isAuth ? (
-            <span className="shrink-0 ml-auto text-green-600" title="Synced">
-              <LucideCloudUpload size={18}/>
-            </span>
-          ) : (
-            <span className="shrink-0 ml-auto text-red-600" title="Offline — changes not synced">
-              <LucideCloudOff size={18}/>
-            </span>
-          )}
-      </div>
-      
-      {/* ONLY THIS SCROLLS */}
-      <div
-        id="repertoire-wrap"
-        className="
-        repertoire-scroll
-        flex-1 min-h-0 overflow-y-auto pb-2
-        pr-1
-      "
-      >
-        <span className="font-semibold text-sm uppercase px-2 text-gray-600">White</span>
-        <div className="flex-row rounded-md">
-          {whiteEntries.map((entry, index) => (
-            <ChapterRow id={entry.id} entry={entry} index={index} />
-          ))}
-        </div>
 
-        <span className="font-semibold text-sm uppercase px-2 text-gray-600">Black</span>
-        <div className="flex-row rounded-md">
-          {blackEntries.map((entry, index) => (
-            <ChapterRow id={entry.id} entry={entry} index={index + whiteEntries.length} />
+        {/* Sharing is a repertoire action, so it sits with the other two rather
+            than up in the app bar. */}
+        {isAuth && onOpenCollaborators && (
+          <button
+            type="button"
+            onClick={onOpenCollaborators}
+            aria-label="Share repertoire"
+            title="Share repertoire"
+            className="panel-action"
+          >
+            <Globe />
+            <span className="chapter-btn-label">sharing</span>
+          </button>
+        )}
+        {isAuth ? (
+          <span className="repertoire-sync repertoire-sync-online" title="Synced">
+            <LucideCloudUpload size={18} />
+          </span>
+        ) : (
+          <span className="repertoire-sync repertoire-sync-offline" title="Offline — changes not synced">
+            <LucideCloudOff size={18} />
+          </span>
+        )}
+      </div>
+
+      {/* ONLY THIS SCROLLS */}
+      <div id="repertoire-wrap" className="repertoire-scroll repertoire-list">
+        {/* One list rather than a section per side: each row carries its own
+            king, so the white chapters simply come first. */}
+        <div className="repertoire-group">
+          {[...whiteEntries, ...blackEntries].map((entry, index) => (
+            <ChapterRow key={entry.uuid} entry={entry} index={index} />
           ))}
         </div>
       </div>

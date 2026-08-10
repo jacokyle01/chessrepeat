@@ -1,0 +1,341 @@
+/* Import dialog — a PGN paste/upload tab and a JSON-backup restore tab. */
+
+/* Stacks above every other modal: it can be opened from the repertoire panel
+   while the login prompt is already up.
+
+   Head / scrolling body / pinned footer, capped at the viewport height: the
+   PGN tab is tall enough to overflow a short window, and the dialog is
+   centered with a transform, so without this the submit button falls off the
+   bottom of the screen with no way to scroll to it. */
+.modal-dialog.add-rep-dialog {
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  /* the same clearance every other dialog leaves top and bottom */
+  max-height: calc(100dvh - 6rem);
+  overflow: hidden;
+}
+
+.add-rep-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.add-rep-head {
+  flex-shrink: 0;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--c-gray-200);
+}
+
+/* the only part that scrolls */
+.add-rep-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.add-rep-footer {
+  flex-shrink: 0;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--c-gray-200);
+  background: var(--c-surface);
+}
+
+.add-rep-head h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--c-gray-800);
+}
+
+/* ---------- tabs ---------- */
+.add-rep-tabs {
+  display: inline-flex;
+  margin-top: 1rem;
+  padding: 0.25rem;
+  border: 1px solid var(--c-gray-200);
+  border-radius: 0.5rem;
+  background: var(--c-gray-50);
+}
+
+.add-rep-tab {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-gray-600);
+  transition: color 150ms, background-color 150ms;
+}
+
+.add-rep-tab:hover {
+  color: var(--c-gray-900);
+}
+
+.add-rep-tab.is-active {
+  background: var(--c-surface);
+  color: var(--c-gray-900);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- body ---------- */
+.add-rep-body {
+  padding: 1.5rem;
+}
+
+.add-rep-field {
+  margin-bottom: 1rem;
+}
+
+.add-rep-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-gray-700);
+}
+
+.add-rep-name-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--c-gray-200);
+  border-radius: 0.25rem;
+  line-height: 1.25;
+  color: var(--c-gray-700);
+  box-shadow: var(--shadow);
+  appearance: none;
+}
+
+.add-rep-name-input:focus {
+  outline: none;
+}
+
+.add-rep-pgn-input {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--c-gray-300);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--c-gray-700);
+  box-shadow: var(--shadow);
+}
+
+.add-rep-file-input {
+  font-size: 0.875rem;
+}
+
+.add-rep-field .add-rep-file-input {
+  margin-top: 0.5rem;
+}
+
+/* ---------- "train as" colour picker ---------- */
+.add-rep-train-as {
+  margin-bottom: 1.25rem;
+}
+
+.add-rep-train-as > label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-gray-700);
+}
+
+.add-rep-colors {
+  display: flex;
+}
+
+.add-rep-color {
+  flex: 1;
+}
+
+/* The radio itself is hidden; the sibling span is the visible control and
+   picks up its selected look from :checked. */
+.add-rep-color input {
+  display: none;
+}
+
+.add-rep-color-label {
+  display: block;
+  padding: 0.75rem 0;
+  background: var(--c-gray-200);
+  color: var(--c-gray-800);
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+
+.add-rep-color:first-child .add-rep-color-label {
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.add-rep-color:last-child .add-rep-color-label {
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.add-rep-color input:checked + .add-rep-color-label {
+  background: var(--c-gray-700);
+  color: var(--c-surface);
+}
+
+/* ---------- signed-out notice ---------- */
+.add-rep-signed-out {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--c-amber-300);
+  border-radius: 0.5rem;
+  background: var(--c-amber-50);
+}
+
+.add-rep-signed-out svg {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  color: var(--c-amber-500);
+}
+
+.add-rep-signed-out p {
+  font-size: 0.875rem;
+  line-height: 1.375;
+  color: var(--c-amber-900);
+}
+
+.add-rep-signed-out button {
+  font-weight: 600;
+  color: var(--c-amber-900);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.add-rep-signed-out button:hover {
+  color: var(--c-amber-950);
+}
+
+/* ---------- submit ---------- */
+.add-rep-submit {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
+  font-size: 1.125rem;
+  font-weight: 700;
+  transition: filter 150ms, background-color 150ms;
+}
+
+.add-rep-submit:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.add-rep-submit:disabled {
+  background: var(--c-gray-300);
+  color: var(--c-gray-500);
+  cursor: not-allowed;
+}
+
+/* ---------- JSON tab ---------- */
+.add-rep-json-intro {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--c-gray-500);
+}
+
+.add-rep-json-status {
+  margin-top: 0.75rem;
+}
+
+.add-rep-json-loaded {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--c-green-200);
+  border-radius: 0.375rem;
+  background: var(--c-green-50);
+  font-size: 0.875rem;
+  color: var(--c-green-800);
+}
+
+.add-rep-json-loaded svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.add-rep-json-loaded strong {
+  font-weight: 500;
+}
+
+.add-rep-json-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(21 128 61 / 0.8);
+}
+
+.add-rep-json-idle {
+  font-size: 0.875rem;
+  color: var(--c-gray-500);
+}
+
+.add-rep-json-error {
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--c-red-600);
+}
+
+.add-rep-json-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-rep-clear-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--c-gray-300);
+  border-radius: 0.25rem;
+  color: var(--c-gray-700);
+  font-weight: 600;
+}
+
+.add-rep-clear-btn:hover {
+  background: var(--c-gray-50);
+}
+
+.add-rep-import-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  background: var(--c-green-600);
+  color: var(--c-surface);
+  font-size: 1.125rem;
+  font-weight: 700;
+  transition: background-color 150ms;
+}
+
+.add-rep-import-btn:hover:not(:disabled) {
+  background: var(--c-green-700);
+}
+
+.add-rep-import-btn:disabled {
+  background: var(--c-gray-300);
+  color: var(--c-gray-500);
+  cursor: not-allowed;
+}
+
+.add-rep-import-btn > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.add-rep-import-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}

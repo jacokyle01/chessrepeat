@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { XIcon, UserPlusIcon } from 'lucide-react';
 import type { Collaborator, CollaboratorPermission } from '../../services/collaborators';
+import '../modals/modals.css';
+import './CollaboratorsPanel.css';
 
 type Props = {
   open: boolean;
@@ -20,11 +22,9 @@ const PERMISSION_DESCRIPTIONS: Record<CollaboratorPermission, string> = {
   train: 'Read-only on the tree, but their training progress syncs.',
 };
 
-// Badge swatches mirror the avatar-ring colors in Header.tsx so the
-// panel and the live presence list stay visually consistent.
 const PERMISSION_BADGE: Record<CollaboratorPermission, string> = {
-  edit: 'bg-brand-blue text-white',
-  train: 'bg-brand-blue-light text-blue-900',
+  edit: 'collab-badge-edit',
+  train: 'collab-badge-train',
 };
 
 export function CollaboratorsPanel({
@@ -55,59 +55,43 @@ export function CollaboratorsPanel({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-20"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <h2 className="text-lg font-bold text-gray-900">Collaborators</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-          >
+    <div className="modal-scrim modal-scrim-top" onClick={onClose}>
+      <div className="modal-card modal-card-md" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-card-header">
+          <h2>Collaborators</h2>
+          <button type="button" onClick={onClose} className="modal-close-x">
             <XIcon size={18} />
           </button>
         </div>
 
-        <div className="px-5 pb-5 space-y-5">
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-              Shared with me ({incoming.length})
-            </h3>
+        <div className="modal-card-body">
+          <section className="collab-section">
+            <h3>Shared with me ({incoming.length})</h3>
             {incoming.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                Nobody has added you as a collaborator yet.
-              </p>
+              <p className="collab-empty">Nobody has added you as a collaborator yet.</p>
             ) : (
-              <ul className="divide-y divide-gray-100 border border-gray-200 rounded-md">
+              <ul className="collab-list">
                 {incoming.map((c) => (
-                  <li key={c.username} className="flex items-center gap-2 px-3 py-2">
+                  <li key={c.username} className="collab-row">
                     {c.picture ? (
                       <img
                         src={c.picture}
                         alt={c.username}
                         referrerPolicy="no-referrer"
-                        className="h-7 w-7 rounded-full"
+                        className="collab-avatar"
                       />
                     ) : (
-                      <div className="h-7 w-7 rounded-full bg-gray-200" />
+                      <div className="collab-avatar collab-avatar-blank" />
                     )}
                     <button
                       type="button"
                       onClick={() => onViewRepertoire(c.username)}
-                      className="flex-1 text-left text-sm font-medium text-brand-blue hover:underline"
+                      className="collab-open-btn"
                       title="Open their repertoire"
                     >
                       {c.username}
                     </button>
-                    <span
-                      className={`text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded ${PERMISSION_BADGE[c.permission]}`}
-                    >
+                    <span className={`collab-badge ${PERMISSION_BADGE[c.permission]}`}>
                       {c.permission}
                     </span>
                   </li>
@@ -116,40 +100,34 @@ export function CollaboratorsPanel({
             )}
           </section>
 
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-              My collaborators ({outgoing.length})
-            </h3>
+          <section className="collab-section">
+            <h3>My collaborators ({outgoing.length})</h3>
             {outgoing.length === 0 ? (
-              <p className="text-sm text-gray-500 mb-2">
+              <p className="collab-empty collab-empty-outgoing">
                 Add someone below to share your repertoire with them.
               </p>
             ) : (
-              <ul className="divide-y divide-gray-100 border border-gray-200 rounded-md mb-3">
+              <ul className="collab-list collab-list-outgoing">
                 {outgoing.map((c) => (
-                  <li key={c.username} className="flex items-center gap-2 px-3 py-2">
+                  <li key={c.username} className="collab-row">
                     {c.picture ? (
                       <img
                         src={c.picture}
                         alt={c.username}
                         referrerPolicy="no-referrer"
-                        className="h-7 w-7 rounded-full"
+                        className="collab-avatar"
                       />
                     ) : (
-                      <div className="h-7 w-7 rounded-full bg-gray-200" />
+                      <div className="collab-avatar collab-avatar-blank" />
                     )}
-                    <span className="flex-1 text-sm font-medium text-gray-800">
-                      {c.username}
-                    </span>
-                    <span
-                      className={`text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded ${PERMISSION_BADGE[c.permission]}`}
-                    >
+                    <span className="collab-name">{c.username}</span>
+                    <span className={`collab-badge ${PERMISSION_BADGE[c.permission]}`}>
                       {c.permission}
                     </span>
                     <button
                       type="button"
                       onClick={() => onRemove(c.username)}
-                      className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500"
+                      className="collab-remove-btn"
                       title="Remove collaborator"
                     >
                       <XIcon size={16} />
@@ -159,21 +137,21 @@ export function CollaboratorsPanel({
               </ul>
             )}
 
-            <form onSubmit={handleAdd} className="space-y-2">
+            <form onSubmit={handleAdd} className="collab-form">
               <input
                 type="text"
                 value={inviteTarget}
                 onChange={(e) => setInviteTarget(e.target.value)}
                 placeholder="username"
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                className="modal-text-input"
               />
-              <div className="flex items-center gap-2">
+              <div className="collab-form-row">
                 <select
                   value={invitePermission}
                   onChange={(e) =>
                     setInvitePermission(e.target.value as CollaboratorPermission)
                   }
-                  className="flex-1 border border-gray-300 rounded px-2 py-2 text-sm bg-white"
+                  className="collab-permission-select"
                   aria-label="Permission"
                 >
                   <option value="edit">edit</option>
@@ -182,20 +160,15 @@ export function CollaboratorsPanel({
                       with "edit" access as a stopgap. */}
                   {/* <option value="train">train</option> */}
                 </select>
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center gap-1.5 bg-slate-800 text-white text-sm font-semibold px-4 py-2 rounded hover:bg-slate-700 whitespace-nowrap"
-                >
+                <button type="submit" className="collab-add-btn">
                   <UserPlusIcon size={14} />
                   Add
                 </button>
               </div>
-              <p className="text-xs text-gray-500">
-                {PERMISSION_DESCRIPTIONS[invitePermission]}
-              </p>
+              <p className="modal-hint">{PERMISSION_DESCRIPTIONS[invitePermission]}</p>
             </form>
             {addMsg && (
-              <p className={`mt-2 text-xs ${addMsg.ok ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`collab-result ${addMsg.ok ? 'collab-result-ok' : 'collab-result-error'}`}>
                 {addMsg.text}
               </p>
             )}

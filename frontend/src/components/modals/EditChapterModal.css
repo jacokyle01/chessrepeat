@@ -1,0 +1,163 @@
+/* Rename / delete a chapter. Opened from the gear on a chapter row, which
+   renders its own scrim (.chapter-edit-backdrop in Repertoire.css). */
+
+.edit-chapter-dialog {
+  z-index: 20;
+}
+
+.edit-chapter-body {
+  padding: 1.5rem;
+}
+
+.edit-chapter-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--c-gray-800);
+}
+
+/* ---------- rename ----------
+   Input plus a single check, centred on each other. Cancelling is the
+   dialog's X, which saves too, so the row needs no second button. */
+.edit-chapter-rename {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.edit-chapter-rename input {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 2px solid var(--c-brand-blue);
+  background: transparent;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--c-gray-800);
+}
+
+.edit-chapter-rename input:focus {
+  outline: none;
+}
+
+.edit-chapter-confirm {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
+  transition: all 150ms;
+}
+
+.edit-chapter-confirm svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.edit-chapter-confirm:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+/* nothing to save yet — greyed out until the name actually changes */
+.edit-chapter-confirm:disabled {
+  background: var(--c-gray-200);
+  color: var(--c-gray-400);
+  cursor: not-allowed;
+}
+
+/* ---------- actions ---------- */
+.edit-chapter-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.edit-chapter-action {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 150ms;
+}
+
+.edit-chapter-action svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.edit-chapter-rename-btn {
+  border: 1px solid var(--c-gray-300);
+  background: var(--c-surface);
+  color: var(--c-gray-700);
+}
+
+.edit-chapter-rename-btn:hover {
+  background: var(--c-gray-50);
+}
+
+.edit-chapter-delete-btn {
+  background: var(--c-red-500);
+  color: var(--c-surface);
+}
+
+.edit-chapter-delete-btn:hover {
+  background: var(--c-red-600);
+}
+
+/* ---------- delete confirmation ---------- */
+.edit-chapter-confirm-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.edit-chapter-confirm-yes,
+.edit-chapter-confirm-no {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 150ms;
+}
+
+.edit-chapter-confirm-yes {
+  background: var(--c-red-600);
+  color: var(--c-surface);
+}
+
+.edit-chapter-confirm-yes:hover {
+  background: var(--c-red-700);
+}
+
+.edit-chapter-confirm-no {
+  border: 1px solid var(--c-gray-300);
+  color: var(--c-gray-600);
+}
+
+.edit-chapter-confirm-no:hover {
+  background: var(--c-gray-50);
+}
+
+/* ---------- messages ---------- */
+.edit-chapter-error {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--c-red-600);
+}
+
+.edit-chapter-warning {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--c-red-600);
+}

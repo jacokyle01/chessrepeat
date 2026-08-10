@@ -1,0 +1,113 @@
+/* Phone-only tab between the training pills and the settings pill.
+   On larger screens the comment already shows in the PGN tree, so the tab
+   is hidden from the two-column layout up.
+
+   Both selectors carry .control-tab as well: that class sets
+   `display: inline-flex` at equal specificity, so without it whichever
+   stylesheet happened to load last would decide whether the tab shows. */
+.control-tab.comment-popout-tab {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .control-tab.comment-popout-tab {
+    display: inline-flex;
+  }
+}
+
+/* Reads as one of the group: the recessed grey track supplies the fill and the
+   pill itself is neutral and borderless, lifting into a chip on tap like the
+   Edit/Learn/Recall segments. Type matches them too. */
+.comment-popout-tab #comment-popout-btn {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--c-gray-500);
+}
+
+.comment-popout-tab #comment-popout-btn:hover {
+  color: var(--c-gray-800);
+  background: var(--c-surface);
+}
+
+.comment-popout-tab #comment-popout-btn:active {
+  transform: scale(0.98);
+}
+
+/* ---------- editor dialog ---------- */
+.comment-popout-dialog {
+  max-width: 28rem;
+  padding: 1rem;
+}
+
+.comment-popout-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.comment-popout-icon {
+  display: flex;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: var(--c-gray-600);
+  background: var(--c-gray-200);
+}
+
+.comment-popout-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--c-gray-800);
+}
+
+.comment-popout-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--c-gray-300);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--c-gray-700);
+  resize: none;
+}
+
+.comment-popout-textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--c-brand-blue);
+}
+
+.comment-popout-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.comment-popout-cancel {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--c-gray-500);
+}
+
+.comment-popout-cancel:hover {
+  color: var(--c-gray-700);
+}
+
+.comment-popout-save {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  background: var(--c-brand-blue);
+  color: var(--c-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: filter 150ms;
+}
+
+.comment-popout-save:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.comment-popout-save:disabled {
+  background: var(--c-gray-200);
+  color: var(--c-gray-400);
+  cursor: not-allowed;
+}

@@ -1,0 +1,43 @@
+/* Card wrapping the 20-week due-date heatmap. */
+.schedule-card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: var(--border-w) solid var(--c-line);
+  border-radius: 0.5rem;
+  background: var(--c-surface);
+}
+
+/* Slightly tighter than the shared .panel-header so the heatmap gets the
+   vertical room in the short sidebar slot. */
+.schedule-card .panel-header {
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+/* Centered on the "Memory Schedule" line, not on the header. The header
+   centers the whole two-line title block; reserving the subtitle's own height
+   below the glyph (0.6875rem line less its -0.125rem tuck) lifts it by half
+   that, which is exactly what puts its center on the title's.
+
+   The link has to be a flex box for that to hold: left as a plain inline
+   anchor it builds a line box around the glyph at the inherited 1.5
+   line-height, and the leading that adds is what threw the alignment off. */
+.schedule-help {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  margin-bottom: 0.5625rem;
+  line-height: 1;
+  color: var(--c-gray-500);
+  transition: color 150ms;
+}
+
+.schedule-help:hover {
+  color: var(--c-gray-700);
+}
+
+.schedule-chart-wrap {
+  width: 100%;
+  padding-right: 0.5rem;
+}

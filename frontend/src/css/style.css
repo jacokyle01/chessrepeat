@@ -1,24 +1,29 @@
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities; */
-
+/* Attention pulse. The ring color comes from --ring-pulse on the element
+   itself, so each caller matches it to its own fill; the dark default is the
+   fallback for anything that doesn't set one. --ring-pulse-out is where that
+   ring fades to: leave it and the ring fades through transparent *black*,
+   which greys the color out on the way; set it to the same hue at zero alpha
+   and the ring keeps its color the whole way. */
 @keyframes ring-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.9);
+    box-shadow: 0 0 0 0 var(--ring-pulse, rgb(17 24 39 / 0.5));
     transform: scale(1);
   }
-  70% {
-    box-shadow: 0 0 0 14px rgba(59, 130, 246, 0);
+  /* A ring that only ever grows-and-fades is invisible at both ends and faint
+     in between — it peaked around 17% alpha. Snapping out to a solid ring
+     first gives the eye something to catch before the fade starts. */
+  18% {
+    box-shadow: 0 0 0 4px var(--ring-pulse, rgb(17 24 39 / 0.5));
     transform: scale(1.06);
   }
-  100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  70% {
+    box-shadow: 0 0 0 15px var(--ring-pulse-out, transparent);
     transform: scale(1);
   }
-}
-
-.animate-ring-pulse {
-  animation: ring-pulse 1.5s ease-out infinite;
+  100% {
+    box-shadow: 0 0 0 0 var(--ring-pulse-out, transparent);
+    transform: scale(1);
+  }
 }
 
 /*
@@ -37,7 +42,7 @@ body {
   font-family: 'Fira Sans', 'Roboto', sans-serif;
   /* Match .app-root so no white shows through any gap at the top/bottom
      (mobile dvh/vh mismatch, header margin, sub-pixel rounding, overscroll). */
-  background: #d6d9df;
+  background: var(--c-page-bg);
 }
 * {
   margin: 0;
@@ -57,12 +62,17 @@ svg {
   overflow: visible;
 }
 
+/* Chessground floors the board to a whole number of 8 device pixels, so it
+   can be a few px narrower than its wrap; centering splits that slack evenly
+   instead of pooling it on the right. */
 cg-container {
   position: absolute;
   width: 100%;
   height: 100%;
   display: block;
   bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 cg-board {
@@ -248,11 +258,11 @@ cg-board piece.fading {
   height: 6px;
 }
 
-/* .tview2 line {
-    display: block;
-    padding-inline-start: 7px;
-    position: relative;
-} */
+/* The last sibling's connector stops at its own elbow instead of running the
+   full height of the block, so the trunk doesn't dangle past the last line. */
+.line:last-child > .branch {
+  height: calc(0.8em + 2px);
+}
 
 .line .comment {
   display: inline;
@@ -264,36 +274,102 @@ cg-board piece.fading {
 
 .lines {
   display: block;
-  /* margin-top: 2px; */
+  margin-block: 2px;
   margin-inline-start: 6px;
-  /* margin-bottom: 0.8em; */
   padding-inline-start: 2px;
+  overflow-x: clip;
 }
 
-.line {
-  display: block;
-  padding-inline-start: 7px;
-  position: relative;
+.lines:last-child {
+  margin-bottom: 0;
 }
 
-/* Plain gray rectangle scrollbar — shared by repertoire list & pgn tree */
-.repertoire-scroll,
-.tree-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: #9ca3af transparent; /* gray-400 */
+/* a lone sideline needs no trunk to hang its siblings from */
+.lines.single {
+  border-inline-start: none;
 }
 
-.repertoire-scroll::-webkit-scrollbar,
-.tree-scroll::-webkit-scrollbar {
-  width: 10px;
+/* ---------- info glyph ----------
+   The "learn more" marker next to a panel or dialog title: a typed 'i' in a
+   circle, drawn rather than pulled from an icon set. Border and letter both
+   take currentColor, so each place it's used sets one color on the link and
+   the whole mark follows; sized in `em` for the same reason — it scales with
+   whatever type it sits beside. */
+.info-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* roomier than the letter needs: the circle has to clear both the border and
+     the 'i' at this size */
+  width: 1.6em;
+  height: 1.6em;
+  /* same weight as every other frame in the app (--border-w), in px so it
+     doesn't thin out at this small a font-size */
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-family: var(--font-sans);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  /* the box does the vertical centering; a line box of its own would fight it */
+  line-height: 1;
+  /* 'i' has no descender, so its ink sits high in a line box that reserves
+     room for one. With border-box sizing this padding shifts the letter down
+     by half its value — just enough to drop the ink onto the circle's center. */
+  padding-top: 0.05em;
+  user-select: none;
 }
 
-.repertoire-scroll::-webkit-scrollbar-track,
-.tree-scroll::-webkit-scrollbar-track {
+/* ---------- scrollbars ----------
+   A grey rectangle with a slight rounding, floating in a bare gutter, and no
+   stepper arrows. Applied to everything rather than a list of named scroll
+   containers: any element that scrolls should look the same, and naming them
+   one by one kept leaving new ones with the browser's default arrowed bar.
+
+   The standard properties are fenced off from Chrome deliberately. Blink
+   honours `scrollbar-width` / `scrollbar-color` *instead of* the
+   ::-webkit-scrollbar pseudo-elements — declaring either one makes it drop
+   every rule below this, which is what put the stepper arrows back. Firefox
+   doesn't support the ::-webkit- pseudos, so it takes this branch and gets the
+   nearest equivalent; Chrome skips it and is styled by the pseudos. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #9ca3af transparent; /* gray-400 */
+  }
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.repertoire-scroll::-webkit-scrollbar-thumb,
-.tree-scroll::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background: #9ca3af; /* gray-400 */
+  /* The transparent border insets the thumb inside the 9px gutter. Since the
+     background is clipped to the content box, the visible corner radius is
+     this radius minus the border width — 5px here reads as ~3px. */
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 5px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #6b7280; /* gray-500 */
+  background-clip: content-box;
+}
+
+/* WebKit draws stepper arrows at both ends by default; drop them so the bar
+   is nothing but track and thumb. */
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
