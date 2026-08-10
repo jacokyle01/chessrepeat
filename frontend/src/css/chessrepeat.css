@@ -107,10 +107,6 @@
   color: var(--c-blue-800);
 }
 
-.board-progress-tooltip .cell-icon-known svg {
-  color: var(--c-gray-400);
-}
-
 .board-progress-tooltip .cell-label {
   text-align: left;
 }

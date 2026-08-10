@@ -24,7 +24,6 @@ import { parseSan } from 'chessops/san';
 import { MantineProvider } from '@mantine/core';
 import { formatTime } from './util/time';
 import {
-  Check,
   ClipboardCheck,
   ClipboardCopy,
   FileIcon,
@@ -239,11 +238,6 @@ export const Chessrepeat = () => {
   // TODO should be in different component?
   const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   const isEditing = trainingMethod == 'edit';
-
-  // whatever the bar leaves uncoloured: seen moves that aren't due yet
-  const knownCount = chapter
-    ? Math.max(0, chapter.enabledCount - chapter.unseenCount - chapter.lastDueCount)
-    : 0;
 
   // automatically select root node of chapter. fires on chapter change or page reload.
   useEffect(() => {
@@ -504,16 +498,6 @@ export const Chessrepeat = () => {
                           <td className="cell-count">{chapter.lastDueCount}</td>
                           <td className="cell-percent">
                             {Math.round((chapter.lastDueCount / chapter.enabledCount) * 100)}%
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="cell-icon cell-icon-known">
-                            <Check size={14} />
-                          </td>
-                          <td className="cell-label">Known</td>
-                          <td className="cell-count">{knownCount}</td>
-                          <td className="cell-percent">
-                            {Math.round((knownCount / chapter.enabledCount) * 100)}%
                           </td>
                         </tr>
                       </tbody>
