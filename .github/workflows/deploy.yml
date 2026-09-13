@@ -58,6 +58,11 @@ jobs:
     if: github.event_name == 'push'
     needs: build-and-push
     runs-on: [self-hosted, chessrepeat-vps]
+    # packages: read lets the per-run GITHUB_TOKEN pull the image the
+    # previous job pushed — it's linked to this repo, so no PAT needed.
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
       - name: stage compose files into deploy dir
@@ -73,7 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "${{ secrets.VPS_PATH }}"
-          echo "${{ secrets.GHCR_PULL_TOKEN }}" \
+          echo "${{ secrets.GITHUB_TOKEN }}" \
             | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker compose pull
           docker compose up -d --remove-orphans
