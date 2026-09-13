@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -13,17 +14,18 @@ import (
 	"chessrepeat/internal/store"
 )
 
-// googleVerifier is the function shape of auth.VerifyGoogleIDToken.
+// idTokenVerifier is the function shape of auth.VerifyFirebaseIDToken.
 // Exposed as a package-level var so tests can stub the network round
 // trip to Google without rewiring every Login signature.
-type googleVerifier func(ctx context.Context, token, audience string) (*auth.GoogleClaims, error)
+type idTokenVerifier func(ctx context.Context, token, projectID string) (*auth.FirebaseClaims, error)
 
-var verifyGoogleIDToken googleVerifier = auth.VerifyGoogleIDToken
+var verifyIDToken idTokenVerifier = auth.VerifyFirebaseIDToken
 
-// Login upserts the user and opens a session. Chapters are created on
-// demand via the WebSocket chapter_created event; there is no separate
-// repertoire row.
-func Login(db store.Repo, googleClientID string) http.HandlerFunc {
+// Login trades a Firebase ID token (from any enabled provider: Google,
+// email+password, ...) for a server session, upserting the user row on
+// the way. Chapters are created on demand via the WebSocket
+// chapter_created event; there is no separate repertoire row.
+func Login(db store.Repo, firebaseProjectID string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -33,17 +35,21 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 		var body struct {
 			IDToken  string `json:"idToken"`
 			Username string `json:"username"`
+			// Picture is only honoured on first signup; a returning
+			// user's stored picture is left alone. Empty falls back to
+			// whatever the identity provider supplied (Google's photo).
+			Picture string `json:"picture"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IDToken == "" {
 			http.Error(w, "missing idToken", http.StatusBadRequest)
 			return
 		}
 
-		// verify the Google ID token: signature, issuer, expiry, audience —
+		// verify the Firebase ID token: signature, issuer, expiry, audience —
 		// we are trading this for a session
-		claims, err := verifyGoogleIDToken(r.Context(), body.IDToken, googleClientID)
+		claims, err := verifyIDToken(r.Context(), body.IDToken, firebaseProjectID)
 		if err != nil {
-			log.Println("google id token verification failed:", err)
+			log.Println("firebase id token verification failed:", err)
 			http.Error(w, "invalid id token", http.StatusUnauthorized)
 			return
 		}
@@ -52,7 +58,7 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 		// exist yet and no username came in the request, bail early
 		// without writing anything — the frontend will prompt and
 		// re-submit with a username.
-		existing, err := db.FetchUser(r.Context(), claims.Sub)
+		existing, err := db.FetchUser(r.Context(), claims.UID)
 		if err != nil {
 			log.Println("failed to look up user:", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -65,12 +71,12 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 		}
 
 		user := domain.User{
-			TokenID: claims.Sub,
+			TokenID: claims.UID,
 			Email:   claims.Email,
-			Picture: claims.Picture,
 		}
 		if existing != nil {
 			user.Username = existing.Username
+			user.Picture = existing.Picture
 		} else {
 			candidate := strings.ToLower(strings.TrimSpace(body.Username))
 			if !isValidUsername(candidate) {
@@ -88,6 +94,16 @@ func Login(db store.Repo, googleClientID string) http.HandlerFunc {
 				return
 			}
 			user.Username = candidate
+
+			picture := strings.TrimSpace(body.Picture)
+			if picture == "" {
+				picture = claims.Picture
+			}
+			if !isValidPictureURL(picture) {
+				http.Error(w, "invalid picture", http.StatusBadRequest)
+				return
+			}
+			user.Picture = picture
 		}
 
 		if err := db.UpsertUser(r.Context(), user); err != nil {
@@ -159,6 +175,48 @@ func CheckUsername(db store.Repo) http.HandlerFunc {
 var usernameRe = regexp.MustCompile(`^[a-z0-9_]{3,20}$`)
 
 func isValidUsername(u string) bool { return usernameRe.MatchString(u) }
+
+// maxPictureURLLen bounds what we'll store; real avatar URLs are a few
+// hundred bytes.
+const maxPictureURLLen = 2048
+
+// pictureHosts is where a picture may be served from: Firebase Storage
+// (uploads from the signup form) and Google's photo CDN (the picture
+// claim on a Google sign-in). Pictures are echoed to collaborators and
+// rendered in an <img>, so an arbitrary URL would let a user point
+// everyone who views their profile at a host of their choosing.
+var pictureHosts = []string{
+	"firebasestorage.googleapis.com",
+	".firebasestorage.app",
+	"storage.googleapis.com",
+	".googleusercontent.com",
+}
+
+// isValidPictureURL accepts an empty picture (no avatar) or an https
+// URL on one of pictureHosts.
+func isValidPictureURL(p string) bool {
+	if p == "" {
+		return true
+	}
+	if len(p) > maxPictureURLLen {
+		return false
+	}
+	u, err := url.Parse(p)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	for _, h := range pictureHosts {
+		if strings.HasPrefix(h, ".") {
+			if strings.HasSuffix(host, h) {
+				return true
+			}
+		} else if host == h {
+			return true
+		}
+	}
+	return false
+}
 
 func Logout(db store.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

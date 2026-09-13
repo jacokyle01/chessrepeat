@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       LISTEN_ADDR: ":8080"
       COOKIE_SECURE: "true"

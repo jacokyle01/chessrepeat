@@ -24,7 +24,7 @@ func TestRouter_LoginRateLimited(t *testing.T) {
 	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "owner", Username: "alice", Email: "x"}); err != nil {
 		t.Fatal(err)
 	}
-	stubVerifier(t, &auth.GoogleClaims{Sub: "attacker", Email: "e@example.com"}, nil)
+	stubVerifier(t, &auth.FirebaseClaims{UID: "attacker", Email: "e@example.com"}, nil)
 
 	mux := http.NewServeMux()
 	limits := Limits{
@@ -32,7 +32,7 @@ func TestRouter_LoginRateLimited(t *testing.T) {
 		UsernameCheck:   ratelimit.New(1000, 1000),
 		AddCollaborator: ratelimit.New(1000, 1000),
 	}
-	RegisterWithLimits(mux, fs, testGoogleClientID, limits)
+	RegisterWithLimits(mux, fs, testFirebaseProjectID, limits)
 
 	body := `{"idToken":"tok","username":"alice"}`
 	send := func() int {
@@ -68,7 +68,7 @@ func TestRouter_UsernameCheckRateLimited(t *testing.T) {
 		UsernameCheck:   ratelimit.New(2, 0),
 		AddCollaborator: ratelimit.New(1000, 1000),
 	}
-	RegisterWithLimits(mux, fs, testGoogleClientID, limits)
+	RegisterWithLimits(mux, fs, testFirebaseProjectID, limits)
 
 	send := func() int {
 		req := httptest.NewRequest("GET", "/username/check?username=alice", nil)
@@ -96,7 +96,7 @@ func TestRouter_LoginRateLimitPerIP(t *testing.T) {
 	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "owner", Username: "alice", Email: "x"}); err != nil {
 		t.Fatal(err)
 	}
-	stubVerifier(t, &auth.GoogleClaims{Sub: "attacker", Email: "e@example.com"}, nil)
+	stubVerifier(t, &auth.FirebaseClaims{UID: "attacker", Email: "e@example.com"}, nil)
 
 	mux := http.NewServeMux()
 	limits := Limits{
@@ -104,7 +104,7 @@ func TestRouter_LoginRateLimitPerIP(t *testing.T) {
 		UsernameCheck:   ratelimit.New(1000, 1000),
 		AddCollaborator: ratelimit.New(1000, 1000),
 	}
-	RegisterWithLimits(mux, fs, testGoogleClientID, limits)
+	RegisterWithLimits(mux, fs, testFirebaseProjectID, limits)
 
 	body := `{"idToken":"tok","username":"alice"}`
 	send := func(remote string) int {

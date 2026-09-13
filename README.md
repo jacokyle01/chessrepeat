@@ -11,7 +11,7 @@ frontend and [Go](https://go.dev/) backend. It makes use of [WebSockets](https:/
 for real-time, collaborative training and [PostgreSQL](https://www.postgresql.org/) for the database. The
 frontend is served via [Cloudflare](https://www.cloudflare.com/) and the backend runs in a
 [Docker](https://www.docker.com/) container on an [OVHcloud](https://www.ovhcloud.com/) VPS served with
-[Nginx](https://nginx.org/). Authentication is handled with [Google OAuth](https://developers.google.com/identity/protocols/oauth2).
+[Nginx](https://nginx.org/). Authentication is handled with [Firebase Auth](https://firebase.google.com/docs/auth) (Google sign-in and email + password); the backend verifies Firebase ID tokens and issues its own session cookie.
 The frontend leverages [chessground](https://github.com/lichess-org/chessground) for the UI and
 [chessops](https://github.com/niklasf/chessops) for chess logic.
 

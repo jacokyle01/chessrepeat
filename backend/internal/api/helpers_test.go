@@ -11,18 +11,18 @@ import (
 	"chessrepeat/internal/domain"
 )
 
-const testGoogleClientID = "test-google-client-id"
+const testFirebaseProjectID = "test-firebase-project"
 
-// stubVerifier replaces the package-level verifyGoogleIDToken for the
+// stubVerifier replaces the package-level verifyIDToken for the
 // duration of t. The replacement returns the supplied claims for every
 // invocation; pass err to simulate an invalid id token.
-func stubVerifier(t *testing.T, claims *auth.GoogleClaims, err error) {
+func stubVerifier(t *testing.T, claims *auth.FirebaseClaims, err error) {
 	t.Helper()
-	prev := verifyGoogleIDToken
-	verifyGoogleIDToken = func(ctx context.Context, token, audience string) (*auth.GoogleClaims, error) {
+	prev := verifyIDToken
+	verifyIDToken = func(ctx context.Context, token, projectID string) (*auth.FirebaseClaims, error) {
 		return claims, err
 	}
-	t.Cleanup(func() { verifyGoogleIDToken = prev })
+	t.Cleanup(func() { verifyIDToken = prev })
 }
 
 // seedUser writes a user and gives them a session, returning the

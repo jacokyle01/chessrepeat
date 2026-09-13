@@ -15,10 +15,10 @@ import (
 
 func TestLogin_NeedsUsernameOnFirstSignup(t *testing.T) {
 	fs := newFakeStore()
-	stubVerifier(t, &auth.GoogleClaims{Sub: "google-sub-1", Email: "alice@example.com", Picture: "pic"}, nil)
+	stubVerifier(t, &auth.FirebaseClaims{UID: "google-sub-1", Email: "alice@example.com", Picture: "pic"}, nil)
 
 	rr := httptest.NewRecorder()
-	Login(fs, testGoogleClientID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok"}`))
+	Login(fs, testFirebaseProjectID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok"}`))
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rr.Code)
@@ -44,7 +44,7 @@ func TestLogin_InvalidIDToken(t *testing.T) {
 	stubVerifier(t, nil, errors.New("bad token"))
 
 	rr := httptest.NewRecorder()
-	Login(fs, testGoogleClientID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok"}`))
+	Login(fs, testFirebaseProjectID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok"}`))
 
 	if rr.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", rr.Code)
@@ -53,10 +53,10 @@ func TestLogin_InvalidIDToken(t *testing.T) {
 
 func TestLogin_RejectsInvalidUsername(t *testing.T) {
 	fs := newFakeStore()
-	stubVerifier(t, &auth.GoogleClaims{Sub: "sub", Email: "e@example.com"}, nil)
+	stubVerifier(t, &auth.FirebaseClaims{UID: "sub", Email: "e@example.com"}, nil)
 
 	rr := httptest.NewRecorder()
-	Login(fs, testGoogleClientID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok","username":"NO"}`))
+	Login(fs, testFirebaseProjectID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok","username":"NO"}`))
 
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400 (username too short / wrong case)", rr.Code)
@@ -68,10 +68,10 @@ func TestLogin_UsernameTaken(t *testing.T) {
 	if err := fs.UpsertUser(context.Background(), domain.User{TokenID: "other", Username: "alice", Email: "x"}); err != nil {
 		t.Fatal(err)
 	}
-	stubVerifier(t, &auth.GoogleClaims{Sub: "new-sub", Email: "e@example.com"}, nil)
+	stubVerifier(t, &auth.FirebaseClaims{UID: "new-sub", Email: "e@example.com"}, nil)
 
 	rr := httptest.NewRecorder()
-	Login(fs, testGoogleClientID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok","username":"alice"}`))
+	Login(fs, testFirebaseProjectID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok","username":"alice"}`))
 
 	if rr.Code != http.StatusConflict {
 		t.Fatalf("status = %d, want 409", rr.Code)
@@ -80,14 +80,14 @@ func TestLogin_UsernameTaken(t *testing.T) {
 
 func TestLogin_SuccessNewUser_SetsCookiesAndReturnsRepertoire(t *testing.T) {
 	fs := newFakeStore()
-	stubVerifier(t, &auth.GoogleClaims{
-		Sub:     "google-sub-1",
+	stubVerifier(t, &auth.FirebaseClaims{
+		UID:     "google-sub-1",
 		Email:   "alice@example.com",
-		Picture: "https://pic",
+		Picture: "https://lh3.googleusercontent.com/a/pic",
 	}, nil)
 
 	rr := httptest.NewRecorder()
-	Login(fs, testGoogleClientID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok","username":"alice"}`))
+	Login(fs, testFirebaseProjectID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok","username":"alice"}`))
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body=%s", rr.Code, rr.Body.String())
@@ -124,27 +124,79 @@ func TestLogin_ExistingUserKeepsUsername(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Returning user logs in again — no username in the body, but they
-	// already have one so login proceeds and updates picture/email.
-	stubVerifier(t, &auth.GoogleClaims{Sub: "sub", Email: "alice@example.com", Picture: "new"}, nil)
+	// already have one so login proceeds and refreshes email. The stored
+	// picture is theirs to manage and is NOT overwritten by the
+	// provider's, even when a picture is sent in the body.
+	stubVerifier(t, &auth.FirebaseClaims{UID: "sub", Email: "alice@example.com", Picture: "new"}, nil)
 
 	rr := httptest.NewRecorder()
-	Login(fs, testGoogleClientID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok"}`))
+	Login(fs, testFirebaseProjectID)(rr, newJSONRequest("POST", "/login", `{"idToken":"tok","picture":"https://x/y.png"}`))
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d", rr.Code)
 	}
-	if got := fs.usersByToken["sub"].Picture; got != "new" {
-		t.Errorf("picture = %q, want updated %q", got, "new")
+	if got := fs.usersByToken["sub"].Picture; got != "old" {
+		t.Errorf("picture = %q, want preserved %q", got, "old")
+	}
+	if got := fs.usersByToken["sub"].Email; got != "alice@example.com" {
+		t.Errorf("email = %q, want refreshed", got)
 	}
 	if findCookie(rr, auth.SessionCookieName) == nil {
 		t.Fatal("session cookie missing")
 	}
 }
 
+func TestLogin_SignupPicture(t *testing.T) {
+	const storageURL = "https://firebasestorage.googleapis.com/v0/b/proj.firebasestorage.app/o/avatars%2Fsub%2Favatar.jpg?alt=media&token=abc"
+	cases := []struct {
+		name       string
+		claimPic   string
+		bodyPic    string
+		wantStatus int
+		wantPic    string
+	}{
+		{"defaults to provider photo", "https://lh3.googleusercontent.com/a/x", "", http.StatusOK, "https://lh3.googleusercontent.com/a/x"},
+		{"body overrides provider photo", "https://lh3.googleusercontent.com/a/x", storageURL, http.StatusOK, storageURL},
+		{"accepts new-style bucket host", "", "https://proj.firebasestorage.app/avatars/u/avatar.jpg", http.StatusOK, "https://proj.firebasestorage.app/avatars/u/avatar.jpg"},
+		{"no picture anywhere is fine", "", "", http.StatusOK, ""},
+		{"trims whitespace", "", "  " + storageURL + "  ", http.StatusOK, storageURL},
+		{"rejects other hosts", "", "https://example.com/me.png", http.StatusBadRequest, ""},
+		{"rejects lookalike host", "", "https://firebasestorage.googleapis.com.evil.net/x.jpg", http.StatusBadRequest, ""},
+		{"rejects plain http", "", "http://firebasestorage.googleapis.com/x.jpg", http.StatusBadRequest, ""},
+		{"rejects javascript scheme", "", "javascript:alert(1)", http.StatusBadRequest, ""},
+		{"rejects data url", "", "data:image/png;base64,AAAA", http.StatusBadRequest, ""},
+		{"rejects relative path", "", "/avatar.png", http.StatusBadRequest, ""},
+		{"rejects overlong", "", "https://firebasestorage.googleapis.com/" + strings.Repeat("a", maxPictureURLLen), http.StatusBadRequest, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := newFakeStore()
+			stubVerifier(t, &auth.FirebaseClaims{UID: "sub", Email: "e@example.com", Picture: tc.claimPic}, nil)
+
+			body, _ := json.Marshal(map[string]string{"idToken": "tok", "username": "alice", "picture": tc.bodyPic})
+			rr := httptest.NewRecorder()
+			Login(fs, testFirebaseProjectID)(rr, newJSONRequest("POST", "/login", string(body)))
+
+			if rr.Code != tc.wantStatus {
+				t.Fatalf("status = %d, want %d; body=%s", rr.Code, tc.wantStatus, rr.Body.String())
+			}
+			if tc.wantStatus != http.StatusOK {
+				if _, ok := fs.usersByToken["sub"]; ok {
+					t.Fatal("user row written despite rejection")
+				}
+				return
+			}
+			if got := fs.usersByToken["sub"].Picture; got != tc.wantPic {
+				t.Errorf("picture = %q, want %q", got, tc.wantPic)
+			}
+		})
+	}
+}
+
 func TestLogin_RejectsNonPOST(t *testing.T) {
 	fs := newFakeStore()
 	rr := httptest.NewRecorder()
-	Login(fs, testGoogleClientID)(rr, httptest.NewRequest("GET", "/login", nil))
+	Login(fs, testFirebaseProjectID)(rr, httptest.NewRequest("GET", "/login", nil))
 	if rr.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status = %d, want 405", rr.Code)
 	}

@@ -1,12 +1,16 @@
 package domain
 
-// User is identified by their Google OAuth subject. Their repertoire is
-// tracked in a sibling repertoires collection — the repertoire carries
-// chapter pointers and the list of collaborators.
+// User is identified by their Firebase uid (TokenID). Accounts that
+// predate Firebase were imported with uid = Google OAuth subject, so
+// the column's contents didn't change across the migration; accounts
+// created since carry whatever uid Firebase generated. Their repertoire
+// is tracked in a sibling repertoires collection — the repertoire
+// carries chapter pointers and the list of collaborators.
 //
 // TokenID and Email never appear on the wire — TokenID is an internal
 // primary key and Email is PII we don't want leaking to collaborators.
-// Public-facing identity is (username, picture) only.
+// Public-facing identity is (username, picture) only. Picture is empty
+// for email+password accounts.
 type User struct {
 	TokenID  string `json:"-"                  bson:"_id"`
 	Username string `json:"username,omitempty" bson:"username,omitempty"`

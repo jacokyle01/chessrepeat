@@ -28,13 +28,17 @@ Go server backed by Postgres.
 
    ```
    POSTGRES_URL=postgres://chessrepeat:<password>@localhost:5432/chessrepeat?sslmode=disable
-   GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
+   FIREBASE_PROJECT_ID=<your-firebase-project-id>
    ALLOWED_ORIGINS=http://localhost:5173
    LISTEN_ADDR=:8080
    COOKIE_SECURE=false
    ```
 
-   Only `GOOGLE_CLIENT_ID` is required — the rest have dev defaults.
+   Only `FIREBASE_PROJECT_ID` is required — the rest have dev defaults.
+   The project id is the `aud` claim every Firebase ID token must carry;
+   find it in the Firebase console under Project settings. No service
+   account is needed: tokens are verified against Google's public
+   securetoken certs.
    Set `COOKIE_SECURE=true` in any environment behind TLS so the
    session cookie carries the `Secure` flag and the `__Host-` prefix.
    Set `HINT_COOKIE_DOMAIN=<apex>` (e.g. `chessrepeat.com`) when the

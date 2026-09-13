@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// UpsertUser inserts or updates a user keyed by their Google sub
+// UpsertUser inserts or updates a user keyed by their Firebase uid
 // (token_id). Username may be empty during the first login before the
 // user has picked one — that's allowed by the schema (UNIQUE permits
 // multiple NULLs only if you use NULLS NOT DISTINCT off; we store ""

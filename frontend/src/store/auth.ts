@@ -1,10 +1,12 @@
 import { create } from "zustand";
+import { signOut } from "firebase/auth";
+import { firebaseAuth } from "../lib/firebase";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 // PLAYGROUND_KEY is the training-card key used for not-signed-in users,
 // who exist only locally in IndexedDB. Authenticated users key by
-// username so the Google sub never has to ride on the wire.
+// username so the Firebase uid never has to ride on the wire.
 export const PLAYGROUND_KEY = "__playground__";
 
 export type AuthUser = {
@@ -45,7 +47,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ user: null });
 
-    // @ts-ignore
-    window.google?.accounts?.id?.disableAutoSelect?.();
+    // drop the Firebase client session too so the next sign-in starts
+    // from the account chooser rather than silently reusing this one
+    signOut(firebaseAuth).catch((err) => console.warn('firebase sign-out failed', err));
   },
 }));

@@ -25,7 +25,7 @@ func main() {
 	// httpMux carries every short-lived HTTP route. It gets a per-request
 	// timeout so a slow query can't pin a DB connection.
 	httpMux := http.NewServeMux()
-	api.Register(httpMux, db, cfg.GoogleClientID)
+	api.Register(httpMux, db, cfg.FirebaseProjectID)
 	// Chapter creation is an HTTP POST (the tree exceeds the WS frame
 	// cap); on success the ws server nudges the owner's room to resync.
 	api.RegisterChapterRoute(httpMux, db, wsServer)

@@ -15,7 +15,9 @@ type Config struct {
 	ListenAddr     string
 	AllowedOrigins []string
 	PostgresURL    string
-	GoogleClientID string
+	// FirebaseProjectID is the audience every Firebase ID token must
+	// carry. Find it in the Firebase console under Project settings.
+	FirebaseProjectID string
 	// CookieSecure turns on the Secure flag and the __Host- prefix on
 	// the session cookie. Set COOKIE_SECURE=true in any environment
 	// behind TLS; leave unset for local HTTP development.
@@ -41,13 +43,13 @@ func Load() Config {
 		ListenAddr:       getEnv("LISTEN_ADDR", ":8080"),
 		AllowedOrigins:   splitAndTrim(getEnv("ALLOWED_ORIGINS", "http://localhost:5173")),
 		PostgresURL:      getEnv("POSTGRES_URL", "postgres://localhost:5432/chessrepeat?sslmode=disable"),
-		GoogleClientID:   os.Getenv("GOOGLE_CLIENT_ID"),
+		FirebaseProjectID: strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID")),
 		CookieSecure:     strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true"),
 		HintCookieDomain: strings.TrimSpace(os.Getenv("HINT_COOKIE_DOMAIN")),
 	}
 
-	if cfg.GoogleClientID == "" {
-		log.Fatal("GOOGLE_CLIENT_ID is required")
+	if cfg.FirebaseProjectID == "" {
+		log.Fatal("FIREBASE_PROJECT_ID is required")
 	}
 	if len(cfg.AllowedOrigins) == 0 {
 		log.Fatal("ALLOWED_ORIGINS must contain at least one origin")

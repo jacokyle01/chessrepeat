@@ -1,0 +1,12 @@
+{
+  "name": "chessrepeat-firebase-import",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import": "node import.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "pg": "^8.13.0"
+  }
+}

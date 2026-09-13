@@ -72,9 +72,9 @@ export function Header({ connectedUsers, incomingCollaboratorsCount = 0 }: Props
                 type="button"
                 onClick={openLogin}
                 className="header-link header-signin"
-                title="Sign in"
+                title="Log in"
               >
-                <span>sign in</span>
+                <span>log in</span>
                 <LogIn />
               </button>
             </div>

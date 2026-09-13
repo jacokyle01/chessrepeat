@@ -16,8 +16,9 @@ import (
 // Numbers are conservative: a normal user fits well under the steady
 // rate, but an enumeration script gets pinned to the refill rate.
 type Limits struct {
-	// Login: 30/min sustained, burst 10. Each call does a Google JWKS
-	// verification and a user lookup, so we'd rather keep the budget low.
+	// Login: 30/min sustained, burst 10. Each call verifies a Firebase ID
+	// token (possibly refetching Google's signing certs) and does a user
+	// lookup, so we'd rather keep the budget low.
 	Login *ratelimit.Limiter
 	// Username availability check: fires per-keystroke from the signup
 	// form, so the burst is generous, but the sustained rate caps
@@ -39,15 +40,15 @@ func DefaultLimits() Limits {
 
 // Register attaches every HTTP handler to the given mux. The mux still
 // owns CORS — wrap the result in WithCORS at the call site.
-func Register(mux *http.ServeMux, db store.Repo, googleClientID string) {
-	RegisterWithLimits(mux, db, googleClientID, DefaultLimits())
+func Register(mux *http.ServeMux, db store.Repo, firebaseProjectID string) {
+	RegisterWithLimits(mux, db, firebaseProjectID, DefaultLimits())
 }
 
 // RegisterWithLimits is the test seam: callers can inject smaller
 // limiters to exercise the 429 path without waiting on real-time refill.
-func RegisterWithLimits(mux *http.ServeMux, db store.Repo, googleClientID string, limits Limits) {
+func RegisterWithLimits(mux *http.ServeMux, db store.Repo, firebaseProjectID string, limits Limits) {
 	mux.HandleFunc("GET /repertoire", GetRepertoire(db))
-	mux.HandleFunc("/login", limits.Login.HandlerFunc(Login(db, googleClientID)))
+	mux.HandleFunc("/login", limits.Login.HandlerFunc(Login(db, firebaseProjectID)))
 	mux.HandleFunc("/logout", Logout(db))
 	mux.HandleFunc("GET /username/check", limits.UsernameCheck.HandlerFunc(CheckUsername(db)))
 
