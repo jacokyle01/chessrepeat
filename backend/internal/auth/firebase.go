@@ -76,6 +76,15 @@ type certCache struct {
 
 var certs = &certCache{client: &http.Client{Timeout: 10 * time.Second}}
 
+// SetCertsURL points token verification at a different certificate
+// endpoint and drops any cached keys. It exists for the e2e harness,
+// which serves a self-signed cert and signs test ID tokens with the
+// matching key; nothing in production should call it.
+func SetCertsURL(u string) {
+	firebaseCertsURL = u
+	certs = &certCache{client: &http.Client{Timeout: 10 * time.Second}}
+}
+
 func (c *certCache) key(ctx context.Context, kid string) (*rsa.PublicKey, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

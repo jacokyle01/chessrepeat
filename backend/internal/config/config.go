@@ -18,6 +18,12 @@ type Config struct {
 	// FirebaseProjectID is the audience every Firebase ID token must
 	// carry. Find it in the Firebase console under Project settings.
 	FirebaseProjectID string
+	// FirebaseCertsURL overrides where ID-token signing certificates are
+	// fetched from. Empty means Google's securetoken endpoint. Only the
+	// e2e harness sets this (FIREBASE_CERTS_URL), pointing it at a local
+	// server that publishes a self-signed test cert so tests can mint
+	// their own ID tokens without a Firebase project.
+	FirebaseCertsURL string
 	// CookieSecure turns on the Secure flag and the __Host- prefix on
 	// the session cookie. Set COOKIE_SECURE=true in any environment
 	// behind TLS; leave unset for local HTTP development.
@@ -40,12 +46,13 @@ func Load() Config {
 	}
 
 	cfg := Config{
-		ListenAddr:       getEnv("LISTEN_ADDR", ":8080"),
-		AllowedOrigins:   splitAndTrim(getEnv("ALLOWED_ORIGINS", "http://localhost:5173")),
-		PostgresURL:      getEnv("POSTGRES_URL", "postgres://localhost:5432/chessrepeat?sslmode=disable"),
+		ListenAddr:        getEnv("LISTEN_ADDR", ":8080"),
+		AllowedOrigins:    splitAndTrim(getEnv("ALLOWED_ORIGINS", "http://localhost:5173")),
+		PostgresURL:       getEnv("POSTGRES_URL", "postgres://localhost:5432/chessrepeat?sslmode=disable"),
 		FirebaseProjectID: strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID")),
-		CookieSecure:     strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true"),
-		HintCookieDomain: strings.TrimSpace(os.Getenv("HINT_COOKIE_DOMAIN")),
+		FirebaseCertsURL:  strings.TrimSpace(os.Getenv("FIREBASE_CERTS_URL")),
+		CookieSecure:      strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true"),
+		HintCookieDomain:  strings.TrimSpace(os.Getenv("HINT_COOKIE_DOMAIN")),
 	}
 
 	if cfg.FirebaseProjectID == "" {

@@ -457,7 +457,7 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter) return;
         const root = chapter.root;
-        const node = nodeAtPath(root, path);
+        const node = nodeAtPathOrNull(root, path);
         if (!node) {
           // The path we're asked to delete isn't in our local tree —
           // we've drifted from the server. Resync rather than no-op.
@@ -541,6 +541,11 @@ export const useTrainerStore = create<TrainerState>()(
         // try to recover path if possible, might not be if other client deleted current line
         if (root && savedPath && nodeAtPathOrNull(root, savedPath)) {
           jump(savedPath);
+        } else if (root) {
+          // Land on the root rather than nowhere: with selectedNode null the
+          // board still shows the start position and accepts moves, but
+          // makeMove has nothing to attach them to and drops them.
+          jump('');
         } else {
           set({ selectedPath: '', selectedNode: null });
         }
@@ -575,12 +580,17 @@ export const useTrainerStore = create<TrainerState>()(
       },
 
       clearChapterContext: () => {
+        // Select the chapter's root outright. Leaving selectedNode null and
+        // relying on the board's effect to fill it in only works when the
+        // chapter actually changed; re-clicking the current chapter left the
+        // board on a null node that silently dropped edit-mode moves.
+        const { repertoire, selectedChapterId } = get();
         set({
           trainingMethod: null,
           selectedPath: '',
           userTip: 'empty',
           cbConfig: { lastMove: undefined, drawable: { shapes: [] } },
-          selectedNode: null,
+          selectedNode: selectedChapterOf(repertoire, selectedChapterId)?.root ?? null,
           trainableContext: null,
         });
       },
@@ -589,7 +599,7 @@ export const useTrainerStore = create<TrainerState>()(
         const { repertoire, selectedChapterId, socket } = get();
         const chapter = selectedChapterOf(repertoire, selectedChapterId);
         if (!chapter) return;
-        const node = nodeAtPath(chapter.root, path);
+        const node = nodeAtPathOrNull(chapter.root, path);
         if (!node) {
           // Commenting on a path our tree doesn't have — we've drifted
           // from the server. Resync rather than silently dropping it.
@@ -625,7 +635,7 @@ export const useTrainerStore = create<TrainerState>()(
         const { repertoire } = get();
         const chapter = repertoire.find((c) => c.uuid === chapterId);
         if (!chapter) return;
-        const node = nodeAtPath(chapter.root, path);
+        const node = nodeAtPathOrNull(chapter.root, path);
         if (!node) return; // server stays authoritative; missing locally means we'll resync separately
         node.data.comment = comment;
         set((state) => {
@@ -652,7 +662,7 @@ export const useTrainerStore = create<TrainerState>()(
         // no longer in the tree would silently drift us from the server, so
         // verify it still exists and resync the whole repertoire if not.
         const targetPath = trainableContext.startingPath + targetNode.data.id;
-        if (!nodeAtPath(chapter.root, targetPath)) {
+        if (!nodeAtPathOrNull(chapter.root, targetPath)) {
           console.warn('learn: target move not found, reloading', { targetPath });
           void get().resyncAndRestore();
           return;
@@ -699,7 +709,7 @@ export const useTrainerStore = create<TrainerState>()(
         // no longer in the tree would silently drift us from the server, so
         // verify it still exists and resync the whole repertoire if not.
         const targetPath = trainableContext.startingPath + targetNode.data.id;
-        if (!nodeAtPath(chapter.root, targetPath)) {
+        if (!nodeAtPathOrNull(chapter.root, targetPath)) {
           console.warn('train: target move not found, reloading', { targetPath });
           void get().resyncAndRestore();
           return null;
@@ -785,7 +795,7 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = repertoire.find((c) => c.uuid === chapterId);
         if (!chapter) return;
 
-        const node = nodeAtPath(chapter.root, path);
+        const node = nodeAtPathOrNull(chapter.root, path);
         if (!node) return;
 
         let deleteCount = 0;
@@ -820,7 +830,7 @@ export const useTrainerStore = create<TrainerState>()(
         const chapter = repertoire.find((c) => c.uuid === chapterId);
         if (!chapter) return;
 
-        const node = nodeAtPath(chapter.root, path);
+        const node = nodeAtPathOrNull(chapter.root, path);
         if (!node) return;
 
         if (!node.data.training) node.data.training = {};

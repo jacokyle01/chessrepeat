@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 
 .env 
+
+# playwright
+/e2e/.tmp
+/playwright-report
+/test-results
+/blob-report

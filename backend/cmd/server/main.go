@@ -18,6 +18,12 @@ func main() {
 
 	cfg := config.Load()
 	auth.Init(cfg.CookieSecure, cfg.HintCookieDomain)
+	if cfg.FirebaseCertsURL != "" {
+		// Test-only: ID tokens are verified against whatever this URL
+		// serves, so a production deploy must never set it.
+		log.Printf("WARNING: FIREBASE_CERTS_URL override in effect (%s) — ID tokens are NOT verified against Google", cfg.FirebaseCertsURL)
+		auth.SetCertsURL(cfg.FirebaseCertsURL)
+	}
 
 	db := store.Connect(cfg.PostgresURL)
 	wsServer := ws.NewServer(db, wsOriginPatterns(cfg.AllowedOrigins))
