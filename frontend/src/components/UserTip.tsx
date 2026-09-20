@@ -7,6 +7,7 @@ import {
   MousePointer,
   XIcon,
 } from 'lucide-react';
+import { Explorer } from './Explorer';
 import './UserTip.css';
 
 type TipAction = {
@@ -86,7 +87,12 @@ export const UserTip = () => {
 
   if (repertoire.length == 0) return <EmptyRepertoire />;
   if (!trainingMethod) return <Unselected />;
-  if (trainingMethod == 'edit') return null;
+  // In edit mode the coaching tip is irrelevant; surface the opening
+  // explorer for the currently selected position instead. The Explorer
+  // tracks selectedNode itself (useExplorer) and refetches on change.
+  if (trainingMethod == 'edit') {
+    return <Explorer />;
+  }
 
   const chapter = repertoire.find((c) => c.uuid === selectedChapterId);
   if (!chapter) return null;
