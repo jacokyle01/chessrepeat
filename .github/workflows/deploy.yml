@@ -1,9 +1,12 @@
 name: deploy
 
+# Ships main once ci.yml (unit + browser tests) has passed for that push.
+# workflow_run fires for every completion, so each job also checks the
+# conclusion. github.sha here is the head of main at the time ci ran.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
 
 env:
@@ -13,7 +16,7 @@ env:
 jobs:
   # run tests before deploy.
   test:
-    if: github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, chessrepeat-vps]
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +32,7 @@ jobs:
         run: go test ./...
 
   build-and-push:
-    if: github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -55,7 +58,7 @@ jobs:
           cache-to: type=gha,scope=backend,mode=max
 
   deploy:
-    if: github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
     needs: build-and-push
     runs-on: [self-hosted, chessrepeat-vps]
     # packages: read lets the per-run GITHUB_TOKEN pull the image the
