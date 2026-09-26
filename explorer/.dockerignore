@@ -1,0 +1,10 @@
+.env
+.env.*
+*.log
+*.pgn
+chess/
+explorer
+README.md
+DEPLOY.md
+.github
+query.http
