@@ -10,36 +10,8 @@
   overflow: hidden;
 }
 
-.explorer-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  border-bottom: var(--border-w) solid var(--c-line);
-}
-
-.explorer-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.25rem;
-  border-radius: 0.375rem;
-  background: var(--c-gray-200);
-  color: var(--c-gray-600);
-}
-
-.explorer-icon svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.explorer-title {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
 .explorer-empty {
-  padding: 1rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   text-align: center;
   color: var(--c-gray-600);
   font-size: 0.875rem;
@@ -49,16 +21,25 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 16rem;
+  max-height: 12rem;
   overflow-y: auto;
 }
 
 .explorer-row {
   display: grid;
-  grid-template-columns: 3.5rem 4rem 1fr;
+  grid-template-columns: 3rem 3.25rem 3.5rem 1fr;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
+  padding: 0.1875rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  cursor: pointer;
+}
+
+.explorer-row:hover,
+.explorer-row:focus-visible {
+  background: var(--c-gray-200);
+  outline: none;
 }
 
 .explorer-row + .explorer-row {
@@ -70,9 +51,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.explorer-eval {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .explorer-games {
   color: var(--c-gray-600);
-  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -80,7 +65,7 @@
 /* Stacked result bar: white wins / draws / black wins, left to right. */
 .explorer-bar {
   display: flex;
-  height: 0.75rem;
+  height: 0.5rem;
   border-radius: 0.25rem;
   overflow: hidden;
   border: var(--border-w) solid var(--c-line);
@@ -96,4 +81,25 @@
 
 .bar-black {
   background: #3f3f46;
+}
+
+/* Desktop: .area-usertip is a fixed grid row that scrolls its content.
+   With the list's own max-height that gave two scrollbars, so here the
+   card shrinks to fit the cell and only the list scrolls. */
+@media (min-width: 1024px) {
+  .area-usertip:has(> .explorer) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .explorer {
+    min-height: 0;
+  }
+
+  .explorer-list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
 }

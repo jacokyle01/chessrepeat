@@ -29,6 +29,9 @@ func main() {
 	// Chapter creation is an HTTP POST (the tree exceeds the WS frame
 	// cap); on success the ws server nudges the owner's room to resync.
 	api.RegisterChapterRoute(httpMux, db, wsServer)
+	// Opening-explorer proxy: browser -> here (cookie auth) -> explorer
+	// service (bearer token). Disabled if EXPLORER_URL/token are unset.
+	api.RegisterExplorerRoute(httpMux, db, cfg.ExplorerURL)
 
 	// rootMux dispatches WS upgrades directly (long-lived, no timeout)
 	// and everything else through the timeout wrapper.

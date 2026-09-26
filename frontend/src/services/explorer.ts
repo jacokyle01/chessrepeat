@@ -7,7 +7,7 @@ const API = import.meta.env.VITE_API_URL;
 // match how games were indexed. Complete it to a full FEN before
 // querying. The plain starting board maps to INITIAL_FEN specifically
 // (with KQkq), since that's the position imported games are keyed by.
-function fullFen(fen: string): string {
+export function fullFen(fen: string): string {
   const parts = fen.trim().split(/\s+/);
   if (parts.length >= 4) return fen;
   if (parts[0] === INITIAL_BOARD_FEN) return INITIAL_FEN;
