@@ -1,4 +1,4 @@
-#chessrepeat
+# chessrepeat
 
 chessrepeat is a free, open source chess opening training platform.
 
