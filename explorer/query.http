@@ -1,0 +1,5 @@
+### Query position stats by FEN (starting position)
+GET http://localhost:8080/query?fen=rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR%20w%20KQkq%20-%200%201
+
+### Query position stats after 1. e4
+GET http://localhost:8080/query?fen=rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR%20b%20KQkq%20-%200%201
