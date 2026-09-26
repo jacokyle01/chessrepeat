@@ -26,13 +26,30 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       LISTEN_ADDR: ":8080"
       COOKIE_SECURE: "true"
-      #chessrepeat.com, api.chessrepeat.com 
+      #chessrepeat.com, api.chessrepeat.com
       HINT_COOKIE_DOMAIN: ${HINT_COOKIE_DOMAIN}
+      # Opening-explorer service on the compose network (internal-only,
+      # no token — it isn't reachable from the internet).
+      EXPLORER_URL: ${EXPLORER_URL:-http://explorer:8080}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+
+  # Opening explorer: pebble-backed position stats. Internal-only — no
+  # Caddy route. The host publish is loopback (for the import CLI on the
+  # box), not the public internet.
+  explorer:
+    image: ghcr.io/${GH_OWNER}/chessrepeat-explorer:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      DB_PATH: /data/chess
+      LISTEN_ADDR: ":8080"
+    ports:
+      - "127.0.0.1:8090:8080"
+    volumes:
+      - explorerdata:/data
 
 # daily db backup sidecar to r2 or s3 
   db-backup:
@@ -76,3 +93,4 @@ services:
 
 volumes:
   pgdata:
+  explorerdata:

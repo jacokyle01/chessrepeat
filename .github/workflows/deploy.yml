@@ -9,6 +9,7 @@ on:
 env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ${{ github.repository }}-backend
+  EXPLORER_IMAGE: ${{ github.repository }}-explorer
 
 jobs:
   # run tests before deploy.
@@ -27,6 +28,11 @@ jobs:
       - name: test
         working-directory: backend
         run: go test ./...
+      - name: explorer vet + test
+        working-directory: explorer
+        run: |
+          go vet ./...
+          go test ./...
 
   build-and-push:
     if: github.event_name == 'push'
@@ -53,6 +59,16 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
+      - name: build & push explorer
+        uses: docker/build-push-action@v6
+        with:
+          context: explorer
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.EXPLORER_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.EXPLORER_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha,scope=explorer
+          cache-to: type=gha,scope=explorer,mode=max
 
   deploy:
     if: github.event_name == 'push'
