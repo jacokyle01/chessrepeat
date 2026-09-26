@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/corentings/chess"
 )
@@ -94,16 +96,21 @@ func main() {
 	}
 
 	batch := make([]Payload, 0, batchSize)
-	scanner := chess.NewScanner(f)
-	// for each game
-	for scanner.Scan() {
-		game := scanner.Next()
-		if game == nil {
-			continue
+	unparsed := 0
+	// Parse games one at a time instead of with chess.NewScanner: the
+	// scanner stops for good at the first game it can't decode (large
+	// databases always have a few, e.g. an illegal move), silently
+	// dropping everything after it. Here a bad game is counted and skipped.
+	err = eachGame(f, func(text string) {
+		opt, err := chess.PGN(strings.NewReader(text))
+		if err != nil {
+			unparsed++
+			return
 		}
+		game := chess.NewGame(opt)
 
 		// Encode each move in the game's notation (SAN), matching what the
-		// server decodes with game.MoveStr.
+		// server decodes.
 		moves := game.Moves()
 		positions := game.Positions()
 		notated := make([]string, len(moves))
@@ -117,8 +124,39 @@ func main() {
 			send(batch)
 			batch = batch[:0]
 		}
+	})
+	if err != nil {
+		fmt.Printf("Error reading %s: %v\n", pgnPath, err)
+		os.Exit(1)
 	}
 	if len(batch) > 0 {
 		send(batch)
 	}
+	fmt.Printf("done: %d imported, %d rejected by server, %d unparseable\n",
+		total.Imported, total.Skipped, unparsed)
+}
+
+// eachGame splits a PGN stream into games at each "[Event " tag line and
+// calls fn with each game's text.
+func eachGame(r io.Reader, fn func(text string)) error {
+	sc := bufio.NewScanner(r)
+	// Move text is often one long line; allow up to 16MB per line.
+	sc.Buffer(make([]byte, 0, 1<<20), 16<<20)
+	var game strings.Builder
+	flush := func() {
+		if strings.TrimSpace(game.String()) != "" {
+			fn(game.String())
+		}
+		game.Reset()
+	}
+	for sc.Scan() {
+		line := sc.Text()
+		if strings.HasPrefix(line, "[Event ") {
+			flush()
+		}
+		game.WriteString(line)
+		game.WriteByte('\n')
+	}
+	flush()
+	return sc.Err()
 }
