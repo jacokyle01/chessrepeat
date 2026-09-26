@@ -4,7 +4,7 @@
 import { Dests, Key } from 'chessground/types';
 import { Chess, Color, parseSquare, parseUci, Position, PositionError } from 'chessops';
 import { chessgroundDests, chessgroundMove, scalachessCharPair } from 'chessops/compat';
-import { parseFen, makeFen, FenError } from 'chessops/fen';
+import { parseFen, makeFen, FenError, INITIAL_BOARD_FEN, INITIAL_FEN } from 'chessops/fen';
 import { makeSan, makeSanAndPlay, parseSan } from 'chessops/san';
 
 // leverages chessops library and its compatability module to transform a fen string into a legal move dictionary
@@ -121,6 +121,10 @@ export function uciLineToSan(fen: string, uciLine: string): string[] {
 }
 
 export function positionFromFen(fen: string): [Chess, null] | [null, FenError | PositionError] {
+  // Chapter roots store a board-only FEN. parseFen fills missing fields
+  // with "no castling rights", which would propagate to every move added
+  // from the root.
+  if (fen.trim() === INITIAL_BOARD_FEN) fen = INITIAL_FEN;
   const [setup, error] = parseFen(fen).unwrap(
     (v) => [v, null],
     (e) => [null, e],

@@ -28,6 +28,11 @@ type Config struct {
 	// chessrepeat.com and the API at api.chessrepeat.com). Leave unset
 	// in local dev where SPA and API share the same host.
 	HintCookieDomain string
+	// ExplorerURL is the base URL of the opening-explorer service, an
+	// internal-only container the backend reaches over the compose
+	// network. The browser never touches it, so no token is involved.
+	// Empty disables the /explorer route.
+	ExplorerURL string
 }
 
 // Load reads .env (if present) and resolves every config value, applying
@@ -46,6 +51,7 @@ func Load() Config {
 		FirebaseProjectID: strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID")),
 		CookieSecure:     strings.EqualFold(os.Getenv("COOKIE_SECURE"), "true"),
 		HintCookieDomain: strings.TrimSpace(os.Getenv("HINT_COOKIE_DOMAIN")),
+		ExplorerURL:      strings.TrimRight(strings.TrimSpace(os.Getenv("EXPLORER_URL")), "/"),
 	}
 
 	if cfg.FirebaseProjectID == "" {
