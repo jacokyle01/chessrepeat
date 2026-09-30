@@ -6,51 +6,15 @@
 
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTrainerStore } from '../../store/state';
-import { fromNodeList, init } from '../../util/path';
+import { firstMove as first, lastMove as last, nextMove as next, prevMove as prev } from '../../util/navigation';
 import './TreeControls.css';
 const PgnControls = () => {
-  const setSelectedPath = useTrainerStore((state) => state.setSelectedPath);
-  const setSelectedNode = useTrainerStore((state) => state.setSelectedNode);
-
   const selectedPath = useTrainerStore().selectedPath || '';
   const selectedNode = useTrainerStore().selectedNode;
 
   const trainingPath = useTrainerStore().trainableContext?.startingPath || '';
 
-  const chapter = useTrainerStore.getState().activeChapter;
-
   const trainingMethod = useTrainerStore().trainingMethod;
-
-  const jump = useTrainerStore((s) => s.jump);
-
-  const next = (): void => {
-    if (trainingMethod == 'edit') {
-      const child = selectedNode.children[0];
-      if (child) jump(selectedPath + child.data.id);
-    }
-    // learn or recall
-    else {
-    }
-    const pathToTrain = useTrainerStore.getState().trainableContext?.startingPath || '';
-    // dynamically generate training path from string path
-    const currentPath = selectedPath;
-
-    const nextId = pathToTrain.slice(currentPath.length, currentPath.length + 2);
-
-    if (currentPath.length < pathToTrain.length) jump(selectedPath + nextId);
-  };
-
-  //TODO we can also generate the mainline as part of initialization
-  const last = (): void => {
-    if (trainingMethod != 'edit') jump(trainingPath);
-    else {
-      const mainline = mainlineNodeList(chapter.root);
-      jump(fromNodeList(mainline));
-    }
-  };
-
-  const first = (): void => jump('');
-  const prev = (): void => jump(init(selectedPath));
 
   const atStart = selectedPath === '';
   const atEnd =
