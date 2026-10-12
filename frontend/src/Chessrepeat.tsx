@@ -30,11 +30,13 @@ import {
   FolderCog2Icon,
   GraduationCap,
   History,
+  Keyboard,
   MessageSquareOff,
   MessageSquareText,
   NetworkIcon,
 } from 'lucide-react';
 import SettingsModal from './components/modals/SettingsModal';
+import ShortcutsModal from './components/modals/ShortcutsModal';
 import { Header } from './components/Header';
 import { CollaboratorsPanel } from './components/collaborators/CollaboratorsPanel';
 import {
@@ -64,6 +66,9 @@ import './css/chessrepeat.css';
 import { Debug } from './components/Debug';
 import { useWebsocket } from './hooks/useWebsocket';
 import { useStartup } from './hooks/useStartup';
+import { useHotkeys } from './hooks/useHotkeys';
+import { useHotkeyStore, comboParts } from './store/hotkeys';
+import { firstMove, lastMove, nextMove, prevMove } from './util/navigation';
 
 //TODO we should use chessops library to get promotion role instead of regex..
 // unclear if trainingContext stores enough state to get promotion role dynamically
@@ -128,6 +133,7 @@ export const Chessrepeat = () => {
 
     guess,
     makeMove,
+    setTrainingMethod,
   } = useTrainerStore();
 
   const connectedUsers = useTrainerStore((s) => s.connectedUsers);
@@ -186,6 +192,7 @@ export const Chessrepeat = () => {
   const [sounds, setSounds] = useState(SOUNDS);
   const [activeMoveId, setActiveMoveId] = useState();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [fenCopied, setFenCopied] = useState(false);
   const [showComments, setShowComments] = useState(true);
   const movesContainerRef = useRef<HTMLDivElement>(null);
@@ -364,8 +371,8 @@ export const Chessrepeat = () => {
     return selectedPath == trainingPath;
   };
 
-  const prevMove = prevMoveIfExists();
-  const lastMove = selectedNode ? prevMove : undefined;
+  const prevMoveUci = prevMoveIfExists();
+  const lastMoveUci = selectedNode ? prevMoveUci : undefined;
 
   const finishMove = (san: string, meta: MoveMetadata, to: Key) => {
     if (!isEditing) {
@@ -426,6 +433,39 @@ export const Chessrepeat = () => {
     await finishMove(san, meta, to);
     updateDueCounts();
   };
+
+  const copyFen = async () => {
+    const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
+    if (!fen) return;
+    await navigator.clipboard.writeText(fen);
+    setFenCopied(true);
+    setTimeout(() => setFenCopied(false), 1200);
+  };
+
+  // Same sequence as the Learn / Recall buttons in TrainingControls.
+  const startTraining = (method: 'learn' | 'recall') => {
+    setTrainingMethod(method);
+    setNextTrainablePosition();
+    updateDueCounts();
+  };
+
+  useHotkeys(
+    {
+      firstMove,
+      prevMove,
+      nextMove,
+      lastMove,
+      modeEdit: () => setTrainingMethod('edit'),
+      modeLearn: () => startTraining('learn'),
+      modeRecall: () => startTraining('recall'),
+      toggleComments: () => setShowComments((v) => !v),
+      copyFen: () => void copyFen(),
+      openSettings: () => setSettingsOpen(true),
+      openShortcuts: () => setShortcutsOpen(true),
+    },
+    !pendingPromo && !showingAddToRepertoireMenu,
+  );
+  const shortcutsKey = useHotkeyStore((s) => s.bindings.openShortcuts);
 
   //TODO dont try to calculate properties when we haven't initialized the repertoire yet
   return (
@@ -511,7 +551,7 @@ export const Chessrepeat = () => {
                   orientation={chapter?.trainAs || 'white'}
                   fen={selectedNode?.data.fen || initial}
                   turnColor={turn}
-                  lastMove={lastMove}
+                  lastMove={lastMoveUci}
                   movable={{
                     free: false,
                     color: turn,
@@ -552,6 +592,19 @@ export const Chessrepeat = () => {
               <div className="control-tab">
                 <button
                   type="button"
+                  onClick={() => setShortcutsOpen(true)}
+                  className="control-tab-btn settings-btn"
+                  aria-label="Keyboard shortcuts"
+                  title={
+                    shortcutsKey
+                      ? `Keyboard shortcuts (${comboParts(shortcutsKey).join('+')})`
+                      : 'Keyboard shortcuts'
+                  }
+                >
+                  <Keyboard size={18} />
+                </button>
+                <button
+                  type="button"
                   onClick={() => setSettingsOpen(true)}
                   className="control-tab-btn settings-btn"
                   aria-label="Settings"
@@ -570,6 +623,16 @@ export const Chessrepeat = () => {
                 onClick={() => setSettingsOpen(false)}
               />
               <SettingsModal setSettingsOpen={setSettingsOpen} />
+            </>
+          )}
+
+          {shortcutsOpen && (
+            <>
+              <div
+                className="modal-backdrop modal-backdrop-settings"
+                onClick={() => setShortcutsOpen(false)}
+              />
+              <ShortcutsModal onClose={() => setShortcutsOpen(false)} />
             </>
           )}
 
@@ -596,13 +659,7 @@ export const Chessrepeat = () => {
                   {/* copy icon */}
                   <button
                     type="button"
-                    onClick={async () => {
-                      const fen = selectedNode?.data.fen || INITIAL_BOARD_FEN;
-                      if (!fen) return;
-                      await navigator.clipboard.writeText(fen);
-                      setFenCopied(true);
-                      setTimeout(() => setFenCopied(false), 1200);
-                    }}
+                    onClick={copyFen}
                     className={`copy-fen-btn ${fenCopied ? 'is-copied' : ''}`}
                     aria-label="Copy FEN"
                     title="Copy FEN"
